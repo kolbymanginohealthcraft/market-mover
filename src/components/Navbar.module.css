@@ -1,0 +1,47 @@
+/* src/components/Navbar.module.css */
+
+.nav {
+    background-color: #265947;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px; /* was 16px — reduced for consistency */
+    height: 64px; /* ✅ force consistent height */
+    box-sizing: border-box;
+  }
+  
+  .logoLink {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  
+  .logo {
+    height: 32px;
+    object-fit: contain;
+    display: block;
+  }
+  
+  .button {
+    color: #F1B62C;
+    background: none;
+    border: 1.5px solid #F1B62C;
+    padding: 6px 12px;        /* smaller padding */
+    border-radius: 4px;       /* slightly tighter border radius */
+    font-weight: 500;
+    font-size: 14px;          /* smaller font */
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    height: 32px;             /* matches logo height for visual alignment */
+    line-height: 1;
+  }
+  
+  
+  .button:hover {
+    background-color: #F1B62C;
+    color: #265947;
+  }
+  
