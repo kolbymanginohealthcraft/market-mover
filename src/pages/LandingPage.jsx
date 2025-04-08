@@ -1,7 +1,7 @@
+//LandingPage.jsx
 // src/pages/LandingPage.jsx
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import styles from './LandingPage.module.css';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -13,7 +13,6 @@ const LandingPage = () => {
 
   return (
     <>
-      <Navbar />
       <div className={styles.page}>
         <section className={styles.hero} data-aos="fade-up">
           <h1>Unlock Smarter Healthcare Decisions</h1>

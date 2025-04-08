@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import logo from '../assets/Healthcraft-white.png';
 import styles from './Navbar.module.css';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
-  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {

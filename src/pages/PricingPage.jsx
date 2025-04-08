@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import Navbar from '../components/Navbar'
 import styles from './PricingPage.module.css'
 
 const PLANS = [
@@ -52,7 +51,6 @@ const PricingPage = () => {
 
   return (
     <>
-      <Navbar />
       <div className={styles.page}>
         <h1 className={styles.title}>Pricing Plans</h1>
         <p className={styles.subtitle}>Annual subscriptions receive a 20% discount.</p>

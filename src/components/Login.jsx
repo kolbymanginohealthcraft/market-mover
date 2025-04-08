@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 import { supabase } from '../supabaseClient';
-import Navbar from './Navbar';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -52,7 +51,6 @@ const Login = () => {
 
   return (
     <>
-      <Navbar />
       <div className={styles.container}>
         <div className={styles.card}>
           <h1 className={styles.title}>

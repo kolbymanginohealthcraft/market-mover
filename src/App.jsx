@@ -11,19 +11,19 @@ import {
 import { supabase } from "./supabaseClient";
 
 import Layout from "./components/Layout";
-import Navbar from "./components/Navbar";
+import PublicLayout from "./components/PublicLayout"; // ✅ Make sure this exists and is imported
+
+// Pages
+import LandingPage from "./pages/LandingPage";
 import Login from "./components/Login";
-import Signup from './pages/Signup'
-import SelectPlan from './components/SelectPlan' // 👈 Import your component
-import ProfileSetup from './pages/ProfileSetup'
-
-
+import Signup from "./pages/Signup";
+import PricingPage from "./pages/PricingPage";
+import SelectPlan from "./components/SelectPlan";
+import ProfileSetup from "./pages/ProfileSetup";
 import Home from "./pages/Home";
 import Explore from "./pages/Explore";
 import ProviderSearch from "./pages/ProviderSearch";
 import ProviderDetail from "./pages/ProviderDetail";
-import LandingPage from "./pages/LandingPage";
-import PricingPage from "./pages/PricingPage";
 import UserProfile from "./pages/UserProfile";
 
 function App() {
@@ -53,33 +53,31 @@ function App() {
 
   return (
     <Routes>
-      {/* Public Routes (before login) */}
+      {/* Public pages */}
       {!session ? (
         <>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/select-plan" element={<SelectPlan />} /> {/* 👈 Add this */}
-
-          <Route path="/login" element={<Login />} />
-          <Route path="/pricing" element={<PricingPage />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/select-plan" element={<SelectPlan />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </>
       ) : (
-        // Private Routes (after login)
-        <Route path="/" element={<Layout />}>
-          {/* <Route path="/select-plan" element={<SelectPlan />} /> */}
-          <Route index element={<Navigate to="/home" />} />
-          <Route path="/profile-setup" element={<ProfileSetup />} />
-          <Route path="home" element={<Home />} />
-          <Route path="search" element={<ProviderSearch />} />
-          <Route path="explore" element={<Explore />} />
-          <Route path="provider/:id/*" element={<ProviderDetail />} />
-          <Route path="profile" element={<UserProfile />} />
-          <Route
-            path="*"
-            element={<p style={{ padding: "2rem" }}>Page not found</p>}
-          />
-        </Route>
+        <>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Navigate to="/home" />} />
+            <Route path="home" element={<Home />} />
+            <Route path="search" element={<ProviderSearch />} />
+            <Route path="explore" element={<Explore />} />
+            <Route path="provider/:id/*" element={<ProviderDetail />} />
+            <Route path="profile" element={<UserProfile />} />
+            <Route path="profile-setup" element={<ProfileSetup />} />
+            <Route path="*" element={<p style={{ padding: "2rem" }}>Page not found</p>} />
+          </Route>
+        </>
       )}
     </Routes>
   );
