@@ -5,7 +5,7 @@ import { supabase } from '../supabaseClient';
 import styles from './ProviderDetail.module.css';
 
 import OverviewTab from './Overview/OverviewTab';
-import NearbyTab from './nearby/NearbyTab'; // New import for Nearby Providers
+import NearbyTab from './Nearby/NearbyTab'; // New import for Nearby Providers
 
 function Spinner() {
   return (
