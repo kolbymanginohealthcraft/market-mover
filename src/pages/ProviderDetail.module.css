@@ -1,56 +1,37 @@
-.layoutContainer {
-  display: flex;
-  gap: 1rem;
-  height: 600px;
-  flex-direction: row;
-}
-
-@media (max-width: 768px) {
-  .layoutContainer {
-    flex-direction: column;
+/* ProviderDetail.module.css */
+.container {
+    padding: 2rem;
   }
-}
-
-.mapPanel {
-  flex: 1 1 50%;
-  min-width: 300px;
-  position: sticky;
-  top: 0;
-  height: 100%;
-}
-
-.tablePanel {
-  flex: 1 1 50%;
-  min-width: 300px;
-  overflow-y: auto;
-  max-height: 100%;
-  border-collapse: collapse;
-}
-
-.tablePanel thead tr {
-  position: sticky;
-  top: 0;
-  background-color: #265947;
-  color: white;
-  z-index: 2;
-}
-
-.filterBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.filterBar input[type="text"] {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  width: 60%;
-}
-
-.filterBar select {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+  
+  .subNavbar {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid #e0e0e0;
+    background-color: #f9f9f9;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .tab {
+    padding: 0.4rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #265947;
+    text-decoration: none;
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .tab:hover {
+    background-color: #e6f3f0;
+  }
+  
+  .activeTab {
+    background-color: #265947;
+    color: white;
+  }
+  

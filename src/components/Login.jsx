@@ -1,19 +1,25 @@
-// src/components/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 import { supabase } from '../supabaseClient';
-import Navbar from './Navbar'; // 👈 import the navbar
+import Navbar from './Navbar';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState('login'); // Modes: login, reset
+  const emailInputRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (emailInputRef.current) emailInputRef.current.focus();
+  }, [mode]);
 
   const resetForm = () => {
-    setStatus('');
     setEmail('');
     setPassword('');
+    setStatus('');
   };
 
   const handleAuth = async (e) => {
@@ -24,8 +30,6 @@ const Login = () => {
 
     if (mode === 'login') {
       ({ error } = await supabase.auth.signInWithPassword({ email, password }));
-    } else if (mode === 'signup') {
-      ({ error } = await supabase.auth.signUp({ email, password }));
     } else if (mode === 'reset') {
       ({ error } = await supabase.auth.resetPasswordForEmail(email));
     }
@@ -35,33 +39,39 @@ const Login = () => {
     } else {
       if (mode === 'reset') {
         setStatus('✅ Password reset email sent.');
-      } else if (mode === 'signup') {
-        setStatus('✅ Sign-up successful! Please check your email to confirm.');
       } else {
         setStatus('✅ Logged in!');
       }
     }
   };
 
+  const handleCreateAccount = () => {
+    resetForm();
+    navigate('/pricing'); // 👈 Go to pricing page
+  };
+
   return (
     <>
-      <Navbar /> {/* 👈 keep nav on login screen */}
+      <Navbar />
       <div className={styles.container}>
         <div className={styles.card}>
           <h1 className={styles.title}>
-            {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Create Account' : 'Reset Password'}
+            {mode === 'login' ? 'Welcome Back' : 'Reset Password'}
           </h1>
+
           <form onSubmit={handleAuth} className={styles.form}>
             <label htmlFor="email" className={styles.label}>Email</label>
             <input
               id="email"
               type="email"
+              ref={emailInputRef}
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={styles.input}
               required
             />
+
             {mode !== 'reset' && (
               <>
                 <label htmlFor="password" className={styles.label}>Password</label>
@@ -76,20 +86,33 @@ const Login = () => {
                 />
               </>
             )}
+
             <button type="submit" className={styles.button}>
-              {mode === 'login' ? 'Log In' : mode === 'signup' ? 'Sign Up' : 'Send Reset Email'}
+              {mode === 'login' ? 'Log In' : 'Send Reset Email'}
             </button>
           </form>
 
           <div className={styles.switchMode}>
             {mode === 'login' && (
               <>
-                <button onClick={() => { setMode('signup'); resetForm(); }} className={styles.link}>Create an account</button>
-                <button onClick={() => { setMode('reset'); resetForm(); }} className={styles.link}>Forgot password?</button>
+                <button onClick={handleCreateAccount} className={styles.link}>
+                  Create an account
+                </button>
+                <button
+                  onClick={() => { setMode('reset'); resetForm(); }}
+                  className={styles.link}
+                >
+                  Forgot password?
+                </button>
               </>
             )}
             {mode !== 'login' && (
-              <button onClick={() => { setMode('login'); resetForm(); }} className={styles.link}>← Back to login</button>
+              <button
+                onClick={() => { setMode('login'); resetForm(); }}
+                className={styles.link}
+              >
+                ← Back to login
+              </button>
             )}
           </div>
 

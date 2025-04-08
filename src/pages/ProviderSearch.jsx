@@ -1,61 +1,67 @@
-import { useState } from 'react'
-import { supabase } from '../supabaseClient'
-import { Link, useLocation } from 'react-router-dom'
-import styles from './ProviderSearch.module.css'
+// ProviderSearch.jsx
+import { useState, useRef, useEffect } from "react";
+import { supabase } from "../supabaseClient";
+import { Link } from "react-router-dom";
+import Button from "../components/Button";
+import FilterButton from "../components/FilterButton";
+import styles from "./ProviderSearch.module.css";
 
 export default function ProviderSearch() {
-  const location = useLocation()
-  const initial = location.state || {}
+  const [queryText, setQueryText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [selectedType, setSelectedType] = useState("All");
+  const [selectedState, setSelectedState] = useState("All");
+  const [error, setError] = useState(null);
 
-  const [queryText, setQueryText] = useState(initial.queryText || '')
-  const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState(initial.results || [])
-  const [selectedType, setSelectedType] = useState(initial.selectedType || 'All')
-  const [selectedState, setSelectedState] = useState(initial.selectedState || 'All')
-  const [error, setError] = useState(null)
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    searchInputRef.current.focus();
+  }, []);
 
   const handleSearch = async () => {
-    setLoading(true)
-    setError(null)
-    setSelectedType('All')
-    setSelectedState('All')
+    setLoading(true);
+    setError(null);
+    setSelectedType("All");
+    setSelectedState("All");
 
-    const q = queryText.trim()
+    const q = queryText.trim();
 
     const { data, error } = await supabase
-      .from('org-dhc')
-      .select('*')
+      .from("org-dhc")
+      .select("id, name, network, type, street, city, state, zip, phone")
       .or(
         `name.ilike.%${q}%,network.ilike.%${q}%,street.ilike.%${q}%,city.ilike.%${q}%,state.ilike.%${q}%,zip.ilike.%${q}%,phone.ilike.%${q}%`
-      )
+      );
 
     if (error) {
-      setError(error.message)
-      setResults([])
+      setError(error.message);
+      setResults([]);
     } else {
-      setResults(data)
+      setResults(data);
     }
 
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   const types = results.reduce((acc, item) => {
-    const t = item.type || 'Unknown'
-    acc[t] = (acc[t] || 0) + 1
-    return acc
-  }, {})
+    const t = item.type || "Unknown";
+    acc[t] = (acc[t] || 0) + 1;
+    return acc;
+  }, {});
 
   const states = results.reduce((acc, item) => {
-    const s = item.state || 'Unknown'
-    acc[s] = (acc[s] || 0) + 1
-    return acc
-  }, {})
+    const s = item.state || "Unknown";
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {});
 
   const visibleResults = results.filter((r) => {
-    const typeMatch = selectedType === 'All' || r.type === selectedType
-    const stateMatch = selectedState === 'All' || r.state === selectedState
-    return typeMatch && stateMatch
-  })
+    const typeMatch = selectedType === "All" || r.type === selectedType;
+    const stateMatch = selectedState === "All" || r.state === selectedState;
+    return typeMatch && stateMatch;
+  });
 
   return (
     <div className={styles.container}>
@@ -64,8 +70,8 @@ export default function ProviderSearch() {
       <form
         className={styles.form}
         onSubmit={(e) => {
-          e.preventDefault()
-          handleSearch()
+          e.preventDefault();
+          handleSearch();
         }}
       >
         <input
@@ -73,28 +79,27 @@ export default function ProviderSearch() {
           placeholder="Search by name, address, network, etc."
           value={queryText}
           onChange={(e) => setQueryText(e.target.value)}
+          ref={searchInputRef}
         />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
-        </button>
+        <Button type="submit" disabled={loading || !queryText.trim()}>
+          {loading ? "Searching..." : "Search"}
+        </Button>
       </form>
 
       {results.length > 0 && (
         <div className={styles.tabSection}>
           <h4 className={styles.tabTitle}>Provider Type</h4>
           <div className={styles.tabs}>
-            {['All', ...Object.keys(types)].map((type) => (
-              <button
+            {["All", ...Object.keys(types).sort()].map((type) => (
+              <FilterButton
                 key={type}
-                className={`${styles.tab} ${
-                  selectedType === type ? styles.activeTab : ''
-                }`}
+                isActive={selectedType === type}
                 onClick={() => setSelectedType(type)}
               >
-                {type === 'All'
+                {type === "All"
                   ? `All (${results.length})`
                   : `${type} (${types[type]})`}
-              </button>
+              </FilterButton>
             ))}
           </div>
         </div>
@@ -104,18 +109,16 @@ export default function ProviderSearch() {
         <div className={styles.tabSection}>
           <h4 className={styles.tabTitle}>State</h4>
           <div className={styles.tabs}>
-            {['All', ...Object.keys(states).sort()].map((state) => (
-              <button
+            {["All", ...Object.keys(states).sort()].map((state) => (
+              <FilterButton
                 key={state}
-                className={`${styles.tab} ${
-                  selectedState === state ? styles.activeTab : ''
-                }`}
+                isActive={selectedState === state}
                 onClick={() => setSelectedState(state)}
               >
-                {state === 'All'
+                {state === "All"
                   ? `All (${results.length})`
                   : `${state} (${states[state]})`}
-              </button>
+              </FilterButton>
             ))}
           </div>
         </div>
@@ -124,36 +127,30 @@ export default function ProviderSearch() {
       {visibleResults.length > 0 && (
         <div className={styles.results}>
           <h3>
-            {selectedType} {selectedState !== 'All' ? `in ${selectedState}` : ''} Results
+            {selectedType}{" "}
+            {selectedState !== "All" ? `in ${selectedState}` : ""} Results
           </h3>
-          <ul>
+
+          <div className={styles.cardList}>
             {visibleResults.map((org) => (
-              <li key={org.id}>
-                <Link
-                  to={`/provider/${org.id}`}
-                  state={{
-                    queryText,
-                    results,
-                    selectedType,
-                    selectedState,
-                  }}
-                  style={{
-                    textDecoration: 'none',
-                    color: '#0077cc',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {org.name}
-                </Link>
-                <br />
-                {org.network}
-                <br />
-                {org.street}, {org.city}, {org.state} {org.zip}
-                <br />
-                {org.phone}
-              </li>
+              <Link
+                to={`/provider/${org.id}/overview`} // ✅ route to overview tab
+                key={org.id}
+                className={styles.cardLink}
+              >
+                <div className={styles.card}>
+                  <div className={styles.providerName}>{org.name}</div>
+                  <div className={styles.details}>
+                    {org.network && <div>{org.network}</div>}
+                    <div>
+                      {org.street}, {org.city}, {org.state} {org.zip}
+                    </div>
+                    {org.phone && <div>{org.phone}</div>}
+                  </div>
+                </div>
+              </Link>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
@@ -163,5 +160,5 @@ export default function ProviderSearch() {
 
       {error && <p className={styles.error}>{error}</p>}
     </div>
-  )
+  );
 }

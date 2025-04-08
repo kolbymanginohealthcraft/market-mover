@@ -1,29 +1,24 @@
-import { Link } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
-import styles from './Home.module.css'
+import { Link } from 'react-router-dom';
+import styles from './Home.module.css';
 
 export default function Home() {
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.reload()
-  }
-
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>Welcome to the Analytics Dashboard</h2>
-      <div>
-        <Link to="/search">
-          <button className={styles.button}>Search for a Provider</button>
+      <h2 className={styles.heading}>Welcome! What would you like to do?</h2>
+      <div className={styles.optionsGrid}>
+        <Link to="/search" className={styles.card}>
+          <div className={styles.icon}>🔍</div>
+          <div className={styles.label}>Search for a Provider</div>
         </Link>
-        <Link to="/explore">
-          <button className={styles.button}>Explore the Industry</button>
+        <Link to="/explore" className={styles.card}>
+          <div className={styles.icon}>🌐</div>
+          <div className={styles.label}>Explore the Industry</div>
         </Link>
-      </div>
-      <div style={{ marginTop: '2rem' }}>
-        <button onClick={handleLogout} className={styles.button}>
-          Log out
-        </button>
+        <Link to="/decision" className={styles.card}>
+          <div className={styles.icon}>💡</div>
+          <div className={styles.label}>Help Me Decide</div>
+        </Link>
       </div>
     </div>
-  )
+  );
 }
