@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import logo from '../assets/Healthcraft-white.png';
+import logo from '../assets/Healthcraft-White.png';
 import styles from './Navbar.module.css';
 
 const Navbar = () => {
