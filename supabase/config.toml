@@ -328,3 +328,14 @@ entrypoint = "./functions/get-bigquery-data/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/get-bigquery-data/*.html" ]
+
+[functions.get_providers_within_radius]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get_providers_within_radius/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/get_providers_within_radius/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/get_providers_within_radius/*.html" ]

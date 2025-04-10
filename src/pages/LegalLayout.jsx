@@ -1,27 +1,33 @@
 // src/pages/LegalLayout.jsx
 
 import React, { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import styles from './TermsAndConditions.module.css';
-import LegalNavbar from '../components/LegalNavbar';  // Import the updated LegalNavbar
+import LegalNavbar from '../components/LegalNavbar';
 
 function LegalLayout() {
-  // Scroll to top when switching between tabs
+  const location = useLocation();
+
+  // Disable automatic scroll restoration
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
   }, []);
 
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
+
   const closeWindow = () => {
-    window.close(); // Closes the popup window
+    window.close();
   };
 
   return (
     <div className={styles.container}>
-      {/* Render the custom LegalNavbar */}
       <LegalNavbar closeWindow={closeWindow} />
-
       <div className={styles.contentWrapper}>
-        {/* Render the content of the selected tab */}
         <Outlet />
       </div>
     </div>

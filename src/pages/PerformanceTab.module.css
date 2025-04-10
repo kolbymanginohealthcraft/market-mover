@@ -1,0 +1,10 @@
+/* src/pages/PerformanceTab.module.css */
+
+.container {
+    padding: 2rem;
+  }
+  
+  .chartWrapper {
+    height: 400px;
+  }
+  

@@ -1,3 +1,4 @@
+// ProviderDetail.jsx
 // ProviderDetail.jsx with Sub Navbar for Overview and Nearby Providers
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, NavLink, Routes, Route, Navigate } from 'react-router-dom';
@@ -6,6 +7,7 @@ import styles from './ProviderDetail.module.css';
 
 import OverviewTab from './Overview/OverviewTab';
 import NearbyTab from './Nearby/NearbyTab'; // New import for Nearby Providers
+
 
 function Spinner() {
   return (

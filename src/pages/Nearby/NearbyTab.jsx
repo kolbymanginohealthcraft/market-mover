@@ -1,4 +1,4 @@
-// NearbyTab.jsx
+// NearbyTab.jsx THIS IS THE ORIGINAL
 import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
@@ -13,7 +13,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import styles from "./NearbyTab.module.css";
 import { supabase } from "../../supabaseClient"; // Correct path for supabaseClient
-import { ResponsiveBar } from "@nivo/bar"; // Import Nivo Bar Chart
+import ProviderBarChart from "./ProviderBarChart"; // Adjust the path as needed
 
 // Spinner component for loading state
 const Spinner = () => {
@@ -59,6 +59,17 @@ export default function NearbyTab({ provider }) {
 
   const cachedProviders = useRef(null); // Cache for all providers
 
+  // Set center point and bounding box
+  const lat = provider.latitude;
+  const lon = provider.longitude;
+  const boundingboxmargin = 2;
+  const latMin = lat - boundingboxmargin;
+  const latMax = lat + boundingboxmargin;
+  const lonMin = lon - boundingboxmargin;
+  const lonMax = lon + boundingboxmargin;
+
+
+
   // Haversine formula to calculate distance in miles between two points
   const haversineDistanceMiles = ([lat1, lon1], [lat2, lon2]) => {
     const R = 3958.8; // Radius of Earth in miles
@@ -86,12 +97,7 @@ export default function NearbyTab({ provider }) {
     setZoomLevel(calculateZoomLevel(radiusInMiles)); // Update zoom level when radius changes
 
     const fetchNearbyProviders = async () => {
-      const lat = provider.latitude;
-      const lon = provider.longitude;
-      const latMin = lat - 0.02;
-      const latMax = lat + 0.02;
-      const lonMin = lon - 0.02;
-      const lonMax = lon + 0.02;
+      
 
       // Fetch all nearby providers within the bounding box (100 miles max)
       let allProviders = [];
@@ -212,42 +218,10 @@ export default function NearbyTab({ provider }) {
         />
       </div>
 
-      {/* Bar Chart showing the number of providers by type */}
       <div style={{ height: "300px", marginTop: "2rem" }}>
-        <ResponsiveBar
-          data={barChartData()}
-          keys={["count"]}
-          indexBy="type"
-          margin={{ top: 20, right: 20, bottom: 20, left: 200 }}
-          padding={0.2}
-          layout="horizontal"
-          // colors={{ scheme: 'nivo' }}
-          colors={[
-            "#265947",
-            "#F1B62C",
-            "#1DADBE",
-            "#3FB985",
-            "#D64550",
-            "#26D9D8",
-            "#3599B8",
-            "#4AC5BB",
-            "#5F6B6D",
-          ]} // Your custom colors
-          borderRadius={3}
-          axisLeft={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            legend: "",
-            legendPosition: "middle",
-            legendOffset: -40,
-          }}
-          labelPosition="end"
-          labelOffset={12}
-          enableGridY={false}
-          axisBottom={null}
-        />
-      </div>
+  <ProviderBarChart data={barChartData()} />
+</div>
+
 
       <MapContainer
         center={[provider.latitude, provider.longitude]}

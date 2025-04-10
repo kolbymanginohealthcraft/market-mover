@@ -31,25 +31,21 @@ const ProviderBarChart = ({ data }) => {
       data={data}
       keys={['count']}
       indexBy="type"
-      margin={{ top: 20, right: 60, bottom: 60, left: 80 }} // Adjust margins
+      margin={{ top: 20, right: 80, bottom: 20, left: 200 }} // Adjust margins
       padding={0.3}
       layout="horizontal"
       colors={['#265947', '#F1B62C', '#1DADBE', '#3FB985', '#D64550', '#26D9D8', '#3599B8', '#4AC5BB', '#5F6B6D']}
       borderRadius={2}
-      axisBottom={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: 0,
-        legend: 'Provider Count',
-        legendPosition: 'middle',
-        legendOffset: 32,
-      }}
+      axisBottom={null}
+      labelPosition="end"
+      labelOffset={10}
+      enableGridY={false}
+
+
       axisLeft={{
-        tickSize: 5,
+        tickSize: 0,
         tickPadding: 10, // Adjust padding for the left axis
         tickRotation: 0, // Set to 0 for horizontal labels
-        legend: 'Type',
-        legendPosition: 'middle',
         legendOffset: -60, // Adjust this to control the space for the labels
         tickComponent: CustomAxisTick, // Use custom tick component
       }}

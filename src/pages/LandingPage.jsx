@@ -17,7 +17,7 @@ const LandingPage = () => {
         <section className={styles.hero} data-aos="fade-up">
           <h1>Unlock Smarter Healthcare Decisions</h1>
           <p>Healthcraft empowers providers and suppliers with actionable data and insight tools.</p>
-          <Link to="/login" className={styles.cta}>Get Started</Link>
+          <Link to="/pricing" className={styles.cta}>Get Started</Link>
         </section>
 
         <section className={styles.about} data-aos="fade-right">
@@ -56,7 +56,7 @@ const LandingPage = () => {
 
         <section className={styles.ctaSection} data-aos="fade-up">
           <h2>Ready to Explore?</h2>
-          <Link to="/login" className={styles.ctaAlt}>Create an Account</Link>
+          <Link to="/pricing" className={styles.ctaAlt}>Create an Account</Link>
         </section>
       </div>
     </>
