@@ -1,74 +1,115 @@
-/* src/pages/PricingPage.module.css */
-
 .page {
-    padding: 80px 24px;
-    text-align: center;
-    font-family: 'Work Sans', 'ASAP', sans-serif;
-  }
-  
-  .title {
-    font-size: 2rem;
-    margin-bottom: 48px;
-    color: #265947;
-  }
-  
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 24px;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  
-  .card {
-    background-color: #f9fbfa;
-    border: 1px solid #dfe6e3;
-    border-radius: 12px;
-    padding: 32px 24px;
-    text-align: left;
-  }
-  
-  .card h2 {
-    margin-bottom: 12px;
-    color: #265947;
-  }
-  
-  .price {
-    font-size: 1.5rem;
-    color: #F1B62C;
-    margin-bottom: 16px;
-  }
-  
-  .card ul {
-    list-style: none;
-    padding-left: 0;
-    color: #5f6b6d;
-  }
-  
-  .card li {
-    margin-bottom: 8px;
-  }
-  
-  .subtitle {
-    font-size: 1rem;
-    color: #5f6b6d;
-    margin-bottom: 32px;
-  }
-  
+  padding: 80px 24px;
+  text-align: center;
+  font-family: 'Work Sans', 'ASAP', sans-serif;
+}
 
-  .button {
-    margin-top: 16px;
-    padding: 10px 20px;
-    background-color: #265947;
-    color: white;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .button:hover {
-    background-color: #1d4037;
-  }
-  
+.title {
+  font-size: 2rem;
+  margin-bottom: 48px;
+  color: #265947;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #5f6b6d;
+  margin-bottom: 32px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto 48px auto;
+}
+
+.card {
+  background-color: #f9fbfa;
+  border: 1px solid #dfe6e3;
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: left;
+}
+
+.card h2 {
+  margin-bottom: 12px;
+  color: #265947;
+}
+
+.price {
+  font-size: 1.5rem;
+  color: #F1B62C;
+  margin-bottom: 16px;
+}
+
+.card ul {
+  list-style: none;
+  padding-left: 0;
+  color: #5f6b6d;
+}
+
+.card {
+  background-color: #f9fbfa;
+  border: 1px solid #dfe6e3;
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: left;
+  position: relative; /* Needed for absolute badge */
+}
+
+.badge {
+  position: absolute;
+  top: -14px;
+  left: 24px;
+  background-color: #F1B62C;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+
+.button {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background-color: #265947;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.button:hover {
+  background-color: #1d4037;
+}
+
+/* Minimal Free row */
+.freeRowMinimal {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #5f6b6d;
+}
+
+.linkButton {
+  background: none;
+  color: #3599b8;
+  border: none;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.linkButton:hover {
+  color: #1d6f94;
+}

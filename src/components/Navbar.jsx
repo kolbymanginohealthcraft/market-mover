@@ -40,7 +40,9 @@ const Navbar = () => {
             <Link to="/home" className={styles.link}>Home</Link>
             <Link to="/search" className={styles.link}>Search</Link>
             <Link to="/explore" className={styles.link}>Explore</Link>
-            <Link to="/profile" className={styles.link}>Profile</Link> {/* ✅ New link */}
+            <Link to="/profile" className={styles.link}>Profile</Link>
+            {/* New Markets button */}
+            <Link to="/markets" className={styles.link}>Markets</Link>
             <button onClick={handleLogout} className={styles.logoutButton}>
               Logout
             </button>
