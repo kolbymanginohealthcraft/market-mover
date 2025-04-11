@@ -1,6 +1,7 @@
+// src/pages/UserProfile.jsx
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import styles from './UserProfile.module.css';
+import styles from '../styles/AuthForm.module.css';
 
 export default function UserProfile() {
   const [profile, setProfile] = useState({
@@ -13,7 +14,6 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Load profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -40,13 +40,11 @@ export default function UserProfile() {
     fetchProfile();
   }, []);
 
-  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Save profile to Supabase
   const handleSave = async () => {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -61,7 +59,7 @@ export default function UserProfile() {
 
     if (error) {
       console.error('Error saving profile:', error.message);
-      setMessage(`❌ Error saving profile: ${error.message}`); // update this line
+      setMessage(`❌ Error saving profile: ${error.message}`);
     } else {
       setMessage('✅ Profile updated successfully');
     }
@@ -71,61 +69,67 @@ export default function UserProfile() {
 
   return (
     <div className={styles.container}>
-      <h2>Edit Your Profile</h2>
+      <div className={styles.card}>
+        <h2 className={styles.title}>Edit Your Profile</h2>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
-          <label>
-            First Name
-            <input
-              name="first_name"
-              value={profile.first_name}
-              onChange={handleChange}
-              type="text"
-              required
-            />
-          </label>
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>First Name</label>
+              <input
+                className={styles.input}
+                name="first_name"
+                value={profile.first_name}
+                onChange={handleChange}
+                type="text"
+                required
+              />
+            </div>
 
-          <label>
-            Last Name
-            <input
-              name="last_name"
-              value={profile.last_name}
-              onChange={handleChange}
-              type="text"
-              required
-            />
-          </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Last Name</label>
+              <input
+                className={styles.input}
+                name="last_name"
+                value={profile.last_name}
+                onChange={handleChange}
+                type="text"
+                required
+              />
+            </div>
 
-          <label>
-            Company
-            <input
-              name="company"
-              value={profile.company}
-              onChange={handleChange}
-              type="text"
-            />
-          </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Company</label>
+              <input
+                className={styles.input}
+                name="company"
+                value={profile.company}
+                onChange={handleChange}
+                type="text"
+              />
+            </div>
 
-          <label>
-            Title
-            <input
-              name="title"
-              value={profile.title}
-              onChange={handleChange}
-              type="text"
-            />
-          </label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Job Title</label>
+              <input
+                className={styles.input}
+                name="title"
+                value={profile.title}
+                onChange={handleChange}
+                type="text"
+              />
+            </div>
 
-          <button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
+            <button className={styles.button} onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
 
-          {message && <p className={styles.message}>{message}</p>}
-        </form>
-      )}
+            {message && <p className={styles.error}>{message}</p>}
+          </form>
+        )}
+      </div>
     </div>
   );
 }

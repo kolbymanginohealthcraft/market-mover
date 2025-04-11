@@ -1,4 +1,3 @@
-// ProviderSearch.jsx
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { Link } from "react-router-dom";
@@ -17,7 +16,7 @@ export default function ProviderSearch() {
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    searchInputRef.current.focus();
+    searchInputRef.current?.focus();
   }, []);
 
   const handleSearch = async () => {
@@ -75,6 +74,7 @@ export default function ProviderSearch() {
           }}
         >
           <input
+            className={styles.input} // ⬅️ Apply consistent styling
             type="text"
             placeholder="Search by name, address, etc."
             value={queryText}
@@ -126,7 +126,6 @@ export default function ProviderSearch() {
       </div>
 
       <div className={styles.main}>
-        {/* 👋 Welcome screen before any search */}
         {!loading && results.length === 0 && (
           <div className={styles.welcomeMessage}>
             <h3>Search for a Provider</h3>
@@ -137,7 +136,6 @@ export default function ProviderSearch() {
           </div>
         )}
 
-        {/* ✅ Results */}
         {visibleResults.length > 0 && (
           <div className={styles.results}>
             <h3>

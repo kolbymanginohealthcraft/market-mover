@@ -30,7 +30,26 @@
   border-radius: 12px;
   padding: 32px 24px;
   text-align: left;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  
 }
+
+.card ul {
+  flex-grow: 1;
+  margin: 0 0 12px 0;
+  padding-left: 1rem;           /* ✅ Indent for bullet */
+  list-style-type: disc;        /* ✅ Real bullet points */
+  color: #5f6b6d;
+  font-size: 0.95rem;
+}
+
+.card li {
+  margin-bottom: 6px;           /* ✅ Tighter spacing between bullets */
+  line-height: 1.4;
+}
+
 
 .card h2 {
   margin-bottom: 12px;
@@ -43,11 +62,7 @@
   margin-bottom: 16px;
 }
 
-.card ul {
-  list-style: none;
-  padding-left: 0;
-  color: #5f6b6d;
-}
+
 
 .card {
   background-color: #f9fbfa;
@@ -76,7 +91,7 @@
 
 
 .button {
-  margin-top: 16px;
+  margin-top: 20px;
   padding: 10px 20px;
   background-color: #265947;
   color: white;

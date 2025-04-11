@@ -1,3 +1,4 @@
+/* Navbar.module.css */
 /* src/components/Navbar.module.css */
 
 .nav {
@@ -61,6 +62,7 @@
 
 .link:hover {
   text-decoration: underline;
+  color: #F1B62C;
 }
 
 .logoutButton {
@@ -82,4 +84,5 @@
 .logoutButton:hover {
   background-color: #F1B62C;
   color: #265947;
+  border-color: #1f4c3e; /* ✅ Darker green outline on hover */
 }
