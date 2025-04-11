@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import styles from "../styles/AuthForm.module.css";
-import localStyles from "./SignUp.module.css"; // ✅ Only for termsRow + termsLink
+import localStyles from "./Signup.module.css"; // ✅ Only for termsRow + termsLink
 
 function SignUp() {
   const navigate = useNavigate();
