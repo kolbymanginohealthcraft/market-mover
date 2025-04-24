@@ -1,0 +1,96 @@
+/* src/styles/AuthForm.module.css */
+
+.container {
+  max-width: 500px;
+  margin: 80px auto; /* pushes card down a bit from top */
+  padding: 2rem;
+  background-color: #f6f9f8;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  width: 100%;
+}
+
+.title {
+  color: #265947;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.form label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: #5f6b6d;
+}
+
+.label {
+  font-weight: 600;
+  color: #5f6b6d;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.input {
+  padding: 12px;
+  margin-top: 0;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border: 2px solid #3599b8;
+  background-color: #fff9e6;
+  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2);
+}
+
+.button {
+  background-color: #265947;
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+}
+
+.button:hover {
+  background-color: #1f4c3e;
+}
+
+.button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #d64550;
+  font-size: 14px;
+  text-align: center;
+  margin-top: -8px;
+}

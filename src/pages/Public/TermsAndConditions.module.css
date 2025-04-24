@@ -1,0 +1,65 @@
+/* src/pages/TermsAndConditions.module.css */
+
+.container {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 0 24px;
+  font-family: 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+.contentWrapper {
+  margin-top: 60px; /* Ensure there is enough space for the fixed navbar */
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #265947;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin-top: 2rem;
+  color: #1d4037;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+a {
+  color: #3599b8;
+  text-decoration: underline;
+}
+
+.tabContainer {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.activeTab {
+  font-weight: bold;
+  color: #265947;
+  border-bottom: 2px solid #265947;
+  padding-bottom: 4px;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.inactiveTab {
+  color: #5f6b6d;
+  text-decoration: none;
+  padding-bottom: 4px;
+  transition: color 0.3s;
+}
+
+.tabContent {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.tabContent.active {
+  opacity: 1;
+}

@@ -1,0 +1,147 @@
+.container {
+  display: flex;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.sidebar {
+  width: 250px;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-right: 1px solid #ddd;
+  height: 100vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+}
+
+.sidebarTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.sidebarHint {
+  font-size: 0.75rem;
+  color: #777;
+  margin-bottom: 0.5rem;
+}
+
+.metricList,
+.unselectedList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.metricItem {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.metricItem:hover {
+  background-color: #e8f2f6;
+}
+
+.metricLabel {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.metricLabel input {
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+.dragHandle {
+  margin-right: 8px;
+  font-size: 1rem;
+  cursor: grab;
+  color: #888;
+  user-select: none;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.unselectedItem {
+  color: #999;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+.unselectedItem input {
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+.divider {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid #ccc;
+}
+
+.tableContainer {
+  flex-grow: 1;
+  padding: 2rem;
+  overflow-x: auto;
+}
+
+.title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #265947;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+th,
+td {
+  border: 1px solid #e0e0e0;
+  padding: 0.5rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+th {
+  background-color: #f3f3f3;
+}
+
+.stickyCol {
+  position: sticky;
+  left: 0;
+  background-color: white;
+  z-index: 1;
+  text-align: left;
+  font-weight: 600;
+}
+
+.good {
+  background-color: #d4f4d4;
+  color: #265947;
+  font-weight: bold;
+}
+
+.bad {
+  background-color: #f8d4d4;
+  color: #8a1f1f;
+  font-weight: bold;
+}
+
+.neutral {
+  background-color: #f5f5f5;
+  color: #444;
+}

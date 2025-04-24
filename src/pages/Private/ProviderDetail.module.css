@@ -1,0 +1,45 @@
+.headerInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+    background-color: #f9f9f9;
+  }
+  
+  .headerInfo h2 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  
+  .headerInfo p {
+    margin: 0.25rem 0 0;
+    color: #666;
+  }
+  
+  .buildMarketButton {
+    background-color: #1DADBE;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .buildMarketButton:hover {
+    background-color: #1599a8;
+  }
+
+  .typeBadge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    background-color: #1dadbe;
+    color: white;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 1rem;
+    text-transform: capitalize;
+  }
+  

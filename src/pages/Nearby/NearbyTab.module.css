@@ -1,0 +1,93 @@
+.container {
+  padding: 1.5rem;
+  font-family: sans-serif;
+}
+
+.controlsCompact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 120px;
+}
+
+.slider {
+  width: 160px;
+  height: 2rem;
+}
+
+.searchInput {
+  padding: 0.4rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+  width: 100%;
+  max-width: 250px;
+}
+
+select,
+input[type="text"] {
+  padding: 0.4rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+}
+
+.providerCount {
+  margin-left: auto;
+  font-weight: 500;
+  padding-bottom: 0.3rem;
+  white-space: nowrap;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+
+.table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.table tr:hover {
+  background-color: #f0f8ff;
+}
+
+.highlightedRow {
+  background-color: #fff8cc !important;
+}
+
+.clickableRow {
+  cursor: pointer;
+}

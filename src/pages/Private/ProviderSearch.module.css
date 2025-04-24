@@ -1,0 +1,115 @@
+.page {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  padding: 2rem;
+}
+
+.sidebar {
+  background: #f9fbfa;
+  padding: 1rem;
+  border: 1px solid #dfe6e3;
+  border-radius: 8px;
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  height: fit-content;
+  z-index: 1;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+.input {
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  background-color: #fff;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3599b8;
+  background-color: #fffdf4;
+  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2);
+}
+
+.filterSection {
+  margin-bottom: 1.5rem;
+}
+
+.filterButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cardLink:hover .card {
+  background-color: #fff8e5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.providerName {
+  font-weight: bold;
+  color: #265947;
+  margin-bottom: 0.25rem;
+}
+
+.details {
+  color: #5f6b6d;
+  font-size: 0.9rem;
+}
+
+.cardLink {
+  text-decoration: none;
+  color: inherit;
+}
+
+.error {
+  color: red;
+}
+
+.welcomeMessage {
+  padding: 2rem;
+  border: 1px dashed #dfe6e3;
+  border-radius: 8px;
+  background: #fefdf9;
+  text-align: center;
+  color: #5f6b6d;
+}
+
+.welcomeMessage h3 {
+  color: #265947;
+  margin-bottom: 0.5rem;
+}
