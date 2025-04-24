@@ -148,7 +148,7 @@ export default function NearbyTab({ provider }) {
               <th style={{ width: "20%" }}>Name</th>
               <th style={{ width: "20%" }}>Network</th>
               <th style={{ width: "20%" }}>Address</th>
-              <th style={{ width: "8%" }}>Type</th>
+              <th style={{ width: "10%" }}>Type</th>
               <th style={{ width: "6%" }}>Distance</th>
             </tr>
           </thead>

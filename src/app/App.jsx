@@ -89,19 +89,11 @@ function App() {
           <Route path="explore" element={<Explore />} />
           <Route path="markets" element={<MarketsPage />} />
           <Route path="profile" element={<UserProfile />} />
-
-          {/* Main provider route handles overview + nearby + fallback */}
           <Route path="provider/:id/*" element={<ProviderDetail />} />
-          {/* <Route path="provider/:id/scorecard" element={<ScorecardPage />} /> */}
-          {/* <Route path="provider/:id/charts" element={<ChartDashboard />} /> */}
-
-          {/* Optional test routes until everything is dynamic */}
-          {/* <Route path="scorecard" element={<Navigate to="provider/123456/scorecard" />} /> */}
-          {/* <Route path="charts" element={<Navigate to="provider/123456/charts" />} /> */}
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to={session ? "/app/home" : "/"} />} />
       </Routes>
     </>
   );
