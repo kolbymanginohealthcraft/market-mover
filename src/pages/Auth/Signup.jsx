@@ -1,4 +1,3 @@
-// src/pages/SignUp.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
@@ -109,7 +108,7 @@ function SignUp() {
               <span
                 className={localStyles.termsLink}
                 onClick={() =>
-                  window.open("/terms", "termsWindow", "width=600,height=700")
+                  window.open("/legal/terms", "termsWindow", "width=600,height=700")
                 }
               >
                 Terms and Conditions

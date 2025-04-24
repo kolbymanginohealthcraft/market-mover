@@ -13,14 +13,14 @@ const LegalNavbar = ({ closeWindow }) => {
         {/* Tabs for Terms & Privacy */}
         <div className={styles.tabContainer}>
           <Link
-            to="/terms"
-            className={location.pathname === '/terms' ? styles.activeTab : styles.inactiveTab}
+            to="/legal/terms"
+            className={location.pathname === '/legal/terms' ? styles.activeTab : styles.inactiveTab}
           >
             Terms & Conditions
           </Link>
           <Link
-            to="/privacy"
-            className={location.pathname === '/privacy' ? styles.activeTab : styles.inactiveTab}
+            to="/legal/privacy"
+            className={location.pathname === '/legal/privacy' ? styles.activeTab : styles.inactiveTab}
           >
             Privacy Policy
           </Link>

@@ -56,7 +56,7 @@ function TermsAndConditions() {
         <h2>6. Privacy</h2>
         <p>
   Our{' '}
-  <a href="/privacy" style={{ textDecoration: 'underline', color: '#3599b8' }}>
+  <a href="/legal/privacy" style={{ textDecoration: 'underline', color: '#3599b8' }}>
     Privacy Policy
   </a>{' '}
   outlines how we collect and use your data.

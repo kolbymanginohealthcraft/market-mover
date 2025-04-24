@@ -1,4 +1,3 @@
-// src/components/PublicLayout.jsx
 import { Outlet } from 'react-router-dom';
 import Navbar from '../Navigation/Navbar'; // shows login/signup
 import { Analytics } from '@vercel/analytics/react';

@@ -1,4 +1,3 @@
-// src/components/Navbar.jsx
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from "../../app/supabaseClient";
@@ -11,22 +10,32 @@ const Navbar = () => {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("✅ getSession result:", session);
       setUser(session?.user || null);
     });
-
+  
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("📣 Auth change event: ", _event, session);
       setUser(session?.user || null);
     });
-
+  
     return () => {
       listener?.subscription?.unsubscribe();
     };
   }, []);
+  
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    const { error } = await supabase.auth.signOut();
+  
+    if (error) {
+      console.error("Logout failed:", error.message);
+    } else {
+      console.log("✅ Supabase signOut succeeded");
+      navigate("/");
+    }
   };
+  
 
   return (
     <nav className={styles.nav}>
