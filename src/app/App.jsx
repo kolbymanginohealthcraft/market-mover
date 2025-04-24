@@ -29,7 +29,7 @@ import ProviderSearch from "../pages/Private/ProviderSearch";
 import ProviderDetail from "../pages/Private/ProviderDetail";
 import UserProfile from "../pages/Auth/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
-import ChartDashboard from "../Components/Charts/ChartDashboard";
+import ChartDashboard from "../components/Charts/ChartDashboard";
 import ScorecardPage from "../pages/Private/ScorecardPage";
 
 function App() {
