@@ -1,8 +1,31 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import L from "leaflet";
 import { supabase } from "../../app/supabaseClient";
 import Spinner from "../../components/Buttons/Spinner";
 import styles from "./NearbyTab.module.css";
+
+
+// Custom icons
+const defaultIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  shadowSize: [41, 41],
+});
+
+const selectedIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  shadowSize: [41, 41],
+});
 
 export default function NearbyTab({ provider }) {
   const [nearbyProviders, setNearbyProviders] = useState([]);
@@ -16,6 +39,8 @@ export default function NearbyTab({ provider }) {
 
   const lat = provider.latitude;
   const lon = provider.longitude;
+  console.log("Circle center:", lat, lon);
+
   const boundingboxmargin = 2;
   const latMin = lat - boundingboxmargin;
   const latMax = lat + boundingboxmargin;
@@ -39,7 +64,9 @@ export default function NearbyTab({ provider }) {
     const fetchNearbyProviders = async () => {
       const { data, error } = await supabase
         .from("org-dhc")
-        .select("id, name, network, street, city, state, zip, latitude, longitude, type")
+        .select(
+          "id, name, network, street, city, state, zip, latitude, longitude, type"
+        )
         .order("id", { ascending: true })
         .filter("latitude", "gte", latMin)
         .filter("latitude", "lte", latMax)
@@ -57,7 +84,9 @@ export default function NearbyTab({ provider }) {
         distance: haversineDistanceMiles([lat, lon], [p.latitude, p.longitude]),
       }));
 
-      const deduped = Array.from(new Map(enrichedData.map((p) => [p.id, p])).values());
+      const deduped = Array.from(
+        new Map(enrichedData.map((p) => [p.id, p])).values()
+      );
 
       const types = Array.from(
         new Set(deduped.map((p) => p.type || "Unknown"))
@@ -93,7 +122,8 @@ export default function NearbyTab({ provider }) {
 
   const providerCount = filteredResults.length.toLocaleString();
 
-  if (loading || !provider) return <Spinner message="Loading nearby providers..." />;
+  if (loading || !provider)
+    return <Spinner message="Loading nearby providers..." />;
 
   return (
     <div className={styles.container}>
@@ -137,8 +167,58 @@ export default function NearbyTab({ provider }) {
         </div>
 
         <div className={styles.providerCount}>
-          Showing {providerCount} provider{filteredResults.length !== 1 ? "s" : ""}
+          Showing {providerCount} provider
+          {filteredResults.length !== 1 ? "s" : ""}
         </div>
+      </div>
+
+      <div
+        className={styles.mapWrapper}
+        style={{ height: "400px", marginBottom: "1rem" }}
+      >
+        <MapContainer
+          center={[lat, lon]}
+          zoom={10}
+          scrollWheelZoom={false}
+          style={{ height: "100%", width: "100%", zIndex: 0 }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+
+          <Circle
+            center={[lat, lon]}
+            radius={radiusInMiles * 1609.34}
+            pathOptions={{ color: "#d64550", weight: 2, fillOpacity: 0.15 }}
+            eventHandlers={{
+              add: (e) => console.log("Circle added", e.target),
+              error: (e) => console.log("Circle error", e),
+            }}
+          >
+            <Popup>Radius: {radiusInMiles} mi</Popup>
+          </Circle>
+
+          <Marker position={[lat, lon]} icon={selectedIcon}>
+            <Popup>
+              <strong>{provider.name}</strong>
+              <br />Selected Provider
+            </Popup>
+          </Marker>
+
+          {filteredResults.map(
+            (p) =>
+              p.id !== provider.id && (
+                <Marker
+                  key={p.id}
+                  position={[p.latitude, p.longitude]}
+                  icon={defaultIcon}
+                >
+                  <Popup>{p.name}</Popup>
+                </Marker>
+              )
+          )}
+        </MapContainer>
       </div>
 
       <div className={styles.tableWrapper}>
