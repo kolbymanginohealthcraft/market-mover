@@ -27,10 +27,11 @@ import Home from "../pages/Private/Home";
 import Explore from "../pages/Private/Explore";
 import ProviderSearch from "../pages/Private/ProviderSearch";
 import ProviderDetail from "../pages/Private/ProviderDetail";
-import UserProfile from "../pages/Auth/UserProfile";
+import UserProfile from "../pages/Private/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
-import ChartDashboard from "../components/Charts/ChartDashboard";
+import ChartDashboard from "../pages/Private/ChartDashboard";
 import ScorecardPage from "../pages/Private/ScorecardPage";
+
 
 function App() {
   const [session, setSession] = useState(null);

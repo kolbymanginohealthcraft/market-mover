@@ -10,9 +10,9 @@ import { supabase } from '../../app/supabaseClient';
 import styles from './ProviderDetail.module.css';
 
 import OverviewTab from './OverviewTab';
-import NearbyTab from '../Nearby/NearbyTab';
+import NearbyTab from './NearbyTab';
 import ScorecardTab from './ScorecardPage';
-import ChartsTab from '../../components/Charts/ChartDashboard';
+import ChartsTab from './ChartDashboard';
 import SubNavbar from '../../components/Navigation/SubNavbar';
 import Spinner from '../../components/Buttons/Spinner';
 

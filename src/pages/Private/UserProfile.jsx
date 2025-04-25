@@ -1,7 +1,7 @@
 // src/pages/UserProfile.jsx
 import { useEffect, useState } from 'react';
 import { supabase } from "../../app/supabaseClient";
-import styles from './AuthForm.module.css';
+import styles from '../Auth/AuthForm.module.css';
 
 export default function UserProfile() {
   const [profile, setProfile] = useState({

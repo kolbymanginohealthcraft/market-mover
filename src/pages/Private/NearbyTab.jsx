@@ -1,20 +1,18 @@
+// NearbyTab.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "../../app/supabaseClient";
 import Spinner from "../../components/Buttons/Spinner";
 import styles from "./NearbyTab.module.css";
 
-
-// Custom icons
+// Icons
 const defaultIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  shadowSize: [41, 41],
+  iconSize: [20, 30],
+  iconAnchor: [10, 30],
+  popupAnchor: [1, -30],
 });
 
 const selectedIcon = new L.Icon({
@@ -39,8 +37,6 @@ export default function NearbyTab({ provider }) {
 
   const lat = provider.latitude;
   const lon = provider.longitude;
-  console.log("Circle center:", lat, lon);
-
   const boundingboxmargin = 2;
   const latMin = lat - boundingboxmargin;
   const latMax = lat + boundingboxmargin;
@@ -172,82 +168,70 @@ export default function NearbyTab({ provider }) {
         </div>
       </div>
 
-      <div
-        className={styles.mapWrapper}
-        style={{ height: "400px", marginBottom: "1rem" }}
-      >
-        <MapContainer
-          center={[lat, lon]}
-          zoom={10}
-          scrollWheelZoom={false}
-          style={{ height: "100%", width: "100%", zIndex: 0 }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
-
-          <Circle
+      <div className={styles.splitView}>
+        <div className={styles.mapPanel}>
+          <MapContainer
             center={[lat, lon]}
-            radius={radiusInMiles * 1609.34}
-            pathOptions={{ color: "#d64550", weight: 2, fillOpacity: 0.15 }}
-            eventHandlers={{
-              add: (e) => console.log("Circle added", e.target),
-              error: (e) => console.log("Circle error", e),
-            }}
+            zoom={10}
+            scrollWheelZoom={false}
+            style={{ height: "100%", width: "100%" }}
           >
-            <Popup>Radius: {radiusInMiles} mi</Popup>
-          </Circle>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
+            <Marker position={[lat, lon]} icon={selectedIcon}>
+              <Popup>
+                <strong>{provider.name}</strong>
+                <br />
+                Selected Provider
+              </Popup>
+            </Marker>
+            {filteredResults.map(
+              (p) =>
+                p.id !== provider.id && (
+                  <Marker
+                    key={p.id}
+                    position={[p.latitude, p.longitude]}
+                    icon={defaultIcon}
+                  >
+                    <Popup>{p.name}</Popup>
+                  </Marker>
+                )
+            )}
+          </MapContainer>
+        </div>
 
-          <Marker position={[lat, lon]} icon={selectedIcon}>
-            <Popup>
-              <strong>{provider.name}</strong>
-              <br />Selected Provider
-            </Popup>
-          </Marker>
-
-          {filteredResults.map(
-            (p) =>
-              p.id !== provider.id && (
-                <Marker
-                  key={p.id}
-                  position={[p.latitude, p.longitude]}
-                  icon={defaultIcon}
-                >
-                  <Popup>{p.name}</Popup>
-                </Marker>
-              )
-          )}
-        </MapContainer>
-      </div>
-
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th style={{ width: "20%" }}>Name</th>
-              <th style={{ width: "20%" }}>Network</th>
-              <th style={{ width: "20%" }}>Address</th>
-              <th style={{ width: "10%" }}>Type</th>
-              <th style={{ width: "7%" }}>Distance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredResults.map((p) => (
-              <tr
-                key={p.id}
-                className={`${p.id === provider.id ? styles.highlightedRow : ""} ${styles.clickableRow}`}
-                onClick={() => navigate(`/app/provider/${p.id}/overview`)}
-              >
-                <td>{p.name}</td>
-                <td>{p.network || "—"}</td>
-                <td>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</td>
-                <td>{p.type || "Unknown"}</td>
-                <td>{p.distance.toFixed(2)}</td>
+        <div className={styles.tablePanel}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th style={{ width: "20%" }}>Name</th>
+                <th style={{ width: "20%" }}>Network</th>
+                <th style={{ width: "20%" }}>Address</th>
+                <th style={{ width: "10%" }}>Type</th>
+                <th style={{ width: "6%" }}>Distance</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredResults.map((p) => (
+                <tr
+                  key={p.id}
+                  className={`${
+                    p.id === provider.id ? styles.highlightedRow : ""
+                  } ${styles.clickableRow}`}
+                  onClick={() => navigate(`/app/provider/${p.id}/overview`)}
+                >
+                  <td>{p.name}</td>
+                  <td>{p.network || "—"}</td>
+                  <td>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</td>
+                  <td>{p.type || "Unknown"}</td>
+                  <td>{p.distance.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

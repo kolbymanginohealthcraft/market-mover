@@ -60,6 +60,7 @@ input[type="text"] {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  font-size: small;
 }
 
 .table th,
@@ -97,4 +98,53 @@ input[type="text"] {
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
+  min-height: 400px;
+  height: 100%;
+  max-height: 500px;
 }
+
+
+.splitView {
+  display: flex;
+  gap: 1rem;
+  height: 500px;
+}
+
+.contentRow {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.mapPanel {
+  flex: 0 0 30%;
+  min-width: 300px;
+  height: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tablePanel {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile fallback */
+@media (max-width: 768px) {
+  .splitView {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mapPanel,
+  .tablePanel {
+    height: 400px;
+  }
+}
+

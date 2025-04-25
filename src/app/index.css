@@ -59,20 +59,6 @@ button:focus-visible {
 
 
 
-#map-wrapper {
-  height: 500px;
-  min-height: 500px;
-  max-height: 500px;
-}
-
-.leaflet-container {
-  height: 100% !important;
-  width: 100% !important;
-  position: relative !important;
-}
-
-
-
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -95,13 +81,15 @@ body,
 }
 
 
-/* Force Leaflet circles to render properly */
-.leaflet-interactive {
-  stroke: #ff0000 !important;       /* red outline */
-  stroke-width: 3px !important;
-  fill: rgba(255, 0, 0, 0.4) !important; /* red fill */
-  pointer-events: auto !important;
-  display: block !important;
-  opacity: 1 !important;
+
+#map-wrapper {
+  height: 500px;
+  min-height: 500px;
+  max-height: 500px;
 }
 
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  position: relative !important;
+}
