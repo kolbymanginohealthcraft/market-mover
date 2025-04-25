@@ -1,4 +1,3 @@
-// NearbyTab.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -25,9 +24,8 @@ const selectedIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
-export default function NearbyTab({ provider }) {
+export default function NearbyTab({ provider, radiusInMiles }) {
   const [nearbyProviders, setNearbyProviders] = useState([]);
-  const [radiusInMiles, setRadiusInMiles] = useState(10);
   const [selectedType, setSelectedType] = useState("All");
   const [availableTypes, setAvailableTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +57,7 @@ export default function NearbyTab({ provider }) {
   useEffect(() => {
     const fetchNearbyProviders = async () => {
       const { data, error } = await supabase
-        .from("org-dhc")
+        .from("org_dhc")
         .select(
           "id, name, network, street, city, state, zip, latitude, longitude, type"
         )
@@ -123,44 +121,27 @@ export default function NearbyTab({ provider }) {
 
   return (
     <div className={styles.container}>
-      <div className={styles.controlsCompact}>
-        <div className={styles.controlGroup}>
-          <label>Radius ({radiusInMiles} mi)</label>
-          <input
-            type="range"
-            min="1"
-            max="100"
-            value={radiusInMiles}
-            onChange={(e) => setRadiusInMiles(Number(e.target.value))}
-            className={styles.slider}
-          />
-        </div>
+      <div className={styles.controlsRow}>
+        <select
+          value={selectedType}
+          onChange={(e) => setSelectedType(e.target.value)}
+          className={styles.select}
+        >
+          <option value="All">All Types</option>
+          {availableTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
 
-        <div className={styles.controlGroup}>
-          <label>Type</label>
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-          >
-            <option value="All">All</option>
-            {availableTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={styles.controlGroup} style={{ flexGrow: 1 }}>
-          <label>Search</label>
-          <input
-            type="text"
-            placeholder="Search providers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.searchInput}
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="Search providers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={styles.searchInput}
+        />
 
         <div className={styles.providerCount}>
           Showing {providerCount} provider

@@ -28,7 +28,7 @@ export default function ProviderSearch() {
     const q = queryText.trim();
 
     const { data, error } = await supabase
-      .from("org-dhc")
+      .from("org_dhc")
       .select("id, name, network, type, street, city, state, zip, phone")
       .or(
         `name.ilike.%${q}%,network.ilike.%${q}%,street.ilike.%${q}%,city.ilike.%${q}%,state.ilike.%${q}%,zip.ilike.%${q}%,phone.ilike.%${q}%`

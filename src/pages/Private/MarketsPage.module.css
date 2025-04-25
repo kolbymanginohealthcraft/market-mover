@@ -1,0 +1,160 @@
+.container {
+    width: 100%;
+    margin: 2rem 0;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+  
+  .headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .heading {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .createButton {
+    background-color: #1dadbe;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  
+  .createButton:hover {
+    background-color: #1598a8;
+  }
+  
+  .empty {
+    text-align: center;
+    font-size: 1rem;
+    color: #777;
+    margin-top: 2rem;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    background-color: #fff;
+    table-layout: auto;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    vertical-align: top;
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+  
+  .table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+    color: #444;
+  }
+  
+  .table tr:hover {
+    background-color: #f0f8ff;
+  }
+  
+  .inlineInput {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.4rem;
+    font-size: 0.95rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .linkText {
+    cursor: pointer;
+    color: #1dadbe;
+    text-decoration: underline;
+    margin-right: 0.5rem;
+  }
+  
+  .linkText:hover {
+    text-decoration: none;
+  }
+  
+  .iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .radiusCell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .providerInfo {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .providerName {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  
+  .providerDetail {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 0.1rem;
+  }
+  
+  .deleteButton {
+    background-color: #d64550;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  
+  .deleteButton:hover {
+    background-color: #b83741;
+  }
+  
+  @media (max-width: 768px) {
+    .table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
+  
+  .colMarket {
+    width: 200px;
+    white-space: nowrap;
+  }
+  
+  .colRadius {
+    width: 100px;
+    white-space: nowrap;
+  }
+  
+  .colActions {
+    width: 100px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  

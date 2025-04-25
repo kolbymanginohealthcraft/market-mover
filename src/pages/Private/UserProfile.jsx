@@ -1,4 +1,3 @@
-// src/pages/UserProfile.jsx
 import { useEffect, useState } from 'react';
 import { supabase } from "../../app/supabaseClient";
 import styles from '../Auth/AuthForm.module.css';
