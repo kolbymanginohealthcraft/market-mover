@@ -42,96 +42,139 @@
   .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     background-color: #fff;
     table-layout: auto;
   }
   
   .table th,
   .table td {
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.8rem;
     border-bottom: 1px solid #eee;
     text-align: left;
     vertical-align: top;
-    white-space: normal;
-    word-wrap: break-word;
     word-break: break-word;
+    white-space: normal;
   }
   
   .table th {
     background-color: #f9f9f9;
     font-weight: 600;
     color: #444;
+    font-size: 0.85rem;
   }
   
   .table tr:hover {
     background-color: #f0f8ff;
   }
   
-  .inlineInput {
-    width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.4rem;
-    font-size: 0.95rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+  .colDetails {
+    width: 15%;
+    min-width: 200px;
+  }
+  
+  .detailsCell {
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-right: 0.5rem;
+  }
+  
+  .detailsTopRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
   
   .linkText {
     cursor: pointer;
     color: #1dadbe;
     text-decoration: underline;
-    margin-right: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
   }
   
   .linkText:hover {
+    color: #1598a8;
     text-decoration: none;
+  }
+  
+  .smallDetail {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .editRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+  }
+  
+  .inlineInput {
+    width: 100%;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .iconGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
   
   .iconButton {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
   
-  .radiusCell {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  .iconButton svg {
+    width: 16px;
+    height: 16px;
+    color: #999;
+    transition: color 0.2s ease;
   }
   
-  .providerInfo {
-    display: flex;
-    flex-direction: column;
+  .iconButton svg:hover {
+    color: #555;
+  }
+  
+  .providerCell,
+  .partnerCell,
+  .competitorCell {
+    width: 28%;
+    vertical-align: top;
   }
   
   .providerName {
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    font-size: 1rem;
   }
   
   .providerDetail {
     font-size: 0.8rem;
     color: #666;
-    margin-bottom: 0.1rem;
+    line-height: 1.2;
   }
   
-  .deleteButton {
-    background-color: #d64550;
-    color: white;
-    padding: 0.4rem 0.8rem;
-    border: none;
-    border-radius: 0.4rem;
+  .list {
+    padding-left: 1rem;
+    margin: 0.5rem 0 0 0;
+  }
+  
+  .list li {
     font-size: 0.85rem;
-    cursor: pointer;
-  }
-  
-  .deleteButton:hover {
-    background-color: #b83741;
+    color: #444;
+    margin-bottom: 0.3rem;
   }
   
   @media (max-width: 768px) {
@@ -141,17 +184,5 @@
       white-space: nowrap;
     }
   }
-  
 
-  
-  .colRadius {
-    width: 100px;
-    white-space: nowrap;
-  }
-  
-  .colActions {
-    width: 100px;
-    white-space: nowrap;
-    text-align: center;
-  }
   

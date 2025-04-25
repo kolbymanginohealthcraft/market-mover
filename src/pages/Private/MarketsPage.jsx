@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./MarketsPage.module.css";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash, Check, X } from "lucide-react";
 
 export default function MarketsPage() {
   const [markets, setMarkets] = useState([]);
@@ -10,16 +10,13 @@ export default function MarketsPage() {
   const [editingId, setEditingId] = useState(null);
   const [editedFields, setEditedFields] = useState({});
   const navigate = useNavigate();
+  const nameInputRef = useRef(null); // 🆕 Ref for name input
 
   useEffect(() => {
     const fetchMarkets = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) return;
 
-      // Fetch saved markets
       const { data: savedMarkets, error: marketsError } = await supabase
         .from("saved_market")
         .select("id, name, radius_miles, provider_id, created_at, org_dhc (name, street, city, state, zip, network, type)")
@@ -32,7 +29,6 @@ export default function MarketsPage() {
         return;
       }
 
-      // Fetch market provider tags
       const { data: tagsData, error: tagsError } = await supabase
         .from("market_provider_tags")
         .select("market_id, tag_type, org_dhc (id, name)");
@@ -43,7 +39,6 @@ export default function MarketsPage() {
         return;
       }
 
-      // Organize tags into partners/competitors
       const tagsByMarket = {};
       tagsData?.forEach((tag) => {
         if (!tagsByMarket[tag.market_id]) {
@@ -69,26 +64,53 @@ export default function MarketsPage() {
     fetchMarkets();
   }, []);
 
+  useEffect(() => {
+    if (editingId && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [editingId]); // 🔥 When edit mode opens, focus name input
+
   const handleDelete = async (id) => {
     await supabase.from("saved_market").delete().eq("id", id);
     setMarkets((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const startEditing = (id, key, value) => {
-    setEditingId(`${id}-${key}`);
-    setEditedFields((prev) => ({
-      ...prev,
-      [`${id}-${key}`]: value,
-    }));
+  const startEditing = (market) => {
+    setEditingId(market.id);
+    setEditedFields({
+      [`${market.id}-name`]: market.name,
+      [`${market.id}-radius_miles`]: market.radius_miles,
+    });
   };
 
-  const saveField = async (id, key) => {
-    const value = editedFields[`${id}-${key}`];
-    await supabase.from("saved_market").update({ [key]: value }).eq("id", id);
+  const saveFields = async (id) => {
+    const updatedName = editedFields[`${id}-name`];
+    const updatedRadius = Number(editedFields[`${id}-radius_miles`]);
+    await supabase
+      .from("saved_market")
+      .update({ name: updatedName, radius_miles: updatedRadius })
+      .eq("id", id);
     setMarkets((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, [key]: value } : m))
+      prev.map((m) =>
+        m.id === id ? { ...m, name: updatedName, radius_miles: updatedRadius } : m
+      )
     );
     setEditingId(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditedFields({});
+  };
+
+  const handleKeyDown = (e, id) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveFields(id);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditing();
+    }
   };
 
   const goToMarket = (providerId, radius, marketId) => {
@@ -104,112 +126,120 @@ export default function MarketsPage() {
         <h2 className={styles.heading}>Your Saved Markets</h2>
         <button className={styles.createButton}>+ Create Market</button>
       </div>
+
       <table className={styles.table}>
         <thead>
           <tr>
-            <th className={styles.colMarket}>Market Name</th>
-            <th>Provider Info</th>
-            <th className={styles.colRadius}>Radius</th>
+            <th className={styles.colDetails}>Details</th>
+            <th>Selected Provider</th>
             <th>Partners</th>
             <th>Competitors</th>
-            <th>Created</th>
-            <th className={styles.colActions}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {markets.map((m) => (
             <tr key={m.id}>
-              <td className={styles.colMarket}>
-                <span
-                  className={styles.linkText}
-                  onClick={() => goToMarket(m.provider_id, m.radius_miles, m.id)}
-                >
-                  {m.name}
-                </span>
-                <button
-                  className={styles.iconButton}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startEditing(m.id, "name", m.name);
-                  }}
-                >
-                  <Pencil size={14} />
-                </button>
-                {editingId === `${m.id}-name` && (
-                  <input
-                    className={styles.inlineInput}
-                    value={editedFields[`${m.id}-name`] || ""}
-                    onChange={(e) =>
-                      setEditedFields((prev) => ({
-                        ...prev,
-                        [`${m.id}-name`]: e.target.value,
-                      }))
-                    }
-                    onBlur={() => saveField(m.id, "name")}
-                    onKeyDown={(e) => e.key === "Enter" && saveField(m.id, "name")}
-                    autoFocus
-                  />
-                )}
-              </td>
+              <td className={styles.detailsCell}>
+                <div className={styles.detailsTopRow}>
+                  {editingId === m.id ? (
+                    <>
+                      <input
+                        ref={nameInputRef} // 🔥 attach the ref here
+                        className={styles.inlineInput}
+                        value={editedFields[`${m.id}-name`] || ""}
+                        onChange={(e) =>
+                          setEditedFields((prev) => ({
+                            ...prev,
+                            [`${m.id}-name`]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) => handleKeyDown(e, m.id)}
+                        placeholder="Market Name"
+                      />
+                    </>
+                  ) : (
+                    <span
+                      className={styles.linkText}
+                      onClick={() => goToMarket(m.provider_id, m.radius_miles, m.id)}
+                    >
+                      {m.name}
+                    </span>
+                  )}
+                </div>
 
-              <td>
-                <div className={styles.providerInfo}>
-                  <div className={styles.providerName}>{m.org_dhc?.name || "—"}</div>
-                  <div className={styles.providerDetail}>
-                    {`${m.org_dhc?.street}, ${m.org_dhc?.city}, ${m.org_dhc?.state} ${m.org_dhc?.zip}`}
+                {editingId === m.id ? (
+                  <div className={styles.editRow}>
+                    <input
+                      type="number"
+                      className={styles.inlineInput}
+                      value={editedFields[`${m.id}-radius_miles`] || ""}
+                      onChange={(e) =>
+                        setEditedFields((prev) => ({
+                          ...prev,
+                          [`${m.id}-radius_miles`]: e.target.value,
+                        }))
+                      }
+                      onKeyDown={(e) => handleKeyDown(e, m.id)}
+                      placeholder="Radius (mi)"
+                    />
+                    <div className={styles.iconGroup}>
+                      <button className={styles.iconButton} onClick={() => saveFields(m.id)}>
+                        <Check size={16} />
+                      </button>
+                      <button className={styles.iconButton} onClick={cancelEditing}>
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className={styles.providerDetail}>{m.org_dhc?.type || "—"}</div>
-                  <div className={styles.providerDetail}>{m.org_dhc?.network || "—"}</div>
-                </div>
-              </td>
-
-              <td className={styles.colRadius}>
-                <div className={styles.radiusCell}>
-                  <span>{m.radius_miles} mi</span>
-                  <button
-                    className={styles.iconButton}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startEditing(m.id, "radius_miles", m.radius_miles);
-                    }}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                </div>
-                {editingId === `${m.id}-radius_miles` && (
-                  <input
-                    type="number"
-                    className={styles.inlineInput}
-                    value={editedFields[`${m.id}-radius_miles`] || ""}
-                    onChange={(e) =>
-                      setEditedFields((prev) => ({
-                        ...prev,
-                        [`${m.id}-radius_miles`]: e.target.value,
-                      }))
-                    }
-                    onBlur={() => saveField(m.id, "radius_miles")}
-                    onKeyDown={(e) => e.key === "Enter" && saveField(m.id, "radius_miles")}
-                    autoFocus
-                  />
+                ) : (
+                  <>
+                    <div className={styles.smallDetail}>{m.radius_miles} mi radius</div>
+                    <div className={styles.smallDetail}>
+                      {new Date(m.created_at).toLocaleString()}
+                    </div>
+                    <div className={styles.iconGroup}>
+                      <button className={styles.iconButton} onClick={() => startEditing(m)}>
+                        <Pencil size={16} />
+                      </button>
+                      <button className={styles.iconButton} onClick={() => handleDelete(m.id)}>
+                        <Trash size={16} />
+                      </button>
+                    </div>
+                  </>
                 )}
               </td>
 
-              <td>
-                {m.partners?.length > 0 ? m.partners.join(", ") : "—"}
-              </td>
-              <td>
-                {m.competitors?.length > 0 ? m.competitors.join(", ") : "—"}
+              <td className={styles.providerCell}>
+                <div className={styles.providerName}>{m.org_dhc?.name || "—"}</div>
+                <div className={styles.providerDetail}>
+                  {`${m.org_dhc?.street}, ${m.org_dhc?.city}, ${m.org_dhc?.state} ${m.org_dhc?.zip}`}
+                </div>
+                <div className={styles.providerDetail}>{m.org_dhc?.type || "—"}</div>
+                <div className={styles.providerDetail}>{m.org_dhc?.network || "—"}</div>
               </td>
 
-              <td>{new Date(m.created_at).toLocaleString()}</td>
+              <td className={styles.partnerCell}>
+                {m.partners?.length > 0 ? (
+                  <ul className={styles.list}>
+                    {m.partners.map((p, idx) => (
+                      <li key={idx}>{p}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  "—"
+                )}
+              </td>
 
-              <td className={styles.colActions}>
-                <button
-                  className={styles.deleteButton}
-                  onClick={() => handleDelete(m.id)}
-                >
-                  Delete
-                </button>
+              <td className={styles.competitorCell}>
+                {m.competitors?.length > 0 ? (
+                  <ul className={styles.list}>
+                    {m.competitors.map((c, idx) => (
+                      <li key={idx}>{c}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  "—"
+                )}
               </td>
             </tr>
           ))}

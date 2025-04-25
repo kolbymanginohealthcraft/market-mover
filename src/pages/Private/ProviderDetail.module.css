@@ -2,7 +2,6 @@
   padding: 1rem;
 }
 
-/* Header Section */
 .headerInfo {
   display: flex;
   justify-content: space-between;
@@ -41,18 +40,59 @@
   text-transform: capitalize;
 }
 
-/* Controls Section (Radius + Save Button) */
+/* Market Info Section */
+.marketInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.marketTopRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.radiusRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.savedBadge {
+  background-color: #f1b62c;
+  color: #333;
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.marketName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+  cursor: pointer;
+}
+
+.marketName:hover {
+  text-decoration: underline;
+}
+
+.editIcon {
+  cursor: pointer;
+  font-size: 1rem;
+}
+
 .controlsWrapper {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
-}
-
-.radiusGroup {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.85rem;
 }
 
 .radiusSlider {
@@ -75,7 +115,6 @@
   background-color: #1599a8;
 }
 
-/* Popup Modal Styles */
 .popupOverlay {
   position: fixed;
   top: 0;

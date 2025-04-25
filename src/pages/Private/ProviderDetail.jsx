@@ -29,7 +29,7 @@ export default function ProviderDetail() {
   const [marketName, setMarketName] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [currentMarketName, setCurrentMarketName] = useState("");
-  const [isEditingMarket, setIsEditingMarket] = useState(false); // 🔥 NEW
+  const [isEditingMarket, setIsEditingMarket] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedRadius, setEditedRadius] = useState(10);
   const inputRef = useRef(null);
@@ -151,7 +151,6 @@ export default function ProviderDetail() {
       setRadiusInMiles(editedRadius);
       setIsEditingMarket(false);
 
-      // Update URL if radius changed
       const currentPath = window.location.pathname;
       const lastSegment = currentPath.split("/").pop();
       const validTabs = ["overview", "nearby", "scorecard", "charts"];
@@ -191,70 +190,51 @@ export default function ProviderDetail() {
         <div className={styles.controlsWrapper}>
           {isInSavedMarket ? (
             <div className={styles.marketInfo}>
-              {isEditingMarket ? (
-                <>
-                  <input
-                    type="text"
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    className={styles.editInput}
-                  />
-                  <input
-                    type="number"
-                    value={editedRadius}
-                    min="1"
-                    max="100"
-                    onChange={(e) => setEditedRadius(Number(e.target.value))}
-                    className={styles.editInput}
-                  />
-                  <div className={styles.popupButtons}>
-                    <button onClick={handleSaveMarketEdits} className={styles.popupSave}>
-                      Save
-                    </button>
-                    <button onClick={() => setIsEditingMarket(false)} className={styles.popupCancel}>
-                      Cancel
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <strong>Market: </strong> {currentMarketName || "(Unnamed)"}
-                  <span
-                    className={styles.editIcon}
-                    onClick={() => {
-                      setIsEditingMarket(true);
-                      setEditedName(currentMarketName);
-                      setEditedRadius(radiusInMiles);
-                    }}
-                  >
-                    ✏️
-                  </span>
-                  <br />
-                  <strong>Radius:</strong> {radiusInMiles} miles
-                </>
-              )}
+              <div className={styles.marketTopRow}>
+                <span className={styles.savedBadge}>Saved</span>
+                <span
+                  className={styles.marketName}
+                  onClick={() => {
+                    setIsEditingMarket(true);
+                    setEditedName(currentMarketName);
+                    setEditedRadius(radiusInMiles);
+                  }}
+                >
+                  {currentMarketName || "(Unnamed)"}
+                </span>
+              </div>
+              <div className={styles.radiusRow}>
+                <span>Radius: {radiusInMiles} miles</span>
+                <span
+                  className={styles.editIcon}
+                  onClick={() => {
+                    setIsEditingMarket(true);
+                    setEditedName(currentMarketName);
+                    setEditedRadius(radiusInMiles);
+                  }}
+                >
+                  ✏️
+                </span>
+              </div>
             </div>
           ) : (
-            <>
-              <div className={styles.radiusGroup}>
-                <label>Radius: {radiusInMiles} mi</label>
-                <input
-                  className={styles.radiusSlider}
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={radiusInMiles}
-                  onChange={(e) => setRadiusInMiles(Number(e.target.value))}
-                />
-              </div>
-
+            <div className={styles.radiusRow}>
+              <label>Radius: {radiusInMiles} mi</label>
+              <input
+                className={styles.radiusSlider}
+                type="range"
+                min="1"
+                max="100"
+                value={radiusInMiles}
+                onChange={(e) => setRadiusInMiles(Number(e.target.value))}
+              />
               <button
                 className={styles.saveButton}
                 onClick={() => setShowPopup(true)}
               >
                 Save Market
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
