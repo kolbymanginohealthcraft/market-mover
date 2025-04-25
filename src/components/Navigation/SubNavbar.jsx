@@ -3,7 +3,7 @@ import styles from "./SubNavbar.module.css";
 
 export default function SubNavbar({ providerId }) {
   const location = useLocation();
-  const search = location.search; // Capture current query parameters like ?marketId=xxx&radius=10
+  const search = location.search; // Preserve query params like ?marketId=xxx&radius=10
 
   const prefix = providerId ? `/app/provider/${providerId}` : "";
 
@@ -40,6 +40,14 @@ export default function SubNavbar({ providerId }) {
         }
       >
         Charts
+      </NavLink>
+      <NavLink
+        to={`${prefix}/ccn-list${search}`}  // ✅ New tab!
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        CCN List
       </NavLink>
     </nav>
   );

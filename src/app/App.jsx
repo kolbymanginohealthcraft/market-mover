@@ -29,8 +29,6 @@ import ProviderSearch from "../pages/Private/ProviderSearch";
 import ProviderDetail from "../pages/Private/ProviderDetail";
 import UserProfile from "../pages/Private/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
-import ChartDashboard from "../pages/Private/ChartDashboard";
-import ScorecardPage from "../pages/Private/ScorecardPage";
 
 
 function App() {

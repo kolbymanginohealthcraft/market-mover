@@ -2,6 +2,7 @@
   padding: 1rem;
 }
 
+/* Header Section */
 .headerInfo {
   display: flex;
   justify-content: space-between;
@@ -9,7 +10,14 @@
   flex-wrap: wrap;
   padding: 1rem;
   border-bottom: 1px solid #ddd;
+}
+
+.defaultBackground {
   background-color: #f9f9f9;
+}
+
+.savedBackground {
+  background-color: #e0f7fa; /* Teal hint for saved market */
 }
 
 .headerLeft {
@@ -40,54 +48,7 @@
   text-transform: capitalize;
 }
 
-/* Market Info Section */
-.marketInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-}
-
-.marketTopRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-}
-
-.radiusRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.savedBadge {
-  background-color: #f1b62c;
-  color: #333;
-  padding: 0.2rem 0.6rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.marketName {
-  font-weight: 600;
-  font-size: 1rem;
-  color: #333;
-  cursor: pointer;
-}
-
-.marketName:hover {
-  text-decoration: underline;
-}
-
-.editIcon {
-  cursor: pointer;
-  font-size: 1rem;
-}
-
+/* Controls Section (Market Info / Radius Controls) */
 .controlsWrapper {
   display: flex;
   align-items: center;
@@ -95,9 +56,107 @@
   flex-wrap: wrap;
 }
 
+/* Saved Market Display */
+.marketInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.marketTopRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.savedBadge {
+  background-color: #1dadbe;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  text-transform: uppercase;
+}
+
+.marketName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  overflow-wrap: break-word;
+}
+
+.radiusRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.radiusRow span {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* When editing */
+.editingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editInput {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+}
+
+.editInput[type="number"] {
+  width: 80px; /* 🔥 Shrink radius input nicely */
+}
+
+/* Icons for editing */
+.editIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconButton svg {
+  width: 16px;
+  height: 16px;
+  color: #666;
+  transition: color 0.2s ease;
+}
+
+.iconButton svg:hover {
+  color: #1dadbe;
+}
+
+/* Radius Controls (when not saved) */
+.radiusGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
 .radiusSlider {
   width: 160px;
-  margin-top: 0.25rem;
+  margin-top: 0;
 }
 
 .saveButton {
@@ -115,6 +174,7 @@
   background-color: #1599a8;
 }
 
+/* Popup Modal */
 .popupOverlay {
   position: fixed;
   top: 0;
@@ -148,7 +208,7 @@
 
 .popupButtons {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
   gap: 1rem;
   margin-top: 1rem;
 }

@@ -9,12 +9,14 @@ import {
 } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./ProviderDetail.module.css";
+import { Pencil, Check, X } from "lucide-react"; // ✅
 
 import OverviewTab from "./OverviewTab";
 import NearbyTab from "./NearbyTab";
 import ScorecardTab from "./ScorecardPage";
 import ChartsTab from "./ChartDashboard";
 import SubNavbar from "../../components/Navigation/SubNavbar";
+import CCNList from "./CCNList"; // ✅ Add this line
 import Spinner from "../../components/Buttons/Spinner";
 
 export default function ProviderDetail() {
@@ -127,7 +129,6 @@ export default function ProviderDetail() {
 
         const currentPath = window.location.pathname;
         const lastSegment = currentPath.split("/").pop();
-
         const validTabs = ["overview", "nearby", "scorecard", "charts"];
         const subTab = validTabs.includes(lastSegment) ? lastSegment : "overview";
 
@@ -160,25 +161,29 @@ export default function ProviderDetail() {
     }
   };
 
+  const handleCancelEdit = () => {
+    setIsEditingMarket(false);
+  };
+
+  const handleEditKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSaveMarketEdits();
+    } else if (e.key === "Escape") {
+      handleCancelEdit();
+    }
+  };
+
   useEffect(() => {
     if (showPopup && inputRef.current) {
       inputRef.current.focus();
     }
   }, [showPopup]);
 
-  const handlePopupKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSaveMarket();
-    } else if (e.key === "Escape") {
-      setShowPopup(false);
-    }
-  };
-
   if (loading || !provider) return <Spinner message="Loading provider details..." />;
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerInfo}>
+      <div className={`${styles.headerInfo} ${isInSavedMarket ? styles.savedBackground : styles.defaultBackground}`}>
         <div className={styles.headerLeft}>
           <h2>{provider.name}</h2>
           <p>
@@ -190,51 +195,79 @@ export default function ProviderDetail() {
         <div className={styles.controlsWrapper}>
           {isInSavedMarket ? (
             <div className={styles.marketInfo}>
-              <div className={styles.marketTopRow}>
-                <span className={styles.savedBadge}>Saved</span>
-                <span
-                  className={styles.marketName}
-                  onClick={() => {
-                    setIsEditingMarket(true);
-                    setEditedName(currentMarketName);
-                    setEditedRadius(radiusInMiles);
-                  }}
-                >
-                  {currentMarketName || "(Unnamed)"}
-                </span>
-              </div>
-              <div className={styles.radiusRow}>
-                <span>Radius: {radiusInMiles} miles</span>
-                <span
-                  className={styles.editIcon}
-                  onClick={() => {
-                    setIsEditingMarket(true);
-                    setEditedName(currentMarketName);
-                    setEditedRadius(radiusInMiles);
-                  }}
-                >
-                  ✏️
-                </span>
-              </div>
+              {isEditingMarket ? (
+                <div className={styles.editingBlock}>
+                  <input
+                    type="text"
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    className={styles.editInput}
+                    onKeyDown={handleEditKeyDown}
+                    autoFocus
+                  />
+                  <input
+                    type="number"
+                    value={editedRadius}
+                    onChange={(e) => setEditedRadius(Number(e.target.value))}
+                    className={styles.editInput}
+                    onKeyDown={handleEditKeyDown}
+                  />
+                  <div className={styles.editIcons}>
+                    <button className={styles.iconButton} onClick={handleSaveMarketEdits}>
+                      <Check size={16} />
+                    </button>
+                    <button className={styles.iconButton} onClick={handleCancelEdit}>
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.marketTopRow}>
+                    <span className={styles.savedBadge}>Saved</span>
+                    <span className={styles.marketName}>
+                      {currentMarketName || "(Unnamed)"}
+                    </span>
+                  </div>
+                  <div className={styles.radiusRow}>
+                    <span>Radius: {radiusInMiles} mi</span>
+                    <button
+                      className={styles.iconButton}
+                      onClick={() => {
+                        setIsEditingMarket(true);
+                        setEditedName(currentMarketName);
+                        setEditedRadius(radiusInMiles);
+                      }}
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
-            <div className={styles.radiusRow}>
-              <label>Radius: {radiusInMiles} mi</label>
-              <input
-                className={styles.radiusSlider}
-                type="range"
-                min="1"
-                max="100"
-                value={radiusInMiles}
-                onChange={(e) => setRadiusInMiles(Number(e.target.value))}
-              />
+            <>
+              <div className={styles.radiusGroup}>
+                <label>
+                  Radius: {radiusInMiles} mi
+                </label>
+                <input
+                  className={styles.radiusSlider}
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={radiusInMiles}
+                  onChange={(e) => setRadiusInMiles(Number(e.target.value))}
+                />
+              </div>
+
               <button
                 className={styles.saveButton}
                 onClick={() => setShowPopup(true)}
               >
                 Save Market
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -281,6 +314,7 @@ export default function ProviderDetail() {
         />
         <Route path="scorecard" element={<ScorecardTab provider={provider} />} />
         <Route path="charts" element={<ChartsTab provider={provider} />} />
+        <Route path="ccn-list" element={<CCNList provider={provider} />} />
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="*" element={<p>404: Page Not Found</p>} />
       </Routes>
