@@ -19,13 +19,50 @@ export default function MarketsPage() {
       } = await supabase.auth.getUser();
       if (userError || !user) return;
 
-      const { data, error } = await supabase
+      // Fetch saved markets
+      const { data: savedMarkets, error: marketsError } = await supabase
         .from("saved_market")
         .select("id, name, radius_miles, provider_id, created_at, org_dhc (name, street, city, state, zip, network, type)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error) setMarkets(data);
+      if (marketsError || !savedMarkets) {
+        console.error("Error fetching markets:", marketsError);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch market provider tags
+      const { data: tagsData, error: tagsError } = await supabase
+        .from("market_provider_tags")
+        .select("market_id, tag_type, org_dhc (id, name)");
+
+      if (tagsError) {
+        console.error("Error fetching market tags:", tagsError);
+        setLoading(false);
+        return;
+      }
+
+      // Organize tags into partners/competitors
+      const tagsByMarket = {};
+      tagsData?.forEach((tag) => {
+        if (!tagsByMarket[tag.market_id]) {
+          tagsByMarket[tag.market_id] = { partners: [], competitors: [] };
+        }
+        if (tag.tag_type === "partner") {
+          tagsByMarket[tag.market_id].partners.push(tag.org_dhc?.name || "(Unnamed)");
+        } else if (tag.tag_type === "competitor") {
+          tagsByMarket[tag.market_id].competitors.push(tag.org_dhc?.name || "(Unnamed)");
+        }
+      });
+
+      const enrichedMarkets = savedMarkets.map((market) => ({
+        ...market,
+        partners: tagsByMarket[market.id]?.partners || [],
+        competitors: tagsByMarket[market.id]?.competitors || [],
+      }));
+
+      setMarkets(enrichedMarkets);
       setLoading(false);
     };
 
@@ -54,8 +91,8 @@ export default function MarketsPage() {
     setEditingId(null);
   };
 
-  const goToMarket = (providerId, radius) => {
-    navigate(`/app/provider/${providerId}/overview?radius=${radius}`);
+  const goToMarket = (providerId, radius, marketId) => {
+    navigate(`/app/provider/${providerId}/overview?radius=${radius}&marketId=${marketId}`);
   };
 
   if (loading) return <p className={styles.empty}>Loading your saved markets...</p>;
@@ -85,7 +122,7 @@ export default function MarketsPage() {
               <td className={styles.colMarket}>
                 <span
                   className={styles.linkText}
-                  onClick={() => goToMarket(m.provider_id, m.radius_miles)}
+                  onClick={() => goToMarket(m.provider_id, m.radius_miles, m.id)}
                 >
                   {m.name}
                 </span>
@@ -151,17 +188,21 @@ export default function MarketsPage() {
                       }))
                     }
                     onBlur={() => saveField(m.id, "radius_miles")}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && saveField(m.id, "radius_miles")
-                    }
+                    onKeyDown={(e) => e.key === "Enter" && saveField(m.id, "radius_miles")}
                     autoFocus
                   />
                 )}
               </td>
 
-              <td>—</td> {/* Placeholder for Partners */}
-              <td>—</td> {/* Placeholder for Competitors */}
+              <td>
+                {m.partners?.length > 0 ? m.partners.join(", ") : "—"}
+              </td>
+              <td>
+                {m.competitors?.length > 0 ? m.competitors.join(", ") : "—"}
+              </td>
+
               <td>{new Date(m.created_at).toLocaleString()}</td>
+
               <td className={styles.colActions}>
                 <button
                   className={styles.deleteButton}

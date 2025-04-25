@@ -158,3 +158,110 @@
   gap: 1rem;
   margin-bottom: 1rem;
 }
+
+/* Restore yellow highlight for selected provider row */
+.highlightedRow {
+  background-color: #fff8cc !important;
+}
+
+/* Tag button before selecting */
+.tagButton {
+  background-color: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.tagButton:hover {
+  background-color: #bbb;
+}
+
+/* Inline tagging menu with radio-style layout */
+.inlineTaggingMenu {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.inlineTaggingMenu label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.inlineTaggingMenu input[type="radio"] {
+  margin: 0;
+  accent-color: #1dadbe;
+}
+
+.inlineTaggingMenu button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #ddd;
+  cursor: pointer;
+}
+
+.inlineTaggingMenu button:hover {
+  background-color: #ccc;
+}
+
+.partnerBadge {
+  background-color: #1dadbe;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.competitorBadge {
+  background-color: #d64550;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.tagDefault {
+  background-color: #ccc;
+  color: #333;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.animatePulse {
+  animation: pulseFade 0.8s ease-in-out;
+}
+
+@keyframes pulseFade {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
