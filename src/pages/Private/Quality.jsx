@@ -5,13 +5,14 @@ import Spinner from "../../components/Buttons/Spinner";
 import styles from "./Quality.module.css";
 
 const AVAILABLE_SETTINGS = ["SNF", "IRF", "HHA", "Hospice"];
-const HARDCODED_PUBLISHDATE = "2025-02-01"; // 🚨 Force fixed publishdate for now
+const HARDCODED_PUBLISHDATE = "2025-02-01"; // 🚨
 
 export default function Quality({ provider, marketDhcCcns }) {
   const [ccn, setCcn] = useState(null);
   const [metrics, setMetrics] = useState([]);
   const [marketAverages, setMarketAverages] = useState({});
   const [nationalAverages, setNationalAverages] = useState({});
+  const [individualScores, setIndividualScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [selectedSetting, setSelectedSetting] = useState("SNF");
@@ -76,11 +77,8 @@ export default function Quality({ provider, marketDhcCcns }) {
 
       setMetrics(settingFiltered);
 
-      // Fetch market averages
-      await fetchMarketAverages(marketDhcCcns);
-
-      // Fetch national averages
-      await fetchNationalAverages();
+      // Fetch all supporting data
+      await fetchSupportingData(marketDhcCcns);
 
       setLoading(false);
     };
@@ -88,85 +86,95 @@ export default function Quality({ provider, marketDhcCcns }) {
     fetchQualityData();
   }, [provider, selectedSetting, marketDhcCcns]);
 
-  const fetchMarketAverages = async (dhcCcnList) => {
-    if (!dhcCcnList?.length) {
-      console.warn("⚠️ No nearby DHC-CCN mappings available.");
-      setMarketAverages({});
-      return;
-    }
+  const fetchSupportingData = async (dhcCcnList) => {
+    const nearbyCcns = dhcCcnList?.map((row) => row.ccn).filter(Boolean) || [];
 
-    const nearbyCcns = dhcCcnList.map((row) => row.ccn).filter(Boolean);
-
-    console.log("📦 CCNs list for market averages (final array):", nearbyCcns);
-    console.log(`📏 Total CCNs being passed into calculate_market_averages: ${nearbyCcns.length}`);
+    console.log("📦 CCNs for market and competitors:", nearbyCcns);
+    console.log(`📏 Total CCNs passed: ${nearbyCcns.length}`);
 
     if (!nearbyCcns.length) {
       console.warn("⚠️ No valid CCNs found in nearby list.");
       setMarketAverages({});
+      setIndividualScores([]);
       return;
     }
 
     const settingPrefixes = getSettingPrefixes(selectedSetting);
 
-    const { data, error } = await supabase.rpc("calculate_market_averages", {
-      ccns: nearbyCcns,
-      pubdate: HARDCODED_PUBLISHDATE,
-      setting_prefixes: settingPrefixes,
-    });
+    const [marketRes, nationalRes, individualRes] = await Promise.all([
+      supabase.rpc("calculate_market_averages", {
+        ccns: nearbyCcns,
+        pubdate: HARDCODED_PUBLISHDATE,
+        setting_prefixes: settingPrefixes,
+      }),
+      supabase
+        .from("qm_post")
+        .select("code, national")
+        .eq("publishdate", HARDCODED_PUBLISHDATE),
+      fetchNearbyProviderScores(nearbyCcns),
+    ]);
 
-    if (error) {
-      console.error("❌ Error fetching market averages from RPC:", error);
+    const [marketData, marketError] = [marketRes.data, marketRes.error];
+    const [nationalData, nationalError] = [nationalRes.data, nationalRes.error];
+
+    if (marketError) {
+      console.error("❌ Error fetching market averages:", marketError);
       setMarketAverages({});
-      return;
+    } else {
+      const mapped = {};
+      marketData.forEach((row) => {
+        const code = row.code?.toUpperCase();
+        if (code && row.avg_score != null) {
+          mapped[code] = Number(row.avg_score.toFixed(2));
+        }
+      });
+      console.log("✅ Clean mapped market averages:", mapped);
+      setMarketAverages(mapped);
     }
 
-    console.log("✅ Market averages fetched from RPC:", data);
+    if (nationalError) {
+      console.error("❌ Error fetching national averages:", nationalError);
+      setNationalAverages({});
+    } else {
+      const natMapped = {};
+      nationalData.forEach((row) => {
+        const code = row.code?.toUpperCase();
+        if (code && row.national != null) {
+          natMapped[code] = row.national;
+        }
+      });
+      console.log("✅ Clean mapped national averages:", natMapped);
+      setNationalAverages(natMapped);
+    }
 
-    const mapped = {};
-    data.forEach((row) => {
-      const code = row.code?.toUpperCase();
-      if (code && row.avg_score != null) {
-        mapped[code] = Number(row.avg_score.toFixed(2));
-      }
-    });
-
-    console.log("✅ Clean mapped market averages:", mapped);
-    setMarketAverages(mapped);
+    setIndividualScores(individualRes || []);
   };
 
-  const fetchNationalAverages = async () => {
+  const fetchNearbyProviderScores = async (ccnList) => {
+    if (!ccnList?.length) {
+      console.warn("⚠️ No CCNs provided to fetch individual scores.");
+      return [];
+    }
+
     const { data, error } = await supabase
-      .from("qm_post")
-      .select("code, national")
-      .eq("publishdate", HARDCODED_PUBLISHDATE);
+      .from("qm_provider")
+      .select("ccn, code, score")
+      .in("ccn", ccnList)
+      .eq("publishdate", HARDCODED_PUBLISHDATE) // ✅ Important fix
+      .not("score", "is", null);
 
     if (error) {
-      console.error("❌ Error fetching national averages:", error);
-      setNationalAverages({});
-      return;
+      console.error("❌ Error fetching individual provider scores:", error);
+      return [];
     }
 
-    console.log("✅ National fetch returned:", data.length, "rows");
-    console.table(data);
-
-    const natAverages = {};
-
-    for (const row of data) {
-      const code = row.code?.toUpperCase();
-      if (code && row.national != null) {
-        natAverages[code] = row.national;
-      }
-    }
-
-    console.log("✅ Clean mapped national averages:", natAverages);
-    setNationalAverages(natAverages);
+    console.log("✅ Nearby Individual Scores (filtered):", data);
+    return data;
   };
 
   const isMeasureInSetting = (code, setting) => {
     if (!code) return false;
-
     const settingPrefixes = getSettingPrefixes(setting);
-
     return settingPrefixes.some((prefix) => code.startsWith(prefix));
   };
 
@@ -199,6 +207,7 @@ export default function Quality({ provider, marketDhcCcns }) {
   console.log("💬 Metrics to render:", metrics.map((m) => m.code));
   console.log("💬 Market Averages available:", Object.keys(marketAverages));
   console.log("💬 National Averages available:", Object.keys(nationalAverages));
+  console.log("📊 Nearby Individual Scores:", individualScores.length);
 
   return (
     <div className={styles.container}>
@@ -236,7 +245,10 @@ export default function Quality({ provider, marketDhcCcns }) {
           <tbody>
             {metrics.map((metric, idx) => {
               const normalizedCode = metric.code?.toUpperCase();
-              const myScore = metric.score !== null && metric.score !== undefined ? metric.score : "N/A";
+              const myScore =
+                metric.score !== null && metric.score !== undefined
+                  ? metric.score
+                  : "N/A";
 
               return (
                 <tr key={idx}>

@@ -18,6 +18,7 @@ import ChartsTab from "./ChartDashboard";
 import SubNavbar from "../../components/Navigation/SubNavbar";
 import CCNList from "./CCNList";
 import Quality from "./Quality";
+import ScorecardMatrix from "./ScorecardMatrix"; // 🆕 Add this import
 import Spinner from "../../components/Buttons/Spinner";
 
 export default function ProviderDetail() {
@@ -31,6 +32,10 @@ export default function ProviderDetail() {
   const [cachedProviders, setCachedProviders] = useState([]);
   const [nearbyProviders, setNearbyProviders] = useState([]);
   const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [marketAverages, setMarketAverages] = useState({});
+  const [nationalAverages, setNationalAverages] = useState({});
+  const [nearbyIndividualScores, setNearbyIndividualScores] = useState([]);
 
   const [showPopup, setShowPopup] = useState(false);
   const [marketName, setMarketName] = useState("");
@@ -207,7 +212,7 @@ export default function ProviderDetail() {
 
         const currentPath = window.location.pathname;
         const lastSegment = currentPath.split("/").pop();
-        const validTabs = ["overview", "nearby", "scorecard", "charts"];
+        const validTabs = ["overview", "nearby", "scorecard", "charts", "matrix", "quality"];
         const subTab = validTabs.includes(lastSegment) ? lastSegment : "overview";
 
         navigate(`/app/provider/${provider.id}/${subTab}?radius=${radiusInMiles}&marketId=${savedMarket.id}`);
@@ -232,7 +237,7 @@ export default function ProviderDetail() {
 
       const currentPath = window.location.pathname;
       const lastSegment = currentPath.split("/").pop();
-      const validTabs = ["overview", "nearby", "scorecard", "charts"];
+      const validTabs = ["overview", "nearby", "scorecard", "charts", "matrix", "quality"];
       const subTab = validTabs.includes(lastSegment) ? lastSegment : "overview";
 
       navigate(`/app/provider/${provider.id}/${subTab}?radius=${editedRadius}&marketId=${marketId}`);
@@ -377,17 +382,21 @@ export default function ProviderDetail() {
         <Route path="overview" element={<OverviewTab provider={provider} />} />
         <Route
           path="nearby"
-          element={
-            <NearbyTab
-              provider={provider}
-              radiusInMiles={radiusInMiles}
-              providers={nearbyProviders}
-              isInSavedMarket={isInSavedMarket}
-            />
-          }
+          element={<NearbyTab provider={provider} radiusInMiles={radiusInMiles} providers={nearbyProviders} isInSavedMarket={isInSavedMarket} />}
         />
         <Route path="scorecard" element={<ScorecardTab provider={provider} />} />
         <Route path="charts" element={<ChartsTab provider={provider} />} />
+        <Route
+          path="matrix"
+          element={
+            <ScorecardMatrix
+              providerMetrics={metrics}
+              marketAverages={marketAverages}
+              nationalAverages={nationalAverages}
+              nearbyIndividualScores={nearbyIndividualScores}
+            />
+          }
+        />
         <Route path="quality" element={<Quality provider={provider} marketDhcCcns={nearbyDhcCcns} />} />
         <Route path="ccn-list" element={<CCNList provider={provider} providers={nearbyProviders} />} />
         <Route index element={<Navigate to="overview" replace />} />

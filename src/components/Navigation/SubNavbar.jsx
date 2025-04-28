@@ -34,6 +34,14 @@ export default function SubNavbar({ providerId }) {
         Scorecard
       </NavLink>
       <NavLink
+        to={`${prefix}/matrix${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Matrix
+      </NavLink>
+      <NavLink
         to={`${prefix}/charts${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
