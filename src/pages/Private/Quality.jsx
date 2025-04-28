@@ -97,7 +97,8 @@ export default function Quality({ provider, marketDhcCcns }) {
 
     const nearbyCcns = dhcCcnList.map((row) => row.ccn).filter(Boolean);
 
-    console.log("📦 CCNs list for market averages:", nearbyCcns);
+    console.log("📦 CCNs list for market averages (final array):", nearbyCcns);
+    console.log(`📏 Total CCNs being passed into calculate_market_averages: ${nearbyCcns.length}`);
 
     if (!nearbyCcns.length) {
       console.warn("⚠️ No valid CCNs found in nearby list.");
@@ -109,7 +110,7 @@ export default function Quality({ provider, marketDhcCcns }) {
 
     const { data, error } = await supabase.rpc("calculate_market_averages", {
       ccns: nearbyCcns,
-      publishdate: HARDCODED_PUBLISHDATE,
+      pubdate: HARDCODED_PUBLISHDATE,
       setting_prefixes: settingPrefixes,
     });
 
