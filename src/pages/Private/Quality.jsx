@@ -1,3 +1,4 @@
+// src/pages/Quality.jsx
 import { useEffect, useState } from "react";
 import { supabase } from "../../app/supabaseClient";
 import Spinner from "../../components/Buttons/Spinner";
@@ -6,7 +7,7 @@ import styles from "./Quality.module.css";
 const AVAILABLE_SETTINGS = ["SNF", "IRF", "HHA", "Hospice"];
 const HARDCODED_PUBLISHDATE = "2025-02-01"; // 🚨 Force fixed publishdate for now
 
-export default function Quality({ provider, providers }) {
+export default function Quality({ provider, marketDhcCcns }) {
   const [ccn, setCcn] = useState(null);
   const [metrics, setMetrics] = useState([]);
   const [marketAverages, setMarketAverages] = useState({});
@@ -75,8 +76,8 @@ export default function Quality({ provider, providers }) {
 
       setMetrics(settingFiltered);
 
-      // Fetch market averages (even if provider has no metrics)
-      await fetchMarketAverages(providers);
+      // Fetch market averages
+      await fetchMarketAverages(marketDhcCcns);
 
       // Fetch national averages
       await fetchNationalAverages();
@@ -85,68 +86,51 @@ export default function Quality({ provider, providers }) {
     };
 
     fetchQualityData();
-  }, [provider, selectedSetting]);
+  }, [provider, selectedSetting, marketDhcCcns]);
 
-  const fetchMarketAverages = async (marketProviders) => {
-    if (!marketProviders?.length) {
-      console.warn("⚠️ No nearby providers available for market fetch.");
+  const fetchMarketAverages = async (dhcCcnList) => {
+    if (!dhcCcnList?.length) {
+      console.warn("⚠️ No nearby DHC-CCN mappings available.");
       setMarketAverages({});
       return;
     }
 
-    const ccnList = marketProviders
-      .map((p) => p.ccn)
-      .filter((c) => !!c);
+    const nearbyCcns = dhcCcnList.map((row) => row.ccn).filter(Boolean);
 
-    console.log("📦 CCNs list for market averages:", ccnList);
+    console.log("📦 CCNs list for market averages:", nearbyCcns);
 
-    if (!ccnList.length) {
-      console.warn("⚠️ No valid CCNs found in nearby providers.");
+    if (!nearbyCcns.length) {
+      console.warn("⚠️ No valid CCNs found in nearby list.");
       setMarketAverages({});
       return;
     }
 
-    const { data, error } = await supabase
-      .from("qm_provider")
-      .select("ccn, code, score, publishdate")
-      .in("ccn", ccnList)
-      .eq("publishdate", HARDCODED_PUBLISHDATE);
+    const settingPrefixes = getSettingPrefixes(selectedSetting);
+
+    const { data, error } = await supabase.rpc("calculate_market_averages", {
+      ccns: nearbyCcns,
+      publishdate: HARDCODED_PUBLISHDATE,
+      setting_prefixes: settingPrefixes,
+    });
 
     if (error) {
-      console.error("❌ Error fetching market quality data:", error);
+      console.error("❌ Error fetching market averages from RPC:", error);
       setMarketAverages({});
       return;
     }
 
-    console.log("⚡ Raw Market Fetch Data:", data);
+    console.log("✅ Market averages fetched from RPC:", data);
 
-    if (!data || !data.length) {
-      console.warn("⚠️ No market quality scores found for selected CCNs.");
-      setMarketAverages({});
-      return;
-    }
-
-    const scoresByCode = {};
-
+    const mapped = {};
     data.forEach((row) => {
       const code = row.code?.toUpperCase();
-      if (code && row.score != null) {
-        if (!scoresByCode[code]) {
-          scoresByCode[code] = [];
-        }
-        scoresByCode[code].push(row.score);
+      if (code && row.avg_score != null) {
+        mapped[code] = Number(row.avg_score.toFixed(2));
       }
     });
 
-    const averages = {};
-    for (const code in scoresByCode) {
-      const scores = scoresByCode[code];
-      const average = scores.reduce((sum, val) => sum + val, 0) / scores.length;
-      averages[code] = average.toFixed(2);
-    }
-
-    console.log("✅ Calculated market averages:", averages);
-    setMarketAverages(averages);
+    console.log("✅ Clean mapped market averages:", mapped);
+    setMarketAverages(mapped);
   };
 
   const fetchNationalAverages = async () => {
@@ -180,15 +164,19 @@ export default function Quality({ provider, providers }) {
   const isMeasureInSetting = (code, setting) => {
     if (!code) return false;
 
+    const settingPrefixes = getSettingPrefixes(setting);
+
+    return settingPrefixes.some((prefix) => code.startsWith(prefix));
+  };
+
+  const getSettingPrefixes = (setting) => {
     const settingPrefixes = {
       SNF: ["SNF", "NH"],
       IRF: ["IRF"],
       HHA: ["HHA"],
       Hospice: ["HOS"],
     };
-
-    const prefixes = settingPrefixes[setting] || [];
-    return prefixes.some((prefix) => code.startsWith(prefix));
+    return settingPrefixes[setting] || [];
   };
 
   const formatValue = (value, fallback = "—") => {

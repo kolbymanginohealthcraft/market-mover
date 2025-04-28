@@ -1,4 +1,3 @@
-// src/pages/ProviderDetail.jsx
 import { useEffect, useState, useRef } from "react";
 import {
   useParams,
@@ -31,7 +30,7 @@ export default function ProviderDetail() {
   const [radiusInMiles, setRadiusInMiles] = useState(10);
   const [cachedProviders, setCachedProviders] = useState([]);
   const [nearbyProviders, setNearbyProviders] = useState([]);
-  const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]); // ✅
+  const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]);
 
   const [showPopup, setShowPopup] = useState(false);
   const [marketName, setMarketName] = useState("");
@@ -102,24 +101,6 @@ export default function ProviderDetail() {
 
     console.log(`✅ Found ${data.length} nearby providers.`);
 
-    const dhcIds = data.map((p) => p.dhc).filter((id) => id != null);
-    console.log("🧩 DHC IDs for RPC:", dhcIds);
-
-    if (dhcIds.length === 0) {
-      console.warn("⚠️ No valid DHC IDs to fetch CCNs.");
-    } else {
-      const { data: ccnsData, error: ccnsError } = await supabase.rpc("get_ccns_for_market", {
-        dhc_ids: dhcIds,
-      });
-
-      if (ccnsError) {
-        console.error("❌ Error fetching DHC-CCN mappings:", ccnsError);
-      } else {
-        console.log(`✅ Nearby DHC-CCN mappings fetched:`, ccnsData);
-        setNearbyDhcCcns(ccnsData || []);
-      }
-    }
-
     const haversineDistanceMiles = ([lat1, lon1], [lat2, lon2]) => {
       const R = 3958.8;
       const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -147,7 +128,29 @@ export default function ProviderDetail() {
       .filter((p) => p.distance <= radiusInMiles)
       .sort((a, b) => a.distance - b.distance);
     setNearbyProviders(filtered);
+
+    const dhcIds = filtered.map((p) => p.dhc).filter((id) => id != null);
+    console.log("🧩 Sending DHC IDs to RPC:", dhcIds);
+
+    if (dhcIds.length > 0) {
+      fetchNearbyDhcCcns(dhcIds);
+    } else {
+      setNearbyDhcCcns([]);
+    }
   }, [cachedProviders, radiusInMiles]);
+
+  const fetchNearbyDhcCcns = async (dhcIds) => {
+    const { data, error } = await supabase.rpc("get_ccns_for_market", {
+      dhc_ids: dhcIds,
+    });
+
+    if (error) {
+      console.error("❌ Error fetching DHC-CCN mappings:", error);
+    } else {
+      console.log(`✅ Nearby DHC-CCN mappings fetched:`, data);
+      setNearbyDhcCcns(data || []);
+    }
+  };
 
   useEffect(() => {
     const fetchMarketName = async () => {
