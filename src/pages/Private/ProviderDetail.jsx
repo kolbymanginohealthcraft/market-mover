@@ -1,3 +1,4 @@
+// src/pages/ProviderDetail.jsx
 import { useEffect, useState, useRef } from "react";
 import {
   useParams,
@@ -9,14 +10,15 @@ import {
 } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./ProviderDetail.module.css";
-import { Pencil, Check, X } from "lucide-react"; // ✅
+import { Pencil, Check, X } from "lucide-react";
 
 import OverviewTab from "./OverviewTab";
 import NearbyTab from "./NearbyTab";
 import ScorecardTab from "./ScorecardPage";
 import ChartsTab from "./ChartDashboard";
 import SubNavbar from "../../components/Navigation/SubNavbar";
-import CCNList from "./CCNList"; // ✅ Add this line
+import CCNList from "./CCNList";
+import Quality from "./Quality";
 import Spinner from "../../components/Buttons/Spinner";
 
 export default function ProviderDetail() {
@@ -27,6 +29,10 @@ export default function ProviderDetail() {
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [radiusInMiles, setRadiusInMiles] = useState(10);
+  const [cachedProviders, setCachedProviders] = useState([]);
+  const [nearbyProviders, setNearbyProviders] = useState([]);
+  const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]); // ✅
+
   const [showPopup, setShowPopup] = useState(false);
   const [marketName, setMarketName] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
@@ -38,7 +44,6 @@ export default function ProviderDetail() {
 
   const marketId = searchParams.get("marketId");
   const radiusFromUrl = searchParams.get("radius");
-
   const isInSavedMarket = Boolean(marketId);
 
   useEffect(() => {
@@ -53,7 +58,7 @@ export default function ProviderDetail() {
       const { data, error } = await supabase
         .from("org_dhc")
         .select(
-          "id, name, network, type, street, city, state, zip, phone, latitude, longitude"
+          "id, dhc, name, network, type, street, city, state, zip, phone, latitude, longitude"
         )
         .eq("id", id)
         .single();
@@ -63,12 +68,86 @@ export default function ProviderDetail() {
         navigate("/search");
       } else {
         setProvider(data);
+        fetchNearbyProviders(data.latitude, data.longitude);
       }
       setLoading(false);
     };
 
     fetchProvider();
   }, [id, navigate]);
+
+  const fetchNearbyProviders = async (centerLat, centerLon) => {
+    console.log("🌎 Fetching nearby providers...");
+
+    const boundingBoxMargin = 2;
+    const latMin = centerLat - boundingBoxMargin;
+    const latMax = centerLat + boundingBoxMargin;
+    const lonMin = centerLon - boundingBoxMargin;
+    const lonMax = centerLon + boundingBoxMargin;
+
+    const { data, error } = await supabase
+      .from("org_dhc")
+      .select(
+        "id, dhc, name, network, street, city, state, zip, latitude, longitude, type"
+      )
+      .filter("latitude", "gte", latMin)
+      .filter("latitude", "lte", latMax)
+      .filter("longitude", "gte", lonMin)
+      .filter("longitude", "lte", lonMax);
+
+    if (error) {
+      console.error("❌ Error fetching nearby providers:", error);
+      return;
+    }
+
+    console.log(`✅ Found ${data.length} nearby providers.`);
+
+    const dhcIds = data.map((p) => p.dhc).filter((id) => id != null);
+    console.log("🧩 DHC IDs for RPC:", dhcIds);
+
+    if (dhcIds.length === 0) {
+      console.warn("⚠️ No valid DHC IDs to fetch CCNs.");
+    } else {
+      const { data: ccnsData, error: ccnsError } = await supabase.rpc("get_ccns_for_market", {
+        dhc_ids: dhcIds,
+      });
+
+      if (ccnsError) {
+        console.error("❌ Error fetching DHC-CCN mappings:", ccnsError);
+      } else {
+        console.log(`✅ Nearby DHC-CCN mappings fetched:`, ccnsData);
+        setNearbyDhcCcns(ccnsData || []);
+      }
+    }
+
+    const haversineDistanceMiles = ([lat1, lon1], [lat2, lon2]) => {
+      const R = 3958.8;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    const enriched = data.map((p) => ({
+      ...p,
+      distance: haversineDistanceMiles([centerLat, centerLon], [p.latitude, p.longitude]),
+    }));
+
+    setCachedProviders(enriched);
+  };
+
+  useEffect(() => {
+    if (!cachedProviders.length) return;
+    const filtered = cachedProviders
+      .filter((p) => p.distance <= radiusInMiles)
+      .sort((a, b) => a.distance - b.distance);
+    setNearbyProviders(filtered);
+  }, [cachedProviders, radiusInMiles]);
 
   useEffect(() => {
     const fetchMarketName = async () => {
@@ -79,12 +158,8 @@ export default function ProviderDetail() {
         .eq("id", marketId)
         .single();
 
-      if (data?.name) {
-        setCurrentMarketName(data.name);
-      }
-      if (data?.radius_miles) {
-        setRadiusInMiles(data.radius_miles);
-      }
+      if (data?.name) setCurrentMarketName(data.name);
+      if (data?.radius_miles) setRadiusInMiles(data.radius_miles);
     };
 
     fetchMarketName();
@@ -95,14 +170,14 @@ export default function ProviderDetail() {
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) {
-        console.error("❌ Error getting user:", userError);
+        console.error("Error getting user:", userError);
         setSaveMessage("Error: could not get user.");
         return;
       }
 
       const userId = userData?.user?.id;
       if (!userId) {
-        console.error("❌ No user ID found");
+        console.error("No user ID found");
         setSaveMessage("Error: no user ID.");
         return;
       }
@@ -120,10 +195,10 @@ export default function ProviderDetail() {
         .single();
 
       if (insertError) {
-        console.error("❌ Error inserting market:", insertError);
+        console.error("Error inserting market:", insertError);
         setSaveMessage(`Error: ${insertError.message}`);
       } else {
-        console.log("✅ Market saved:", savedMarket);
+        console.log("Market saved:", savedMarket);
         setSaveMessage("Market saved successfully!");
         setShowPopup(false);
 
@@ -135,7 +210,7 @@ export default function ProviderDetail() {
         navigate(`/app/provider/${provider.id}/${subTab}?radius=${radiusInMiles}&marketId=${savedMarket.id}`);
       }
     } catch (err) {
-      console.error("❌ Unexpected error:", err);
+      console.error("Unexpected error:", err);
       setSaveMessage("Unexpected error occurred.");
     }
   };
@@ -161,16 +236,16 @@ export default function ProviderDetail() {
     }
   };
 
-  const handleCancelEdit = () => {
-    setIsEditingMarket(false);
-  };
+  const handleCancelEdit = () => setIsEditingMarket(false);
 
   const handleEditKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSaveMarketEdits();
-    } else if (e.key === "Escape") {
-      handleCancelEdit();
-    }
+    if (e.key === "Enter") handleSaveMarketEdits();
+    if (e.key === "Escape") handleCancelEdit();
+  };
+
+  const handlePopupKeyDown = (e) => {
+    if (e.key === "Enter") handleSaveMarket();
+    if (e.key === "Escape") setShowPopup(false);
   };
 
   useEffect(() => {
@@ -246,28 +321,23 @@ export default function ProviderDetail() {
               )}
             </div>
           ) : (
-            <>
-              <div className={styles.radiusGroup}>
-                <label>
-                  Radius: {radiusInMiles} mi
-                </label>
-                <input
-                  className={styles.radiusSlider}
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={radiusInMiles}
-                  onChange={(e) => setRadiusInMiles(Number(e.target.value))}
-                />
-              </div>
-
+            <div className={styles.radiusGroup}>
+              <label>Radius: {radiusInMiles} mi</label>
+              <input
+                className={styles.radiusSlider}
+                type="range"
+                min="1"
+                max="100"
+                value={radiusInMiles}
+                onChange={(e) => setRadiusInMiles(Number(e.target.value))}
+              />
               <button
                 className={styles.saveButton}
                 onClick={() => setShowPopup(true)}
               >
                 Save Market
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -308,13 +378,15 @@ export default function ProviderDetail() {
             <NearbyTab
               provider={provider}
               radiusInMiles={radiusInMiles}
+              providers={nearbyProviders}
               isInSavedMarket={isInSavedMarket}
             />
           }
         />
         <Route path="scorecard" element={<ScorecardTab provider={provider} />} />
         <Route path="charts" element={<ChartsTab provider={provider} />} />
-        <Route path="ccn-list" element={<CCNList provider={provider} />} />
+        <Route path="quality" element={<Quality provider={provider} marketDhcCcns={nearbyDhcCcns} />} />
+        <Route path="ccn-list" element={<CCNList provider={provider} providers={nearbyProviders} />} />
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="*" element={<p>404: Page Not Found</p>} />
       </Routes>

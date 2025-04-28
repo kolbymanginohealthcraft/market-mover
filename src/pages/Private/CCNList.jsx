@@ -1,58 +1,44 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import Spinner from "../../components/Buttons/Spinner";
 import styles from "./CCNList.module.css";
 
-export default function CCNList({ provider }) {
+export default function CCNList({ provider, providers }) {
   const [ccns, setCcns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [searchParams] = useSearchParams();
-
-  const marketId = searchParams.get("marketId");
-  const radius = searchParams.get("radius");
 
   useEffect(() => {
     const fetchCCNs = async () => {
       setLoading(true);
 
-      if (!marketId) {
-        setErrorMsg("No saved market loaded. Please save a market first.");
+      if (!providers || !providers.length) {
+        setErrorMsg("No nearby providers found.");
         setLoading(false);
         return;
       }
 
-      // Step 1: Fetch providers within the current market
-      const { data: marketProviders, error: marketError } = await supabase
-        .from("market_provider_tags")
-        .select("tagged_provider_id")
-        .eq("market_id", marketId);
+      const providerDHCs = providers
+        .map((p) => p.dhc)
+        .filter((dhc) => dhc != null);
 
-      if (marketError) {
-        console.error("Error fetching market providers:", marketError);
-        setErrorMsg("Failed to load market providers.");
+      console.log("Sending DHCs to RPC:", providerDHCs);
+
+      if (!providerDHCs.length) {
+        setErrorMsg("No providers found within the selected radius.");
         setLoading(false);
         return;
       }
 
-      const providerIds = marketProviders.map((p) => p.tagged_provider_id);
-
-      if (!providerIds.length) {
-        setErrorMsg("No tagged providers found in this market.");
-        setLoading(false);
-        return;
-      }
-
-      // Step 2: Call your Supabase function
       const { data, error } = await supabase.rpc("get_ccns_for_market", {
-        dhc_ids: providerIds,
+        dhc_ids: providerDHCs,
       });
 
       if (error) {
-        console.error("Error fetching CCNs:", error);
+        console.error("❌ RPC error fetching CCNs:", error);
         setErrorMsg(error.message || "Failed to load CCNs.");
       } else {
+        console.log("✅ RPC returned CCNs:", data);
         setCcns(data || []);
       }
 
@@ -60,13 +46,13 @@ export default function CCNList({ provider }) {
     };
 
     fetchCCNs();
-  }, [marketId, radius]);
+  }, [providers]);
 
   if (loading) return <Spinner message="Loading CCNs..." />;
 
   return (
     <div className={styles.container}>
-      <h2>CCNs for Market</h2>
+      <h2>CCNs for Providers Within {provider ? `${provider.name}` : "Unknown Location"}</h2>
 
       {errorMsg ? (
         <p className={styles.error}>{errorMsg}</p>

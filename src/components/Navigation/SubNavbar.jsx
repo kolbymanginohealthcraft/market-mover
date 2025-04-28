@@ -42,7 +42,15 @@ export default function SubNavbar({ providerId }) {
         Charts
       </NavLink>
       <NavLink
-        to={`${prefix}/ccn-list${search}`}  // ✅ New tab!
+        to={`${prefix}/quality${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Quality
+      </NavLink>
+      <NavLink
+        to={`${prefix}/ccn-list${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }

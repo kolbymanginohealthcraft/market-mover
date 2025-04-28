@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -26,41 +26,17 @@ const selectedIcon = new L.Icon({
 export default function NearbyTab({
   provider,
   radiusInMiles,
+  providers,
   isInSavedMarket,
 }) {
-  const [nearbyProviders, setNearbyProviders] = useState([]);
   const [selectedType, setSelectedType] = useState("All");
-  const [availableTypes, setAvailableTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState({});
   const [taggingProviderId, setTaggingProviderId] = useState(null);
   const [savingTagId, setSavingTagId] = useState(null);
-  const cachedProviders = useRef(null);
   const navigate = useNavigate();
 
-  const lat = provider.latitude;
-  const lon = provider.longitude;
-  const boundingboxmargin = 2;
-  const latMin = lat - boundingboxmargin;
-  const latMax = lat + boundingboxmargin;
-  const lonMin = lon - boundingboxmargin;
-  const lonMax = lon + boundingboxmargin;
-
   const marketId = new URLSearchParams(window.location.search).get("marketId");
-
-  const haversineDistanceMiles = ([lat1, lon1], [lat2, lon2]) => {
-    const R = 3958.8;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
   const fetchTags = async () => {
     if (!marketId) return;
@@ -80,69 +56,26 @@ export default function NearbyTab({
     }
   };
 
-  useEffect(() => {
-    const fetchNearbyProviders = async () => {
-      const { data, error } = await supabase
-        .from("org_dhc")
-        .select(
-          "id, name, network, street, city, state, zip, latitude, longitude, type"
-        )
-        .order("id", { ascending: true })
-        .filter("latitude", "gte", latMin)
-        .filter("latitude", "lte", latMax)
-        .filter("longitude", "gte", lonMin)
-        .filter("longitude", "lte", lonMax);
+  // Fetch tags initially
+  useState(() => {
+    if (isInSavedMarket) {
+      fetchTags();
+    }
+  }, []);
 
-      if (error) {
-        console.error("Error fetching nearby providers:", error);
-        setLoading(false);
-        return;
-      }
+  if (!providers || !provider)
+    return <Spinner message="Loading nearby providers..." />;
 
-      const enrichedData = data.map((p) => ({
-        ...p,
-        distance: haversineDistanceMiles([lat, lon], [p.latitude, p.longitude]),
-      }));
+  const availableTypes = Array.from(
+    new Set(providers.map((p) => p.type || "Unknown"))
+  ).sort();
 
-      const deduped = Array.from(
-        new Map(enrichedData.map((p) => [p.id, p])).values()
-      );
-
-      const types = Array.from(
-        new Set(deduped.map((p) => p.type || "Unknown"))
-      ).sort();
-      setAvailableTypes(types);
-
-      cachedProviders.current = deduped;
-
-      const filtered = deduped
-        .filter((p) => p.distance <= radiusInMiles)
-        .filter((p) => selectedType === "All" || p.type === selectedType)
-        .sort((a, b) => a.distance - b.distance);
-
-      setNearbyProviders(filtered);
-      setLoading(false);
-
-      if (isInSavedMarket) {
-        fetchTags();
-      }
-    };
-
-    fetchNearbyProviders();
-  }, [provider]);
-
-  useEffect(() => {
-    if (!cachedProviders.current) return;
-    const filtered = cachedProviders.current
-      .filter((p) => p.distance <= radiusInMiles)
-      .filter((p) => selectedType === "All" || p.type === selectedType)
-      .sort((a, b) => a.distance - b.distance);
-    setNearbyProviders(filtered);
-  }, [radiusInMiles, selectedType]);
-
-  const filteredResults = nearbyProviders.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredResults = providers
+    .filter((p) => selectedType === "All" || p.type === selectedType)
+    .filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => a.distance - b.distance);
 
   const providerCount = filteredResults.length.toLocaleString();
 
@@ -177,8 +110,8 @@ export default function NearbyTab({
     }
   };
 
-  if (loading || !provider)
-    return <Spinner message="Loading nearby providers..." />;
+  const lat = provider.latitude;
+  const lon = provider.longitude;
 
   return (
     <div className={styles.container}>
@@ -205,8 +138,7 @@ export default function NearbyTab({
         />
 
         <div className={styles.providerCount}>
-          Showing {providerCount} provider
-          {filteredResults.length !== 1 ? "s" : ""}
+          Showing {providerCount} provider{filteredResults.length !== 1 ? "s" : ""}
         </div>
       </div>
 

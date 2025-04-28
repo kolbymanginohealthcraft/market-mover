@@ -36,6 +36,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .typeBadge {
@@ -48,7 +49,7 @@
   text-transform: capitalize;
 }
 
-/* Controls Section (Market Info / Radius Controls) */
+/* Controls Section */
 .controlsWrapper {
   display: flex;
   align-items: center;
@@ -83,7 +84,6 @@
   font-size: 1rem;
   font-weight: 600;
   color: #333;
-  flex: 1;
   overflow-wrap: break-word;
 }
 
@@ -114,7 +114,7 @@
 }
 
 .editInput[type="number"] {
-  width: 80px; /* 🔥 Shrink radius input nicely */
+  width: 80px;
 }
 
 /* Icons for editing */
@@ -146,19 +146,20 @@
   color: #1dadbe;
 }
 
-/* Radius Controls (when not saved) */
+/* Radius Controls */
 .radiusGroup {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
   font-size: 0.85rem;
 }
 
 .radiusSlider {
   width: 160px;
-  margin-top: 0;
 }
 
+/* Save Button */
 .saveButton {
   background-color: #1dadbe;
   color: white;
