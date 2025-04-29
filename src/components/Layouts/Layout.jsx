@@ -2,7 +2,7 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from '../Navigation/Navbar'; // ✅ This is your only Navbar file
 import Footer from '../Navigation/Footer';
-import styles from './Layout.module.css';
+import styles from '../../styles/Layout.module.css';
 
 export default function Layout() {
   return (

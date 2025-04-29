@@ -1,25 +1,45 @@
 import React from 'react';
-import classNames from 'classnames';
-import styles from './Button.module.css';
+import PropTypes from 'prop-types';
+import '../../styles/base.css';
 
 /**
- * Custom Button component
+ * Unified Button component
  * 
  * Props:
- * - variant: "primary" | "gold" | "accent"
- * - className: optional additional classes
- * - ...rest: any other button props (onClick, type, disabled, etc.)
+ * - variant: "primary" | "gold" | "accent" (only for regular buttons)
+ * - isActive: true/false (only for filter-style buttons)
+ * - isFilter: true/false (if true, uses filter-button class)
+ * - className: extra classes
  */
-export default function Button({ variant = 'primary', className, children, ...rest }) {
-  const buttonClass = classNames(
-    styles.button,
-    styles[variant],
+export default function Button({
+  variant = 'primary',
+  isActive = false,
+  isFilter = false,
+  className = '',
+  children,
+  ...rest
+}) {
+  const baseClass = isFilter ? 'filter-button' : 'button';
+  const classes = [
+    baseClass,
+    !isFilter && variant, // Apply variant only if not filter
+    isFilter && isActive && 'active',
     className
-  );
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <button className={buttonClass} {...rest}>
+    <button className={classes} {...rest}>
       {children}
     </button>
   );
 }
+
+Button.propTypes = {
+  variant: PropTypes.string,
+  isActive: PropTypes.bool,
+  isFilter: PropTypes.bool,
+  className: PropTypes.string,
+  children: PropTypes.node.isRequired,
+};

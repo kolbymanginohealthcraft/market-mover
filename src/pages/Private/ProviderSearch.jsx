@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "../../app/supabaseClient";
 import { Link } from "react-router-dom";
-import Button from "../../components/Buttons/Button";
-import FilterButton from "../../components/Buttons/FilterButton";
+import Button from "../../components/Buttons/Button"; // Unified Button
 import styles from "./ProviderSearch.module.css";
 
 export default function ProviderSearch() {
@@ -74,7 +73,7 @@ export default function ProviderSearch() {
           }}
         >
           <input
-            className={styles.input} // ⬅️ Apply consistent styling
+            className={styles.input}
             type="text"
             placeholder="Search by name, address, etc."
             value={queryText}
@@ -92,15 +91,16 @@ export default function ProviderSearch() {
               <h4>Provider Type</h4>
               <div className={styles.filterButtons}>
                 {["All", ...Object.keys(types).sort()].map((type) => (
-                  <FilterButton
+                  <Button
                     key={type}
+                    isFilter
                     isActive={selectedType === type}
                     onClick={() => setSelectedType(type)}
                   >
                     {type === "All"
                       ? `All (${results.length})`
                       : `${type} (${types[type]})`}
-                  </FilterButton>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -109,15 +109,16 @@ export default function ProviderSearch() {
               <h4>State</h4>
               <div className={styles.filterButtons}>
                 {["All", ...Object.keys(states).sort()].map((state) => (
-                  <FilterButton
+                  <Button
                     key={state}
+                    isFilter
                     isActive={selectedState === state}
                     onClick={() => setSelectedState(state)}
                   >
                     {state === "All"
                       ? `All (${results.length})`
                       : `${state} (${states[state]})`}
-                  </FilterButton>
+                  </Button>
                 ))}
               </div>
             </div>
