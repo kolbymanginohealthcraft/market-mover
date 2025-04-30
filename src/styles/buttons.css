@@ -13,10 +13,10 @@ button {
 
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  animation: focusFade 0.5s forwards;
 }
 
-/* ===== Universal Base Button Class ===== */
+/* ===== Base Class ===== */
 .button {
   font-family: "Work Sans", sans-serif;
   font-size: 1rem;
@@ -37,41 +37,7 @@ button:focus-visible {
   cursor: not-allowed;
 }
 
-/* ===== Variants ===== */
-.primary {
-  background-color: #265947;
-  color: white;
-}
-.primary:hover:not(:disabled) {
-  background-color: #3d6f5b;
-}
-.primary:active:not(:disabled) {
-  background-color: #4f846e;
-}
-
-.gold {
-  background-color: #f1b62c;
-  color: #265947;
-}
-.gold:hover:not(:disabled) {
-  background-color: #ffd85e;
-}
-.gold:active:not(:disabled) {
-  background-color: #e3a917;
-}
-
-.accent {
-  background-color: #3fb985;
-  color: white;
-}
-.accent:hover:not(:disabled) {
-  background-color: #34a475;
-}
-.accent:active:not(:disabled) {
-  background-color: #2e9065;
-}
-
-/* ===== Sizes ===== */
+/* ===== Size Variants ===== */
 .button-sm {
   padding: 0.4rem 0.8rem;
   font-size: 0.85rem;
@@ -82,29 +48,121 @@ button:focus-visible {
   font-size: 1.1rem;
 }
 
-/* ===== Outline Modifier ===== */
-.button-outline {
-  background: transparent;
-  border: 2px solid #265947;
-  color: #265947;
-}
-.button-outline:hover:not(:disabled) {
-  background-color: #e6f2ec;
+/* ===== Color Tokens ===== */
+:root {
+  --color-green: #265947;
+  --color-green-light: #3d6f5b;
+  --color-green-dark: #4f846e;
+
+  --color-gold: #f1b62c;
+  --color-gold-light: #ffd85e;
+  --color-gold-dark: #e3a917;
+
+  --color-accent: #3fb985;
+  --color-accent-light: #34a475;
+  --color-accent-dark: #2e9065;
+
+  --color-red: #d64550;
+  --color-red-light: #b93a44;
+  --color-red-dark: #9f3039;
+
+  --color-teal: #26d9d8;
+  --color-teal-light: #4ee7e5;
+  --color-teal-dark: #1abdbb;
+
+  --color-blue: #3599b8;
+  --color-blue-light: #2983a1;
+  --color-blue-dark: #226f8b;
+
+  --color-aqua: #4ac5bb;
+  --color-aqua-light: #6ed5ce;
+  --color-aqua-dark: #3ab7b1;
+
+  --color-gray: #5f6b6d;
+  --color-gray-light: #4a5456;
+  --color-gray-dark: #3e4648;
 }
 
-/* ===== Ghost Modifier ===== */
+/* ===== Filled Variants ===== */
+.green   { background-color: var(--color-green); color: white; }
+.green:hover   { background-color: var(--color-green-light); }
+.green:active  { background-color: var(--color-green-dark); }
+
+.gold    { background-color: var(--color-gold); color: var(--color-green); }
+.gold:hover    { background-color: var(--color-gold-light); }
+.gold:active   { background-color: var(--color-gold-dark); }
+
+.accent  { background-color: var(--color-accent); color: white; }
+.accent:hover  { background-color: var(--color-accent-light); }
+.accent:active { background-color: var(--color-accent-dark); }
+
+.red     { background-color: var(--color-red); color: white; }
+.red:hover     { background-color: var(--color-red-light); }
+.red:active    { background-color: var(--color-red-dark); }
+
+.teal    { background-color: var(--color-teal); color: var(--color-green); }
+.teal:hover    { background-color: var(--color-teal-light); }
+.teal:active   { background-color: var(--color-teal-dark); }
+
+.blue    { background-color: var(--color-blue); color: white; }
+.blue:hover    { background-color: var(--color-blue-light); }
+.blue:active   { background-color: var(--color-blue-dark); }
+
+.aqua    { background-color: var(--color-aqua); color: var(--color-green); }
+.aqua:hover    { background-color: var(--color-aqua-light); }
+.aqua:active   { background-color: var(--color-aqua-dark); }
+
+.gray    { background-color: var(--color-gray); color: white; }
+.gray:hover    { background-color: var(--color-gray-light); }
+.gray:active   { background-color: var(--color-gray-dark); }
+
+/* ===== Outline Buttons ===== */
+.button-outline {
+  background: transparent;
+  border-width: 2px;
+}
+
+.button-outline.green  { border-color: var(--color-green);  color: var(--color-green); }
+.button-outline.gold   { border-color: var(--color-gold);   color: var(--color-gold); }
+.button-outline.accent { border-color: var(--color-accent); color: var(--color-accent); }
+.button-outline.red    { border-color: var(--color-red);    color: var(--color-red); }
+.button-outline.teal   { border-color: var(--color-teal);   color: var(--color-teal); }
+.button-outline.blue   { border-color: var(--color-blue);   color: var(--color-blue); }
+.button-outline.aqua   { border-color: var(--color-aqua);   color: var(--color-aqua); }
+.button-outline.gray   { border-color: var(--color-gray);   color: var(--color-gray); }
+
+.button-outline.green:hover  { background-color: #e6f2ec; }
+.button-outline.gold:hover   { background-color: #fff4d3; }
+.button-outline.accent:hover { background-color: #e4f9f3; }
+.button-outline.red:hover    { background-color: #fae6e7; }
+.button-outline.teal:hover   { background-color: #e7fafa; }
+.button-outline.blue:hover   { background-color: #e6f4fb; }
+.button-outline.aqua:hover   { background-color: #e2fbf8; }
+.button-outline.gray:hover   { background-color: #f2f2f2; }
+
+/* ===== Ghost Buttons ===== */
 .button-ghost {
   background: transparent;
   border: none;
-  color: #265947;
 }
-.button-ghost:hover:not(:disabled) {
-  background-color: #f0f0f0;
-}
-.button-ghost:focus,
-.button-ghost:focus-visible {
-  outline: none;
-}
+
+.button-ghost.green  { color: var(--color-green); }
+.button-ghost.gold   { color: var(--color-gold); }
+.button-ghost.accent { color: var(--color-accent); }
+.button-ghost.red    { color: var(--color-red); }
+.button-ghost.teal   { color: var(--color-teal); }
+.button-ghost.blue   { color: var(--color-blue); }
+.button-ghost.aqua   { color: var(--color-aqua); }
+.button-ghost.gray   { color: var(--color-gray); }
+
+.button-ghost.green:hover  { background-color: #f2f7f5; }
+.button-ghost.gold:hover   { background-color: #fff4d3; }
+.button-ghost.accent:hover { background-color: #e4f9f3; }
+.button-ghost.red:hover    { background-color: #fae6e7; }
+.button-ghost.teal:hover   { background-color: #e7fafa; }
+.button-ghost.blue:hover   { background-color: #e6f4fb; }
+.button-ghost.aqua:hover   { background-color: #e2fbf8; }
+.button-ghost.gray:hover   { background-color: #f2f2f2; }
 
 /* ===== Filter Buttons ===== */
 .filter-button {
@@ -114,31 +172,27 @@ button:focus-visible {
   border-radius: 6px;
   padding: 0.5rem 1rem;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
   border: 1px solid #ccc;
   background-color: #f5f5f5;
-  color: #265947;
+  color: var(--color-green);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
-
 .filter-button:hover {
   background-color: #e0e0e0;
 }
-
 .filter-button.active {
-  background-color: #f1b62c;
-  color: #265947;
-  border-color: #dca518;
+  background-color: var(--color-gold);
+  color: var(--color-green);
 }
-
 .filter-button.active:hover {
   background-color: #dca518;
 }
 
-/* ===== Login/Logout Variant (Navbar Buttons) ===== */
+/* ===== Navbar Button (No Animation) ===== */
 .button-nav {
-  color: #f1b62c;
+  color: var(--color-gold);
   background: transparent;
-  border: 1.5px solid #f1b62c;
+  border: 1.5px solid var(--color-gold);
   padding: 6px 12px;
   border-radius: 4px;
   font-weight: 500;
@@ -149,14 +203,17 @@ button:focus-visible {
   line-height: 1;
   transition: all 0.2s ease;
 }
-
 .button-nav:hover {
-  background-color: #f1b62c;
-  color: #265947;
+  background-color: var(--color-gold);
+  color: var(--color-green);
   border-color: #1f4c3e;
 }
+.button-nav:focus {
+  outline: none;
+  box-shadow: none;
+}
 
-/* ===== Interaction Animation ===== */
+/* ===== Click Feedback ===== */
 .button:active,
 .filter-button:active,
 .button-outline:active,
@@ -166,4 +223,14 @@ button:focus-visible {
 
 .animate {
   will-change: transform, background-color;
+}
+
+/* ===== Focus Animation ===== */
+@keyframes focusFade {
+  0% {
+    box-shadow: 0 0 0 3px #f1b62c;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }

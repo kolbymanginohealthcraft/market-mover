@@ -1,35 +1,73 @@
 import { useState } from "react";
 import Button from "../components/Buttons/Button";
-import ButtonGroup from "../components/Buttons/ButtonGroup"; // <-- optional if you want to show ButtonGroup
+import ButtonGroup from "../components/Buttons/ButtonGroup";
+
+const variants = [
+  "green",
+  "gold",
+  "accent",
+  "red",
+  "teal",
+  "blue",
+  "aqua",
+  "gray"
+];
 
 export default function ButtonPlayground() {
   const [selectedOption, setSelectedOption] = useState("All");
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Standard Buttons</h2>
-      <Button>Primary Button</Button>
-      <Button variant="gold" style={{ marginLeft: "1rem" }}>Gold Button</Button>
-      <Button variant="accent" style={{ marginLeft: "1rem" }}>Accent Button</Button>
+    <div style={{ padding: "2rem", fontFamily: "Work Sans" }}>
+      <h2>Standard (Filled) Buttons</h2>
+      {variants.map((variant) => (
+        <Button key={variant} variant={variant} style={{ marginRight: "1rem", marginBottom: "0.5rem" }}>
+          {variant.charAt(0).toUpperCase() + variant.slice(1)}
+        </Button>
+      ))}
 
-      <h2 style={{ marginTop: "2rem" }}>Outline and Ghost</h2>
-      <Button className="button-outline" style={{ marginRight: "1rem" }}>Outline Button</Button>
-      <Button className="button-ghost">Ghost Button</Button>
+      <h2 style={{ marginTop: "2rem" }}>Outline Buttons</h2>
+      {variants.map((variant) => (
+        <Button key={variant} variant={variant} outline style={{ marginRight: "1rem", marginBottom: "0.5rem" }}>
+          {variant.charAt(0).toUpperCase() + variant.slice(1)} Outline
+        </Button>
+      ))}
 
-      <h2 style={{ marginTop: "2rem" }}>Small and Large Buttons</h2>
-      <Button className="button-sm" style={{ marginRight: "1rem" }}>Small Button</Button>
-      <Button className="button-lg">Large Button</Button>
+      <h2 style={{ marginTop: "2rem" }}>Ghost Buttons</h2>
+      {variants.map((variant) => (
+        <Button key={variant} variant={variant} ghost style={{ marginRight: "1rem", marginBottom: "0.5rem" }}>
+          {variant.charAt(0).toUpperCase() + variant.slice(1)} Ghost
+        </Button>
+      ))}
 
-      <h2 style={{ marginTop: "2rem" }}>Filter Button Example</h2>
+      <h2 style={{ marginTop: "2rem" }}>Sizes</h2>
+      <Button size="sm" style={{ marginRight: "1rem" }}>Small</Button>
+      <Button>Default</Button>
+      <Button size="lg" style={{ marginLeft: "1rem" }}>Large</Button>
+
+      <h2 style={{ marginTop: "2rem" }}>Disabled States</h2>
+      <Button disabled style={{ marginRight: "1rem" }}>Disabled</Button>
+      <Button variant="gold" disabled style={{ marginRight: "1rem" }}>Gold Disabled</Button>
+      <Button variant="accent" size="lg" disabled>Accent Large Disabled</Button>
+
+      <h2 style={{ marginTop: "2rem" }}>Filter Buttons</h2>
       <Button isFilter isActive>Active Filter</Button>
       <Button isFilter style={{ marginLeft: "1rem" }}>Inactive Filter</Button>
+      <Button isFilter size="sm" style={{ marginLeft: "1rem" }}>Small Filter</Button>
 
-      <h2 style={{ marginTop: "2rem" }}>ButtonGroup Example</h2>
+      <h2 style={{ marginTop: "2rem" }}>ButtonGroup</h2>
       <ButtonGroup
         options={['All', 'Hospital', 'SNF']}
         selected={selectedOption}
         onSelect={setSelectedOption}
       />
+
+      <h2 style={{ marginTop: "2rem" }}>Mixed Props</h2>
+      <Button variant="green" size="lg" outline style={{ marginRight: "1rem" }}>
+        Green Large Outline
+      </Button>
+      <Button variant="gold" ghost size="sm">
+        Gold Ghost Small
+      </Button>
     </div>
   );
 }

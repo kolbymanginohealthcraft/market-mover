@@ -3,8 +3,6 @@
   margin: 60px auto;
   padding: 20px;
   text-align: center;
-  font-family: 'Work Sans', 'ASAP', sans-serif;
-  color: #265947;
 }
 
 .heading {
@@ -36,6 +34,7 @@
   transform: translateY(-4px);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
   border-color: #1dadbe;
+
 }
 
 .icon {

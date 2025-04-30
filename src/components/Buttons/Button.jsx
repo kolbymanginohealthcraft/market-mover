@@ -3,21 +3,20 @@ import PropTypes from 'prop-types';
 import '../../styles/buttons.css';
 
 /**
- * Unified and flexible Button component
+ * Flexible Button component with color, size, style modifiers
  *
  * Props:
- * - variant: "primary" | "gold" | "accent" (applies color scheme)
- * - size: "sm" | "md" | "lg" (applies sizing)
- * - isFilter: boolean (filter-style layout and interaction)
- * - isActive: boolean (used with isFilter to highlight selected filter)
- * - outline: boolean (adds outline style)
- * - ghost: boolean (adds ghost style)
- * - className: string (optional additional classes)
- * - ...rest: all other native <button> props (onClick, type, etc.)
+ * - variant: "green" | "gold" | "accent" | "red" | "teal" | "blue" | "aqua" | "gray"
+ * - size: "sm" | "md" | "lg"
+ * - isFilter: boolean (if true, uses filter style)
+ * - isActive: boolean (used for active filter buttons)
+ * - outline: boolean (applies outline style)
+ * - ghost: boolean (applies ghost style)
+ * - className: additional class names
+ * - ...rest: native button props
  */
-
 export default function Button({
-  variant = 'primary',
+  variant = 'green',
   size = 'md',
   isFilter = false,
   isActive = false,
@@ -31,12 +30,14 @@ export default function Button({
 
   const classes = [
     base,
-    !isFilter && variant,
     isFilter && isActive && 'active',
+    !isFilter && !outline && !ghost && variant,      // filled
+    !isFilter && outline && 'button-outline',
+    !isFilter && outline && variant,                // outline color
+    !isFilter && ghost && 'button-ghost',
+    !isFilter && ghost && variant,                  // ghost color
     size === 'sm' && 'button-sm',
     size === 'lg' && 'button-lg',
-    outline && 'button-outline',
-    ghost && 'button-ghost',
     className,
   ]
     .filter(Boolean)
@@ -50,7 +51,9 @@ export default function Button({
 }
 
 Button.propTypes = {
-  variant: PropTypes.oneOf(['primary', 'gold', 'accent']),
+  variant: PropTypes.oneOf([
+    'green', 'gold', 'accent', 'red', 'teal', 'blue', 'aqua', 'gray'
+  ]),
   size: PropTypes.oneOf(['sm', 'md', 'lg']),
   isFilter: PropTypes.bool,
   isActive: PropTypes.bool,

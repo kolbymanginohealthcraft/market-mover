@@ -30,13 +30,9 @@ h1 {
 
 /* ===== Links ===== */
 a {
-  font-weight: 500;
-  color: #646cff;
   text-decoration: inherit;
 }
-a:hover {
-  color: #fff9e6;
-}
+
 
 /* ===== Map ===== */
 #map-wrapper {

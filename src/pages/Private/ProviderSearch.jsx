@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "../../app/supabaseClient";
 import { Link } from "react-router-dom";
-import Button from "../../components/Buttons/Button"; // Unified Button
+import Button from "../../components/Buttons/Button";
 import styles from "./ProviderSearch.module.css";
 
 export default function ProviderSearch() {
@@ -80,7 +80,11 @@ export default function ProviderSearch() {
             onChange={(e) => setQueryText(e.target.value)}
             ref={searchInputRef}
           />
-          <Button type="submit" disabled={loading || !queryText.trim()}>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={loading || !queryText.trim()}
+          >
             {loading ? "Searching..." : "Search"}
           </Button>
         </form>
@@ -94,6 +98,7 @@ export default function ProviderSearch() {
                   <Button
                     key={type}
                     isFilter
+                    size="sm"
                     isActive={selectedType === type}
                     onClick={() => setSelectedType(type)}
                   >
@@ -112,6 +117,7 @@ export default function ProviderSearch() {
                   <Button
                     key={state}
                     isFilter
+                    size="sm"
                     isActive={selectedState === state}
                     onClick={() => setSelectedState(state)}
                   >
