@@ -1,24 +1,24 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import styles from './PricingPage.module.css'
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import styles from './PricingPage.module.css';
 
 const PAID_PLANS = [
   { name: 'Starter', price: '$2,500/mo' },
   { name: 'Advanced', price: '$3,750/mo' },
   { name: 'Pro', price: '$5,750/mo' },
-]
+];
 
 const FREE_PLAN = {
   name: 'Free',
   price: '$0/mo',
-}
+};
 
 const PricingPage = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleSelect = (planName) => {
-    navigate(`/profile-setup?plan=${planName.toLowerCase()}`)
-  }
+    navigate(`/profile-setup?plan=${planName.toLowerCase()}`);
+  };
 
   return (
     <div className={styles.page}>
@@ -64,7 +64,7 @@ const PricingPage = () => {
               )}
             </ul>
             <button
-              className={styles.button}
+              className="button primary"
               onClick={() => handleSelect(plan.name)}
             >
               Choose {plan.name}
@@ -86,7 +86,7 @@ const PricingPage = () => {
         </p>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default PricingPage
+export default PricingPage;

@@ -1,4 +1,3 @@
-//LandingPage.jsx
 // src/pages/LandingPage.jsx
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -12,23 +11,29 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <>
-      <div className={styles.page}>
-        <section className={styles.hero} data-aos="fade-up">
+    <div className={styles.page}>
+      <section className={styles.hero} data-aos="fade-up">
+        <div className={styles.container}>
           <h1>Unlock Smarter Healthcare Decisions</h1>
-          <p>Healthcraft empowers providers and suppliers with actionable data and insight tools.</p>
-          <Link to="/signup" className={styles.cta}>Get Started</Link>
-        </section>
+          <p>
+            Healthcraft empowers providers and suppliers with actionable data and insight tools.
+          </p>
+          <Link to="/signup" className="button button-lg gold">Get Started</Link>
+        </div>
+      </section>
 
-        <section className={styles.about} data-aos="fade-right">
+      <section className={styles.about} data-aos="fade-right">
+        <div className={styles.container}>
           <h2>Why Healthcraft?</h2>
           <p>
             We're building tools for healthcare professionals to explore provider networks,
             benchmark performance, and discover opportunities. Whether you're a small clinic or a national supplier, our platform scales to meet your needs.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section className={styles.features} data-aos="fade-up">
+      <section className={styles.features} data-aos="fade-up">
+        <div className={styles.container}>
           <h2>What You Can Do</h2>
           <div className={styles.featureGrid}>
             <div>
@@ -44,22 +49,26 @@ const LandingPage = () => {
               <p>Save searches, export CSVs, and collaborate with your team.</p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className={styles.testimonial} data-aos="zoom-in">
+      <section className={styles.testimonial} data-aos="zoom-in">
+        <div className={styles.container}>
           <blockquote>
             “Healthcraft has completely transformed how we analyze our provider network.
             It's like having a data team in your pocket.”
           </blockquote>
           <p className={styles.testimonialAuthor}>— Dr. Alicia Mendes, Network Strategy Lead</p>
-        </section>
+        </div>
+      </section>
 
-        <section className={styles.ctaSection} data-aos="fade-up">
+      <section className={styles.ctaSection} data-aos="fade-up">
+        <div className={styles.container}>
           <h2>Ready to Explore?</h2>
-          <Link to="/signup" className={styles.ctaAlt}>Create an Account</Link>
-        </section>
-      </div>
-    </>
+          <Link to="/signup" className="button button-lg accent">Create an Account</Link>
+        </div>
+      </section>
+    </div>
   );
 };
 

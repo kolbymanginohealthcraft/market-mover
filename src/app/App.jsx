@@ -13,6 +13,7 @@ import ScrollToTop from "../components/Navigation/ScrollToTop";
 import Layout from "../components/Layouts/Layout"; // private layout
 import PublicLayout from "../components/Layouts/PublicLayout";
 import LegalLayout from "../components/Layouts/LegalLayout";
+import ButtonPlayground from "../pages/ButtonPlayground";
 
 // Pages
 import LandingPage from "../pages/Public/LandingPage";
@@ -29,7 +30,6 @@ import ProviderSearch from "../pages/Private/ProviderSearch";
 import ProviderDetail from "../pages/Private/ProviderDetail";
 import UserProfile from "../pages/Private/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
-
 
 function App() {
   const [session, setSession] = useState(null);
@@ -53,7 +53,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (session && location.pathname === "/login") {
+    if (session && (location.pathname === "/" || location.pathname === "/login")) {
       navigate("/app/home");
     }
   }, [session, location.pathname, navigate]);
@@ -66,12 +66,19 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<PublicLayout />}>
-          <Route index element={<LandingPage />} />
-          <Route path="login" element={<Login />} />
+          <Route
+            index
+            element={session ? <Navigate to="/app/home" /> : <LandingPage />}
+          />
+          <Route
+            path="login"
+            element={session ? <Navigate to="/app/home" /> : <Login />}
+          />
           <Route path="signup" element={<Signup />} />
           <Route path="pricing" element={<PricingPage />} />
           <Route path="select-plan" element={<SelectPlan />} />
           <Route path="profile-setup" element={<ProfileSetup />} />
+          <Route path="/playground" element={<ButtonPlayground />} />
         </Route>
 
         {/* Legal */}
