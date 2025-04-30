@@ -6,16 +6,15 @@ import styles from "../../styles/Navbar.module.css";
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("✅ getSession result:", session);
       setUser(session?.user || null);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("📣 Auth change event: ", _event, session);
       setUser(session?.user || null);
     });
 
@@ -26,42 +25,49 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-
     if (error) {
       console.error("Logout failed:", error.message);
     } else {
-      console.log("✅ Supabase signOut succeeded");
       navigate("/");
     }
   };
 
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const closeMenu = () => setMenuOpen(false);
+
+  const renderLinks = () =>
+    user ? (
+      <>
+        <Link to="/app/home" onClick={closeMenu} className={styles.link}>Home</Link>
+        <Link to="/app/search" onClick={closeMenu} className={styles.link}>Search</Link>
+        <Link to="/app/explore" onClick={closeMenu} className={styles.link}>Explore</Link>
+        <Link to="/app/profile" onClick={closeMenu} className={styles.link}>Profile</Link>
+        <Link to="/app/markets" onClick={closeMenu} className={styles.link}>Markets</Link>
+        <button onClick={() => { closeMenu(); handleLogout(); }} className="button-nav">Logout</button>
+      </>
+    ) : (
+      <>
+        <Link to="/overview" onClick={closeMenu} className={styles.link}>Overview</Link>
+        <Link to="/use-cases" onClick={closeMenu} className={styles.link}>Use Cases</Link>
+        <Link to="/faq" onClick={closeMenu} className={styles.link}>FAQ</Link>
+        <Link to="/pricing" onClick={closeMenu} className={styles.link}>Pricing</Link>
+        <Link to="/login" onClick={closeMenu} className="button-nav">Login</Link>
+      </>
+    );
+
   return (
     <nav className={styles.nav}>
-      <Link to={user ? "/app/home" : "/"} className={styles.logoLink}>
-        <img src={logo} alt="Healthcraft Logo" className={styles.logo} />
-      </Link>
+      <div className={styles.navTop}>
+        <Link to={user ? "/app/home" : "/"} className={styles.logoLink}>
+          <img src={logo} alt="Healthcraft Logo" className={styles.logo} />
+        </Link>
+        <button className={styles.menuButton} onClick={toggleMenu} aria-label="Toggle menu">
+          ☰
+        </button>
+      </div>
 
-      <div className={styles.navLinks}>
-        {user ? (
-          <>
-            <Link to="/app/home" className={styles.link}>Home</Link>
-            <Link to="/app/search" className={styles.link}>Search</Link>
-            <Link to="/app/explore" className={styles.link}>Explore</Link>
-            <Link to="/app/profile" className={styles.link}>Profile</Link>
-            <Link to="/app/markets" className={styles.link}>Markets</Link>
-            <button
-              onClick={handleLogout}
-              className="button-nav"
-            >
-              Logout
-            </button>
-          </>
-        ) : (
-          <>
-            <Link to="/pricing" className="button-nav">Pricing</Link>
-            <Link to="/login" className="button-nav">Login</Link>
-          </>
-        )}
+      <div className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
+        {renderLinks()}
       </div>
     </nav>
   );

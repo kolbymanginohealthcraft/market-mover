@@ -20,6 +20,9 @@ import LandingPage from "../pages/Public/LandingPage";
 import Login from "../pages/Auth/Login";
 import Signup from "../pages/Auth/Signup";
 import PricingPage from "../pages/Public/PricingPage";
+import FAQPage from "../pages/Public/FAQPage";
+import OverviewPage from "../pages/Public/OverviewPage";
+import UseCasesPage from "../pages/Public/UseCasesPage";
 import SelectPlan from "../pages/Public/SelectPlan";
 import ProfileSetup from "../pages/Auth/ProfileSetup";
 import TermsAndConditions from "../pages/Public/TermsAndConditions";
@@ -76,6 +79,9 @@ function App() {
           />
           <Route path="signup" element={<Signup />} />
           <Route path="pricing" element={<PricingPage />} />
+          <Route path="faq" element={<FAQPage />} />
+          <Route path="overview" element={<OverviewPage />} />
+          <Route path="use-cases" element={<UseCasesPage />} />
           <Route path="select-plan" element={<SelectPlan />} />
           <Route path="profile-setup" element={<ProfileSetup />} />
           <Route path="/playground" element={<ButtonPlayground />} />

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import PropTypes from 'prop-types';
-import '../../styles/base.css';
+import '../../styles/buttons.css';
 
 export default function ButtonGroup({ options = [], selected, onSelect }) {
   return (

@@ -1,9 +1,9 @@
-// src/pages/LandingPage.jsx
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './LandingPage.module.css';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import Button from '../../components/Buttons/Button';
 
 const LandingPage = () => {
   useEffect(() => {
@@ -18,7 +18,9 @@ const LandingPage = () => {
           <p>
             Healthcraft empowers providers and suppliers with actionable data and insight tools.
           </p>
-          <Link to="/signup" className="button button-lg gold">Get Started</Link>
+          <Link to="/signup">
+            <Button variant="gold" size="lg">Get Started</Button>
+          </Link>
         </div>
       </section>
 
@@ -65,7 +67,9 @@ const LandingPage = () => {
       <section className={styles.ctaSection} data-aos="fade-up">
         <div className={styles.container}>
           <h2>Ready to Explore?</h2>
-          <Link to="/signup" className="button button-lg accent">Create an Account</Link>
+          <Link to="/signup">
+            <Button variant="accent" size="lg">Create an Account</Button>
+          </Link>
         </div>
       </section>
     </div>

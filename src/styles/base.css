@@ -21,6 +21,7 @@ html, body, #root {
   padding: 0;
 }
 
+
 /* ===== Typography ===== */
 h1 {
   font-size: 3.2em;
@@ -34,7 +35,7 @@ a {
   text-decoration: inherit;
 }
 a:hover {
-  color: #5368c5;
+  color: #fff9e6;
 }
 
 /* ===== Map ===== */

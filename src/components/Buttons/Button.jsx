@@ -1,29 +1,43 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import '../../styles/buttons.css';
 
 /**
- * Unified Button component
- * 
+ * Unified and flexible Button component
+ *
  * Props:
- * - variant: "primary" | "gold" | "accent" (only for regular buttons)
- * - isActive: true/false (only for filter-style buttons)
- * - isFilter: true/false (if true, uses filter-button class)
- * - className: extra classes
+ * - variant: "primary" | "gold" | "accent" (applies color scheme)
+ * - size: "sm" | "md" | "lg" (applies sizing)
+ * - isFilter: boolean (filter-style layout and interaction)
+ * - isActive: boolean (used with isFilter to highlight selected filter)
+ * - outline: boolean (adds outline style)
+ * - ghost: boolean (adds ghost style)
+ * - className: string (optional additional classes)
+ * - ...rest: all other native <button> props (onClick, type, etc.)
  */
+
 export default function Button({
   variant = 'primary',
-  isActive = false,
+  size = 'md',
   isFilter = false,
+  isActive = false,
+  outline = false,
+  ghost = false,
   className = '',
   children,
   ...rest
 }) {
-  const baseClass = isFilter ? 'filter-button' : 'button';
+  const base = isFilter ? 'filter-button' : 'button';
+
   const classes = [
-    baseClass,
-    !isFilter && variant, // Apply variant only if not filter
+    base,
+    !isFilter && variant,
     isFilter && isActive && 'active',
-    className
+    size === 'sm' && 'button-sm',
+    size === 'lg' && 'button-lg',
+    outline && 'button-outline',
+    ghost && 'button-ghost',
+    className,
   ]
     .filter(Boolean)
     .join(' ');
@@ -36,9 +50,12 @@ export default function Button({
 }
 
 Button.propTypes = {
-  variant: PropTypes.string,
-  isActive: PropTypes.bool,
+  variant: PropTypes.oneOf(['primary', 'gold', 'accent']),
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
   isFilter: PropTypes.bool,
+  isActive: PropTypes.bool,
+  outline: PropTypes.bool,
+  ghost: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node.isRequired,
 };

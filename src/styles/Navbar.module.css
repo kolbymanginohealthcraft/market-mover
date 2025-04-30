@@ -7,6 +7,9 @@
   padding: 12px 24px;
   height: 64px;
   box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .logoLink {
@@ -37,4 +40,40 @@
 .link:hover {
   text-decoration: underline;
   color: #F1B62C;
+}
+
+
+/* Flex row for logo + toggle button */
+.navTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: white;
+  display: none;
+  cursor: pointer;
+}
+
+
+/* Responsive layout for small screens */
+@media (max-width: 768px) {
+  .menuButton {
+    display: block;
+  }
+
+  .navLinks {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    display: none;
+  }
+
+  .navLinks.open {
+    display: flex;
+  }
 }
