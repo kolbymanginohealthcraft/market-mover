@@ -1,0 +1,25 @@
+.hero {
+    background: linear-gradient(135deg, #d1f3ed 0%, #f6f9f8 100%);
+    text-align: center;
+    padding: 100px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .heroTitle {
+    font-size: 2.75rem;
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+  
+  .heroSubtitle {
+    font-size: 1.25rem;
+    max-width: 640px;
+    margin: 0 auto 28px auto;
+  }
+  

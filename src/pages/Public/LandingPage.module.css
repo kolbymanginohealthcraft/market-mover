@@ -1,119 +1,20 @@
-.hero {
-  background-color: #f6f9f8;
-  text-align: center;
-  padding: 80px 24px;
-}
-
-.hero h1 {
-  font-size: 2.5rem;
-  margin-bottom: 12px;
-}
-
-.hero p {
-  font-size: 1.2rem;
-  max-width: 600px;
-  margin: 0 auto 24px auto;
-  color: #5f6b6d;
-}
-
-.about {
-  max-width: 800px;
-  margin: 60px auto;
-  padding: 0 24px;
-  text-align: center;
-}
-
-.about h2 {
-  font-size: 1.8rem;
-  margin-bottom: 16px;
-}
-
-.about p {
-  font-size: 1.1rem;
-  color: #5f6b6d;
-}
-
-.features {
-  background-color: #f0f7f6;
-  padding: 60px 24px;
-  text-align: center;
-}
-
-.features h2 {
-  font-size: 1.8rem;
-  margin-bottom: 40px;
-}
-
-.featureGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.featureGrid h3 {
-  font-size: 1.2rem;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.featureGrid p {
-  color: #5f6b6d;
-  font-size: 0.95rem;
-}
-
-.testimonial {
-  background-color: #ffffff;
-  padding: 60px 24px;
-  text-align: center;
-  font-style: italic;
-  color: #5f6b6d;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.testimonial blockquote {
-  font-size: 1.2rem;
-  margin-bottom: 16px;
-}
-
-.testimonialAuthor {
-  font-weight: 600;
-  color: #265947;
-}
-
-.ctaSection {
-  background-color: #265947;
-  color: white;
-  padding: 60px 24px;
-  text-align: center;
-}
-
-.ctaSection h2 {
-  font-size: 1.8rem;
-  margin-bottom: 24px;
-  color: white;
-}
-
-.ctaAlt {
-  background-color: #F1B62C;
-  color: #265947;
-  font-weight: 600;
-  padding: 12px 24px;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: background-color 0.2s ease;
-}
-
-.ctaAlt:hover {
-  background-color: #e3a917;
-}
-
 .page {
   display: flex;
   flex-direction: column;
-  gap: 60px;
+}
+
+/* CTA Section with angled top */
+.ctaSection {
+  background-color: #265947;
+  color: white;
+  padding: 100px 24px 80px;
+  text-align: center;
+  clip-path: polygon(0 20%, 100% 0, 100% 100%, 0% 100%);
+}
+
+/* CTA Heading */
+.ctaSection h2 {
+  font-size: 1.9rem;
+  margin-bottom: 24px;
+  color: white;
 }
