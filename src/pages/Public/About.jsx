@@ -9,13 +9,25 @@ export default function About() {
   }, []);
 
   return (
-    <section className={styles.about} data-aos="fade-left">
+    <section className={styles.about} data-aos="fade-up">
       <div className={styles.container}>
-        <h2>Why Healthcraft?</h2>
-        <p>
-          Whether you're optimizing referrals, evaluating competition, or
-          expanding reach, Market Mover helps you navigate with clarity.
-        </p>
+        <div className={styles.columnLeft}>
+          <h2>Why Market Intelligence Matters</h2>
+          <p>
+            In today’s competitive healthcare landscape, having a great service isn’t enough—
+            you need to understand where the opportunities are and how to reach the right partners.
+            That’s where market analytics come in: they turn blind outreach into focused strategy.
+          </p>
+        </div>
+        <div className={styles.columnRight}>
+          <h2>Why Healthcraft?</h2>
+          <p>
+            Healthcraft Creative Solutions is a team of analysts, designers, and strategists
+            dedicated to transforming how healthcare organizations grow. Our flagship product,
+            Market Mover, brings transparency, clarity, and action to your market strategy—with
+            tools designed to help you move faster and smarter than ever before.
+          </p>
+        </div>
       </div>
     </section>
   );

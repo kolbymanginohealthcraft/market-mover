@@ -13,13 +13,38 @@ export default function Hero() {
   return (
     <section className={styles.hero} data-aos="fade-up">
       <div className={styles.container}>
-        <h1 className={styles.heroTitle}>
-          Smarter Decisions, Powered by Data
-        </h1>
+        <h1 className={styles.heroTitle}>Smarter Decisions, Powered by Data</h1>
         <p className={styles.heroSubtitle}>
-          Market Mover helps healthcare providers and suppliers uncover new
-          opportunities with instant access to clean, actionable insights.
+          <strong>
+            Market Mover<sup>®</sup>
+          </strong>{" "}
+          is a data-driven strategy platform built by{" "}
+          <span className={styles.brandHighlight}>
+            Healthcraft Creative Solutions
+          </span>
+          . We help healthcare{" "}
+          <span className={styles.tooltipWrapper}>
+            <span className={styles.roleHighlight}>providers</span>
+            <span className={styles.tooltipContent}>
+              Organizations delivering patient care—like SNFs, hospitals, and clinics.
+            </span>
+          </span>{" "}
+          and{" "}
+          <span className={styles.tooltipWrapper}>
+            <span className={styles.roleHighlight}>suppliers</span>
+            <span className={styles.tooltipContent}>
+              Companies offering services or products to healthcare providers—such as therapy vendors,
+              software platforms, or diagnostics labs.
+            </span>
+          </span>{" "}
+          uncover new opportunities, optimize referrals, and grow smarter—powered by
+          real-time insights and market clarity.
         </p>
+
+        <p className={styles.heroCred}>
+          Built by <strong>Healthcraft Creative Solutions</strong>
+        </p>
+
         <Link to="/signup">
           <Button variant="gold" size="lg">
             Get Started

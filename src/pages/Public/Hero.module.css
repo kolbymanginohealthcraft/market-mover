@@ -1,25 +1,88 @@
 .hero {
-    background: linear-gradient(135deg, #d1f3ed 0%, #f6f9f8 100%);
-    text-align: center;
-    padding: 100px 24px 80px;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .container {
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  
-  .heroTitle {
-    font-size: 2.75rem;
-    margin-bottom: 16px;
-    font-weight: 700;
-  }
-  
-  .heroSubtitle {
-    font-size: 1.25rem;
-    max-width: 640px;
-    margin: 0 auto 28px auto;
-  }
-  
+  background: linear-gradient(135deg, #d1f3ed 0%, #f6f9f8 100%);
+  text-align: center;
+  padding: 100px 24px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.heroTitle {
+  font-size: 2.75rem;
+  margin-bottom: 16px;
+  font-weight: 700;
+  color: #265947;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  max-width: 640px;
+  margin: 0 auto 28px auto;
+  color: #5f6b6d;
+  line-height: 1.6;
+}
+
+.heroCred {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+  color: #265947;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+.brandHighlight {
+  font-weight: 600;
+  color: #3599b8; /* steel blue */
+}
+
+.roleHighlight {
+  color: #1DADBE;
+  cursor: help;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+  border-radius: 4px;
+}
+
+.roleHighlight:hover {
+  background-color: rgba(29, 173, 190, 0.1);
+  box-shadow: 0 0 6px rgba(29, 173, 190, 0.5);
+  color: #148a98;
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltipContent {
+  visibility: hidden;
+  opacity: 0;
+  background-color: #1DADBE;
+  color: #fff;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 2;
+  pointer-events: none;
+
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.tooltipWrapper:hover .tooltipContent {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
