@@ -15,10 +15,25 @@ const variants = [
 
 export default function ButtonPlayground() {
   const [selectedOption, setSelectedOption] = useState("All");
+  const [user, setUser] = useState(false); // Mock auth state
+
+  const handleLogin = () => setUser(true);
+  const handleLogout = () => setUser(false);
 
   return (
     <div style={{ padding: "2rem", fontFamily: "Work Sans" }}>
-      <h2>Standard (Filled) Buttons</h2>
+      <h2>Navbar Buttons (Login / Logout)</h2>
+      {user ? (
+        <button className="button-nav" onClick={handleLogout} style={{ marginRight: "1rem" }}>
+          Logout
+        </button>
+      ) : (
+        <button className="button-nav" onClick={handleLogin} style={{ marginRight: "1rem" }}>
+          Login
+        </button>
+      )}
+
+      <h2 style={{ marginTop: "2rem" }}>Standard (Filled) Buttons</h2>
       {variants.map((variant) => (
         <Button key={variant} variant={variant} style={{ marginRight: "1rem", marginBottom: "0.5rem" }}>
           {variant.charAt(0).toUpperCase() + variant.slice(1)}

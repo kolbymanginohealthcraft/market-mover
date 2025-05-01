@@ -82,7 +82,7 @@ export default function ProviderSearch() {
           />
           <Button
             type="submit"
-            variant="primary"
+            variant="green"
             disabled={loading || !queryText.trim()}
           >
             {loading ? "Searching..." : "Search"}

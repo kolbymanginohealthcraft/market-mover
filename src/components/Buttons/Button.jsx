@@ -3,17 +3,17 @@ import PropTypes from 'prop-types';
 import '../../styles/buttons.css';
 
 /**
- * Flexible Button component with color, size, style modifiers
+ * Flexible Button component with color, size, and style modifiers.
  *
  * Props:
  * - variant: "green" | "gold" | "accent" | "red" | "teal" | "blue" | "aqua" | "gray"
  * - size: "sm" | "md" | "lg"
- * - isFilter: boolean (if true, uses filter style)
- * - isActive: boolean (used for active filter buttons)
- * - outline: boolean (applies outline style)
- * - ghost: boolean (applies ghost style)
- * - className: additional class names
- * - ...rest: native button props
+ * - isFilter: boolean (uses filter style)
+ * - isActive: boolean (applies to active filter buttons)
+ * - outline: boolean (outline button)
+ * - ghost: boolean (ghost button)
+ * - className: additional custom class names
+ * - ...rest: other native button props
  */
 export default function Button({
   variant = 'green',
@@ -26,25 +26,32 @@ export default function Button({
   children,
   ...rest
 }) {
-  const base = isFilter ? 'filter-button' : 'button';
+  const classList = [];
 
-  const classes = [
-    base,
-    isFilter && isActive && 'active',
-    !isFilter && !outline && !ghost && variant,      // filled
-    !isFilter && outline && 'button-outline',
-    !isFilter && outline && variant,                // outline color
-    !isFilter && ghost && 'button-ghost',
-    !isFilter && ghost && variant,                  // ghost color
-    size === 'sm' && 'button-sm',
-    size === 'lg' && 'button-lg',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  // Base button style
+  classList.push(isFilter ? 'filter-button' : 'button');
+
+  // Style modifiers
+  if (!isFilter && outline) {
+    classList.push('button-outline', variant);
+  } else if (!isFilter && ghost) {
+    classList.push('button-ghost', variant);
+  } else if (!isFilter) {
+    classList.push(variant);
+  }
+
+  // Size modifiers
+  if (size === 'sm') classList.push('button-sm');
+  if (size === 'lg') classList.push('button-lg');
+
+  // Filter active state
+  if (isFilter && isActive) classList.push('active');
+
+  // Custom className prop
+  if (className) classList.push(className);
 
   return (
-    <button className={classes} {...rest}>
+    <button className={classList.join(' ')} {...rest}>
       {children}
     </button>
   );
