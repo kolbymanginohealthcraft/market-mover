@@ -1,19 +1,22 @@
 /* src/styles/AuthForm.module.css */
 
 .container {
-  max-width: 500px;
-  margin: 80px auto; /* pushes card down a bit from top */
+  width: 100%;
+  max-width: 560px;        /* or 600px — adjust based on feel */
+  margin: 80px auto 0 auto; /* top, auto sides = centered */
   padding: 2rem;
-  background-color: #f6f9f8;
+  box-sizing: border-box;
 }
 
+
+
 .card {
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.95); /* translucent over bg image */
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   padding: 40px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   width: 100%;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 .title {
@@ -35,13 +38,6 @@
   flex-direction: column;
 }
 
-.form label {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: 600;
-  color: #5f6b6d;
-}
-
 .label {
   font-weight: 600;
   color: #5f6b6d;
@@ -51,7 +47,6 @@
 
 .input {
   padding: 12px;
-  margin-top: 0;
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 16px;
