@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./AuthForm.module.css";
-import localStyles from "./Signup.module.css"; // ✅ Only for termsRow + termsLink
+import localStyles from "./Signup.module.css";
+import Button from "../../components/Buttons/Button"; // ✅ New import
 
 function SignUp() {
   const navigate = useNavigate();
@@ -118,9 +119,15 @@ function SignUp() {
 
           {errorMsg && <p className={styles.error}>{errorMsg}</p>}
 
-          <button className={styles.button} type="submit" disabled={loading}>
+          <Button
+            type="submit"
+            variant="green"
+            size="lg"
+            disabled={loading}
+            style={{ marginTop: "1rem" }}
+          >
             {loading ? "Creating Account..." : "Continue"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

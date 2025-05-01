@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from "../../app/supabaseClient";
 import styles from '../Auth/AuthForm.module.css';
+import Button from '../../components/Buttons/Button'; // ✅ Import your shared Button
 
 export default function UserProfile() {
   const [profile, setProfile] = useState({
@@ -121,9 +122,15 @@ export default function UserProfile() {
               />
             </div>
 
-            <button className={styles.button} onClick={handleSave} disabled={saving}>
+            <Button
+              variant="green"
+              size="lg"
+              onClick={handleSave}
+              disabled={saving}
+              style={{ marginTop: "1rem" }}
+            >
               {saving ? 'Saving...' : 'Save Profile'}
-            </button>
+            </Button>
 
             {message && <p className={styles.error}>{message}</p>}
           </form>

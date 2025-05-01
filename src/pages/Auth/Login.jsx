@@ -1,9 +1,9 @@
-// src/components/Login.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "../../app/supabaseClient";
 import styles from './AuthForm.module.css';
 import localStyles from './Login.module.css';
+import Button from '../../components/Buttons/Button'; // ✅ Import shared Button
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -81,9 +81,14 @@ const Login = () => {
             </div>
           )}
 
-          <button type="submit" className={styles.button}>
+          <Button
+            type="submit"
+            variant="green"
+            size="lg"
+            style={{ marginTop: '1rem' }}
+          >
             {mode === 'login' ? 'Log In' : 'Send Reset Email'}
-          </button>
+          </Button>
         </form>
 
         <div className={localStyles.switchMode}>

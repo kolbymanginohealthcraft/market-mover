@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './PricingPage.module.css';
+import Button from '../../components/Buttons/Button'; // ✅ Import reusable Button
 
 const PAID_PLANS = [
   { name: 'Starter', price: '$2,500/mo' },
@@ -63,12 +64,14 @@ const PricingPage = () => {
                 </>
               )}
             </ul>
-            <button
-              className="button primary"
+            <Button
+              variant="green"
+              size="lg"
               onClick={() => handleSelect(plan.name)}
+              style={{ marginTop: '1rem' }}
             >
               Choose {plan.name}
-            </button>
+            </Button>
           </div>
         ))}
       </div>
@@ -77,12 +80,15 @@ const PricingPage = () => {
       <div className={styles.freeRowMinimal}>
         <p>
           Not ready to commit?{' '}
-          <button
+          <Button
+            variant="blue"
+            outline
+            size="sm"
             className={styles.linkButton}
             onClick={() => handleSelect(FREE_PLAN.name)}
           >
             Start for Free
-          </button>
+          </Button>
         </p>
       </div>
     </div>

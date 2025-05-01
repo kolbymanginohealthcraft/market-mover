@@ -1,8 +1,8 @@
-// src/pages/ProfileSetup.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "../../app/supabaseClient";
 import styles from './AuthForm.module.css';
+import Button from '../../components/Buttons/Button'; // ✅ New Button component
 
 function ProfileSetup() {
   const navigate = useNavigate();
@@ -123,9 +123,15 @@ function ProfileSetup() {
 
           {errorMsg && <p className={styles.error}>{errorMsg}</p>}
 
-          <button className={styles.button} type="submit" disabled={loading}>
+          <Button
+            type="submit"
+            variant="green"
+            size="lg"
+            disabled={loading}
+            style={{ marginTop: '1rem' }}
+          >
             {loading ? 'Saving...' : 'Finish Setup'}
-          </button>
+          </Button>
         </form>
       </div>
     </div>
