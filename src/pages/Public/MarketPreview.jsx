@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import styles from './MarketPreview.module.css';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import exampleImg from '../../assets/example.png'; // ✅ Adjusted import path
 
 export default function MarketPreview() {
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function MarketPreview() {
         </p>
         <div className={styles.previewBox}>
           <img
-            src="/src/assets/example.png"
+            src={exampleImg} // ✅ Use imported image
             alt="Market Mover Snapshot"
             className={styles.previewImage}
           />
