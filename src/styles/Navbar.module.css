@@ -28,6 +28,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  text-wrap: nowrap;
 }
 
 .link {
@@ -42,12 +43,11 @@
   color: #F1B62C;
 }
 
-
-/* Flex row for logo + toggle button */
 .navTop {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .menuButton {
@@ -59,8 +59,7 @@
   cursor: pointer;
 }
 
-
-/* Responsive layout for small screens */
+/* === Responsive: Mobile Menu Style === */
 @media (max-width: 768px) {
   .menuButton {
     display: block;
@@ -69,11 +68,57 @@
   .navLinks {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 0;
     display: none;
+    background-color: #265947;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    padding: 16px 24px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease-out forwards;
   }
 
   .navLinks.open {
     display: flex;
+  }
+
+  .link {
+    padding: 12px 0;
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .link:last-child {
+    border-bottom: none;
+  }
+
+  .button-nav {
+    background: none;
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .button-nav:hover {
+    color: #F1B62C;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

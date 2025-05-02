@@ -16,25 +16,59 @@
   margin-bottom: 40px;
 }
 
-/* Wrapper ensures center alignment */
-.carouselWrapper {
-  overflow-x: auto;
-  padding: 0 24px;
+/* New: Carousel controls including arrows */
+.carouselControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
-.carousel {
+/* Arrow buttons */
+.arrow {
+  background-color: #ffffff;
+  border: 2px solid #1dadbe;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
   display: flex;
-  gap: 24px;
+  align-items: center;
   justify-content: center;
-  scroll-snap-type: x mandatory;
+  cursor: pointer;
+  color: #1dadbe;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.arrow:hover {
+  background-color: #e3f4f0;
+  color: #1d8a9f;
+  border-color: #1d8a9f;
+}
+
+
+/* Scrollable container */
+.carouselWrapper {
+  overflow-x: auto;
+  padding: 0 8px;
+  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 
-.carousel::-webkit-scrollbar {
+.carouselWrapper::-webkit-scrollbar {
   display: none;
 }
 
+/* Inner carousel layout */
+.carousel {
+  display: flex;
+  gap: 24px;
+  padding: 16px 0;
+  scroll-snap-type: x mandatory;
+}
+
+/* Individual testimonial cards */
 .card {
   flex: 0 0 auto;
   min-width: 280px;
