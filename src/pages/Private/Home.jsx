@@ -1,4 +1,3 @@
-// Home.jsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Home.module.css';
@@ -23,13 +22,6 @@ export default function Home() {
     { title: '🎉 New Scorecard Tool', description: 'Compare across 40+ metrics.', date: 'May 1' },
     { title: '📍 Market Data Updated', description: 'April 2025 CMS data now live.', date: 'Apr 29' },
     { title: '🧠 Smarter Suggestions', description: 'New guidance added to “Help Me Decide”.', date: 'Apr 25' },
-  ];
-
-  const checklistItems = [
-    { label: 'Complete your profile', done: true },
-    { label: 'Explore your first market', done: false },
-    { label: 'Save a market', done: false },
-    { label: 'Compare performance', done: false },
   ];
 
   const helpContent = {
@@ -83,7 +75,7 @@ export default function Home() {
 
       <div className={styles.wrapper}>
         <aside className={styles.sidebar}>
-          <h2 className={styles.columnTitle}>🛍️ Getting Started</h2>
+          <h2 className={styles.columnTitle}>🛠️ Getting Started</h2>
 
           <div className={styles.sidebarSection}>
             <h3 className={styles.sectionTitle}>🪰 Recommended Tools</h3>
@@ -92,18 +84,6 @@ export default function Home() {
               <Link to="/app/charts" className={styles.toolCard}>📈 Performance Trends</Link>
               <Link to="/app/profile" className={styles.toolCard}>👤 Manage My Account</Link>
             </div>
-          </div>
-
-          <div className={styles.sidebarSection}>
-            <h3 className={styles.sectionTitle}>✅ Top Priorities</h3>
-            <ul className={styles.checklist}>
-              {checklistItems.map((item, i) => (
-                <li key={i}>
-                  <input type="checkbox" checked={item.done} readOnly />{' '}
-                  <span className={item.done ? styles.checkedItem : ''}>{item.label}</span>
-                </li>
-              ))}
-            </ul>
           </div>
 
           <div className={styles.sidebarSection}>
@@ -117,13 +97,20 @@ export default function Home() {
         </aside>
 
         <main className={styles.main}>
-          <h2 className={styles.columnTitle}>📈 Your Momentum</h2>
+          <h2 className={styles.columnTitle}>📊 Your Activity</h2>
+
+          <div className={styles.panel}>
+            <h3 className={styles.sectionTitle}>🕒 Recent Activity</h3>
+            <ul className={styles.activityList}>
+              <li>Viewed provider: <strong>Sunrise Rehab Center</strong></li>
+              <li>Explored market: <strong>Chicago Metro</strong></li>
+              <li>Compared scorecards in <strong>Dallas-Fort Worth</strong></li>
+            </ul>
+          </div>
 
           <div className={styles.panel}>
             <h3 className={styles.sectionSubtitle}>🔥 Your Streak</h3>
-            <div className={styles.innerBlock}>
-              {progress.streak}-Day Streak! Keep it going.
-            </div>
+            <div className={styles.innerBlock}>{progress.streak}-Day Streak! Keep it going.</div>
 
             <h3 className={styles.sectionSubtitle}>📈 Progress</h3>
             <div className={styles.innerBlock}>
@@ -154,15 +141,6 @@ export default function Home() {
               <div className={styles.statBox}>📍 8 Markets</div>
               <div className={styles.statBox}>📈 15 Reports</div>
             </div>
-          </div>
-
-          <div className={styles.panel}>
-            <h3 className={styles.sectionTitle}>🕒 Recent Activity</h3>
-            <ul className={styles.activityList}>
-              <li>Viewed provider: <strong>Sunrise Rehab Center</strong></li>
-              <li>Explored market: <strong>Chicago Metro</strong></li>
-              <li>Compared scorecards in <strong>Dallas-Fort Worth</strong></li>
-            </ul>
           </div>
         </main>
 

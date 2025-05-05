@@ -2,12 +2,6 @@
   padding: 24px;
 }
 
-.fullHeader {
-  padding: 16px 0;
-  border-bottom: 1px solid #e2e8e7;
-  margin-bottom: 16px;
-}
-
 .heroBox {
   background: linear-gradient(90deg, #3fb985, #34a475);
   color: white;
@@ -21,42 +15,15 @@
 .hero {
   font-size: 2rem;
   font-weight: 700;
-  color: white; /* override anything else */
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .subtext {
   font-size: 1.05rem;
   opacity: 0.95;
-  color: white; /* explicitly white again */
-}
-
-.hero,
-.subtext {
+  color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding-left: 16px;
-}
-
-.mainRow {
-  display: flex;
-  gap: 24px;
-}
-
-.mainRow .panel {
-  flex: 1;
-}
-
-
-.subtext {
-  font-size: 1.05rem;
-  opacity: 0.9;
 }
 
 .wrapper {
@@ -71,6 +38,27 @@
   flex: 0 0 280px;
   padding-right: 16px;
   border-right: 2px solid #e2e8e7;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-left: 16px;
+}
+
+.rightColumn {
+  flex: 0 0 280px;
+  padding-left: 16px;
+  border-left: 2px solid #e2e8e7;
+}
+
+.columnTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 16px;
 }
 
 .sidebarSection {
@@ -96,13 +84,6 @@
   margin-bottom: 8px;
   border-bottom: 1px solid #dfe6e3;
   padding-bottom: 4px;
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 }
 
 .panel {
@@ -147,16 +128,6 @@
   text-decoration: underline;
 }
 
-.streakCard {
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #d64550;
-}
-
-.progressCard {
-  margin-bottom: 12px;
-}
-
 .progressItem {
   margin-bottom: 10px;
 }
@@ -196,6 +167,7 @@
 .statsRow {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .statBox {
@@ -207,6 +179,7 @@
   font-weight: 600;
   color: #265947;
   border: 1px solid #dfe6e3;
+  min-width: 120px;
 }
 
 .updateItem {
@@ -265,3 +238,42 @@
   color: #3fb985;
 }
 
+/* ======================== */
+/* 📱 Responsive Adjustments */
+/* ======================== */
+
+@media (max-width: 960px) {
+  .wrapper {
+    flex-direction: column;
+  }
+
+  .sidebar,
+  .rightColumn {
+    width: 100%;
+    border: none;
+    padding: 0;
+  }
+
+  .main {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .statsRow {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    font-size: 1.5rem;
+  }
+
+  .subtext {
+    font-size: 0.95rem;
+  }
+
+  .toolGrid {
+    flex-direction: column;
+  }
+}
