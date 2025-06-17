@@ -1,0 +1,22 @@
+.container {
+    padding: 2rem;
+    font-family: sans-serif;
+  }
+  
+  .error {
+    color: red;
+    font-weight: bold;
+    margin-top: 1rem;
+  }
+  
+  .list {
+    margin-top: 1rem;
+    padding-left: 1.5rem;
+  }
+  
+  .list li {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    color: #333;
+  }
+  

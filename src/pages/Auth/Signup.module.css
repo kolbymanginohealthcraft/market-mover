@@ -1,0 +1,18 @@
+.termsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #5f6b6d;
+  margin-bottom: 16px;
+}
+
+.termsLink {
+  color: #1dadbe;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.termsLink:hover {
+  color: #3599b8;
+}

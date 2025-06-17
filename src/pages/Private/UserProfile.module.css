@@ -1,0 +1,56 @@
+.container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 24px;
+    background: #f6f9f8;
+    border-radius: 8px;
+    font-family: 'Work Sans', sans-serif;
+  }
+  
+  h2 {
+    color: #265947;
+    margin-bottom: 24px;
+    font-size: 1.8rem;
+  }
+  
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 500;
+    color: #265947;
+  }
+  
+  input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  button {
+    align-self: flex-start;
+    background-color: #F1B62C;
+    color: #265947;
+    font-weight: 600;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #e3a917;
+  }
+  
+  .message {
+    margin-top: 12px;
+    font-size: 0.95rem;
+    color: #3599B8;
+  }
+  

@@ -1,0 +1,174 @@
+.page {
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.title {
+  font-size: 2.25rem;
+  color: #265947;
+  margin-bottom: 32px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto 48px auto;
+}
+
+.card {
+  background-color: #f9fbfa;
+  border: 1px solid #dfe6e3;
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+}
+
+.card h2 {
+  margin-bottom: 12px;
+  color: #265947;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.priceAnimated {
+  font-size: 1.5rem;
+  color: #F1B62C;
+  animation: fadeSlide 0.3s ease;
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.savingsInline {
+  font-size: 0.9rem;
+  color: #3599b8;
+  font-weight: 500;
+}
+
+.card ul {
+  flex-grow: 1;
+  margin: 0 0 12px 0;
+  padding-left: 1rem;
+  list-style-type: disc;
+  color: #5f6b6d;
+  font-size: 0.95rem;
+}
+
+.card li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.card button {
+  margin-top: 24px;
+}
+
+.badge {
+  position: absolute;
+  top: -14px;
+  left: 24px;
+  background-color: #F1B62C;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.popular {
+  border: 2px solid #F1B62C;
+}
+
+/* Toggle switch */
+.toggleWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.toggleLabel {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #265947;
+}
+
+.discountNote {
+  font-weight: 600;
+  color: #F1B62C;
+  font-size: 0.85rem;
+}
+
+/* Switch style */
+.toggleSwitch {
+  width: 52px;
+  height: 28px;
+  background-color: #d1e3df;
+  border-radius: 999px;
+  position: relative;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.3s ease;
+}
+
+.toggleHandle {
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  transition: left 0.3s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggleSwitch.annual {
+  background-color: #265947;
+}
+
+.toggleSwitch.annual .toggleHandle {
+  left: 28px;
+}
+
+/* Free Plan CTA */
+.freeRowMinimal {
+  font-size: 0.95rem;
+  color: #5f6b6d;
+  margin-top: 24px;
+}
+
+.linkButton {
+  margin-left: 8px;
+  font-weight: 600;
+}
