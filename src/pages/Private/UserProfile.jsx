@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./UserProfile.module.css";
-import Button from "../../Components/Buttons/Button";
+import Button from "../../components/Buttons/Button";
 
 export default function UserProfile() {
   const [profile, setProfile] = useState({
