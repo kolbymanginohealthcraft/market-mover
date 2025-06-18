@@ -1,25 +1,52 @@
-import { motion } from 'framer-motion';
 import PropTypes from 'prop-types';
 import '../../styles/buttons.css';
 
-export default function ButtonGroup({ options = [], selected, onSelect }) {
+export default function ButtonGroup({ options = [], selected, onSelect, size = 'md', variant = 'blue' }) {
   return (
-    <div style={{ display: 'inline-flex', gap: '0.5rem', position: 'relative', flexWrap: 'wrap' }}>
-      {options.map((opt) => (
-        <motion.button
-          key={opt}
-          onClick={() => onSelect(opt)}
-          className={`filter-button ${selected === opt ? 'active' : ''}`}
-          animate={{
-            backgroundColor: selected === opt ? "#3FB985" : "#f5f5f5",
-            color: selected === opt ? "white" : "#265947",
-            borderColor: selected === opt ? "#2e9065" : "#ccc",
-          }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          {opt}
-        </motion.button>
-      ))}
+    <div
+      className="button-group-outline"
+      style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap' }}
+    >
+      {options.map((opt) => {
+        // Handle both string and { label, value } formats
+        const label = typeof opt === 'string' ? opt : opt.label;
+        const value = typeof opt === 'string' ? opt : opt.value;
+
+        const isActive = selected === value;
+        const className = [
+          'button',
+          'button-outline',
+          variant,
+          size === 'sm' ? 'button-sm' : size === 'lg' ? 'button-lg' : '',
+          isActive ? 'active' : ''
+        ].join(' ').trim();
+
+        return (
+          <button
+            key={value}
+            onClick={() => onSelect(value)}
+            className={className}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
+
+ButtonGroup.propTypes = {
+  options: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        label: PropTypes.string.isRequired,
+        value: PropTypes.string.isRequired,
+      }),
+    ])
+  ).isRequired,
+  selected: PropTypes.string.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  variant: PropTypes.string,
+};

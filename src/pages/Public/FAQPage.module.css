@@ -76,6 +76,13 @@
   pointer-events: auto;
 }
 
+.faqItemOpen .answerWrapper {
+  max-height: 500px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
 .answer {
   font-size: 1rem;
   color: #5f6b6d;

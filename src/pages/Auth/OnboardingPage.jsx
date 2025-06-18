@@ -1,42 +1,52 @@
-// OnboardingPage.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './OnboardingPage.module.css';
+import ButtonGroup from '../../components/Buttons/ButtonGroup';
+import Button from '../../components/Buttons/Button';
+import { PLANS, calculatePrice, calculateSavings } from '../../data/planData';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState('intro');
+  const [selectedPath, setSelectedPath] = useState(null); // 'join' | 'create'
 
-  const handlePathSelect = (path) => {
-    if (path === 'join') setStep('join');
-    if (path === 'create') setStep('create');
-    if (path === 'free') {
-      navigate('/app/home');
+  const renderExplanation = () => {
+    if (selectedPath === 'join') {
+      return <p className={styles.explanation}>Use a team access code provided by your administrator to join an existing team.</p>;
     }
+    if (selectedPath === 'create') {
+      return <p className={styles.explanation}>Create your own team and choose a plan that fits your needs. You’ll be able to invite others later.</p>;
+    }
+    return null;
   };
 
   return (
     <div className={styles.container}>
-      {step === 'intro' && (
-        <>
-          <h2>How would you like to get started?</h2>
-          <div className={styles.options}>
-            <button onClick={() => handlePathSelect('join')}>🔑 Join a Team</button>
-            <button onClick={() => handlePathSelect('create')}>🚀 Start a New Team</button>
-            <button onClick={() => handlePathSelect('free')}>👀 Explore for Free</button>
-          </div>
-        </>
-      )}
+      <h2 className={styles.title}>Let’s get started</h2>
+      <p className={styles.subtitle}>Choose your path:</p>
 
-      {step === 'join' && <JoinTeamForm onBack={() => setStep('intro')} />}
-      {step === 'create' && <CreateTeamForm onBack={() => setStep('intro')} />}
+      <ButtonGroup
+        options={[
+          { label: 'Join a Team', value: 'join' },
+          { label: 'Start a New Team', value: 'create' },
+        ]}
+        selected={selectedPath}
+        onSelect={setSelectedPath}
+        variant="blue"
+        size="lg"
+        fullWidth
+      />
+
+      {renderExplanation()}
+
+      <div className={styles.formContainer}>
+        {selectedPath === 'join' && <JoinTeamForm />}
+        {selectedPath === 'create' && <PlanSelector />}
+      </div>
     </div>
   );
 }
 
-// ⬇️ Paste these two below ⬇️
-
-function JoinTeamForm({ onBack }) {
+function JoinTeamForm() {
   const [code, setCode] = useState('');
   const [error, setError] = useState(null);
 
@@ -56,45 +66,86 @@ function JoinTeamForm({ onBack }) {
   };
 
   return (
-    <div>
+    <div className={styles.formCard}>
       <h3>Enter your team’s access code</h3>
-      <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. HEALTH123" />
-      <button onClick={handleJoin}>Join Team</button>
-      <button onClick={onBack}>Back</button>
-      {error && <p className="error">{error}</p>}
+      <input
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="e.g. HEALTH123"
+        className={styles.input}
+      />
+      <Button variant="blue" onClick={handleJoin}>
+        Join Team
+      </Button>
+      {error && <p className={styles.error}>{error}</p>}
     </div>
   );
 }
 
-function CreateTeamForm({ onBack }) {
-  const [teamName, setTeamName] = useState('');
-  const [tier, setTier] = useState('starter');
-  const [seats, setSeats] = useState(5);
+function PlanSelector() {
+  const navigate = useNavigate();
+  const [billingCycle, setBillingCycle] = useState('monthly');
 
-  const handleContinue = () => {
-    const query = new URLSearchParams({ teamName, tier, seats }).toString();
-    window.location.href = `/payment?${query}`;
+  const handleSelect = (planName) => {
+    navigate(`/profile-setup?plan=${planName.toLowerCase()}`);
   };
 
   return (
-    <div>
-      <h3>Create a New Team</h3>
-      <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Team Name" />
-      <select value={tier} onChange={(e) => setTier(e.target.value)}>
-        <option value="starter">Starter (5 users)</option>
-        <option value="advanced">Advanced (10 users)</option>
-        <option value="pro">Pro (15 users)</option>
-      </select>
-      <input
-        type="number"
-        min={1}
-        max={15}
-        value={seats}
-        onChange={(e) => setSeats(Number(e.target.value))}
-        placeholder="Number of Seats"
-      />
-      <button onClick={handleContinue}>Continue to Payment</button>
-      <button onClick={onBack}>Back</button>
-    </div>
+    <>
+      <div className={styles.toggleWrapper}>
+        <span className={styles.toggleLabel}>Monthly</span>
+        <button
+          className={`${styles.toggleSwitch} ${billingCycle === 'annual' ? styles.annual : ''}`}
+          onClick={() =>
+            setBillingCycle((prev) => (prev === 'monthly' ? 'annual' : 'monthly'))
+          }
+          aria-label="Toggle billing cycle"
+        >
+          <div className={styles.toggleHandle} />
+        </button>
+        <span className={styles.toggleLabel}>
+          Annual <span className={styles.discountNote}>– Save 20%</span>
+        </span>
+      </div>
+
+      <div className={styles.grid}>
+        {PLANS.map((plan) => {
+          const displayPrice = calculatePrice(plan.amount, billingCycle);
+          const savingsNote =
+            billingCycle === 'annual' ? calculateSavings(plan.amount) : null;
+
+          return (
+            <div
+              key={plan.name}
+              className={`${styles.card} ${plan.popular ? styles.popular : ''}`}
+            >
+              {plan.popular && (
+                <div className={styles.badge}>Most Popular</div>
+              )}
+              <h3>{plan.name}</h3>
+              <div className={styles.priceRow}>
+                <span className={styles.priceAnimated}>{displayPrice}</span>
+                {savingsNote && (
+                  <span className={styles.savingsInline}>({savingsNote})</span>
+                )}
+              </div>
+              <ul>
+                {plan.features.map((feat, i) => (
+                  <li key={i}>{feat}</li>
+                ))}
+              </ul>
+              <Button
+                variant="green"
+                size="lg"
+                onClick={() => handleSelect(plan.name)}
+              >
+                Choose {plan.name}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
+

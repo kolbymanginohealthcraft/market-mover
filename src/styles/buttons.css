@@ -238,3 +238,17 @@ button:focus-visible {
     box-shadow: 0 0 0 0 transparent;
   }
 }
+
+/* ===== ButtonGroup Selected State ===== */
+.button-group-outline .button-outline {
+  border-width: 2px;
+  font-weight: 600;
+  background-color: white;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.button-group-outline .button-outline.active {
+  background-color: var(--color-blue);
+  color: white;
+  border-color: var(--color-blue);
+}

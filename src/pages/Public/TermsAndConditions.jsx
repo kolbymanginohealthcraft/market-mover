@@ -1,14 +1,11 @@
-// src/pages/TermsAndConditions.jsx
+// src/pages/public/TermsAndConditions.jsx
+import React from 'react';
+import styles from './TermsAndConditions.module.css';
 
-import React from 'react'
-import styles from './TermsAndConditions.module.css'
-
-function TermsAndConditions() {
+const TermsAndConditions = () => {
   return (
     <div className={styles.container}>
       <h1>Terms and Conditions</h1>
-
-      <p><strong>Effective Date:</strong> April 2025</p>
 
       <section>
         <h2>1. Overview</h2>
@@ -55,13 +52,10 @@ function TermsAndConditions() {
       <section>
         <h2>6. Privacy</h2>
         <p>
-  Our{' '}
-  <a href="/legal/privacy" style={{ textDecoration: 'underline', color: '#3599b8' }}>
-    Privacy Policy
-  </a>{' '}
-  outlines how we collect and use your data.
-</p>
-
+          Our{' '}
+          <a href="/legal/privacy">Privacy Policy</a>{' '}
+          outlines how we collect and use your data.
+        </p>
       </section>
 
       <section>
@@ -75,11 +69,12 @@ function TermsAndConditions() {
       <section>
         <h2>8. Contact</h2>
         <p>
-          For questions about these Terms, contact us at support@healthcraftsolutions.com.
+          For questions about these Terms, contact us at{' '}
+          <a href="mailto:support@healthcraftsolutions.com">support@healthcraftsolutions.com</a>.
         </p>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default TermsAndConditions
+export default TermsAndConditions;

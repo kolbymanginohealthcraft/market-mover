@@ -8,7 +8,6 @@ export default function Layout() {
   return (
     <div className={styles.page}>
       <Navbar />
-      <AccountBanner /> {/* 👈 add this line */}
       <main className={styles.main}>
         <Outlet />
       </main>

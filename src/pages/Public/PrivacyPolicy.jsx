@@ -1,13 +1,11 @@
-// src/pages/PrivacyPolicy.jsx
+// src/pages/public/PrivacyPolicy.jsx
+import React from 'react';
+import styles from './TermsAndConditions.module.css';
 
-import React from 'react'
-import styles from './TermsAndConditions.module.css' // Reuse the same styling
-
-function PrivacyPolicy() {
+const PrivacyPolicy = () => {
   return (
     <div className={styles.container}>
       <h1>Privacy Policy</h1>
-      <p><strong>Effective Date:</strong> April 2025</p>
 
       <section>
         <h2>1. Overview</h2>
@@ -29,9 +27,7 @@ function PrivacyPolicy() {
 
       <section>
         <h2>3. How We Use Your Information</h2>
-        <p>
-          We use your information to:
-        </p>
+        <p>We use your information to:</p>
         <ul>
           <li>Provide and improve the Market Mover platform</li>
           <li>Manage subscriptions and support requests</li>
@@ -72,11 +68,12 @@ function PrivacyPolicy() {
       <section>
         <h2>8. Contact</h2>
         <p>
-          For questions or concerns, contact us at support@healthcraftsolutions.com.
+          For questions or concerns, contact us at{' '}
+          <a href="mailto:support@healthcraftsolutions.com">support@healthcraftsolutions.com</a>.
         </p>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default PrivacyPolicy
+export default PrivacyPolicy;

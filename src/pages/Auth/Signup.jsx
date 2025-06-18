@@ -3,24 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./AuthForm.module.css";
 import localStyles from "./Signup.module.css";
-import Button from "../../components/Buttons/Button"; // ✅ New import
+import Button from "../../components/Buttons/Button";
+import LegalPanel from "../../components/Overlays/LegalPanel";
 
 function SignUp() {
   const navigate = useNavigate();
   const emailRef = useRef(null);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    emailRef.current?.focus();
-  }, []);
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     acceptedTerms: false,
   });
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showLegalPanel, setShowLegalPanel] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    emailRef.current?.focus();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -63,13 +66,14 @@ function SignUp() {
       return;
     }
 
-    navigate("/profile-setup");
+    navigate("/app/profile");
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.card}>
         <h2 className={styles.title}>Create an Account</h2>
+
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
             <label className={styles.label}>Email</label>
@@ -108,9 +112,7 @@ function SignUp() {
               I accept the{" "}
               <span
                 className={localStyles.termsLink}
-                onClick={() =>
-                  window.open("/legal/terms", "termsWindow", "width=600,height=700")
-                }
+                onClick={() => setShowLegalPanel(true)}
               >
                 Terms and Conditions
               </span>
@@ -130,6 +132,13 @@ function SignUp() {
           </Button>
         </form>
       </div>
+
+      {/* ✅ LegalPanel now explicitly receives isOpen */}
+      <LegalPanel
+        isOpen={showLegalPanel}
+        initialTab="terms"
+        onClose={() => setShowLegalPanel(false)}
+      />
     </div>
   );
 }

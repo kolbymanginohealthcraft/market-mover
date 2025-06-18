@@ -1,56 +1,191 @@
-.container {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 24px;
-    background: #f6f9f8;
-    border-radius: 8px;
-    font-family: 'Work Sans', sans-serif;
-  }
-  
-  h2 {
-    color: #265947;
-    margin-bottom: 24px;
-    font-size: 1.8rem;
-  }
-  
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  label {
-    display: flex;
-    flex-direction: column;
-    font-weight: 500;
-    color: #265947;
-  }
-  
-  input {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1rem;
-  }
-  
-  button {
-    align-self: flex-start;
-    background-color: #F1B62C;
-    color: #265947;
-    font-weight: 600;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #e3a917;
-  }
-  
-  .message {
-    margin-top: 12px;
-    font-size: 0.95rem;
-    color: #3599B8;
-  }
-  
+.page {
+  padding: 40px;
+  font-family: 'Work Sans', sans-serif;
+  background: linear-gradient(to bottom right, #f0fdfc, #ffffff);
+  min-height: 100vh;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 32px;
+}
+
+.columns {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Left side: Profile form */
+.form {
+  flex: 0.9;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form div {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  color: #265947;
+  margin-bottom: 6px;
+}
+
+input {
+  padding: 12px 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #3fb985;
+  box-shadow: 0 0 0 2px rgba(63, 185, 133, 0.2);
+}
+
+.message {
+  margin-top: 10px;
+  font-size: 0.95rem;
+  color: #3599B8;
+}
+
+/* Right side: Access settings */
+.access {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.access h3 {
+  color: #265947;
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+}
+
+/* ButtonGroup assumed to be custom styled elsewhere */
+
+/* Plan selection */
+.planList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.planRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.planRow:hover {
+  border-color: #1dadbe;
+  background-color: #f0fbfb;
+}
+
+.selected {
+  border-color: #1DAE9F;
+  background-color: #f2fdfc;
+}
+
+.planName {
+  font-weight: 600;
+  color: #265947;
+}
+
+.planPrice {
+  color: #5f6b6d;
+  font-size: 0.95rem;
+}
+
+.planSelectedNote {
+  font-size: 0.9rem;
+  color: #3599B8;
+  margin-top: 10px;
+}
+
+/* Join team */
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Free mode */
+.freeNote {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f9fdfc;
+  border: 1px dashed #1dae9f;
+  border-radius: 8px;
+  color: #265947;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Save button bar */
+.saveBar {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.saveBar button {
+  background-color: #3fb985;
+  color: white;
+  padding: 12px 24px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.saveBar button:hover {
+  background-color: #2f9b72;
+}
+
+.saveBar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modeDescription {
+  margin-top: 16px;
+  font-size: 0.95rem;
+  color: #5f6b6d;
+  line-height: 1.4;
+}
+
+.modeDescriptionBox {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f9fdfc;
+  border: 1px dashed #1dae9f;
+  border-radius: 8px;
+  color: #265947;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}

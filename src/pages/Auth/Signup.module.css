@@ -1,10 +1,17 @@
 .termsRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
   font-size: 0.95rem;
   color: #5f6b6d;
-  margin-bottom: 16px;
+  margin: 16px 0 20px;
+  line-height: 1.5;
+  max-width: 100%;
+}
+
+.termsRow input[type="checkbox"] {
+  margin-top: 4px;
 }
 
 .termsLink {
@@ -15,4 +22,13 @@
 
 .termsLink:hover {
   color: #3599b8;
+}
+
+
+.inlineTermsButton {
+  display: inline;
+  padding: 0;
+  font-size: 0.95rem;
+  vertical-align: baseline;
+  margin-left: 4px;
 }

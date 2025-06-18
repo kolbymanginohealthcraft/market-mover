@@ -75,10 +75,12 @@
 
 .switchMode {
   display: flex;
-  flex-direction: column;
-  margin-top: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 8px;
+  margin-top: 16px;
 }
+
 
 .link {
   background: none;
@@ -94,3 +96,30 @@
 .link:hover {
   color: #3599b8; /* hover effect with sky blue */
 }
+
+.inlineLinks {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.separator {
+  color: #999;
+  font-size: 14px;
+}
+
+.inlineButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.backLink {
+  margin-top: 16px;
+  padding-left: 0;
+}
+
