@@ -4,9 +4,9 @@ import React, { useEffect, useState, useRef } from "react";
 import styles from "./SidePanel.module.css";
 import Button from "../Buttons/Button";
 import ButtonGroup from "../Buttons/ButtonGroup";
-import TermsAndConditions from "../../pages/public/TermsAndConditions";
-import PrivacyPolicy from "../../pages/public/PrivacyPolicy";
-import RefundPolicy from "../../pages/public/RefundPolicy";
+import TermsAndConditions from "../../pages/Public/TermsAndConditions";
+import PrivacyPolicy from "../../pages/Public/PrivacyPolicy";
+import RefundPolicy from "../../pages/Public/RefundPolicy";
 import html2pdf from "html2pdf.js";
 import { FaTimes } from "react-icons/fa";
 
