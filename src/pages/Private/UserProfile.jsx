@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./UserProfile.module.css";
-import ButtonGroup from "../../components/Buttons/ButtonGroup";
-
-import { PLANS } from "../../data/planData";
+import Button from "../../Components/Buttons/Button";
 
 export default function UserProfile() {
   const [profile, setProfile] = useState({
@@ -13,45 +10,50 @@ export default function UserProfile() {
     company: "",
     title: "",
   });
+  const [subscription, setSubscription] = useState({
+    tier: "free",
+    team_name: null,
+    member_since: null,
+  });
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [accessType, setAccessType] = useState(null); // 'create' | 'join' | 'free'
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showTierOptions, setShowTierOptions] = useState(false);
   const [teamCode, setTeamCode] = useState("");
 
-  const navigate = useNavigate();
-
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileData = async () => {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
-      if (userError || !user) return;
+      if (!user) return;
 
-      const { data, error } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
-        .select("first_name, last_name, company, title, access_type, selected_plan, team_code")
+        .select("first_name, last_name, company, title")
         .eq("id", user.id)
         .single();
 
-      if (data) {
-        setProfile({
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          company: data.company || "",
-          title: data.title || "",
+      const { data: teamInfo } = await supabase
+        .from("team_members")
+        .select("joined_at, team:teams(name, tier)")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileData) setProfile(profileData);
+      if (teamInfo?.team) {
+        setSubscription({
+          tier: teamInfo.team.tier,
+          team_name: teamInfo.team.name,
+          member_since: teamInfo.joined_at?.split("T")[0],
         });
-        setAccessType(data.access_type || null);
-        setSelectedPlan(data.selected_plan || null);
-        setTeamCode(data.team_code || "");
       }
 
       setLoading(false);
     };
 
-    fetchProfile();
+    fetchProfileData();
   }, []);
 
   const handleChange = (e) => {
@@ -59,201 +61,152 @@ export default function UserProfile() {
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleContinue = async () => {
-  setSaving(true);
-  setMessage("");
+  const handleSave = async () => {
+    setSaving(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      ...profile,
+      updated_at: new Date().toISOString(),
+    });
 
-  if (!user) {
-    setMessage("❌ User not found");
+    setMessage(error ? `❌ Error: ${error.message}` : "✅ Profile updated");
     setSaving(false);
-    return;
-  }
+  };
 
-  // First: save profile
-  const { error: profileError } = await supabase.from("profiles").upsert({
-    id: user.id,
-    ...profile,
-    updated_at: new Date().toISOString(),
-    access_type: accessType,
-    selected_plan: selectedPlan,
-    team_code: teamCode || null,
-  });
-
-  if (profileError) {
-    setMessage(`❌ Error saving profile: ${profileError.message}`);
-    setSaving(false);
-    return;
-  }
-
-  if (accessType === "join") {
-    // Check if team exists
-    const { data: team, error: teamError } = await supabase
-      .from("teams")
-      .select("id")
-      .eq("access_code", teamCode.trim())
-      .single();
-
-    if (teamError || !team) {
-      setMessage("❌ Invalid team access code. Please double-check and try again.");
-      setSaving(false);
-      return;
-    }
-
-    // Add to team_members
-    const { error: memberError } = await supabase.from("team_members").insert([
-      {
-        team_id: team.id,
-        user_id: user.id,
-        role: "member",
-      },
-    ]);
-
-    if (memberError) {
-      setMessage(`❌ Could not join team: ${memberError.message}`);
-      setSaving(false);
-      return;
-    }
-  }
-
-  // Routing
-  if (accessType === "create") {
-    navigate("/team-setup");
-  } else {
-    navigate("/dashboard");
-  }
-
-  setSaving(false);
-};
-
+  const handleTierClick = () => setShowTierOptions(!showTierOptions);
 
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>Complete Your Profile</h2>
+      <h2 className={styles.title}>Your Profile</h2>
       <div className={styles.columns}>
-        {/* Left: Profile Info */}
-        <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
-          <div>
-            <label>First Name</label>
-            <input
-              name="first_name"
-              value={profile.first_name}
-              onChange={handleChange}
-              required
-            />
+        {/* Left: Profile Form */}
+        <div className={styles.formCard}>
+          <h3 className={styles.formTitle}>User Details</h3>
+          <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
+            <div>
+              <label>First Name</label>
+              <input
+                name="first_name"
+                value={profile.first_name}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label>Last Name</label>
+              <input
+                name="last_name"
+                value={profile.last_name}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label>Company</label>
+              <input
+                name="company"
+                value={profile.company}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label>Job Title</label>
+              <input
+                name="title"
+                value={profile.title}
+                onChange={handleChange}
+              />
+            </div>
+
+            {message && <p className={styles.message}>{message}</p>}
+            <div className={styles.saveBar}>
+              <Button variant="accent" onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save User Details"}
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* Right: Subscription Details */}
+        <div className={styles.subscriptionBox}>
+          <h3>Subscription Details</h3>
+
+          <div className={styles.subscriptionRow}>
+            <span className={styles.tierLabel}>🌟 {subscription.tier}</span>
+            <Button
+              variant="accent"
+              size="sm"
+              outline
+              onClick={handleTierClick}
+            >
+              Change Tier
+            </Button>
           </div>
 
-          <div>
-            <label>Last Name</label>
-            <input
-              name="last_name"
-              value={profile.last_name}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {subscription.team_name && (
+            <p className={styles.metaInfo}>
+              👥 Team: <strong>{subscription.team_name}</strong>
+            </p>
+          )}
+          {subscription.member_since && (
+            <p className={styles.metaInfo}>
+              📅 Member Since: {subscription.member_since}
+            </p>
+          )}
 
-          <div>
-            <label>Company</label>
-            <input
-              name="company"
-              value={profile.company}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label>Job Title</label>
-            <input name="title" value={profile.title} onChange={handleChange} />
-          </div>
-
-          {message && <p className={styles.message}>{message}</p>}
-        </form>
-
-        {/* Right: Access Settings */}
-        <div className={styles.access}>
-          <h3>Access Settings</h3>
-
-          <ButtonGroup
-            options={[
-              { label: "Create a Team", value: "create" },
-              { label: "Join a Team", value: "join" },
-              { label: "Continue for Free", value: "free" },
-            ]}
-            selected={accessType}
-            onSelect={setAccessType}
-            fullWidth
-          />
-
-          {accessType && (
+          {showTierOptions && (
             <>
-              <div className={styles.modeDescriptionBox}>
-                {accessType === "create" && (
+              <div className={styles.tierDivider} />
+              <p className={styles.tierIntro}>
+                🔓 Choose one of the following methods to upgrade your
+                subscription:
+              </p>
+              <div className={styles.tierActions}>
+                <div className={styles.tierCard}>
+                  <div className={styles.optionLabel}>
+                    🤝 Option 1: Join a Team
+                  </div>
                   <p>
-                    Create your own team and choose a plan that fits your needs. You’ll be able to invite others later.
+                    Enter the team code you received to join an existing team.
+                    Your access will match the team’s plan.
                   </p>
-                )}
-                {accessType === "join" && (
-                  <p>
-                    Use a team access code provided by your administrator to join an existing team.
-                  </p>
-                )}
-                {accessType === "free" && (
-                  <p>
-                    You can explore Market Mover for free with limited access to features.
-                    Free mode includes basic provider search and summary insights, but
-                    excludes advanced market tools and export options.
-                  </p>
-                )}
-              </div>
-
-              {accessType === "create" && (
-                <div className={styles.planList}>
-                  {PLANS.map((plan) => (
-                    <div
-                      key={plan.id}
-                      className={`${styles.planRow} ${
-                        selectedPlan === plan.id ? styles.selected : ""
-                      }`}
-                      onClick={() => setSelectedPlan(plan.id)}
-                    >
-                      <span className={styles.planName}>{plan.name}</span>
-                      <span className={styles.planPrice}>${plan.basePrice.toLocaleString()}/mo</span>
-                    </div>
-                  ))}
-                  {selectedPlan && (
-                    <p className={styles.planSelectedNote}>
-                      Selected plan: <strong>{selectedPlan}</strong>
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {accessType === "join" && (
-                <div className={styles.joinForm}>
-                  <label>Enter your team access code</label>
                   <input
                     type="text"
+                    placeholder="Enter team code"
                     value={teamCode}
                     onChange={(e) => setTeamCode(e.target.value)}
-                    placeholder="e.g. TEAM123"
                   />
+                  <Button
+                    variant="blue"
+                    size="sm"
+                    onClick={() => alert(`Joining team with code: ${teamCode}`)}
+                  >
+                    Join Team
+                  </Button>
                 </div>
-              )}
+
+                <div className={styles.tierCard}>
+                  <div className={styles.optionLabel}>
+                    🚀 Option 2: Create a Team
+                  </div>
+                  <p>
+                    You’ll choose your plan and be able to invite teammates
+                    after completing payment.
+                  </p>
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    onClick={() => alert("Redirect to pricing and payment")}
+                  >
+                    Go to Pricing & Payment
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         </div>
-      </div>
-
-      <div className={styles.saveBar}>
-        <button onClick={handleContinue} disabled={saving || !accessType}>
-          {accessType === "create" && selectedPlan
-            ? "Continue to Team Setup"
-            : "Save and Continue"}
-        </button>
       </div>
     </div>
   );
