@@ -25,6 +25,8 @@ import OverviewPage from "../pages/Public/OverviewPage";
 import UseCasesPage from "../pages/Public/UseCasesPage";
 import SelectPlan from "../pages/Public/SelectPlan";
 import ProfileSetup from "../pages/Auth/ProfileSetup";
+import ManageUsers from "../pages/Private/ManageUsers";
+import CompleteProfile from "../pages/Private/CompleteProfile";
 import TermsAndConditions from "../pages/Public/TermsAndConditions";
 import PrivacyPolicy from "../pages/Public/PrivacyPolicy";
 import Home from "../pages/Private/Home";
@@ -89,6 +91,8 @@ function App() {
           <Route path="use-cases" element={<UseCasesPage />} />
           <Route path="select-plan" element={<SelectPlan />} />
           <Route path="profile-setup" element={<ProfileSetup />} />
+          <Route path="/manage-users" element={<ManageUsers />} />
+          <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/playground" element={<ButtonPlayground />} />
           <Route path="/auth/paymenttest" element={<PaymentTest />} />
           <Route path="/onboarding" element={<OnboardingPage />} />

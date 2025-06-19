@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./UserProfile.module.css";
 import Button from "../../components/Buttons/Button";
@@ -14,6 +15,9 @@ export default function UserProfile() {
     tier: "free",
     team_name: null,
     member_since: null,
+    max_users: null,
+    current_users: null,
+    role: null,
   });
 
   const [loading, setLoading] = useState(true);
@@ -21,6 +25,9 @@ export default function UserProfile() {
   const [message, setMessage] = useState("");
   const [showTierOptions, setShowTierOptions] = useState(false);
   const [teamCode, setTeamCode] = useState("");
+
+  const navigate = useNavigate();
+  const isFreeTier = subscription.tier === "free";
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -37,7 +44,7 @@ export default function UserProfile() {
 
       const { data: teamInfo } = await supabase
         .from("team_members")
-        .select("joined_at, team:teams(name, tier)")
+        .select("role, joined_at, team:teams(name, tier, max_users, current_users)")
         .eq("user_id", user.id)
         .single();
 
@@ -47,6 +54,9 @@ export default function UserProfile() {
           tier: teamInfo.team.tier,
           team_name: teamInfo.team.name,
           member_since: teamInfo.joined_at?.split("T")[0],
+          max_users: teamInfo.team.max_users,
+          current_users: teamInfo.team.current_users,
+          role: teamInfo.role,
         });
       }
 
@@ -135,14 +145,16 @@ export default function UserProfile() {
 
           <div className={styles.subscriptionRow}>
             <span className={styles.tierLabel}>🌟 {subscription.tier}</span>
-            <Button
-              variant="accent"
-              size="sm"
-              outline
-              onClick={handleTierClick}
-            >
-              Change Tier
-            </Button>
+            {isFreeTier && (
+              <Button
+                variant="accent"
+                size="sm"
+                outline
+                onClick={handleTierClick}
+              >
+                Change Tier
+              </Button>
+            )}
           </div>
 
           {subscription.team_name && (
@@ -155,8 +167,26 @@ export default function UserProfile() {
               📅 Member Since: {subscription.member_since}
             </p>
           )}
+          {subscription.max_users && (
+            <p className={styles.metaInfo}>
+              📦 Licenses Used:{" "}
+              <strong>
+                {subscription.current_users} / {subscription.max_users}
+              </strong>
+            </p>
+          )}
+          {subscription.role === "admin" && (
+            <Button
+              variant="green"
+              size="sm"
+              onClick={() => navigate("/manage-users")}
+            >
+              Manage Users
+            </Button>
+          )}
 
-          {showTierOptions && (
+          {/* Tier Options (only for Free users) */}
+          {isFreeTier && showTierOptions && (
             <>
               <div className={styles.tierDivider} />
               <p className={styles.tierIntro}>
@@ -181,7 +211,50 @@ export default function UserProfile() {
                   <Button
                     variant="blue"
                     size="sm"
-                    onClick={() => alert(`Joining team with code: ${teamCode}`)}
+                    onClick={async () => {
+                      const {
+                        data: { user },
+                      } = await supabase.auth.getUser();
+                      if (!teamCode || !user) return;
+
+                      const { data: team, error } = await supabase
+                        .from("teams")
+                        .select("id, max_users, current_users")
+                        .eq("access_code", teamCode.trim())
+                        .single();
+
+                      if (error || !team) {
+                        alert("❌ Invalid team code");
+                        return;
+                      }
+
+                      if (team.current_users >= team.max_users) {
+                        alert("❌ Team is full. No licenses remaining.");
+                        return;
+                      }
+
+                      const { error: joinError } = await supabase
+                        .from("team_members")
+                        .insert({
+                          user_id: user.id,
+                          team_id: team.id,
+                          role: "member",
+                        });
+
+                      if (joinError) {
+                        alert("❌ Could not join team");
+                      } else {
+                        await supabase
+                          .from("teams")
+                          .update({
+                            current_users: team.current_users + 1,
+                          })
+                          .eq("id", team.id);
+                        alert("✅ Successfully joined team!");
+                        setShowTierOptions(false);
+                        window.location.reload(); // reload to reflect changes
+                      }
+                    }}
                   >
                     Join Team
                   </Button>
