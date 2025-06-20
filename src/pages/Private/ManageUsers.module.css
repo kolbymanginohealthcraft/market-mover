@@ -126,8 +126,10 @@
 
 .inviteInline {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  position: relative;
 }
 
 .inviteInline input[disabled],
@@ -143,19 +145,28 @@
 }
 
 .subtleWarning {
-  color: #6c7a71;
-  font-weight: 600;
-  font-size: 0.9rem;
-  font-style: italic;
-  margin-top: 6px;
-  user-select: none;
+  color: #d64550;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.emailInput {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
 .inviteMessage {
-  font-weight: 700;
-  font-size: 1rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  font-size: 13px;
   color: #265947;
-  margin-top: 8px;
+  opacity: 0.95;
+  animation: fadeOut 4s forwards;
 }
 
 .table {
@@ -196,4 +207,10 @@
   padding: 4px 8px;
   line-height: 1.2;
   min-height: 30px
+}
+
+@keyframes fadeOut {
+  0% { opacity: 0.95; }
+  70% { opacity: 0.95; }
+  100% { opacity: 0; display: none; }
 }

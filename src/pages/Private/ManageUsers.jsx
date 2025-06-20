@@ -23,7 +23,11 @@ export default function ManageUsers() {
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const fetchTeamData = async () => {
@@ -96,7 +100,7 @@ export default function ManageUsers() {
         return;
       }
 
-      // Reorder members: current user first, then others alphabetically by last_name then first_name
+      // Reorder members: current user first, then others alphabetically
       const sortedMembers = [...members].sort((a, b) => {
         if (a.id === user.id) return -1;
         if (b.id === user.id) return 1;
@@ -172,35 +176,51 @@ export default function ManageUsers() {
   };
 
   const onDelete = async (member) => {
-    if (member.id === currentUserId) {
-      alert("You cannot remove yourself from the team.");
-      return;
-    }
+  if (member.id === currentUserId) {
+    alert("You cannot remove yourself from the team.");
+    return;
+  }
 
-    if (!window.confirm(`Remove ${member.first_name} ${member.last_name} from the team?`)) {
-      return;
-    }
+  if (!window.confirm(`Remove ${member.first_name} ${member.last_name} from the team?`)) {
+    return;
+  }
 
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from("profiles")
-        .update({ team_id: null, access_type: "free", selected_plan: "free" })
-        .eq("id", member.id);
+  try {
+    setLoading(true);
 
-      if (error) {
-        alert("Failed to remove user from team: " + error.message);
-        setLoading(false);
-        return;
-      }
+    const res = await fetch(
+  "https://ukuxibhujcozcwozljzf.functions.supabase.co/remove_user_from_team",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, // ✅ add this
+      "x-admin-secret": import.meta.env.VITE_EDGE_ADMIN_SECRET,
+    },
+    body: JSON.stringify({ user_id: member.id }),
+  }
+);
 
-      setMessage(`✅ Removed ${member.first_name} ${member.last_name} from the team.`);
-      await fetchTeamData();
-    } catch (err) {
-      alert("Unexpected error: " + err.message);
+
+    const raw = await res.text();
+    console.log("🧾 Raw response from remove_user_from_team:", raw);
+
+    const result = JSON.parse(raw);
+
+    if (!res.ok) {
+      alert(`Failed to remove user: ${result.error || "Unknown error"}`);
       setLoading(false);
+      return;
     }
-  };
+
+    setMessage(`✅ Removed ${member.first_name} ${member.last_name} from the team.`);
+    await fetchTeamData();
+  } catch (err) {
+    alert("Unexpected error: " + err.message);
+    setLoading(false);
+  }
+};
+
 
   const onSaveTeamName = async () => {
     if (!newTeamName.trim()) return;

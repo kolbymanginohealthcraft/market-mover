@@ -38,76 +38,98 @@ serve(async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    console.log("📥 Creating user for:", email);
-    const { data: user, error: userError } =
-      await supabase.auth.admin.createUser({
-        email,
-        email_confirm: false,
-      });
+    // Strict match user by email
+    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 10,
+    });
 
-    if (userError || !user?.user?.id) {
-      console.error("❌ Error creating user:", userError);
+    if (listError) {
       return new Response(
-        JSON.stringify({ error: "Failed to create user", details: userError }),
+        JSON.stringify({ error: "Failed to list users", details: listError }),
         { status: 500, headers: corsHeaders }
       );
     }
 
-    const userId = user.user.id;
+    const existingUser = usersData.users.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
 
-    console.log("🔍 Checking if profile exists...");
-    const { data: existingProfile, error: profileCheckError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", userId)
-      .single();
+    let userId: string;
 
-    if (profileCheckError && profileCheckError.code !== "PGRST116") {
-      console.error("❌ Error checking profile existence:", profileCheckError);
-      return new Response(
-        JSON.stringify({ error: "Failed to check profile" }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
+    if (existingUser) {
+      userId = existingUser.id;
 
-    if (!existingProfile) {
-      console.log("📥 Inserting profile...");
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: userId,
-        email,
-        team_id, // assign team_id here
-      });
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("team_id")
+        .eq("id", userId)
+        .maybeSingle();
 
       if (profileError) {
-        console.error("❌ Profile insert failed:", profileError);
         return new Response(
-          JSON.stringify({ error: "Failed to insert profile", details: profileError }),
+          JSON.stringify({ error: "Failed to fetch profile", details: profileError }),
           { status: 500, headers: corsHeaders }
         );
       }
-    } else {
-      console.log("✅ Profile already exists, updating team_id...");
+
+      if (profile && profile.team_id) {
+        return new Response(
+          JSON.stringify({ error: "User is already part of a team" }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      // Safe update
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ team_id })
         .eq("id", userId);
 
       if (updateError) {
-        console.error("❌ Failed to update profile team_id:", updateError);
         return new Response(
-          JSON.stringify({ error: "Failed to update profile team_id", details: updateError }),
+          JSON.stringify({ error: "Failed to update profile", details: updateError }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+
+    } else {
+      // New user — Supabase will auto-create profile via trigger
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: false,
+      });
+
+      if (createError || !newUser?.user?.id) {
+        return new Response(
+          JSON.stringify({ error: "Failed to create user", details: createError }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+
+      userId = newUser.user.id;
+
+      // Wait briefly to let Supabase create the profile
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ team_id })
+        .eq("id", userId);
+
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: "Failed to update profile after user creation", details: updateError }),
           { status: 500, headers: corsHeaders }
         );
       }
     }
 
-    console.log("✅ User successfully invited.");
-    return new Response(JSON.stringify({ message: "User invited!" }), {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(
+      JSON.stringify({ message: "User invited or linked successfully." }),
+      { status: 200, headers: corsHeaders }
+    );
   } catch (err) {
-    console.error("❌ Catch block error:", err);
     return new Response(
       JSON.stringify({ error: "Unexpected error", details: err.message }),
       { status: 500, headers: corsHeaders }
