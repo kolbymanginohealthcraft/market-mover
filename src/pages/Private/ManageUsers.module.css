@@ -202,6 +202,13 @@
   margin-top: 16px;
 }
 
+.backButtonRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+
 /* Fix delete button row height so it doesn't stretch taller */
 .table tbody tr td:last-child button {
   padding: 4px 8px;

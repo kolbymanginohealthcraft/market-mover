@@ -2,8 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./ManageUsers.module.css";
 import Button from "../../components/Buttons/Button";
+import { useNavigate } from "react-router-dom";
 
 export default function ManageUsers() {
+  const navigate = useNavigate();
   const [teamInfo, setTeamInfo] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [subscription, setSubscription] = useState(null);
@@ -83,11 +85,21 @@ export default function ManageUsers() {
 
       const { data: subData, error: subError } = await supabase
         .from("subscriptions")
-        .select("plan, started_at, renewed_at, expires_at, status")
+        .select(
+          "id, started_at, renewed_at, expires_at, status, billing_interval, discount_percent, plan_id, plans(name)"
+        )
         .eq("team_id", profile.team_id)
+        .in("status", ["active", "trialing"])
+        .order("renewed_at", { ascending: false })
+        .limit(1)
         .single();
 
-      if (!subError) setSubscription(subData);
+      if (!subError && subData) {
+        setSubscription({
+          ...subData,
+          plan_name: subData.plans?.name || "–",
+        });
+      }
 
       const { data: members, error: membersError } = await supabase.rpc(
         "get_team_members",
@@ -100,11 +112,9 @@ export default function ManageUsers() {
         return;
       }
 
-      // Reorder members: current user first, then others alphabetically
       const sortedMembers = [...members].sort((a, b) => {
         if (a.id === user.id) return -1;
         if (b.id === user.id) return 1;
-
         if (a.last_name && b.last_name) {
           const lastNameCompare = a.last_name.localeCompare(b.last_name);
           if (lastNameCompare !== 0) return lastNameCompare;
@@ -116,7 +126,6 @@ export default function ManageUsers() {
       });
 
       setTeamMembers(sortedMembers);
-
       setLicensesMaxedOut(members.length >= team.max_users);
     } catch (err) {
       console.error("💥 Unexpected error:", err);
@@ -176,51 +185,55 @@ export default function ManageUsers() {
   };
 
   const onDelete = async (member) => {
-  if (member.id === currentUserId) {
-    alert("You cannot remove yourself from the team.");
-    return;
-  }
-
-  if (!window.confirm(`Remove ${member.first_name} ${member.last_name} from the team?`)) {
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const res = await fetch(
-  "https://ukuxibhujcozcwozljzf.functions.supabase.co/remove_user_from_team",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, // ✅ add this
-      "x-admin-secret": import.meta.env.VITE_EDGE_ADMIN_SECRET,
-    },
-    body: JSON.stringify({ user_id: member.id }),
-  }
-);
-
-
-    const raw = await res.text();
-    console.log("🧾 Raw response from remove_user_from_team:", raw);
-
-    const result = JSON.parse(raw);
-
-    if (!res.ok) {
-      alert(`Failed to remove user: ${result.error || "Unknown error"}`);
-      setLoading(false);
+    if (member.id === currentUserId) {
+      alert("You cannot remove yourself from the team.");
       return;
     }
 
-    setMessage(`✅ Removed ${member.first_name} ${member.last_name} from the team.`);
-    await fetchTeamData();
-  } catch (err) {
-    alert("Unexpected error: " + err.message);
-    setLoading(false);
-  }
-};
+    if (
+      !window.confirm(
+        `Remove ${member.first_name} ${member.last_name} from the team?`
+      )
+    ) {
+      return;
+    }
 
+    try {
+      setLoading(true);
+
+      const res = await fetch(
+        "https://ukuxibhujcozcwozljzf.functions.supabase.co/remove_user_from_team",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            "x-admin-secret": import.meta.env.VITE_EDGE_ADMIN_SECRET,
+          },
+          body: JSON.stringify({ user_id: member.id }),
+        }
+      );
+
+      const raw = await res.text();
+      console.log("🧾 Raw response from remove_user_from_team:", raw);
+
+      const result = JSON.parse(raw);
+
+      if (!res.ok) {
+        alert(`Failed to remove user: ${result.error || "Unknown error"}`);
+        setLoading(false);
+        return;
+      }
+
+      setMessage(
+        `✅ Removed ${member.first_name} ${member.last_name} from the team.`
+      );
+      await fetchTeamData();
+    } catch (err) {
+      alert("Unexpected error: " + err.message);
+      setLoading(false);
+    }
+  };
 
   const onSaveTeamName = async () => {
     if (!newTeamName.trim()) return;
@@ -259,10 +272,18 @@ export default function ManageUsers() {
 
   return (
     <div className={styles.page}>
-      {/* Team Name above underline */}
+      <div className={styles.backButtonRow}>
+        <Button
+          variant="gray"
+          size="sm"
+          onClick={() => navigate("/app/profile")}
+        >
+          ← Back to Profile
+        </Button>
+      </div>
+
       <div className={styles.teamNameTopBar}>
         <h1 className={styles.header}>Admin Dashboard</h1>
-
         <div className={styles.teamNameWrapper}>
           {!editingTeamName ? (
             <>
@@ -272,7 +293,6 @@ export default function ManageUsers() {
                 variant="gray"
                 onClick={() => setEditingTeamName(true)}
                 style={{ marginLeft: 8 }}
-                aria-label="Edit team name"
               >
                 Edit
               </Button>
@@ -288,10 +308,14 @@ export default function ManageUsers() {
                 autoFocus
                 disabled={savingTeamName}
                 onKeyDown={handleTeamNameKeyDown}
-                aria-label="Edit team name input"
               />
               <div className={styles.teamNameActions}>
-                <Button size="sm" variant="green" onClick={onSaveTeamName} disabled={savingTeamName}>
+                <Button
+                  size="sm"
+                  variant="green"
+                  onClick={onSaveTeamName}
+                  disabled={savingTeamName}
+                >
                   Save
                 </Button>
                 <Button
@@ -304,7 +328,6 @@ export default function ManageUsers() {
                   }}
                   disabled={savingTeamName}
                   style={{ marginLeft: 8 }}
-                  aria-label="Cancel team name edit"
                 >
                   Cancel
                 </Button>
@@ -314,14 +337,14 @@ export default function ManageUsers() {
         </div>
       </div>
 
-      {/* Underline */}
       <div className={styles.underline} />
 
-      {/* Info Cards */}
       <div className={styles.topInfoBar}>
         <div className={styles.infoCard}>
-          <div className={styles.infoLabel}>Tier</div>
-          <div className={styles.infoValue}>{teamInfo?.tier}</div>
+          <div className={styles.infoLabel}>Plan</div>
+          <div className={styles.infoValue}>
+            {subscription?.plan_name || "-"}
+          </div>
         </div>
 
         <div className={styles.infoCard}>
@@ -336,15 +359,25 @@ export default function ManageUsers() {
           <div className={styles.infoValue}>{subscription?.status || "-"}</div>
         </div>
 
-        <div className={styles.infoCard}>
-          <div className={styles.infoLabel}>Renewal Date</div>
-          <div className={styles.infoValue}>
-            {subscription?.renewed_at ? formatDate(subscription.renewed_at) : "-"}
+        {subscription?.status === "active" && subscription?.renewed_at && (
+          <div className={styles.infoCard}>
+            <div className={styles.infoLabel}>Renewal Date</div>
+            <div className={styles.infoValue}>
+              {formatDate(subscription.renewed_at)}
+            </div>
           </div>
-        </div>
+        )}
+
+        {subscription?.status === "canceled" && subscription?.expires_at && (
+          <div className={styles.infoCard}>
+            <div className={styles.infoLabel}>Expires</div>
+            <div className={styles.infoValue}>
+              {formatDate(subscription.expires_at)}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Manage Team Members */}
       <section className={styles.sectionWide}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Manage Team Members</h2>
@@ -358,16 +391,12 @@ export default function ManageUsers() {
               onKeyDown={handleInviteKeyDown}
               className={styles.emailInput}
               disabled={licensesMaxedOut}
-              title={licensesMaxedOut ? "Maximum licenses reached" : ""}
-              aria-label="Invite user email input"
             />
             <Button
               variant="green"
               size="sm"
               onClick={sendInviteEmail}
               disabled={!inviteEmail || licensesMaxedOut}
-              title={licensesMaxedOut ? "Cannot invite more users" : ""}
-              aria-label="Send invite button"
             >
               Send Invite
             </Button>
@@ -378,7 +407,11 @@ export default function ManageUsers() {
             </p>
           )}
           {message && (
-            <p className={styles.inviteMessage} aria-live="polite" role="status">
+            <p
+              className={styles.inviteMessage}
+              aria-live="polite"
+              role="status"
+            >
               {message}
             </p>
           )}
@@ -408,8 +441,11 @@ export default function ManageUsers() {
                       variant="red"
                       ghost
                       onClick={() => onDelete(member)}
-                      aria-label={`Delete user ${member.first_name} ${member.last_name}`}
-                      style={{ minHeight: "30px", padding: "4px 8px", lineHeight: "1.2" }}
+                      style={{
+                        minHeight: "30px",
+                        padding: "4px 8px",
+                        lineHeight: "1.2",
+                      }}
                     >
                       Delete
                     </Button>
@@ -421,13 +457,16 @@ export default function ManageUsers() {
         </table>
       </section>
 
-      {/* Subscription Management */}
       <section className={styles.sectionWide}>
         <h2 className={styles.sectionTitle}>Subscription Management</h2>
         <p>Manage your subscription, billing history, and account settings.</p>
 
         <div className={styles.subscriptionActions}>
-          <Button variant="blue" size="md" disabled>
+          <Button
+            variant="blue"
+            size="md"
+            onClick={() => navigate("/app/billing")}
+          >
             View Billing History
           </Button>
           <Button variant="gold" size="md" disabled>
@@ -436,7 +475,13 @@ export default function ManageUsers() {
           <Button variant="teal" size="md" disabled style={{ marginLeft: 12 }}>
             Purchase Licenses (Coming Soon)
           </Button>
-          <Button variant="red" size="md" ghost disabled style={{ marginLeft: 12 }}>
+          <Button
+            variant="red"
+            size="md"
+            ghost
+            disabled
+            style={{ marginLeft: 12 }}
+          >
             Delete Account (Coming Soon)
           </Button>
         </div>
