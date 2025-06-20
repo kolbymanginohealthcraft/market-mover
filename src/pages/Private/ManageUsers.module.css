@@ -1,77 +1,199 @@
-/* ManageUsers.module.css */
-
 .page {
-  padding: 32px;
-  background: #f6f9f8;
-  min-height: 100vh;
-  font-family: 'Work Sans', sans-serif;
+  padding: 32px 48px;
+  font-family: "Work Sans", sans-serif;
+  max-width: 1300px;
+  margin: 0 auto;
+  color: #2d4740;
 }
 
-.title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #265947;
-  margin-bottom: 16px;
-}
-
-/* Summary bar above table */
-.summary {
+/* Team name & Admin Dashboard container */
+.teamNameTopBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 12px 20px;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  font-size: 0.95rem;
+  margin-bottom: 8px;
 }
 
-.licenseInfo {
-  color: #333;
-  font-weight: 500;
+/* Admin Dashboard header */
+.header {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #2d4740;
+  user-select: none;
 }
 
-.addButton {
+/* Underline bar spanning full width below team name */
+.underline {
+  border-bottom: 3px solid #1d8a68;
+  margin-bottom: 40px;
+}
+
+/* Team Name container */
+.teamNameWrapper {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #265947;
+  min-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teamNameDisplay {
+  max-width: 140px;
+}
+
+.teamNameInput {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border: 2px solid #1d8a68;
+  border-radius: 6px;
+  color: #1d8a68;
+  max-width: 220px;
+}
+
+.teamNameInput:focus {
+  outline: none;
+  box-shadow: 0 0 6px #1d8a68aa;
+}
+
+.teamNameActions {
+  display: flex;
+  gap: 8px;
+  margin-left: 4px;
+}
+
+.topInfoBar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+  margin-bottom: 48px;
+}
+
+.infoCard {
+  background: #e6f0ec;
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+  transition: box-shadow 0.3s ease;
+  cursor: default;
+  user-select: none;
+}
+
+.infoCard:hover {
+  box-shadow: 0 7px 18px rgb(0 0 0 / 0.12);
+}
+
+.infoLabel {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1d8a68;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+}
+
+.infoValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.sectionWide {
+  background: #f8fdfb;
+  padding: 20px 28px;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgb(0 0 0 / 0.08);
+  margin-bottom: 48px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+.inviteInline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.inviteInline input[disabled],
+.inviteInline button[disabled] {
+  background-color: #e2e6e4;
+  cursor: not-allowed;
+  color: #7d8a84;
+}
+
+.inviteInline input[disabled]:hover,
+.inviteInline button[disabled]:hover {
+  cursor: not-allowed;
+}
+
+.subtleWarning {
+  color: #6c7a71;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 6px;
+  user-select: none;
+}
+
+.inviteMessage {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #265947;
+  margin-top: 8px;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-th,
-td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eaeaea;
   font-size: 0.95rem;
 }
 
-th {
-  background: #edf8f7;
-  color: #265947;
-  font-weight: 600;
+.table thead {
+  background-color: #d9ede7;
+  color: #1d8a68;
+  font-weight: 700;
+  border-bottom: 2px solid #1d8a68;
 }
 
-td {
-  color: #333;
+.table th,
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #b9d2bf;
+  text-align: left;
   vertical-align: middle;
 }
 
-.actions {
-  display: flex;
-  gap: 8px;
+.table tbody tr:hover {
+  background-color: #d6e9de;
+  cursor: default;
 }
 
-.error {
-  color: #d64550;
-  margin-top: 12px;
+.subscriptionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Fix delete button row height so it doesn't stretch taller */
+.table tbody tr td:last-child button {
+  padding: 4px 8px;
+  line-height: 1.2;
+  min-height: 30px
 }

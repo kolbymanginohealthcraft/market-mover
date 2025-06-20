@@ -75,6 +75,7 @@ serve(async (req: Request): Promise<Response> => {
       const { error: profileError } = await supabase.from("profiles").insert({
         id: userId,
         email,
+        team_id, // assign team_id here
       });
 
       if (profileError) {
@@ -85,37 +86,19 @@ serve(async (req: Request): Promise<Response> => {
         );
       }
     } else {
-      console.log("✅ Profile already exists, skipping insert.");
-    }
+      console.log("✅ Profile already exists, updating team_id...");
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ team_id })
+        .eq("id", userId);
 
-    console.log("📥 Inserting into team_members...");
-    const { error: teamError } = await supabase.from("team_members").insert({
-      user_id: userId,
-      team_id,
-      role: "member",
-    });
-
-    if (teamError && teamError.code !== "23505") {
-      // 23505 = duplicate key value
-      console.error("❌ Team member insert failed:", teamError);
-      return new Response(
-        JSON.stringify({ error: "Failed to insert team member", details: teamError }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    console.log("📥 Incrementing license count...");
-    const { error: countError } = await supabase.rpc(
-      "increment_team_user_count",
-      { team_id_param: team_id }
-    );
-
-    if (countError) {
-      console.error("❌ Failed to increment current_users:", countError);
-      return new Response(
-        JSON.stringify({ error: "Failed to increment license count", details: countError }),
-        { status: 500, headers: corsHeaders }
-      );
+      if (updateError) {
+        console.error("❌ Failed to update profile team_id:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update profile team_id", details: updateError }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
     }
 
     console.log("✅ User successfully invited.");
