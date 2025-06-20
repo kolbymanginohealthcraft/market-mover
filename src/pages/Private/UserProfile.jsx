@@ -49,7 +49,7 @@ export default function UserProfile() {
       setProfile(profileData);
 
       if (profileData.team_id) {
-        const { data: teamData, error: teamError } = await supabase
+        const { data: teamData } = await supabase
           .from("teams")
           .select("name, max_users")
           .eq("id", profileData.team_id)
@@ -104,6 +104,38 @@ export default function UserProfile() {
     setMessage(error ? `❌ ${error.message}` : "✅ Profile updated");
     setSaving(false);
     setTimeout(() => setMessage(""), 3000);
+  };
+
+  const handleJoinTeam = async () => {
+    setMessage("");
+    try {
+      const res = await fetch(
+        "https://ukuxibhujcozcwozljzf.functions.supabase.co/join_team_by_code",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ access_code: teamCode }),
+        }
+      );
+
+      const raw = await res.text();
+      console.log("📥 Raw response:", raw);
+
+      const result = JSON.parse(raw);
+
+      if (!res.ok) {
+        setMessage("❌ " + (result.error || "Failed to join team"));
+      } else {
+        setMessage("✅ Successfully joined team!");
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } catch (err) {
+      console.error("💥 Join failed:", err);
+      setMessage("❌ Unexpected error occurred.");
+    }
   };
 
   const hasTeam = !!profile.team_id;
@@ -241,9 +273,7 @@ export default function UserProfile() {
                       <Button
                         variant="blue"
                         size="sm"
-                        onClick={() =>
-                          alert(`Joining team with code: ${teamCode}`)
-                        }
+                        onClick={handleJoinTeam}
                       >
                         Join Team
                       </Button>

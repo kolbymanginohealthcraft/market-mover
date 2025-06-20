@@ -437,7 +437,7 @@ export default function ManageUsers() {
                 <td>
                   {member.id !== currentUserId && (
                     <Button
-                      size="xs"
+                      size="md"
                       variant="red"
                       ghost
                       onClick={() => onDelete(member)}
