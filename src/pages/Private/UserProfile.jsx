@@ -107,36 +107,47 @@ export default function UserProfile() {
   };
 
   const handleJoinTeam = async () => {
-    setMessage("");
-    try {
-      const res = await fetch(
-        "https://ukuxibhujcozcwozljzf.functions.supabase.co/join_team_by_code",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ access_code: teamCode }),
-        }
-      );
+  setMessage("");
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const access_token = session?.access_token;
 
-      const raw = await res.text();
-      console.log("📥 Raw response:", raw);
-
-      const result = JSON.parse(raw);
-
-      if (!res.ok) {
-        setMessage("❌ " + (result.error || "Failed to join team"));
-      } else {
-        setMessage("✅ Successfully joined team!");
-        setTimeout(() => window.location.reload(), 1000);
-      }
-    } catch (err) {
-      console.error("💥 Join failed:", err);
-      setMessage("❌ Unexpected error occurred.");
+    if (!access_token) {
+      setMessage("❌ User is not logged in.");
+      return;
     }
-  };
+
+    const res = await fetch(
+      "https://ukuxibhujcozcwozljzf.functions.supabase.co/join_team_by_code",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access_token}`, // ✅ use user token, not anon key
+        },
+        body: JSON.stringify({ access_code: teamCode }),
+      }
+    );
+
+    const raw = await res.text();
+    console.log("📥 Raw response:", raw);
+
+    const result = JSON.parse(raw);
+
+    if (!res.ok) {
+      setMessage("❌ " + (result.error || "Failed to join team"));
+    } else {
+      setMessage("✅ Successfully joined team!");
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  } catch (err) {
+    console.error("💥 Join failed:", err);
+    setMessage("❌ Unexpected error occurred.");
+  }
+};
+
 
   const hasTeam = !!profile.team_id;
   const isAdmin = profile.role === "admin";
