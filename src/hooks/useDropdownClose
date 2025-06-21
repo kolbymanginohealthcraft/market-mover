@@ -1,0 +1,23 @@
+import { useEffect } from "react";
+
+export function useDropdownClose(ref, closeCallback) {
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        closeCallback();
+      }
+    };
+
+    const handleEscape = (e) => {
+      if (e.key === "Escape") closeCallback();
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [ref, closeCallback]);
+}

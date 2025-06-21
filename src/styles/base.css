@@ -3,7 +3,8 @@
 
 /* ===== Root Variables ===== */
 :root {
-  font-family: 'Work Sans', 'ASAP', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Work Sans", "ASAP", system-ui, Avenir, Helvetica, Arial,
+    sans-serif;
   font-weight: 400;
   line-height: 1.5;
   font-synthesis: none;
@@ -16,7 +17,9 @@
 }
 
 /* ===== Layout ===== */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   max-width: 100%;
@@ -44,7 +47,8 @@ select {
   padding: 10px 12px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
 }
@@ -58,6 +62,48 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2);
 }
 
+input[type="checkbox"] {
+  accent-color: #265947;
+  cursor: pointer;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+}
+
+.checkboxLabel:hover {
+  background-color: #f0fdfa;
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+  transition: background-color 0.2s ease;
+}
+
+.filterDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.filterDropdown label {
+  display: block;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
 label {
   margin-bottom: 0;
   font-weight: 600;
@@ -65,8 +111,6 @@ label {
   font-size: 0.92rem;
   line-height: 1.1;
 }
-
-
 
 /* ===== Form Field Spacing Defaults ===== */
 form {
@@ -81,7 +125,6 @@ form > div {
   gap: 1px; /* Nearly flush spacing between label and input */
 }
 
-
 form .form-row {
   display: flex;
   gap: 16px;
@@ -93,7 +136,6 @@ form .form-row > div {
   flex-direction: column;
   gap: 6px;
 }
-
 
 /* ===== Button Reset (non-component buttons) ===== */
 button {
@@ -131,4 +173,3 @@ button {
     transform: rotate(360deg);
   }
 }
-

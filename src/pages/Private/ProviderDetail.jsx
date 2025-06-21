@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useParams,
   useNavigate,
@@ -7,9 +7,12 @@ import {
   Navigate,
   useSearchParams,
 } from "react-router-dom";
-import { supabase } from "../../app/supabaseClient";
 import styles from "./ProviderDetail.module.css";
 import { Pencil, Check, X } from "lucide-react";
+
+import useProviderInfo from "../../hooks/useProviderInfo";
+import useNearbyProviders from "../../hooks/useNearbyProviders";
+import useMarketData from "../../hooks/useMarketData";
 
 import OverviewTab from "./OverviewTab";
 import NearbyTab from "./NearbyTab";
@@ -18,7 +21,7 @@ import ChartsTab from "./ChartDashboard";
 import SubNavbar from "../../components/Navigation/SubNavbar";
 import CCNList from "./CCNList";
 import Quality from "./Quality";
-import ScorecardMatrix from "./ScorecardMatrix"; // 🆕 Add this import
+import ScorecardMatrix from "./ScorecardMatrix";
 import Spinner from "../../components/Buttons/Spinner";
 
 export default function ProviderDetail() {
@@ -26,233 +29,32 @@ export default function ProviderDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [provider, setProvider] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [radiusInMiles, setRadiusInMiles] = useState(10);
-  const [cachedProviders, setCachedProviders] = useState([]);
-  const [nearbyProviders, setNearbyProviders] = useState([]);
-  const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]);
-  const [metrics, setMetrics] = useState([]);
-  const [marketAverages, setMarketAverages] = useState({});
-  const [nationalAverages, setNationalAverages] = useState({});
-  const [nearbyIndividualScores, setNearbyIndividualScores] = useState([]);
-
+  const radiusFromUrl = Number(searchParams.get("radius"));
+  const marketId = searchParams.get("marketId");
+  const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
   const [showPopup, setShowPopup] = useState(false);
   const [marketName, setMarketName] = useState("");
-  const [saveMessage, setSaveMessage] = useState("");
-  const [currentMarketName, setCurrentMarketName] = useState("");
-  const [isEditingMarket, setIsEditingMarket] = useState(false);
-  const [editedName, setEditedName] = useState("");
-  const [editedRadius, setEditedRadius] = useState(10);
   const inputRef = useRef(null);
 
-  const marketId = searchParams.get("marketId");
-  const radiusFromUrl = searchParams.get("radius");
-  const isInSavedMarket = Boolean(marketId);
-
-  useEffect(() => {
-    if (radiusFromUrl) {
-      setRadiusInMiles(Number(radiusFromUrl));
-    }
-  }, [radiusFromUrl]);
-
-  useEffect(() => {
-    const fetchProvider = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("org_dhc")
-        .select(
-          "id, dhc, name, network, type, street, city, state, zip, phone, latitude, longitude"
-        )
-        .eq("id", id)
-        .single();
-
-      if (error || !data) {
-        console.error("Error fetching provider:", error);
-        navigate("/search");
-      } else {
-        setProvider(data);
-        fetchNearbyProviders(data.latitude, data.longitude);
-      }
-      setLoading(false);
-    };
-
-    fetchProvider();
-  }, [id, navigate]);
-
-  const fetchNearbyProviders = async (centerLat, centerLon) => {
-    console.log("🌎 Fetching nearby providers...");
-
-    const boundingBoxMargin = 2;
-    const latMin = centerLat - boundingBoxMargin;
-    const latMax = centerLat + boundingBoxMargin;
-    const lonMin = centerLon - boundingBoxMargin;
-    const lonMax = centerLon + boundingBoxMargin;
-
-    const { data, error } = await supabase
-      .from("org_dhc")
-      .select(
-        "id, dhc, name, network, street, city, state, zip, latitude, longitude, type"
-      )
-      .filter("latitude", "gte", latMin)
-      .filter("latitude", "lte", latMax)
-      .filter("longitude", "gte", lonMin)
-      .filter("longitude", "lte", lonMax);
-
-    if (error) {
-      console.error("❌ Error fetching nearby providers:", error);
-      return;
-    }
-
-    console.log(`✅ Found ${data.length} nearby providers.`);
-
-    const haversineDistanceMiles = ([lat1, lon1], [lat2, lon2]) => {
-      const R = 3958.8;
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
-
-    const enriched = data.map((p) => ({
-      ...p,
-      distance: haversineDistanceMiles([centerLat, centerLon], [p.latitude, p.longitude]),
-    }));
-
-    setCachedProviders(enriched);
-  };
-
-  useEffect(() => {
-    if (!cachedProviders.length) return;
-    const filtered = cachedProviders
-      .filter((p) => p.distance <= radiusInMiles)
-      .sort((a, b) => a.distance - b.distance);
-    setNearbyProviders(filtered);
-
-    const dhcIds = filtered.map((p) => p.dhc).filter((id) => id != null);
-    console.log("🧩 Sending DHC IDs to RPC:", dhcIds);
-
-    if (dhcIds.length > 0) {
-      fetchNearbyDhcCcns(dhcIds);
-    } else {
-      setNearbyDhcCcns([]);
-    }
-  }, [cachedProviders, radiusInMiles]);
-
-  const fetchNearbyDhcCcns = async (dhcIds) => {
-    const { data, error } = await supabase.rpc("get_ccns_for_market", {
-      dhc_ids: dhcIds,
-    });
-
-    if (error) {
-      console.error("❌ Error fetching DHC-CCN mappings:", error);
-    } else {
-      console.log(`✅ Nearby DHC-CCN mappings fetched:`, data);
-      setNearbyDhcCcns(data || []);
-    }
-  };
-
-  useEffect(() => {
-    const fetchMarketName = async () => {
-      if (!marketId) return;
-      const { data, error } = await supabase
-        .from("saved_market")
-        .select("name, radius_miles")
-        .eq("id", marketId)
-        .single();
-
-      if (data?.name) setCurrentMarketName(data.name);
-      if (data?.radius_miles) setRadiusInMiles(data.radius_miles);
-    };
-
-    fetchMarketName();
-  }, [marketId]);
-
-  const handleSaveMarket = async () => {
-    setSaveMessage("Saving...");
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error("Error getting user:", userError);
-        setSaveMessage("Error: could not get user.");
-        return;
-      }
-
-      const userId = userData?.user?.id;
-      if (!userId) {
-        console.error("No user ID found");
-        setSaveMessage("Error: no user ID.");
-        return;
-      }
-
-      const { data: savedMarket, error: insertError } = await supabase
-        .from("saved_market")
-        .insert({
-          user_id: userId,
-          provider_id: provider.id,
-          radius_miles: radiusInMiles,
-          name: marketName,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("Error inserting market:", insertError);
-        setSaveMessage(`Error: ${insertError.message}`);
-      } else {
-        console.log("Market saved:", savedMarket);
-        setSaveMessage("Market saved successfully!");
-        setShowPopup(false);
-
-        const currentPath = window.location.pathname;
-        const lastSegment = currentPath.split("/").pop();
-        const validTabs = ["overview", "nearby", "scorecard", "charts", "matrix", "quality"];
-        const subTab = validTabs.includes(lastSegment) ? lastSegment : "overview";
-
-        navigate(`/app/provider/${provider.id}/${subTab}?radius=${radiusInMiles}&marketId=${savedMarket.id}`);
-      }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      setSaveMessage("Unexpected error occurred.");
-    }
-  };
-
-  const handleSaveMarketEdits = async () => {
-    if (!marketId) return;
-    const { error } = await supabase
-      .from("saved_market")
-      .update({ name: editedName, radius_miles: editedRadius })
-      .eq("id", marketId);
-
-    if (!error) {
-      setCurrentMarketName(editedName);
-      setRadiusInMiles(editedRadius);
-      setIsEditingMarket(false);
-
-      const currentPath = window.location.pathname;
-      const lastSegment = currentPath.split("/").pop();
-      const validTabs = ["overview", "nearby", "scorecard", "charts", "matrix", "quality"];
-      const subTab = validTabs.includes(lastSegment) ? lastSegment : "overview";
-
-      navigate(`/app/provider/${provider.id}/${subTab}?radius=${editedRadius}&marketId=${marketId}`);
-    }
-  };
-
-  const handleCancelEdit = () => setIsEditingMarket(false);
-
-  const handleEditKeyDown = (e) => {
-    if (e.key === "Enter") handleSaveMarketEdits();
-    if (e.key === "Escape") handleCancelEdit();
-  };
+  const { provider, loading } = useProviderInfo(id);
+  const { filtered: nearbyProviders, ccns: nearbyDhcCcns } = useNearbyProviders(provider, radiusInMiles);
+  const {
+    isInSavedMarket,
+    currentMarketName,
+    editedName,
+    editedRadius,
+    saveMessage,
+    isEditingMarket,
+    setEditedName,
+    setEditedRadius,
+    setIsEditingMarket,
+    setSaveMessage,
+    handleSaveMarket,
+    handleSaveMarketEdits,
+  } = useMarketData(marketId, provider?.id, radiusInMiles, navigate);
 
   const handlePopupKeyDown = (e) => {
-    if (e.key === "Enter") handleSaveMarket();
+    if (e.key === "Enter") handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false));
     if (e.key === "Escape") setShowPopup(false);
   };
 
@@ -285,7 +87,10 @@ export default function ProviderDetail() {
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
                     className={styles.editInput}
-                    onKeyDown={handleEditKeyDown}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveMarketEdits();
+                      if (e.key === "Escape") setIsEditingMarket(false);
+                    }}
                     autoFocus
                   />
                   <input
@@ -293,13 +98,16 @@ export default function ProviderDetail() {
                     value={editedRadius}
                     onChange={(e) => setEditedRadius(Number(e.target.value))}
                     className={styles.editInput}
-                    onKeyDown={handleEditKeyDown}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveMarketEdits();
+                      if (e.key === "Escape") setIsEditingMarket(false);
+                    }}
                   />
                   <div className={styles.editIcons}>
                     <button className={styles.iconButton} onClick={handleSaveMarketEdits}>
                       <Check size={16} />
                     </button>
-                    <button className={styles.iconButton} onClick={handleCancelEdit}>
+                    <button className={styles.iconButton} onClick={() => setIsEditingMarket(false)}>
                       <X size={16} />
                     </button>
                   </div>
@@ -308,9 +116,7 @@ export default function ProviderDetail() {
                 <>
                   <div className={styles.marketTopRow}>
                     <span className={styles.savedBadge}>Saved</span>
-                    <span className={styles.marketName}>
-                      {currentMarketName || "(Unnamed)"}
-                    </span>
+                    <span className={styles.marketName}>{currentMarketName || "(Unnamed)"}</span>
                   </div>
                   <div className={styles.radiusRow}>
                     <span>Radius: {radiusInMiles} mi</span>
@@ -364,7 +170,7 @@ export default function ProviderDetail() {
               className={styles.popupInput}
             />
             <div className={styles.popupButtons}>
-              <button onClick={handleSaveMarket} className={styles.popupSave}>
+              <button onClick={() => handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false))} className={styles.popupSave}>
                 Confirm
               </button>
               <button onClick={() => setShowPopup(false)} className={styles.popupCancel}>
@@ -386,17 +192,7 @@ export default function ProviderDetail() {
         />
         <Route path="scorecard" element={<ScorecardTab provider={provider} />} />
         <Route path="charts" element={<ChartsTab provider={provider} />} />
-        <Route
-          path="matrix"
-          element={
-            <ScorecardMatrix
-              providerMetrics={metrics}
-              marketAverages={marketAverages}
-              nationalAverages={nationalAverages}
-              nearbyIndividualScores={nearbyIndividualScores}
-            />
-          }
-        />
+        <Route path="matrix" element={<ScorecardMatrix />} />
         <Route path="quality" element={<Quality provider={provider} marketDhcCcns={nearbyDhcCcns} />} />
         <Route path="ccn-list" element={<CCNList provider={provider} providers={nearbyProviders} />} />
         <Route index element={<Navigate to="overview" replace />} />

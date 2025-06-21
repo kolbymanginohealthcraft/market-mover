@@ -1,192 +1,229 @@
 .container {
-  padding: 1.5rem;
-  font-family: sans-serif;
+  padding: 0.75rem;
+  font-family: 'Work Sans', sans-serif;
+  background-color: #f6f9f8;
 }
 
-.controlsCompact {
+/* --- Controls Row --- */
+.controlsRow {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 1rem;
-  align-items: flex-end;
-  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0.75rem;
 }
 
-.controlGroup {
+.controlsGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 2.25rem;
+}
+
+.controlsGroup.buttonsGroup {
+  flex-shrink: 0;
+}
+
+.controlsGroup.searchGroup {
+  flex: 1;
+}
+
+.controlsGroup.resultCount {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.searchInput {
+  height: 2rem;
+  padding: 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 240px;
+  margin: 0;
+}
+
+/* --- Dropdown --- */
+.dropdownContainer {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  display: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.dropdownOpen .dropdownMenu {
+  display: block;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.dropdownItem input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #265947;
+  margin: 0;
+}
+
+.clearButton {
+  margin-left: 6px;
+  font-size: 0.7rem;
+  color: white;
+  background-color: #d64550;
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.buttonLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- Split View Layout --- */
+.splitView {
+  display: flex;
+  gap: 1rem;
+  height: 500px; /* KEY FIX */
+  overflow: hidden;
+}
+
+/* --- Map Panel --- */
+.mapPanel {
+  flex: 0 0 32%;
+  min-width: 300px;
+  height: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mapPanel .leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+
+/* --- Table Panel --- */
+.tablePanel {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  min-width: 120px;
-}
-
-.slider {
-  width: 160px;
-  height: 2rem;
-}
-
-.searchInput {
-  padding: 0.4rem;
-  font-size: 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 0.4rem;
-  width: 100%;
-  max-width: 250px;
-}
-
-.select,
-.searchInput {
-  padding: 0.4rem;
-  font-size: 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 0.4rem;
-}
-
-.searchInput {
-  width: 100%;
-  max-width: 250px;
-}
-
-.providerCount {
-  margin-left: auto;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.tableWrapper {
-  overflow-x: auto;
-  background: #fff;
+  background: white;
   border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableScroll {
+  overflow-y: auto;
+  flex: 1;
+  position: relative; /* ← this is critical */
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.78rem;
   table-layout: fixed;
-  font-size: small;
+}
+
+.table thead {
+  position: sticky;
+  top: 0;
+  background: #f8f8f8;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .table th,
 .table td {
-  padding: 0.5rem;
+  padding: 0.4rem 0.6rem;
   text-align: left;
   border-bottom: 1px solid #eee;
-  vertical-align: top;
   word-break: break-word;
   white-space: normal;
-  overflow-wrap: break-word;
 }
 
-
-.table th {
-  background-color: #f5f5f5;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.table tr:hover {
-  background-color: #f0f8ff;
-}
-
-.highlightedRow {
-  background-color: #fff8cc !important;
-}
-
+/* --- Table Rows --- */
 .clickableRow {
   cursor: pointer;
 }
 
-.mapWrapper {
-  margin: 1rem 0;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  min-height: 400px;
-  height: 100%;
-  max-height: 500px;
+.clickableRow:hover {
+  background-color: #e8f5e9; /* light green tint */
+  border-left: 3px solid #3fb985;
 }
 
-
-.splitView {
-  display: flex;
-  gap: 1rem;
-  height: 500px;
-}
-
-.contentRow {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.mapPanel {
-  flex: 0 0 30%;
-  min-width: 300px;
-  height: 100%;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.tablePanel {
-  flex: 1;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 1rem;
-  overflow-x: auto;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Mobile fallback */
-@media (max-width: 768px) {
-  .splitView {
-    flex-direction: column;
-    height: auto;
-  }
-
-  .mapPanel,
-  .tablePanel {
-    height: 400px;
-  }
-}
-
-.controlsRow {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-/* Restore yellow highlight for selected provider row */
 .highlightedRow {
   background-color: #fff8cc !important;
 }
 
-/* Tag button before selecting */
-.tagButton {
+/* --- Tagging --- */
+.partnerBadge,
+.competitorBadge,
+.tagDefault {
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.partnerBadge {
+  background-color: #1dadbe;
+  color: white;
+}
+
+.competitorBadge {
+  background-color: #d64550;
+  color: white;
+}
+
+.tagDefault {
   background-color: #ccc;
   color: #333;
-  border: none;
-  border-radius: 6px;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
 }
 
-.tagButton:hover {
-  background-color: #bbb;
-}
-
-/* Inline tagging menu with radio-style layout */
 .inlineTaggingMenu {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
   flex-wrap: wrap;
+  gap: 0.5rem;
   font-size: 0.8rem;
+  align-items: center;
 }
 
 .inlineTaggingMenu label {
@@ -217,36 +254,6 @@
   background-color: #ccc;
 }
 
-.partnerBadge {
-  background-color: #1dadbe;
-  color: white;
-  padding: 0.2rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  display: inline-block;
-}
-
-.competitorBadge {
-  background-color: #d64550;
-  color: white;
-  padding: 0.2rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  display: inline-block;
-}
-
-.tagDefault {
-  background-color: #ccc;
-  color: #333;
-  padding: 0.2rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  display: inline-block;
-}
-
 .animatePulse {
   animation: pulseFade 0.8s ease-in-out;
 }
@@ -265,3 +272,17 @@
     opacity: 1;
   }
 }
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  .splitView {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mapPanel,
+  .tablePanel {
+    height: 400px;
+  }
+}
+
