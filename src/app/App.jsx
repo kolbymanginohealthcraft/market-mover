@@ -29,6 +29,7 @@ import ManageUsers from "../pages/Private/ManageUsers";
 import CompleteProfile from "../pages/Private/CompleteProfile";
 import TermsAndConditions from "../pages/Public/TermsAndConditions";
 import PrivacyPolicy from "../pages/Public/PrivacyPolicy";
+import BillingHistory from "../pages/Private/BillingHistory";
 import Home from "../pages/Private/Home";
 import Explore from "../pages/Private/Explore";
 import ProviderSearch from "../pages/Private/ProviderSearch";
@@ -36,7 +37,7 @@ import ProviderDetail from "../pages/Private/ProviderDetail";
 import UserProfile from "../pages/Private/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
 
-// 🆕 Added team-related pages
+// Team-related pages
 import OnboardingPage from "../pages/Auth/OnboardingPage";
 import PaymentTest from "../pages/Auth/PaymentTest";
 import Success from "../pages/Auth/Success";
@@ -91,7 +92,6 @@ function App() {
           <Route path="use-cases" element={<UseCasesPage />} />
           <Route path="select-plan" element={<SelectPlan />} />
           <Route path="profile-setup" element={<ProfileSetup />} />
-          <Route path="/manage-users" element={<ManageUsers />} />
           <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/playground" element={<ButtonPlayground />} />
           <Route path="/auth/paymenttest" element={<PaymentTest />} />
@@ -114,6 +114,8 @@ function App() {
           <Route path="markets" element={<MarketsPage />} />
           <Route path="profile" element={<UserProfile />} />
           <Route path="provider/:id/*" element={<ProviderDetail />} />
+          <Route path="manage-users" element={<ManageUsers />} />
+          <Route path="billing-history" element={<BillingHistory />} />
         </Route>
 
         {/* Fallback */}

@@ -212,7 +212,7 @@ export default function UserProfile() {
               <Button
                 variant="green"
                 size="sm"
-                onClick={() => navigate("/manage-users")}
+                onClick={() => navigate("/app/manage-users")}
               >
                 Admin Dashboard
               </Button>

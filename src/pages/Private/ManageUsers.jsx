@@ -465,7 +465,7 @@ export default function ManageUsers() {
           <Button
             variant="blue"
             size="md"
-            onClick={() => navigate("/app/billing")}
+            onClick={() => navigate("/app/billing-history")}
           >
             View Billing History
           </Button>
