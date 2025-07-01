@@ -1,24 +1,14 @@
 import express from "express";
-import { BigQuery } from "@google-cloud/bigquery";
-import path from "path";
+import myBigQuery from "../utils/myBigQueryClient.js"; // ✅ uses your BigQuery client
 
 const router = express.Router();
 
-const bigquery = new BigQuery({
-  keyFilename: path.resolve("server", "google-service-account.json"),
-  projectId: "market-mover-464517", // updated project id
-});
-
-// Test route
+// ✅ Test route
 router.get("/test-bigquery", async (req, res) => {
   try {
-    const query = "SELECT 1 AS result"; // or use a real public table from the vendor
-    const options = {
-      query,
-      location: "US",
-    };
-
-    const [rows] = await bigquery.query(options);
+    const query = "SELECT 1 AS result";
+    const options = { query, location: "US" };
+    const [rows] = await myBigQuery.query(options);
     res.status(200).json({ success: true, data: rows });
   } catch (err) {
     console.error("❌ BigQuery query error:", err);
@@ -26,59 +16,67 @@ router.get("/test-bigquery", async (req, res) => {
   }
 });
 
-// New route for org_dhc table
+// ✅ Search providers
 router.get("/org_dhc", async (req, res) => {
+  const { dhc, search } = req.query;
+
   try {
-    let query;
-    const { dhc, search } = req.query;
+    let query, params;
+
     if (dhc) {
-      query = `SELECT * FROM \`market-mover-464517.providers.org_dhc\` WHERE dhc = @dhc`;
+      query = `
+        SELECT * FROM \`market-mover-464517.providers.org_dhc\`
+        WHERE dhc = @dhc
+      `;
+      params = { dhc: Number(dhc) };
     } else if (search) {
-      // Search by name, network, city, state, zip, or phone (case-insensitive)
-      query = `SELECT * FROM \`market-mover-464517.providers.org_dhc\` WHERE 
-        LOWER(name) LIKE LOWER(@search) OR
-        LOWER(network) LIKE LOWER(@search) OR
-        LOWER(city) LIKE LOWER(@search) OR
-        LOWER(state) LIKE LOWER(@search) OR
-        LOWER(zip) LIKE LOWER(@search) OR
-        LOWER(phone) LIKE LOWER(@search)`;
+      query = `
+        SELECT * FROM \`market-mover-464517.providers.org_dhc\`
+        WHERE 
+          LOWER(name) LIKE LOWER(@search) OR
+          LOWER(network) LIKE LOWER(@search) OR
+          LOWER(city) LIKE LOWER(@search) OR
+          LOWER(state) LIKE LOWER(@search) OR
+          LOWER(zip) LIKE LOWER(@search) OR
+          LOWER(phone) LIKE LOWER(@search)
+      `;
+      params = { search: `%${search}%` };
     } else {
-      query = "SELECT * FROM `market-mover-464517.providers.org_dhc`";
+      query = `
+        SELECT * FROM \`market-mover-464517.providers.org_dhc\`
+        LIMIT 500
+      `;
+      params = {};
     }
-    
-    const options = {
+
+    const [rows] = await myBigQuery.query({
       query,
       location: "US",
-      params: dhc ? { dhc: Number(dhc) } : search ? { search: `%${search}%` } : {},
-    };
-    
-    const [rows] = await bigquery.query(options);
-    
-    if (dhc) {
-      res.status(200).json({ success: true, data: rows[0] || null });
-    } else {
-      res.status(200).json({ success: true, data: rows });
-    }
+      params,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: dhc ? rows[0] || null : rows,
+    });
   } catch (err) {
     console.error("❌ BigQuery org_dhc query error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// New route for fetching CCNs by DHC IDs (POST, JSON body)
+// ✅ CCN lookup by DHC IDs
 router.post("/org_ccn/by-dhc-ids", async (req, res) => {
+  const { dhc_ids } = req.body;
+
+  if (!Array.isArray(dhc_ids) || dhc_ids.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: "dhc_ids (array) is required",
+    });
+  }
+
   try {
-    // console.log("[CCN DEBUG] Received POST /org_ccn/by-dhc-ids");
-    // console.log("[CCN DEBUG] req.body:", req.body);
-    // console.log("[CCN DEBUG] dhc_ids type:", Array.isArray(dhc_ids) ? 'array' : typeof dhc_ids, "length:", dhc_ids && dhc_ids.length);
-    // console.log("[CCN DEBUG] BigQuery options:", options);
-    const { dhc_ids } = req.body;
-    if (!Array.isArray(dhc_ids) || dhc_ids.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "dhc_ids (array) is required" 
-      });
-    }
     const query = `
       SELECT
         org_dhc.dhc,
@@ -100,16 +98,14 @@ router.post("/org_ccn/by-dhc-ids", async (req, res) => {
       WHERE
         org_dhc.dhc IN UNNEST(@dhc_ids)
     `;
-    const options = {
+
+    const [rows] = await myBigQuery.query({
       query,
       location: "US",
       params: { dhc_ids },
-    };
-    const [rows] = await bigquery.query(options);
-    res.status(200).json({ 
-      success: true, 
-      data: rows 
     });
+
+    res.status(200).json({ success: true, data: rows });
   } catch (err) {
     console.error("❌ BigQuery org_ccn query error:", err);
     res.status(500).json({ success: false, error: err.message });

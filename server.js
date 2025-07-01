@@ -7,6 +7,9 @@ import { createClient } from "@supabase/supabase-js";
 import testBigQuery from "./server/routes/testBigQuery.js";
 import orgDhcNearby from "./server/routes/orgDhcNearby.js";
 import qualityMeasures from "./server/routes/qualityMeasures.js";
+import searchProviders from "./server/routes/searchProviders.js";
+import getCcns from "./server/routes/getCcns.js";
+import getNearbyProviders from "./server/routes/getNearbyProviders.js";
 
 
 dotenv.config();
@@ -21,6 +24,9 @@ app.use(express.json());
 app.use("/api", testBigQuery);
 app.use("/api", orgDhcNearby);
 app.use("/api", qualityMeasures);
+app.use("/api", searchProviders);
+app.use("/api", getCcns);
+app.use("/api", getNearbyProviders);
 
 
 // ✅ Invite User Route

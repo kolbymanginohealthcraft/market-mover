@@ -10,20 +10,13 @@ export default function MarketPreview() {
   }, []);
 
   return (
-    <section className={styles.section} data-aos="fade-up">
+    <section className={styles.section}>
       <div className={styles.container}>
-        <h2 className={styles.title}>See a Market in Action</h2>
-        <p className={styles.subtitle}>
-          Explore how Market Mover visualizes providers, performance, and referrals in a real geographic market.
-        </p>
+        <h2 className={styles.title}>Market Preview</h2>
         <div className={styles.previewBox}>
-          <img
-            src={exampleImg} // ✅ Use imported image
-            alt="Market Mover Snapshot"
-            className={styles.previewImage}
-          />
+          <img src={exampleImg} alt="Market Preview" className={styles.previewImage} />
         </div>
-        <p className={styles.caption}>A snapshot from Market Mover's Storyteller tool</p>
+        <div className={styles.caption}>A sneak peek at your market opportunity.</div>
       </div>
     </section>
   );

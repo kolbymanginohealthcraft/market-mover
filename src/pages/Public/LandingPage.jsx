@@ -29,7 +29,7 @@ const LandingPage = () => {
 
 
       {/* CTA Section */}
-      <section className={styles.ctaSection} data-aos="fade-up">
+      <section className={styles.ctaSection}>
         <div className={styles.container}>
           <h2>Ready to Explore?</h2>
           <Link to="/signup">

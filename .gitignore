@@ -29,6 +29,9 @@ dist-ssr
 # Google service account keys
 server/google-service-account.json
 **/google-service-account.json
+server/credentials/
+**/credential-*
+**/*-sa-*.json
 
 # Editor directories and files
 .vscode/*

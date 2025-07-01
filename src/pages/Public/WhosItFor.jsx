@@ -22,7 +22,7 @@ const personas = [
   {
     icon: '🤝',
     title: 'Partnership & Network Teams',
-    description: 'Find ideal partners based on capacity, quality metrics, and alignment with your organization’s priorities.',
+    description: 'Find ideal partners based on capacity, quality metrics, and alignment with your organization\'s priorities.',
   },
   {
     icon: '📊',
@@ -39,15 +39,16 @@ const personas = [
 export default function WhosItFor() {
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
+    AOS.refresh();
   }, []);
 
   return (
-    <section className={styles.section} data-aos="fade-up">
+    <section className={styles.section}>
       <div className={styles.container}>
-        <h2 className={styles.title}>Who’s It For?</h2>
+        <h2 className={styles.title}>Who's It For?</h2>
         <div className={styles.grid}>
           {personas.map((p, idx) => (
-            <div className={styles.card} key={idx} data-aos="fade-up" data-aos-delay={idx * 100}>
+            <div className={styles.card} key={idx}>
               <div className={styles.icon}>{p.icon}</div>
               <h3 className={styles.cardTitle}>{p.title}</h3>
               <p className={styles.cardDescription}>{p.description}</p>

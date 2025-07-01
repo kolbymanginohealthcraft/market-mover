@@ -5,22 +5,22 @@ import 'aos/dist/aos.css';
 
 const testimonials = [
   {
-    quote: 'Market Mover gives our team clarity on where to focus next. It’s essential.',
+    quote: 'Market Mover gives our team clarity on where to focus next. It is essential.',
     name: 'Dr. Alicia Mendes',
     role: 'Network Strategy Lead',
   },
   {
-    quote: 'I found three new target markets I hadn’t even considered. Huge time-saver.',
+    quote: 'I found three new target markets I had not even considered. Huge time-saver.',
     name: 'Jamie Caldwell',
     role: 'VP of Business Development',
   },
   {
-    quote: 'This tool changed how we present to partners. It’s become part of our pitch deck.',
+    quote: 'This tool changed how we present to partners. It has become part of our pitch deck.',
     name: 'Tariq Boyd',
     role: 'Growth Strategy Director',
   },
   {
-    quote: 'It’s like having a market strategist in your pocket.',
+    quote: 'It is like having a market strategist in your pocket.',
     name: 'Lena Zhao',
     role: 'Regional Development Manager',
   },
@@ -30,7 +30,7 @@ const testimonials = [
     role: 'Chief Marketing Officer',
   },
   {
-    quote: 'Our clinical leadership uses it to identify gaps in care delivery. It’s more than just a sales tool.',
+    quote: 'Our clinical leadership uses it to identify gaps in care delivery. It is more than just a sales tool.',
     name: 'Emily Tran',
     role: 'VP of Clinical Innovation',
   },
@@ -50,7 +50,7 @@ const testimonials = [
     role: 'Referral Development Coordinator',
   },
   {
-    quote: 'Honestly, I don’t know how we did territory planning before this.',
+    quote: 'Honestly, I do not know how we did territory planning before this.',
     name: 'Marcus DeLeon',
     role: 'Field Strategy Manager',
   },
@@ -75,27 +75,27 @@ export default function TestimonialCarousel() {
   };
 
   return (
-    <section className={styles.section} data-aos="fade-up">
+    <section className={styles.section}>
       <div className={styles.container}>
-        <h2 className={styles.title}>What People Are Saying</h2>
-      </div>
-      <div className={styles.carouselControls}>
-        <button className={styles.arrow} onClick={() => scroll('left')}>
-          ←
-        </button>
-        <div className={styles.carouselWrapper} ref={carouselRef}>
+        <h2 className={styles.title}>Testimonials</h2>
+        <div className={styles.carouselWrapper}>
           <div className={styles.carousel}>
-            {testimonials.map((t, i) => (
-              <div className={styles.card} key={i}>
-                <p className={styles.quote}>“{t.quote}”</p>
-                <p className={styles.author}>— {t.name}, {t.role}</p>
+            {testimonials.map((t, idx) => (
+              <div className={styles.card} key={idx}>
+                <p className={styles.quote}>{t.quote}</p>
+                <div className={styles.author}>{t.name}, {t.role}</div>
               </div>
             ))}
           </div>
         </div>
-        <button className={styles.arrow} onClick={() => scroll('right')}>
-          →
-        </button>
+        <div className={styles.carouselControls}>
+          <button className={styles.arrow} onClick={() => scroll('left')}>
+            ←
+          </button>
+          <button className={styles.arrow} onClick={() => scroll('right')}>
+            →
+          </button>
+        </div>
       </div>
     </section>
   );
