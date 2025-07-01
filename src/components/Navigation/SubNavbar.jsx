@@ -97,6 +97,14 @@ export default function SubNavbar({ providerId: providerDhc }) {
       >
         Staffing
       </NavLink>
+      <NavLink
+        to={`${prefix}/executives${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Executives
+      </NavLink>
     </nav>
   );
 }

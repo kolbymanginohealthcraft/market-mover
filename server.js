@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import qualityMeasures from "./server/routes/qualityMeasures.js";
 import searchProviders from "./server/routes/searchProviders.js";
 import getCcns from "./server/routes/getCcns.js";
+import getNpis from "./server/routes/getNpis.js";
 import getNearbyProviders from "./server/routes/getNearbyProviders.js";
 import testVendorConnection from "./server/routes/testVendorConnection.js";
 import diagnoses from "./server/routes/diagnoses.js";
@@ -31,6 +32,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api", qualityMeasures);
 app.use("/api", searchProviders);
 app.use("/api", getCcns);
+app.use("/api", getNpis);
 app.use("/api", getNearbyProviders);
 app.use("/api", testVendorConnection);
 app.use("/api", diagnoses);

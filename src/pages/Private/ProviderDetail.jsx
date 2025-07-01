@@ -26,6 +26,7 @@ import FinancialTab from "./FinancialTab";
 import SafetyTab from "./SafetyTab";
 import MAEnrollmentTab from "./MAEnrollmentTab";
 import StaffingTab from "./StaffingTab";
+import ExecutivesTab from "./ExecutivesTab";
 import SubNavbar from "../../components/Navigation/SubNavbar";
 import Spinner from "../../components/Buttons/Spinner";
 import Storyteller from "./Storyteller/Storyteller";
@@ -217,13 +218,14 @@ export default function ProviderDetail() {
           />
         } />
         <Route path="charts" element={<ChartsTab provider={provider} />} />
-        <Route path="diagnoses" element={<DiagnosesTab provider={provider} />} />
+        <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="procedures" element={<ProceduresTab provider={provider} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
         <Route path="financial" element={<FinancialTab provider={provider} />} />
         <Route path="safety" element={<SafetyTab provider={provider} />} />
         <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} />} />
         <Route path="staffing" element={<StaffingTab provider={provider} />} />
+        <Route path="executives" element={<ExecutivesTab provider={provider} />} />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>
     </div>
