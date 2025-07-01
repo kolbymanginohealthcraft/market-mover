@@ -10,7 +10,7 @@ export default function useProviderInfo(dhc) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/org_dhc?dhc=${dhc}`);
+        const response = await fetch(`/api/search-providers?dhc=${dhc}`);
         
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         

@@ -34,7 +34,7 @@ export default function ProviderSearch() {
     const q = queryText.trim();
     setLastSearchTerm(q);
     try {
-      const response = await fetch(`/api/searchProviders?search=${encodeURIComponent(q)}`);
+      const response = await fetch(`/api/search-providers?search=${encodeURIComponent(q)}`);
       
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       

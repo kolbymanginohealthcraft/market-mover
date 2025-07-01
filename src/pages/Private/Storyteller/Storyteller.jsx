@@ -2,7 +2,7 @@ import { Routes, Route, NavLink, useLocation, Navigate } from "react-router-dom"
 import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
 
-export default function Storyteller(props) {
+export default function Storyteller({ provider, radiusInMiles }) {
   const location = useLocation();
   const base = location.pathname.replace(/\/storyteller.*/, "/storyteller");
   return (
@@ -17,8 +17,8 @@ export default function Storyteller(props) {
       </nav>
       <div style={{ flex: 1, minHeight: 0 }}>
         <Routes>
-          <Route path="scorecard" element={<Scorecard {...props} />} />
-          <Route path="benchmarks" element={<Benchmarks {...props} />} />
+          <Route path="scorecard" element={<Scorecard provider={provider} radiusInMiles={radiusInMiles} />} />
+          <Route path="benchmarks" element={<Benchmarks provider={provider} radiusInMiles={radiusInMiles} />} />
           <Route path="*" element={<Navigate to="scorecard" replace />} />
         </Routes>
       </div>

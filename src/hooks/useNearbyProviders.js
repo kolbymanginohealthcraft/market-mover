@@ -1,90 +1,72 @@
 import { useEffect, useState } from "react";
 
+/**
+ * useNearbyProviders
+ *
+ * Fetches providers within a radius of a given provider's lat/lon,
+ * and then fetches related CCNs for those providers.
+ *
+ * @param {object} provider - The main provider object (must have latitude, longitude, dhc)
+ * @param {number} radiusInMiles - The search radius in miles
+ * @returns {object} { providers, ccns, loading, error }
+ */
 export default function useNearbyProviders(provider, radiusInMiles) {
-  const [cached, setCached] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [ccns, setCcns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles) {
-      setCached([]);
-      setFiltered([]);
+      setProviders([]);
       setCcns([]);
       return;
     }
 
-    const fetchNearbyProviders = async () => {
+    const fetchNearbyAndCcns = async () => {
       setLoading(true);
       setError(null);
-      
       try {
+        // Fetch nearby providers
         const response = await fetch(
-          `/api/org_dhc/nearby?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`
+          `/api/nearby-providers?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`
         );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Failed to fetch nearby providers');
+        // Filter out the main provider from the results
+        const filteredProviders = result.data.filter(p => p.dhc !== provider.dhc);
+        setProviders(filteredProviders);
 
-        if (result.success) {
-          // Filter out the main provider from the results
-          const filteredProviders = result.data.filter(
-            p => p.dhc !== provider.dhc
-          );
-          setCached(filteredProviders);
+        // Fetch CCNs for nearby providers if any
+        const dhcIds = filteredProviders.map(p => p.dhc).filter(Boolean);
+        if (dhcIds.length === 0) {
+          setCcns([]);
         } else {
-          throw new Error(result.error || 'Failed to fetch nearby providers');
+          const ccnResponse = await fetch('/api/related-ccns', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dhc_ids: dhcIds })
+          });
+          if (!ccnResponse.ok) throw new Error(`HTTP error! status: ${ccnResponse.status}`);
+          const ccnResult = await ccnResponse.json();
+          if (ccnResult.success) {
+            setCcns(ccnResult.data || []);
+          } else {
+            setCcns([]);
+          }
         }
       } catch (err) {
-        console.error("Nearby fetch error:", err);
         setError(err.message);
-        setCached([]);
+        setProviders([]);
+        setCcns([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNearbyProviders();
+    fetchNearbyAndCcns();
   }, [provider, radiusInMiles]);
 
-  useEffect(() => {
-    // Set filtered to cached since the API already filters by radius
-    setFiltered(cached);
-
-    const dhcIds = cached.map((p) => p.dhc).filter(Boolean);
-    if (dhcIds.length === 0) {
-      setCcns([]);
-      return;
-    }
-
-    const fetchCCNs = async () => {
-      try {
-        const response = await fetch(`/api/org_ccn/by-dhc-ids?dhc_ids=${dhcIds.join(',')}`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success) {
-          setCcns(result.data || []);
-        } else {
-          console.error("get_ccns_for_market error:", result.error);
-          setCcns([]);
-        }
-      } catch (err) {
-        console.error("get_ccns_for_market error:", err);
-        setCcns([]);
-      }
-    };
-
-    fetchCCNs();
-  }, [cached]);
-
-  return { cached, filtered, ccns, loading, error };
+  return { providers, ccns, loading, error };
 }

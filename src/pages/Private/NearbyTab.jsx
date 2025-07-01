@@ -92,7 +92,7 @@ export default function NearbyTab({
     console.log("[CCN DEBUG] Fetching CCNs for DHC IDs:", dhcIds);
     if (!dhcIds.length) return;
     try {
-      const response = await fetch(`/api/org_ccn/by-dhc-ids`, {
+      const response = await fetch(`/api/related-ccns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dhc_ids: dhcIds }),
@@ -285,7 +285,6 @@ export default function NearbyTab({
                   <th>Address</th>
                   <th>Type</th>
                   <th>Distance</th>
-                  <th>DHC (debug)</th>
                   {isInSavedMarket && <th>Tag</th>}
                 </tr>
               </thead>
@@ -305,7 +304,6 @@ export default function NearbyTab({
                     <td>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</td>
                     <td>{p.type || "Unknown"}</td>
                     <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
-                    <td>{p.dhc}</td>
                     {isInSavedMarket && (
                       <td onClick={(e) => e.stopPropagation()}>
                         {p.dhc === provider.dhc ? (

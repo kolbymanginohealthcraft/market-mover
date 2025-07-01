@@ -4,13 +4,17 @@ import myBigQuery from "../utils/myBigQueryClient.js";
 const router = express.Router();
 
 /**
- * POST /api/getCcns
- * 
+ * POST /api/related-ccns
+ *
  * Body: { dhc_ids: [123, 456, ...] }
- * 
- * Returns: [{ dhc, ccn }]
+ *
+ * Returns: Array of objects mapping DHC to CCN(s).
+ *
+ * NOTE: This route ONLY returns related CCNs for the given DHC IDs.
+ *       It does NOT fetch or filter providers by location or perform any geospatial logic.
+ *       To get nearby providers, call the /api/nearby-providers route separately.
  */
-router.post("/getCcns", async (req, res) => {
+router.post("/related-ccns", async (req, res) => {
   const { dhc_ids } = req.body;
 
   if (!Array.isArray(dhc_ids) || dhc_ids.length === 0) {
@@ -54,7 +58,7 @@ router.post("/getCcns", async (req, res) => {
       data: rows,
     });
   } catch (err) {
-    console.error("❌ BigQuery getCcns error:", err);
+    console.error("\u274c BigQuery related-ccns error:", err);
     res.status(500).json({
       success: false,
       error: err.message,

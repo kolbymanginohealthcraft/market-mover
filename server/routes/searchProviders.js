@@ -4,12 +4,20 @@ import myBigQuery from "../utils/myBigQueryClient.js";
 const router = express.Router();
 
 /**
- * GET /api/searchProviders
- * - If ?search= is passed, searches across name, network, city, state, zip, phone
- * - If ?dhc= is passed, returns a single provider
- * - If no params, returns up to 500 providers
+ * GET /api/search-providers
+ *
+ * Query params:
+ *   - search: Search string (optional)
+ *   - dhc: DHC ID (optional)
+ *
+ * Returns: Array of provider objects matching the search or DHC.
+ *
+ * NOTE: This route ONLY handles provider search by text or DHC.
+ *       It does NOT fetch or join CCNs or perform geospatial filtering.
+ *       For geospatial search, use /api/nearby-providers.
+ *       For CCN lookup, use /api/related-ccns.
  */
-router.get("/searchProviders", async (req, res) => {
+router.get("/search-providers", async (req, res) => {
   const { dhc, search } = req.query;
 
   try {
@@ -36,7 +44,7 @@ router.get("/searchProviders", async (req, res) => {
     } else {
       query = `
         SELECT * FROM \`market-mover-464517.providers.org_dhc\`
-        LIMIT 5000000
+        LIMIT 500
       `;
       params = {};
     }
@@ -52,7 +60,7 @@ router.get("/searchProviders", async (req, res) => {
       data: dhc ? rows[0] || null : rows,
     });
   } catch (err) {
-    console.error("❌ BigQuery searchProviders error:", err);
+    console.error("\u274c BigQuery search-providers error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -4,12 +4,12 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
-import testBigQuery from "./server/routes/testBigQuery.js";
-import orgDhcNearby from "./server/routes/orgDhcNearby.js";
+
 import qualityMeasures from "./server/routes/qualityMeasures.js";
 import searchProviders from "./server/routes/searchProviders.js";
 import getCcns from "./server/routes/getCcns.js";
 import getNearbyProviders from "./server/routes/getNearbyProviders.js";
+import testVendorConnection from "./server/routes/testVendorConnection.js";
 
 
 dotenv.config();
@@ -21,12 +21,17 @@ const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(express.json());
-app.use("/api", testBigQuery);
-app.use("/api", orgDhcNearby);
+
+// Basic health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.use("/api", qualityMeasures);
 app.use("/api", searchProviders);
 app.use("/api", getCcns);
 app.use("/api", getNearbyProviders);
+app.use("/api", testVendorConnection);
 
 
 // ✅ Invite User Route

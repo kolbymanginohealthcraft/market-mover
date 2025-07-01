@@ -35,13 +35,13 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 3. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
         const providerDhcToCcns = {};
         (nearbyDhcCcns || []).forEach(row => {
-          if (!providerDhcToCcns[row.provider_id]) providerDhcToCcns[row.provider_id] = [];
-          providerDhcToCcns[row.provider_id].push(row.ccn);
+          if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
+          providerDhcToCcns[row.dhc].push(row.ccn);
         });
         
         // If the main provider is not in nearbyDhcCcns, fetch its CCNs
         if (!providerDhcToCcns[provider.dhc]) {
-          const ccnResponse = await fetch('/api/ccns/by-dhc-ids', {
+          const ccnResponse = await fetch('/api/related-ccns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dhc_ids: [provider.dhc] })
@@ -50,8 +50,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           const ccnResult = await ccnResponse.json();
           if (!ccnResult.success) throw new Error(ccnResult.error);
           ccnResult.data.forEach(row => {
-            if (!providerDhcToCcns[row.provider_id]) providerDhcToCcns[row.provider_id] = [];
-            providerDhcToCcns[row.provider_id].push(row.ccn);
+            if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
+            providerDhcToCcns[row.dhc].push(row.ccn);
           });
         }
 

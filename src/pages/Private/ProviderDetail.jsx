@@ -12,9 +12,9 @@ import { Pencil, Check, X } from "lucide-react";
 import { useDebounce } from 'use-debounce';
 
 import useProviderInfo from "../../hooks/useProviderInfo";
-import useBigQueryNearbyProviders from "../../hooks/useBigQueryNearbyProviders";
+import useNearbyProviders from "../../hooks/useNearbyProviders";
 import useMarketData from "../../hooks/useMarketData";
-import useQualityMeasures from "../../hooks/useQualityMeasures";
+
 
 import OverviewTab from "./OverviewTab";
 import NearbyTab from "./NearbyTab";
@@ -37,7 +37,7 @@ export default function ProviderDetail() {
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
-  const { filtered: nearbyProviders, ccns: nearbyDhcCcns } = useBigQueryNearbyProviders(provider, radiusInMiles);
+  const { providers: nearbyProviders, ccns: nearbyDhcCcns } = useNearbyProviders(provider, radiusInMiles);
   const {
     isInSavedMarket,
     currentMarketName,
@@ -53,32 +53,11 @@ export default function ProviderDetail() {
     handleSaveMarketEdits,
   } = useMarketData(marketId, provider?.dhc, radiusInMiles, navigate);
 
-  // Provider type filter state
-  const [providerTypeFilter, setProviderTypeFilter] = useState('');
+
 
   const [debouncedRadius] = useDebounce(radiusInMiles, 400);
 
-  // Use the new quality measures hook
-  const {
-    matrixLoading,
-    matrixMeasures,
-    matrixData,
-    matrixMarketAverages,
-    matrixNationalAverages,
-    matrixError,
-    allMatrixProviders,
-    matrixProviderIdToCcns,
-    availableProviderTypes
-  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns);
 
-  // Filter providers by selected type (if any)
-  const filteredMatrixProviders = providerTypeFilter
-    ? allMatrixProviders.filter(p => p.type === providerTypeFilter)
-    : allMatrixProviders;
-
-  // Main provider and competitors for the matrix
-  const mainProviderInMatrix = filteredMatrixProviders.find(p => p.dhc === provider.dhc);
-  const competitorsInMatrix = filteredMatrixProviders.filter(p => p.dhc !== provider.dhc);
 
   // Helper to get all relevant provider DHCs (main + competitors)
   const getAllProviderDhcs = useCallback(() => {
@@ -86,15 +65,7 @@ export default function ProviderDetail() {
     return dhcs;
   }, [provider, nearbyProviders]);
 
-  // Set default provider type filter when available types change
-  useEffect(() => {
-    if (
-      availableProviderTypes.length > 0 &&
-      !providerTypeFilter
-    ) {
-      setProviderTypeFilter(availableProviderTypes[0]);
-    }
-  }, [availableProviderTypes, providerTypeFilter]);
+
 
   const handlePopupKeyDown = (e) => {
     if (e.key === "Enter") handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false));
@@ -235,17 +206,7 @@ export default function ProviderDetail() {
         <Route path="storyteller/*" element={
           <Storyteller
             provider={provider}
-            nearbyProviders={nearbyProviders}
-            matrixMeasures={matrixMeasures}
-            matrixData={matrixData}
-            matrixMarketAverages={matrixMarketAverages}
-            matrixNationalAverages={matrixNationalAverages}
-            publishDate={null}
-            providerTypeFilter={providerTypeFilter}
-            setProviderTypeFilter={setProviderTypeFilter}
-            availableProviderTypes={availableProviderTypes}
-            mainProviderInMatrix={mainProviderInMatrix}
-            competitorsInMatrix={competitorsInMatrix}
+            radiusInMiles={radiusInMiles}
           />
         } />
         <Route path="charts" element={<ChartsTab provider={provider} />} />

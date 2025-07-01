@@ -5,7 +5,20 @@ import myBigQuery from "../utils/myBigQueryClient.js";
 
 const router = express.Router();
 
-router.get("/org_dhc/nearby", async (req, res) => {
+/**
+ * GET /api/nearby-providers
+ *
+ * Query params:
+ *   - lat: Latitude (required)
+ *   - lon: Longitude (required)
+ *   - radius: Radius in miles (required)
+ *
+ * Returns: Array of provider objects within the given radius, sorted by distance.
+ *
+ * NOTE: This route ONLY returns provider info and distance. It does NOT fetch or join CCNs.
+ *       To get related CCNs, call the /api/related-ccns route separately with the DHC IDs.
+ */
+router.get("/nearby-providers", async (req, res) => {
   const { lat, lon, radius } = req.query;
 
   if (!lat || !lon || !radius) {
@@ -83,7 +96,7 @@ router.get("/org_dhc/nearby", async (req, res) => {
 
     const providersWithDistance = rows.map(row => ({
       ...row,
-      distance: row.distance_meters / 1609.34,
+      distance: row.distance_meters / 1609.34, // miles
       distance_meters: undefined,
     }));
 
@@ -93,7 +106,7 @@ router.get("/org_dhc/nearby", async (req, res) => {
       count: providersWithDistance.length
     });
   } catch (err) {
-    console.error("❌ BigQuery nearby providers error:", err);
+    console.error("\u274c BigQuery nearby providers error:", err);
     res.status(500).json({
       success: false,
       error: err.message

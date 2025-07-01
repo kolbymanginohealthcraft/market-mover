@@ -1,34 +1,57 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import useNearbyProviders from "../../../hooks/useNearbyProviders";
+import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderBarChart from "../../../components/Charts/ProviderBarChart";
 import styles from "../ChartDashboard.module.css";
 
-export default function Benchmarks(props) {
+export default function Benchmarks({ provider, radiusInMiles }) {
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [providerTypeFilter, setProviderTypeFilter] = useState('');
+
+  // Get nearby providers and their CCNs
+  const { providers: nearbyProviders, ccns: nearbyDhcCcns } = useNearbyProviders(provider, radiusInMiles);
+
+  // Get quality measure data
   const {
-    mainProviderInMatrix,
+    matrixLoading,
     matrixMeasures,
     matrixData,
     matrixMarketAverages,
     matrixNationalAverages,
-    publishDate,
-    providerTypeFilter,
-    setProviderTypeFilter,
-    availableProviderTypes,
-  } = props;
+    matrixError,
+    allMatrixProviders,
+    availableProviderTypes
+  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns);
 
-  const [selectedMetric, setSelectedMetric] = useState(null);
+  // Set default provider type filter when available types change
+  useEffect(() => {
+    if (availableProviderTypes.length > 0 && !providerTypeFilter) {
+      setProviderTypeFilter(availableProviderTypes[0]);
+    }
+  }, [availableProviderTypes, providerTypeFilter]);
 
   // Set default metric when measures load
-  useMemo(() => {
+  useEffect(() => {
     if (!selectedMetric && matrixMeasures.length > 0) {
       setSelectedMetric(matrixMeasures[0].code);
     }
   }, [matrixMeasures, selectedMetric]);
 
-  if (!mainProviderInMatrix || !matrixMeasures.length) return <div>No data available.</div>;
+  // Filter providers by selected type (if any)
+  const filteredMatrixProviders = useMemo(() => {
+    return providerTypeFilter
+      ? allMatrixProviders.filter(p => p.type === providerTypeFilter)
+      : allMatrixProviders;
+  }, [providerTypeFilter, allMatrixProviders]);
+
+  // Main provider for the benchmarks
+  const mainProviderInMatrix = useMemo(() => {
+    return filteredMatrixProviders.find(p => p.dhc === provider?.dhc);
+  }, [filteredMatrixProviders, provider?.dhc]);
 
   // Prepare chart data for selected metric
   const chartData = useMemo(() => {
-    if (!selectedMetric) return [];
+    if (!selectedMetric || !mainProviderInMatrix) return [];
     const providerValue = matrixData[mainProviderInMatrix.dhc]?.[selectedMetric]?.score ?? null;
     const marketValue = matrixMarketAverages[selectedMetric]?.score ?? null;
     const nationalValue = matrixNationalAverages[selectedMetric]?.score ?? null;
@@ -41,14 +64,29 @@ export default function Benchmarks(props) {
 
   // Determine if this metric is a "win"
   const isWin = useMemo(() => {
-    if (!selectedMetric) return false;
+    if (!selectedMetric || !mainProviderInMatrix) return false;
     const providerPercentile = matrixData[mainProviderInMatrix.dhc]?.[selectedMetric]?.percentile ?? null;
     // Win if percentile > 0.5 (above market/national average)
     return providerPercentile !== null && providerPercentile > 0.5;
   }, [mainProviderInMatrix, matrixData, selectedMetric]);
 
   // Get metric display info
-  const metricInfo = matrixMeasures.find((m) => m.code === selectedMetric);
+  const metricInfo = useMemo(() => {
+    return matrixMeasures.find((m) => m.code === selectedMetric);
+  }, [matrixMeasures, selectedMetric]);
+
+  // Early returns after all hooks
+  if (matrixLoading) {
+    return <div>Loading quality measure data...</div>;
+  }
+
+  if (matrixError) {
+    return <div>Error loading quality measure data: {matrixError}</div>;
+  }
+
+  if (!mainProviderInMatrix || !matrixMeasures.length) {
+    return <div>No quality measure data available for this provider.</div>;
+  }
 
   return (
     <div className={styles.container}>

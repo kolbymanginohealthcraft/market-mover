@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "codex": "npx dotenv-cli codex --model gpt-4o"
+    "codex": "npx dotenv-cli codex --model gpt-4o",
+    "start": "node server.js"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^8.1.0",
