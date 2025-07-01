@@ -1,0 +1,254 @@
+/* ===== Reset Native Button Styles ===== */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+button:focus,
+button:focus-visible {
+  animation: focusFade 0.5s forwards;
+}
+
+/* ===== Base Class ===== */
+.button,
+.filter-button {
+  font-family: "Work Sans", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid transparent;
+  background-color: transparent;
+}
+
+.button:disabled,
+.filter-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Size Variants (Global) ===== */
+.button-sm,
+.filter-button.button-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.button-lg,
+.filter-button.button-lg {
+  padding: 0.8rem 1.6rem;
+  font-size: 1.1rem;
+}
+
+/* ===== Color Tokens ===== */
+:root {
+  --color-green: #265947;
+  --color-green-light: #3d6f5b;
+  --color-green-dark: #4f846e;
+
+  --color-gold: #f1b62c;
+  --color-gold-light: #ffd85e;
+  --color-gold-dark: #e3a917;
+
+  --color-accent: #3fb985;
+  --color-accent-light: #34a475;
+  --color-accent-dark: #2e9065;
+
+  --color-red: #d64550;
+  --color-red-light: #b93a44;
+  --color-red-dark: #9f3039;
+
+  --color-teal: #26d9d8;
+  --color-teal-light: #4ee7e5;
+  --color-teal-dark: #1abdbb;
+
+  --color-blue: #3599b8;
+  --color-blue-light: #2983a1;
+  --color-blue-dark: #226f8b;
+
+  --color-aqua: #4ac5bb;
+  --color-aqua-light: #6ed5ce;
+  --color-aqua-dark: #3ab7b1;
+
+  --color-gray: #5f6b6d;
+  --color-gray-light: #4a5456;
+  --color-gray-dark: #3e4648;
+}
+
+/* ===== Filled Variants ===== */
+.green   { background-color: var(--color-green); color: white; --focus-color: var(--color-green); }
+.green:hover   { background-color: var(--color-green-light); }
+.green:active  { background-color: var(--color-green-dark); }
+
+.gold    { background-color: var(--color-gold); color: var(--color-green); --focus-color: var(--color-gold); }
+.gold:hover    { background-color: var(--color-gold-light); }
+.gold:active   { background-color: var(--color-gold-dark); }
+
+.accent  { background-color: var(--color-accent); color: white; --focus-color: var(--color-accent); }
+.accent:hover  { background-color: var(--color-accent-light); }
+.accent:active { background-color: var(--color-accent-dark); }
+
+.red     { background-color: var(--color-red); color: white; --focus-color: var(--color-red); }
+.red:hover     { background-color: var(--color-red-light); }
+.red:active    { background-color: var(--color-red-dark); }
+
+.teal    { background-color: var(--color-teal); color: var(--color-green); --focus-color: var(--color-teal); }
+.teal:hover    { background-color: var(--color-teal-light); }
+.teal:active   { background-color: var(--color-teal-dark); }
+
+.blue    { background-color: var(--color-blue); color: white; --focus-color: var(--color-blue); }
+.blue:hover    { background-color: var(--color-blue-light); }
+.blue:active   { background-color: var(--color-blue-dark); }
+
+.aqua    { background-color: var(--color-aqua); color: var(--color-green); --focus-color: var(--color-aqua); }
+.aqua:hover    { background-color: var(--color-aqua-light); }
+.aqua:active   { background-color: var(--color-aqua-dark); }
+
+.gray    { background-color: var(--color-gray); color: white; --focus-color: var(--color-gray); }
+.gray:hover    { background-color: var(--color-gray-light); }
+.gray:active   { background-color: var(--color-gray-dark); }
+
+/* ===== Outline Buttons ===== */
+.button-outline {
+  background: transparent;
+  border: 2px solid currentColor;
+}
+
+.button-outline.green  { color: var(--color-green); border-color: var(--color-green); --focus-color: var(--color-green); }
+.button-outline.gold   { color: var(--color-gold); border-color: var(--color-gold); --focus-color: var(--color-gold); }
+.button-outline.accent { color: var(--color-accent); border-color: var(--color-accent); --focus-color: var(--color-accent); }
+.button-outline.red    { color: var(--color-red); border-color: var(--color-red); --focus-color: var(--color-red); }
+.button-outline.teal   { color: var(--color-teal); border-color: var(--color-teal); --focus-color: var(--color-teal); }
+.button-outline.blue   { color: var(--color-blue); border-color: var(--color-blue); --focus-color: var(--color-blue); }
+.button-outline.aqua   { color: var(--color-aqua); border-color: var(--color-aqua); --focus-color: var(--color-aqua); }
+.button-outline.gray   { color: var(--color-gray); border-color: var(--color-gray); --focus-color: var(--color-gray); }
+
+.button-outline.green:hover  { background-color: #d8ede3; }
+.button-outline.gold:hover   { background-color: #ffe08a; }
+.button-outline.accent:hover { background-color: #c4f0e0; }
+.button-outline.red:hover    { background-color: #f8d1d3; }
+.button-outline.teal:hover   { background-color: #caf6f6; }
+.button-outline.blue:hover   { background-color: #cce8f5; }
+.button-outline.aqua:hover   { background-color: #c5f0ec; }
+.button-outline.gray:hover   { background-color: #dcdcdc; }
+
+/* ===== Ghost Buttons ===== */
+.button-ghost {
+  background: transparent;
+  border: none;
+}
+
+.button-ghost.green  { color: var(--color-green); --focus-color: var(--color-green); }
+.button-ghost.gold   { color: var(--color-gold); --focus-color: var(--color-gold); }
+.button-ghost.accent { color: var(--color-accent); --focus-color: var(--color-accent); }
+.button-ghost.red    { color: var(--color-red); --focus-color: var(--color-red); }
+.button-ghost.teal   { color: var(--color-teal); --focus-color: var(--color-teal); }
+.button-ghost.blue   { color: var(--color-blue); --focus-color: var(--color-blue); }
+.button-ghost.aqua   { color: var(--color-aqua); --focus-color: var(--color-aqua); }
+.button-ghost.gray   { color: var(--color-gray); --focus-color: var(--color-gray); }
+
+.button-ghost.green:hover  { background-color: #e2f0e8; }
+.button-ghost.gold:hover   { background-color: #ffe08a; }
+.button-ghost.accent:hover { background-color: #c4f0e0; }
+.button-ghost.red:hover    { background-color: #f8d1d3; }
+.button-ghost.teal:hover   { background-color: #caf6f6; }
+.button-ghost.blue:hover   { background-color: #cce8f5; }
+.button-ghost.aqua:hover   { background-color: #c5f0ec; }
+.button-ghost.gray:hover   { background-color: #dcdcdc; }
+
+/* ===== Filter Buttons ===== */
+.filter-button {
+  padding: 0.5rem 1rem;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  color: var(--color-green);
+}
+.filter-button:hover {
+  background-color: #e0e0e0;
+}
+.filter-button.active {
+  background-color: var(--color-gold);
+  color: var(--color-green);
+}
+.filter-button.active:hover {
+  background-color: #dca518;
+}
+
+/* ===== Navbar Button (No Animation) ===== */
+.button-nav {
+  color: var(--color-gold);
+  background: transparent;
+  border: 1px solid var(--color-gold);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+.button-nav:hover {
+  background-color: var(--color-gold);
+  color: var(--color-green);
+  border-color: #1f4c3e;
+}
+.button-nav:focus {
+  outline: none;
+  box-shadow: none;
+}
+.button-nav:focus,
+.button-nav:focus-visible {
+  animation: none !important;
+}
+.button-nav:active {
+  opacity: 0.85;
+}
+
+/* ===== Click Feedback ===== */
+.button:active,
+.filter-button:active,
+.button-outline:active {
+  transform: scale(0.97);
+}
+
+.animate {
+  will-change: transform, background-color;
+}
+
+/* ===== Focus Animation ===== */
+@keyframes focusFade {
+  0% {
+    box-shadow: 0 0 0 3px var(--focus-color);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ===== ButtonGroup Selected State ===== */
+.button-group-outline .button-outline {
+  border-width: 2px;
+  font-weight: 600;
+  background-color: white;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.button-group-outline .button-outline.active {
+  background-color: var(--color-blue);
+  color: white;
+  border-color: var(--color-blue);
+}

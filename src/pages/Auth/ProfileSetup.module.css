@@ -1,0 +1,73 @@
+.container {
+  max-width: 500px;
+  margin: 80px auto;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.title {
+  font-size: 1.6rem;
+  margin-bottom: 2rem;
+  color: #265947;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.disabledInput {
+  background-color: #f0f0f0;
+  color: #444;
+  font-weight: 600;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: #d64550;
+  margin-top: -0.75rem;
+}
+
+.button {
+  margin-top: 1.5rem;
+  padding: 12px;
+  background-color: #265947;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.button:hover {
+  background-color: #1d4037;
+}
+
+.button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

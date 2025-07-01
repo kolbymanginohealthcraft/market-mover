@@ -1,0 +1,288 @@
+.container {
+  padding: 0.75rem;
+  font-family: 'Work Sans', sans-serif;
+  background-color: #f6f9f8;
+}
+
+/* --- Controls Row --- */
+.controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0.75rem;
+}
+
+.controlsGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 2.25rem;
+}
+
+.controlsGroup.buttonsGroup {
+  flex-shrink: 0;
+}
+
+.controlsGroup.searchGroup {
+  flex: 1;
+}
+
+.controlsGroup.resultCount {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.searchInput {
+  height: 2rem;
+  padding: 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 240px;
+  margin: 0;
+}
+
+/* --- Dropdown --- */
+.dropdownContainer {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  display: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.dropdownOpen .dropdownMenu {
+  display: block;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.dropdownItem input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #265947;
+  margin: 0;
+}
+
+.clearButton {
+  margin-left: 6px;
+  font-size: 0.7rem;
+  color: white;
+  background-color: #d64550;
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.buttonLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- Split View Layout --- */
+.splitView {
+  display: flex;
+  gap: 1rem;
+  height: 500px; /* KEY FIX */
+  overflow: hidden;
+}
+
+/* --- Map Panel --- */
+.mapPanel {
+  flex: 0 0 32%;
+  min-width: 300px;
+  height: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mapPanel .leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+
+/* --- Table Panel --- */
+.tablePanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableScroll {
+  overflow-y: auto;
+  flex: 1;
+  position: relative; /* ← this is critical */
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  table-layout: fixed;
+}
+
+.table thead {
+  position: sticky;
+  top: 0;
+  background: #f8f8f8;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.table th,
+.table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* --- Table Rows --- */
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover {
+  background-color: #e8f5e9; /* light green tint */
+  border-left: 3px solid #3fb985;
+}
+
+.highlightedRow {
+  background-color: #fff8cc !important;
+}
+
+/* --- Tagging --- */
+.partnerBadge,
+.competitorBadge,
+.tagDefault {
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.partnerBadge {
+  background-color: #1dadbe;
+  color: white;
+}
+
+.competitorBadge {
+  background-color: #d64550;
+  color: white;
+}
+
+.tagDefault {
+  background-color: #ccc;
+  color: #333;
+}
+
+.inlineTaggingMenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  align-items: center;
+}
+
+.inlineTaggingMenu label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.inlineTaggingMenu input[type="radio"] {
+  margin: 0;
+  accent-color: #1dadbe;
+}
+
+.inlineTaggingMenu button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #ddd;
+  cursor: pointer;
+}
+
+.inlineTaggingMenu button:hover {
+  background-color: #ccc;
+}
+
+.animatePulse {
+  animation: pulseFade 0.8s ease-in-out;
+}
+
+@keyframes pulseFade {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  .splitView {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mapPanel,
+  .tablePanel {
+    height: 400px;
+  }
+}
+

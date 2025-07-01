@@ -1,0 +1,125 @@
+/* src/components/Login.module.css */
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f6f9f8;
+  padding: 20px;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  max-width: 400px;
+  width: 100%;
+}
+
+.title {
+  color: #265947; /* Healthcraft green */
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #5f6b6d;
+}
+
+.input {
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.button {
+  background-color: #265947; /* Primary green */
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.button:hover {
+  background-color: #1f4c3e;
+}
+
+.status {
+  margin-top: 16px;
+  font-size: 14px;
+  text-align: center;
+  color: #5f6b6d;
+}
+
+.input + .label {
+  margin-top: 12px;
+}
+
+.switchMode {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+
+.link {
+  background: none;
+  border: none;
+  color: #1dadbe; /* your brand turquoise */
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.link:hover {
+  color: #3599b8; /* hover effect with sky blue */
+}
+
+.inlineLinks {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.separator {
+  color: #999;
+  font-size: 14px;
+}
+
+.inlineButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.backLink {
+  margin-top: 16px;
+  padding-left: 0;
+}
+

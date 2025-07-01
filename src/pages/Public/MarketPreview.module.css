@@ -1,0 +1,45 @@
+.section {
+    background-color: #f6f9f8;
+    padding: 60px 24px;
+    text-align: center;
+  }
+  
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #265947;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 1.05rem;
+    color: #5f6b6d;
+    margin-bottom: 32px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .previewBox {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    margin-bottom: 16px;
+  }
+  
+  .previewImage {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  .caption {
+    font-size: 0.9rem;
+    color: #5f6b6d;
+  }
+  

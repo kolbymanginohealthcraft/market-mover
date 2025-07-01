@@ -1,0 +1,248 @@
+.container {
+  padding: 1rem;
+}
+
+/* Header Section */
+.headerInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.defaultBackground {
+  background-color: #f9f9f9;
+}
+
+.savedBackground {
+  background-color: #e0f7fa; /* Teal hint for saved market */
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+}
+
+.headerLeft h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.headerLeft p {
+  margin: 0.25rem 0 0;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.typeBadge {
+  background-color: #1dadbe;
+  color: white;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 1rem;
+  text-transform: capitalize;
+}
+
+/* Controls Section */
+.controlsWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Saved Market Display */
+.marketInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.marketTopRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.savedBadge {
+  background-color: #1dadbe;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  text-transform: uppercase;
+}
+
+.marketName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  overflow-wrap: break-word;
+}
+
+.radiusRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.radiusRow span {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* When editing */
+.editingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editInput {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+}
+
+.editInput[type="number"] {
+  width: 80px;
+}
+
+/* Icons for editing */
+.editIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconButton svg {
+  width: 16px;
+  height: 16px;
+  color: #666;
+  transition: color 0.2s ease;
+}
+
+.iconButton svg:hover {
+  color: #1dadbe;
+}
+
+/* Radius Controls */
+.radiusGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.radiusSlider {
+  width: 160px;
+}
+
+/* Save Button */
+.saveButton {
+  background-color: #1dadbe;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.saveButton:hover {
+  background-color: #1599a8;
+}
+
+/* Popup Modal */
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.popupBox {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.popupInput {
+  width: 100%;
+  padding: 0.5rem;
+  margin: 1rem 0;
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+}
+
+.popupButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.popupSave,
+.popupCancel {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.popupSave {
+  background: #1dadbe;
+  color: white;
+}
+
+.popupSave:hover {
+  background: #1599a8;
+}
+
+.popupCancel {
+  background: #ccc;
+  color: #333;
+}
+
+.popupCancel:hover {
+  background: #bbb;
+}
+
+.popupMessage {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #444;
+}
