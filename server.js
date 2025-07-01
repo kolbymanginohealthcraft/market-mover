@@ -10,6 +10,7 @@ import searchProviders from "./server/routes/searchProviders.js";
 import getCcns from "./server/routes/getCcns.js";
 import getNearbyProviders from "./server/routes/getNearbyProviders.js";
 import testVendorConnection from "./server/routes/testVendorConnection.js";
+import diagnoses from "./server/routes/diagnoses.js";
 
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.use("/api", searchProviders);
 app.use("/api", getCcns);
 app.use("/api", getNearbyProviders);
 app.use("/api", testVendorConnection);
+app.use("/api", diagnoses);
 
 
 // ✅ Invite User Route

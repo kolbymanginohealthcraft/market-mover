@@ -41,6 +41,62 @@ export default function SubNavbar({ providerId: providerDhc }) {
       >
         Charts
       </NavLink>
+      <NavLink
+        to={`${prefix}/diagnoses${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Diagnoses
+      </NavLink>
+      <NavLink
+        to={`${prefix}/procedures${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Procedures
+      </NavLink>
+      <NavLink
+        to={`${prefix}/referrals${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Referrals
+      </NavLink>
+      <NavLink
+        to={`${prefix}/financial${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Financial
+      </NavLink>
+      <NavLink
+        to={`${prefix}/safety${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Safety
+      </NavLink>
+      <NavLink
+        to={`${prefix}/ma-enrollment${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        MA Enrollment
+      </NavLink>
+      <NavLink
+        to={`${prefix}/staffing${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Staffing
+      </NavLink>
     </nav>
   );
 }
