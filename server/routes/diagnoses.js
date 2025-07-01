@@ -1,5 +1,6 @@
 import express from "express";
 import vendorBigQueryClient from "../utils/vendorBigQueryClient.js";
+import myBigQueryClient from "../utils/myBigQueryClient.js";
 import cache from "../utils/cache.js";
 
 const router = express.Router();
@@ -33,7 +34,7 @@ router.post("/diagnoses-volume", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH)
+          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
         GROUP BY date__month_grain
         ORDER BY date__month_grain DESC
         LIMIT 12
@@ -71,7 +72,7 @@ router.post("/diagnoses-volume", async (req, res) => {
       debug: {
         npisRequested: npis?.length || 0,
         monthsReturned: rows.length,
-        dateFilter: "Last 24 months"
+        dateFilter: "Last 12 months"
       }
     });
     
@@ -199,7 +200,7 @@ router.post("/diagnoses-by-provider", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH)
+          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
         GROUP BY billing_provider_npi
         ORDER BY total_count DESC
       `;
@@ -262,7 +263,7 @@ router.post("/diagnoses-by-service-line", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH)
+          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
         GROUP BY service_line_description
         ORDER BY total_count DESC
       `;
@@ -402,6 +403,98 @@ router.post("/diagnoses-debug-npis", async (req, res) => {
   }
 });
 
+// Debug endpoint to test org_dhc JOIN
+router.post("/diagnoses-debug-org-dhc", async (req, res) => {
+  try {
+    const { npis } = req.body;
+    console.log("🔍 Debugging org_dhc JOIN...", { npis: npis?.length || 0 });
+    
+    if (!npis || !Array.isArray(npis) || npis.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "NPIs array is required"
+      });
+    }
+    
+    // Test simple query first
+    const simpleQuery = `
+      SELECT 
+        billing_provider_npi,
+        COUNT(*) as record_count
+      FROM \`aegis_access.volume_diagnosis\`
+      WHERE billing_provider_npi IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+      GROUP BY billing_provider_npi
+      LIMIT 5
+    `;
+    
+    const [simpleRows] = await vendorBigQueryClient.query({ 
+      query: simpleQuery,
+      params: { npis }
+    });
+    
+    // Test org_dhc table structure
+    const orgDhcQuery = `
+      SELECT 
+        npi,
+        provider_name,
+        network_name
+      FROM \`aegis_access.org_dhc\`
+      WHERE npi IN UNNEST(@npis)
+      LIMIT 5
+    `;
+    
+    const [orgDhcRows] = await vendorBigQueryClient.query({ 
+      query: orgDhcQuery,
+      params: { npis }
+    });
+    
+    // Test the JOIN
+    const joinQuery = `
+      SELECT 
+        vd.billing_provider_npi,
+        od.provider_name,
+        od.network_name,
+        COUNT(*) as record_count
+      FROM \`aegis_access.volume_diagnosis\` vd
+      LEFT JOIN \`aegis_access.org_dhc\` od ON vd.billing_provider_npi = od.npi
+      WHERE vd.billing_provider_npi IN UNNEST(@npis)
+        AND vd.date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+      GROUP BY vd.billing_provider_npi, od.provider_name, od.network_name
+      LIMIT 5
+    `;
+    
+    const [joinRows] = await vendorBigQueryClient.query({ 
+      query: joinQuery,
+      params: { npis }
+    });
+    
+    console.log(`✅ Debug results: ${simpleRows.length} simple rows, ${orgDhcRows.length} org_dhc rows, ${joinRows.length} joined rows`);
+    
+    res.json({
+      success: true,
+      data: {
+        simpleQuery: simpleRows,
+        orgDhcQuery: orgDhcRows,
+        joinQuery: joinRows
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Error in org_dhc debug:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to debug org_dhc JOIN",
+      error: error.message,
+      details: {
+        code: error.code,
+        status: error.status
+      }
+    });
+  }
+});
+
 // Cache management endpoint
 router.get("/cache-stats", (req, res) => {
   res.json({
@@ -418,6 +511,174 @@ router.post("/cache-clear", (req, res) => {
     message: "Cache cleared successfully",
     timestamp: new Date().toISOString()
   });
+});
+
+// Debug endpoint to check available tables and org_dhc structure
+router.get("/diagnoses-debug-tables", async (req, res) => {
+  try {
+    console.log("🔍 Checking available tables and org_dhc structure...");
+    
+    // Test if org_dhc table exists and get its structure
+    const tableStructureQuery = `
+      SELECT 
+        column_name,
+        data_type,
+        is_nullable
+      FROM \`aegis_access.INFORMATION_SCHEMA.COLUMNS\`
+      WHERE table_name = 'org_dhc'
+      ORDER BY ordinal_position
+    `;
+    
+    try {
+      const [tableStructure] = await vendorBigQueryClient.query({ 
+        query: tableStructureQuery
+      });
+      
+      console.log(`✅ org_dhc table structure:`, tableStructure);
+      
+      // Try to get a few sample rows from org_dhc
+      const sampleQuery = `
+        SELECT *
+        FROM \`aegis_access.org_dhc\`
+        LIMIT 5
+      `;
+      
+      const [sampleRows] = await vendorBigQueryClient.query({ 
+        query: sampleQuery
+      });
+      
+      console.log(`✅ org_dhc sample rows:`, sampleRows);
+      
+      res.json({
+        success: true,
+        data: {
+          tableExists: true,
+          structure: tableStructure,
+          sampleRows: sampleRows
+        }
+      });
+      
+    } catch (tableError) {
+      console.log(`❌ org_dhc table error:`, tableError.message);
+      
+      // Check what tables are available
+      const availableTablesQuery = `
+        SELECT table_name
+        FROM \`aegis_access.INFORMATION_SCHEMA.TABLES\`
+        ORDER BY table_name
+      `;
+      
+      try {
+        const [availableTables] = await vendorBigQueryClient.query({ 
+          query: availableTablesQuery
+        });
+        
+        console.log(`✅ All available tables:`, availableTables);
+        
+        // Look for tables that might contain provider info
+        const providerTables = availableTables.filter(table => 
+          table.table_name.toLowerCase().includes('provider') ||
+          table.table_name.toLowerCase().includes('org') ||
+          table.table_name.toLowerCase().includes('dhc') ||
+          table.table_name.toLowerCase().includes('facility') ||
+          table.table_name.toLowerCase().includes('hospital') ||
+          table.table_name.toLowerCase().includes('clinic')
+        );
+        
+        console.log(`✅ Potential provider tables:`, providerTables);
+        
+        res.json({
+          success: true,
+          data: {
+            tableExists: false,
+            error: tableError.message,
+            allTables: availableTables,
+            providerTables: providerTables
+          }
+        });
+      } catch (tablesError) {
+        res.json({
+          success: true,
+          data: {
+            tableExists: false,
+            error: tableError.message,
+            tablesError: tablesError.message
+          }
+        });
+      }
+    }
+    
+  } catch (error) {
+    console.error("❌ Error checking tables:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to check tables",
+      error: error.message
+    });
+  }
+});
+
+// Test endpoint to verify BigQuery clients
+router.get("/diagnoses-test-clients", async (req, res) => {
+  try {
+    console.log("🔍 Testing BigQuery clients...");
+    
+    // Test vendor client
+    const vendorTestQuery = `
+      SELECT COUNT(*) as count
+      FROM \`aegis_access.volume_diagnosis\`
+      LIMIT 1
+    `;
+    
+    let vendorTestResult;
+    try {
+      const [vendorRows] = await vendorBigQueryClient.query({ 
+        query: vendorTestQuery
+      });
+      vendorTestResult = { success: true, count: vendorRows[0]?.count };
+      console.log("✅ Vendor client test successful");
+    } catch (vendorError) {
+      vendorTestResult = { success: false, error: vendorError.message };
+      console.log("❌ Vendor client test failed:", vendorError.message);
+    }
+    
+    // Test my client
+    const myTestQuery = `
+      SELECT COUNT(*) as count
+      FROM \`aegis_access.org_dhc\`
+      LIMIT 1
+    `;
+    
+    let myTestResult;
+    try {
+      const [myRows] = await myBigQueryClient.query({ 
+        query: myTestQuery
+      });
+      myTestResult = { success: true, count: myRows[0]?.count };
+      console.log("✅ My client test successful");
+    } catch (myError) {
+      myTestResult = { success: false, error: myError.message };
+      console.log("❌ My client test failed:", myError.message);
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        vendorClient: vendorTestResult,
+        myClient: myTestResult
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Error testing clients:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to test BigQuery clients",
+      error: error.message
+    });
+  }
 });
 
 export default router; 

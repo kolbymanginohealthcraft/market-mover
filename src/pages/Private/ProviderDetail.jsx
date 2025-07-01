@@ -219,7 +219,7 @@ export default function ProviderDetail() {
         } />
         <Route path="charts" element={<ChartsTab provider={provider} />} />
         <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-        <Route path="procedures" element={<ProceduresTab provider={provider} />} />
+        <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
         <Route path="financial" element={<FinancialTab provider={provider} />} />
         <Route path="safety" element={<SafetyTab provider={provider} />} />

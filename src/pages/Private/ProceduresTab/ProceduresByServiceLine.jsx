@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
 
-export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearbyProviders }) {
+export default function ProceduresByServiceLine({ provider, radiusInMiles, nearbyProviders }) {
   const [serviceLineData, setServiceLineData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +21,7 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
       // Get all provider DHCs in the market (main provider + nearby providers)
       const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
       
-      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
+      // Get all provider DHCs in the market (main provider + nearby providers)
       
       // First, get the related NPIs for all providers in the market
       const npisResponse = await fetch("/api/related-npis", {
@@ -47,8 +47,8 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
         return;
       }
       
-      // Now fetch diagnosis data by service line
-      const response = await fetch("/api/diagnoses-by-service-line", {
+      // Now fetch procedure data by service line
+      const response = await fetch("/api/procedures-by-service-line", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,18 +63,18 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
       if (result.success) {
         setServiceLineData(result.data);
       } else {
-        setError(result.message || "Failed to fetch service line diagnosis data");
+        setError(result.message || "Failed to fetch service line procedure data");
       }
     } catch (err) {
-      console.error("Error fetching service line diagnosis data:", err);
-      setError("Failed to fetch service line diagnosis data");
+      console.error("Error fetching service line procedure data:", err);
+      setError("Failed to fetch service line procedure data");
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <Spinner message="Loading service line diagnosis data..." />;
+    return <Spinner message="Loading service line procedure data..." />;
   }
 
   if (error) {
@@ -92,8 +92,8 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
   if (!serviceLineData || serviceLineData.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <h3>No Service Line Diagnosis Data Available</h3>
-        <p>No diagnosis data found by service line for the last 12 months.</p>
+        <h3>No Service Line Procedure Data Available</h3>
+        <p>No procedure data found by service line for the last 12 months.</p>
       </div>
     );
   }
@@ -104,25 +104,25 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
   return (
     <div className={styles.componentContainer}>
       <div className={styles.componentHeader}>
-        <h3>Diagnoses by Service Line</h3>
-        <p>Breakdown of diagnosis volume by service line in {radiusInMiles}mi radius market</p>
+        <h3>Procedures by Service Line</h3>
+        <p>Breakdown of procedure volume by service line in {radiusInMiles}mi radius market</p>
       </div>
 
       <div className={styles.summaryCards}>
         <div className={styles.summaryCard}>
           <h4>Total Service Lines</h4>
           <p className={styles.summaryValue}>{serviceLineData.length.toLocaleString()}</p>
-          <p className={styles.summaryLabel}>With diagnosis data</p>
+          <p className={styles.summaryLabel}>With procedure data</p>
         </div>
         <div className={styles.summaryCard}>
-          <h4>Total Diagnoses</h4>
+          <h4>Total Procedures</h4>
           <p className={styles.summaryValue}>{totalCount.toLocaleString()}</p>
           <p className={styles.summaryLabel}>Across all service lines</p>
         </div>
         <div className={styles.summaryCard}>
           <h4>Average per Service Line</h4>
           <p className={styles.summaryValue}>{averageCount.toLocaleString()}</p>
-          <p className={styles.summaryLabel}>Diagnosis count</p>
+          <p className={styles.summaryLabel}>Procedure count</p>
         </div>
       </div>
 
@@ -132,7 +132,7 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
             <thead>
               <tr>
                 <th>Service Line</th>
-                <th>Diagnosis Count</th>
+                <th>Procedure Count</th>
                 <th>Percentage of Total</th>
                 <th>Average per Month</th>
               </tr>
@@ -141,7 +141,7 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
               {serviceLineData.map((row, index) => {
                 const count = parseInt(row.total_count);
                 const percentage = ((count / totalCount) * 100).toFixed(1);
-                const avgPerMonth = Math.round(count / 12);
+                const avgPerMonth = Math.round(count / 24);
                 
                 return (
                   <tr key={index}>

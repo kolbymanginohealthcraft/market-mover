@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
 
-export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProviders }) {
+export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProviders }) {
   const [monthlyData, setMonthlyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +21,7 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
       // Get all provider DHCs in the market (main provider + nearby providers)
       const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
       
-      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
+      // Get all provider DHCs in the market (main provider + nearby providers)
       
       // First, get the related NPIs for all providers in the market
       const npisResponse = await fetch("/api/related-npis", {
@@ -47,8 +47,8 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
         return;
       }
       
-      // Now fetch diagnosis data by month
-      const response = await fetch("/api/diagnoses-volume", {
+      // Now fetch procedure data by month
+      const response = await fetch("/api/procedures-volume", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,21 +64,21 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
         if (result.data && result.data.length > 0) {
           setMonthlyData(result.data);
         } else {
-          setError("No monthly diagnosis data found for the specified NPIs in the last 12 months");
+          setError("No monthly procedure data found for the specified NPIs in the last 12 months");
         }
       } else {
-        setError(result.message || "Failed to fetch monthly diagnosis data");
+        setError(result.message || "Failed to fetch monthly procedure data");
       }
     } catch (err) {
-      console.error("Error fetching monthly diagnosis data:", err);
-      setError("Failed to fetch monthly diagnosis data");
+      console.error("Error fetching monthly procedure data:", err);
+      setError("Failed to fetch monthly procedure data");
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <Spinner message="Loading monthly diagnosis data..." />;
+    return <Spinner message="Loading monthly procedure data..." />;
   }
 
   if (error) {
@@ -96,8 +96,8 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
   if (!monthlyData || monthlyData.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <h3>No Monthly Diagnosis Data Available</h3>
-        <p>No diagnosis data found by month for the last 12 months.</p>
+        <h3>No Monthly Procedure Data Available</h3>
+        <p>No procedure data found by month for the last 12 months.</p>
       </div>
     );
   }
@@ -137,13 +137,13 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
   return (
     <div className={styles.componentContainer}>
       <div className={styles.componentHeader}>
-        <h3>Diagnoses by Month</h3>
-        <p>Monthly breakdown of diagnosis volume for the last 12 months in {radiusInMiles}mi radius market</p>
+        <h3>Procedures by Month</h3>
+        <p>Monthly breakdown of procedure volume for the last 12 months in {radiusInMiles}mi radius market</p>
       </div>
 
       <div className={styles.summaryCards}>
         <div className={styles.summaryCard}>
-          <h4>Total Diagnoses</h4>
+          <h4>Total Procedures</h4>
           <p className={styles.summaryValue}>{totalCount.toLocaleString()}</p>
           <p className={styles.summaryLabel}>Last 12 months</p>
         </div>
@@ -165,7 +165,7 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
             <thead>
               <tr>
                 <th>Month</th>
-                <th>Diagnosis Count</th>
+                <th>Procedure Count</th>
                 <th>Percentage of Total</th>
                 <th>Trend</th>
               </tr>

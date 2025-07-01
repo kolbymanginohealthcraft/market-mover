@@ -12,6 +12,7 @@ import getNpis from "./server/routes/getNpis.js";
 import getNearbyProviders from "./server/routes/getNearbyProviders.js";
 import testVendorConnection from "./server/routes/testVendorConnection.js";
 import diagnoses from "./server/routes/diagnoses.js";
+import procedures from "./server/routes/procedures.js";
 
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api", getNpis);
 app.use("/api", getNearbyProviders);
 app.use("/api", testVendorConnection);
 app.use("/api", diagnoses);
+app.use("/api", procedures);
 
 
 // ✅ Invite User Route

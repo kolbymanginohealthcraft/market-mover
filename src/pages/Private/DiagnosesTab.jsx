@@ -16,30 +16,37 @@ export default function DiagnosesTab({ provider, radiusInMiles, nearbyProviders 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>Diagnosis Volume</h2>
-        <p>Comprehensive diagnosis analysis for the last 12 months</p>
+        <h2>Diagnosis Volume <span className={styles.subheader}>Market analysis for the last 12 months</span></h2>
       </div>
 
       {/* Tab Navigation */}
       <div className={styles.tabNavigation}>
-        <button
-          className={`${styles.tabButton} ${activeTab === "month" ? styles.activeTab : ""}`}
-          onClick={() => setActiveTab("month")}
-        >
-          By Month
-        </button>
-        <button
-          className={`${styles.tabButton} ${activeTab === "provider" ? styles.activeTab : ""}`}
-          onClick={() => setActiveTab("provider")}
-        >
-          By Provider
-        </button>
-        <button
-          className={`${styles.tabButton} ${activeTab === "serviceLine" ? styles.activeTab : ""}`}
-          onClick={() => setActiveTab("serviceLine")}
-        >
-          By Service Line
-        </button>
+        <div className={styles.tabButtons}>
+          <button
+            className={`${styles.tabButton} ${activeTab === "month" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("month")}
+          >
+            By Month
+          </button>
+          <button
+            className={`${styles.tabButton} ${activeTab === "provider" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("provider")}
+          >
+            By Provider
+          </button>
+          <button
+            className={`${styles.tabButton} ${activeTab === "serviceLine" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("serviceLine")}
+          >
+            By Service Line
+          </button>
+        </div>
+        <input
+          type="text"
+          className={styles.searchBar}
+          placeholder="Search..."
+          disabled
+        />
       </div>
 
       {/* Tab Content */}

@@ -12,15 +12,16 @@
 
 .header h2 {
   color: #265947;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
 }
 
-.header p {
-  color: #666;
-  margin: 0;
+.subheader {
   font-size: 1rem;
+  font-weight: 400;
+  color: #666;
+  margin-left: 0.5rem;
 }
 
 .summaryCards {
@@ -158,10 +159,39 @@
 /* Tab Navigation Styles */
 .tabNavigation {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   margin-bottom: 2rem;
   border-bottom: 2px solid #e0e0e0;
   padding-bottom: 0;
+  justify-content: flex-start;
+}
+
+.tabButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.searchBar {
+  min-width: 120px;
+  max-width: 300px;
+  width: 100%;
+  margin-left: auto;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: #f8f9fa;
+  color: #666;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.searchBar:disabled {
+  background: #f3f3f3;
+  color: #bbb;
+  cursor: not-allowed;
 }
 
 .tabButton {
