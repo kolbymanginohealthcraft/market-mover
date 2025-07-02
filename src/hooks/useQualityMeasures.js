@@ -1,4 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+// Simple cache for API responses
+const apiCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(endpoint, params = {}) {
+  return `${endpoint}:${JSON.stringify(params)}`;
+}
+
+function getCachedData(key) {
+  const cached = apiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedData(key, data) {
+  apiCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+}
 
 export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate = null) {
   const [matrixLoading, setMatrixLoading] = useState(true);
@@ -23,25 +46,18 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
       setMatrixError(null);
       
       try {
-        // 1. Fetch all measures (only active)
-        const measuresResponse = await fetch('/api/qm_dictionary');
-        if (!measuresResponse.ok) throw new Error('Failed to fetch measures');
-        const measuresResult = await measuresResponse.json();
-        if (!measuresResult.success) throw new Error(measuresResult.error);
-        const measures = measuresResult.data;
-
-        // 2. Build all unique providers: main + all unique nearby (by dhc)
+        // 1. Build all unique providers: main + all unique nearby (by dhc)
         let allProviders = [provider, ...nearbyProviders];
         allProviders = allProviders.filter((p, idx, arr) => p && arr.findIndex(x => x.dhc === p.dhc) === idx);
 
-        // 3. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
+        // 2. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
         const providerDhcToCcns = {};
         (nearbyDhcCcns || []).forEach(row => {
           if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
           providerDhcToCcns[row.dhc].push(row.ccn);
         });
         
-        // If the main provider is not in nearbyDhcCcns, fetch its CCNs
+        // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs
         if (!providerDhcToCcns[provider.dhc]) {
           const ccnResponse = await fetch('/api/related-ccns', {
             method: 'POST',
@@ -60,30 +76,81 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 4. Only include providers with at least one CCN
         allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
         
-        // For now, let's include all providers and handle missing CCNs gracefully
-        allProviders = allProviders.length > 0 ? allProviders : allProviders;
-
-        // 4b. Get unique provider types for dropdown (from providers with CCN)
+        // 4b. Get unique provider types for dropdown
         const uniqueTypes = Array.from(new Set(allProviders.map(p => p.type).filter(Boolean)));
         setAvailableProviderTypes(uniqueTypes);
 
-        // 5. Fetch available publish dates
-        const availableDatesResponse = await fetch('/api/qm_post/available-dates');
-        if (!availableDatesResponse.ok) throw new Error('Failed to fetch available publish dates');
-        const availableDatesResult = await availableDatesResponse.json();
-        if (!availableDatesResult.success) throw new Error(availableDatesResult.error);
-        const availableDates = availableDatesResult.data;
+        // 5. Get all CCNs for the combined request
+        const allCcns = Object.values(providerDhcToCcns).flat();
+        
+        // 6. Check cache for combined data
+        const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date: selectedPublishDate || 'latest' });
+        const cachedData = getCachedData(cacheKey);
+        
+        let combinedData;
+        if (cachedData) {
+          console.log('📦 Using cached combined data');
+          combinedData = cachedData;
+        } else {
+          // 7. Fetch all data in a single API call
+          console.log('🔍 Fetching combined quality measure data:', {
+            providerDhc: provider?.dhc,
+            allCcnsCount: allCcns.length,
+            publish_date: selectedPublishDate || 'latest'
+          });
+          
+          const combinedResponse = await fetch('/api/qm_combined', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              ccns: allCcns, 
+              publish_date: selectedPublishDate || 'latest' 
+            })
+          });
+          
+          if (!combinedResponse.ok) throw new Error('Failed to fetch combined quality measure data');
+          const combinedResult = await combinedResponse.json();
+          if (!combinedResult.success) throw new Error(combinedResult.error);
+          combinedData = combinedResult.data;
+          
+          // Cache the result
+          setCachedData(cacheKey, combinedData);
+        }
+
+        const { measures, providerData, nationalAverages, availableDates } = combinedData;
+        
+        console.log('🔍 Combined data received:', {
+          measuresCount: measures?.length || 0,
+          providerDataCount: providerData?.length || 0,
+          nationalAveragesCount: Object.keys(nationalAverages || {}).length,
+          availableDatesCount: availableDates?.length || 0,
+          availableDates: availableDates || []
+        });
+        
+        // 8. Set available publish dates
         setAvailablePublishDates(availableDates);
 
-        // 6. Determine which publish date to use
-        let publish_date;
+        // 9. Check if we have valid data
         if (availableDates.length === 0) {
           console.log("⚠️ No available publish dates found");
+          // Clear the cache to prevent caching empty results
+          apiCache.delete(cacheKey);
           setMatrixError("No quality measure data available for any publish date");
           setMatrixLoading(false);
           return;
         }
         
+        if (measures.length === 0) {
+          console.log("⚠️ No quality measures found");
+          // Clear the cache to prevent caching empty results
+          apiCache.delete(cacheKey);
+          setMatrixError("No quality measures available");
+          setMatrixLoading(false);
+          return;
+        }
+        
+        // 10. Determine which publish date to use
+        let publish_date;
         if (selectedPublishDate && availableDates.includes(selectedPublishDate)) {
           publish_date = selectedPublishDate;
         } else {
@@ -93,55 +160,18 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         setCurrentPublishDate(publish_date);
         
         console.log('📅 Using publish date:', publish_date, 'from available dates:', availableDates);
-
-        // 6. Fetch all quality measure data for these CCNs and measures
-        const allCcns = Object.values(providerDhcToCcns).flat();
-        
-        console.log('🔍 Fetching quality measure data:', {
-          providerDhc: provider?.dhc,
-          allCcnsCount: allCcns.length,
-          publish_date,
-          sampleCcns: allCcns.slice(0, 5)
-        });
-        
-        const providerDataResponse = await fetch('/api/qm_provider/data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ccns: allCcns, publish_date })
-        });
-        if (!providerDataResponse.ok) throw new Error('Failed to fetch provider quality measure data');
-        const providerDataResult = await providerDataResponse.json();
-        if (!providerDataResult.success) throw new Error(providerDataResult.error);
-        const providerData = providerDataResult.data;
-        
-        console.log('📊 Quality measure data received:', {
-          dataCount: providerData.length,
-          uniqueCcns: [...new Set(providerData.map(d => d.ccn))].length,
-          uniqueCodes: [...new Set(providerData.map(d => d.code))].length
-        });
-        
-        // Check which CCNs have data vs which we requested
-        const ccnsWithData = [...new Set(providerData.map(d => d.ccn))];
-        
-        // Check data distribution by CCN
-        const ccnDataCount = {};
-        providerData.forEach(d => {
-          ccnDataCount[d.ccn] = (ccnDataCount[d.ccn] || 0) + 1;
+        console.log('📊 Combined data received:', {
+          measuresCount: measures.length,
+          providerDataCount: providerData.length,
+          nationalAveragesCount: Object.keys(nationalAverages).length,
+          availableDatesCount: availableDates.length
         });
 
-        // 7. Market averages (aggregate for all nearby providers' CCNs)
+        // 10. Calculate market averages from the provider data
         let marketAverages = {};
         if (nearbyDhcCcns.length > 0) {
           const marketCcns = nearbyDhcCcns.map(row => row.ccn).filter(Boolean);
-          const marketResponse = await fetch('/api/qm_provider/data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ccns: marketCcns, publish_date })
-          });
-          if (!marketResponse.ok) throw new Error('Failed to fetch market quality measure data');
-          const marketResult = await marketResponse.json();
-          if (!marketResult.success) throw new Error(marketResult.error);
-          const marketRows = marketResult.data;
+          const marketRows = providerData.filter(d => marketCcns.includes(d.ccn));
           
           // Aggregate in JS
           const marketAgg = {};
@@ -161,23 +191,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           });
         }
 
-        // 8. National averages from qm_post
-        const nationalResponse = await fetch(`/api/qm_post/national-averages?publish_date=${publish_date}`);
-        if (!nationalResponse.ok) throw new Error('Failed to fetch national averages');
-        const nationalResult = await nationalResponse.json();
-        if (!nationalResult.success) throw new Error(nationalResult.error);
-        const nationalRows = nationalResult.data;
-        
-        // For percentiles, national average is 50th percentile by definition
-        let nationalAverages = {};
-        nationalRows.forEach(row => {
-          nationalAverages[row.code] = {
-            score: row.national,
-            percentile: 0.5, // 50th percentile as 0.5
-          };
-        });
-
-        // 9. Organize data for ProviderComparisonMatrix
+        // 11. Organize data for ProviderComparisonMatrix
         let dataByDhc = {};
         let providersWithData = 0;
         allProviders.forEach(p => {
@@ -225,6 +239,12 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
     fetchMatrixData();
   }, [provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate]);
 
+  // Function to clear cache and force refresh
+  const clearCache = useCallback(() => {
+    apiCache.clear();
+    console.log('🧹 Cache cleared, forcing refresh');
+  }, []);
+
   return {
     matrixLoading,
     matrixMeasures,
@@ -236,6 +256,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
     matrixProviderIdToCcns,
     availableProviderTypes,
     availablePublishDates,
-    currentPublishDate
+    currentPublishDate,
+    clearCache
   };
 } 

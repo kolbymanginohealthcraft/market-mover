@@ -14,7 +14,7 @@ import { useDebounce } from 'use-debounce';
 import useProviderInfo from "../../hooks/useProviderInfo";
 import useNearbyProviders from "../../hooks/useNearbyProviders";
 import useMarketData from "../../hooks/useMarketData";
-
+import useQualityMeasures from "../../hooks/useQualityMeasures";
 
 import OverviewTab from "./OverviewTab";
 import NearbyTab from "./NearbyTab";
@@ -61,19 +61,27 @@ export default function ProviderDetail() {
     handleSaveMarketEdits,
   } = useMarketData(marketId, provider?.dhc, radiusInMiles, navigate);
 
-
+  // Prefetch quality measures data for Storyteller tab
+  const {
+    matrixLoading: storytellerLoading,
+    matrixMeasures: storytellerMeasures,
+    matrixData: storytellerData,
+    matrixMarketAverages: storytellerMarketAverages,
+    matrixNationalAverages: storytellerNationalAverages,
+    matrixError: storytellerError,
+    allMatrixProviders: storytellerAllProviders,
+    availableProviderTypes: storytellerProviderTypes,
+    availablePublishDates: storytellerPublishDates,
+    currentPublishDate: storytellerCurrentDate
+  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, null);
 
   const [debouncedRadius] = useDebounce(radiusInMiles, 400);
-
-
 
   // Helper to get all relevant provider DHCs (main + competitors)
   const getAllProviderDhcs = useCallback(() => {
     const dhcs = [provider?.dhc, ...nearbyProviders.slice(0, 3).map(p => p.dhc)].filter(Boolean);
     return dhcs;
   }, [provider, nearbyProviders]);
-
-
 
   const handlePopupKeyDown = (e) => {
     if (e.key === "Enter") handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false));
@@ -215,6 +223,20 @@ export default function ProviderDetail() {
           <Storyteller
             provider={provider}
             radiusInMiles={radiusInMiles}
+            nearbyProviders={nearbyProviders}
+            nearbyDhcCcns={nearbyDhcCcns}
+            prefetchedData={{
+              loading: storytellerLoading,
+              measures: storytellerMeasures,
+              data: storytellerData,
+              marketAverages: storytellerMarketAverages,
+              nationalAverages: storytellerNationalAverages,
+              error: storytellerError,
+              allProviders: storytellerAllProviders,
+              providerTypes: storytellerProviderTypes,
+              publishDates: storytellerPublishDates,
+              currentDate: storytellerCurrentDate
+            }}
           />
         } />
         <Route path="charts" element={<ChartsTab provider={provider} />} />

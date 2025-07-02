@@ -1,6 +1,62 @@
 {
-    "rewrites": [
-      { "source": "/(.*)", "destination": "/" }
-    ]
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/server.js"
+    },
+    { "source": "/(.*)", "destination": "/" }
+  ],
+    "headers": [
+      {
+        "source": "/api/qm_dictionary",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300, s-maxage=600"
+          }
+        ]
+      },
+      {
+        "source": "/api/qm_post/available-dates",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300, s-maxage=600"
+          }
+        ]
+      },
+      {
+        "source": "/api/qm_post/national-averages",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=180, s-maxage=300"
+          }
+        ]
+      },
+      {
+        "source": "/static/(.*)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      }
+    ],
+    "functions": {
+      "server.js": {
+        "maxDuration": 30
+      }
+    }
   }
   

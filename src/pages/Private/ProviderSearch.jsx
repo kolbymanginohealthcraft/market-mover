@@ -173,7 +173,7 @@ export default function ProviderSearch() {
             {totalPages > 1 && (
               <div className={styles.paginationCompact}>
                 <Button
-                  variant="outline"
+                  outline
                   size="sm"
                   className={styles.compactButton}
                   disabled={currentPage === 1}
@@ -185,7 +185,7 @@ export default function ProviderSearch() {
                   Page {currentPage} of {totalPages}
                 </span>
                 <Button
-                  variant="outline"
+                  outline
                   size="sm"
                   className={styles.compactButton}
                   disabled={currentPage === totalPages}
@@ -227,7 +227,7 @@ export default function ProviderSearch() {
           <div className={styles.noResults}>
             <p>No results for this combination of filters.</p>
             <Button
-              variant="outline"
+              outline
               size="sm"
               onClick={() => {
                 setSelectedType("All");
