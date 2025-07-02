@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Routes, Route, NavLink, useLocation, Navigate } from "react-router-dom";
 import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
+import Button from "../../../components/Buttons/Button";
+import ButtonGroup from "../../../components/Buttons/ButtonGroup";
 import styles from "./Storyteller.module.css";
 
-export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, prefetchedData }) {
+export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
   const location = useLocation();
   const base = location.pathname.replace(/\/storyteller.*/, "/storyteller");
   
@@ -19,6 +21,9 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   // Move state management to this level so it can be shared between tabs
   const [providerTypeFilter, setProviderTypeFilter] = useState('');
   const [selectedPublishDate, setSelectedPublishDate] = useState(null);
+  const [chartMode, setChartMode] = useState('snapshot');
+  const [showSnapshotDropdown, setShowSnapshotDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Extract available options from prefetched data
   const availableProviderTypes = prefetchedData?.providerTypes || [];
@@ -38,6 +43,31 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
       setSelectedPublishDate(availablePublishDates[0]);
     }
   }, [availablePublishDates, selectedPublishDate]);
+
+  // Handle click outside dropdown and escape key
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowSnapshotDropdown(false);
+      }
+    };
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowSnapshotDropdown(false);
+      }
+    };
+
+    if (showSnapshotDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showSnapshotDropdown]);
 
   // Helper function to format publish date
   const formatPublishDate = (dateStr) => {
@@ -99,22 +129,65 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
             </div>
           )}
           
-          {/* Publish Date Filter */}
-          {availablePublishDates.length > 1 && (
-            <div className={styles.filterGroup}>
-              <label htmlFor="publish-date-select" className={styles.filterLabel}>
-                Publish Date:
-              </label>
-              <SelectInput
-                id="publish-date-select"
-                value={selectedPublishDate || availablePublishDates[0]}
-                onChange={(e) => setSelectedPublishDate(e.target.value)}
-                options={availablePublishDates}
-                formatOptions={true}
+          {/* Snapshot/Trend Toggle with Dropdown */}
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel}>View:</label>
+            <div className={styles.viewToggleContainer}>
+              <div className={styles.toggleButton}>
+                <Button
+                  variant={chartMode === "snapshot" ? "accent" : "gray"}
+                  size="sm"
+                  outline={chartMode !== "snapshot"}
+                  onClick={() => {
+                    setChartMode("snapshot");
+                    setShowSnapshotDropdown(!showSnapshotDropdown);
+                  }}
+                  className={styles.snapshotButton}
+                >
+                  Snapshot
+                  {selectedPublishDate && chartMode === "snapshot" && (
+                    <span className={styles.selectedDate}>
+                      ({formatPublishDate(selectedPublishDate)})
+                    </span>
+                  )}
+                  {chartMode === "snapshot" && availablePublishDates.length > 1 && (
+                    <span className={styles.dropdownArrow}>▼</span>
+                  )}
+                </Button>
+                {chartMode === "snapshot" && showSnapshotDropdown && availablePublishDates.length > 1 && (
+                  <div className={styles.snapshotDropdown} ref={dropdownRef}>
+                    <div className={styles.dropdownHeader}>Select Publish Date:</div>
+                    {availablePublishDates.map(date => (
+                      <Button
+                        key={date}
+                        variant={selectedPublishDate === date ? "accent" : "gray"}
+                        size="sm"
+                        ghost={selectedPublishDate !== date}
+                        onClick={() => {
+                          setSelectedPublishDate(date);
+                          setShowSnapshotDropdown(false);
+                        }}
+                        className={styles.dropdownItem}
+                      >
+                        {formatPublishDate(date)}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button
+                variant={chartMode === "trend" ? "accent" : "gray"}
                 size="sm"
-              />
+                outline={chartMode !== "trend"}
+                onClick={() => {
+                  setChartMode("trend");
+                  setShowSnapshotDropdown(false);
+                }}
+              >
+                Trend
+              </Button>
             </div>
-          )}
+          </div>
         </div>
       </nav>
       
@@ -126,11 +199,14 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
               radiusInMiles={radiusInMiles} 
               nearbyProviders={nearbyProviders} 
               nearbyDhcCcns={nearbyDhcCcns} 
+              mainProviderCcns={mainProviderCcns}
               prefetchedData={prefetchedData}
               providerTypeFilter={providerTypeFilter}
               setProviderTypeFilter={setProviderTypeFilter}
               selectedPublishDate={selectedPublishDate}
               setSelectedPublishDate={setSelectedPublishDate}
+              chartMode={chartMode}
+              setChartMode={setChartMode}
             />
           } />
           <Route path="benchmarks" element={
@@ -139,11 +215,14 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
               radiusInMiles={radiusInMiles} 
               nearbyProviders={nearbyProviders} 
               nearbyDhcCcns={nearbyDhcCcns} 
+              mainProviderCcns={mainProviderCcns}
               prefetchedData={prefetchedData}
               providerTypeFilter={providerTypeFilter}
               setProviderTypeFilter={setProviderTypeFilter}
               selectedPublishDate={selectedPublishDate}
               setSelectedPublishDate={setSelectedPublishDate}
+              chartMode={chartMode}
+              setChartMode={setChartMode}
             />
           } />
           <Route path="*" element={<Navigate to="scorecard" replace />} />

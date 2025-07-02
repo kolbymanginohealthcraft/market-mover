@@ -10,8 +10,9 @@ const ProviderBarChart = ({ data }) => {
     const svgElement = chartRef.current;
     d3.select(svgElement).selectAll("*").remove();
 
-    const width = 800;
-    const height = 400;
+    const container = svgElement.parentElement;
+    const width = container.clientWidth || 600;
+    const height = container.clientHeight || 300;
     const margin = { top: 20, right: 20, bottom: 40, left: 60 };
 
     const svg = d3

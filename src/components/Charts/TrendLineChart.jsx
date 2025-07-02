@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import { useEffect, useRef, useState } from "react";
 import styles from "./TrendLineChart.module.css";
 
-const TrendLineChart = ({ data, metricLabel }) => {
+const TrendLineChart = ({ data, xAxisLabels, metricLabel, formatValue }) => {
   const chartRef = useRef();
   const tooltipRef = useRef();
   const [colors] = useState(["#D64550", "#3599B8", "#5F6B6D"]); // Color for each series
@@ -12,8 +12,9 @@ const TrendLineChart = ({ data, metricLabel }) => {
     const svg = d3.select(chartRef.current);
     svg.selectAll("*").remove();
 
-    const width = 800;
-    const height = 400;
+    const container = chartRef.current.parentElement;
+    const width = container.clientWidth || 700;
+    const height = container.clientHeight || 400;
     const margin = { top: 20, right: 20, bottom: 30, left: 60 };
 
     const series = data.map((group, i) => ({
@@ -50,13 +51,27 @@ const TrendLineChart = ({ data, metricLabel }) => {
     svg
       .append("g")
       .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(yScale).tickFormat((d) => `${d}%`));
+      .call(d3.axisLeft(yScale).tickFormat((d) => {
+        if (formatValue) {
+          // Use formatValue to determine if this should be formatted as a rating or percentage
+          const formatted = formatValue(d);
+          return formatted;
+        }
+        return `${d}%`;
+      }));
 
     // X Axis
     svg
       .append("g")
       .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(xScale).ticks(series[0].values.length).tickFormat((d) => `T${d + 1}`));
+      .call(d3.axisBottom(xScale).ticks(series[0].values.length).tickFormat((d) => {
+        if (xAxisLabels && xAxisLabels[d]) {
+          // Format the date as YYYY-MM
+          const [year, month] = xAxisLabels[d].split('-');
+          return `${year}-${month}`;
+        }
+        return `T${d + 1}`;
+      }));
 
     // Tooltip div
     const tooltip = d3.select(tooltipRef.current);
@@ -92,7 +107,7 @@ const TrendLineChart = ({ data, metricLabel }) => {
           .on("mouseenter", () => {
             tooltip
               .style("opacity", 1)
-              .html(`<strong>${s.label}</strong><br/>${val}%`)
+              .html(`<strong>${s.label}</strong><br/>${formatValue ? formatValue(val) : val}`)
               .style("left", `${xScale(index) + 10}px`)
               .style("top", `${yScale(val) - 30}px`);
           })
@@ -101,7 +116,7 @@ const TrendLineChart = ({ data, metricLabel }) => {
           });
       });
     });
-  }, [data, colors, metricLabel]);
+  }, [data, colors, metricLabel, xAxisLabels, formatValue]);
 
   return (
     <div className={styles.chartWrapper}>

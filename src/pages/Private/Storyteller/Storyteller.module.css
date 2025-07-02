@@ -33,7 +33,7 @@
   font-weight: 500;
   color: #666;
   text-decoration: none;
-  padding: 0.5rem 1rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 6px;
   transition: all 0.2s ease;
   position: relative;
@@ -78,6 +78,96 @@
 
 .selectSm:focus {
   border: 1.5px solid #4a90e2;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.toggleLabel:hover {
+  background-color: #e8f0ed;
+}
+
+.toggleLabel input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggleLabel input[type="radio"]:checked + span {
+  color: #265947;
+  font-weight: 600;
+}
+
+.viewToggleContainer {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.dropdownArrow {
+  font-size: 0.7rem;
+  margin-left: 0.25rem;
+}
+
+.selectedDate {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-left: 0.25rem;
+  font-weight: 400;
+}
+
+.toggleButton {
+  position: relative;
+}
+
+.snapshotButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.snapshotDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 150px;
+  margin-top: 4px;
+}
+
+.dropdownHeader {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  background: #f8f8f8;
+}
+
+.dropdownItem {
+  width: 100%;
+  border-radius: 0;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .content {

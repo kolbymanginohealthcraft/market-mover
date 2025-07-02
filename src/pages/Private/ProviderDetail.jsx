@@ -42,6 +42,7 @@ export default function ProviderDetail() {
   const [showPopup, setShowPopup] = useState(false);
   const [marketName, setMarketName] = useState("");
   const inputRef = useRef(null);
+  const [mainProviderCcns, setMainProviderCcns] = useState([]);
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
@@ -93,6 +94,25 @@ export default function ProviderDetail() {
       inputRef.current.focus();
     }
   }, [showPopup]);
+
+  useEffect(() => {
+    async function fetchMainProviderCcns() {
+      if (!provider?.dhc) return setMainProviderCcns([]);
+      const response = await fetch('/api/related-ccns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dhc_ids: [provider.dhc] })
+      });
+      if (!response.ok) return setMainProviderCcns([]);
+      const result = await response.json();
+      if (result.success) {
+        setMainProviderCcns(result.data.map(row => row.ccn));
+      } else {
+        setMainProviderCcns([]);
+      }
+    }
+    fetchMainProviderCcns();
+  }, [provider?.dhc]);
 
   if (loading || !provider) {
     return <Spinner message="Loading provider details..." />;
@@ -225,6 +245,7 @@ export default function ProviderDetail() {
             radiusInMiles={radiusInMiles}
             nearbyProviders={nearbyProviders}
             nearbyDhcCcns={nearbyDhcCcns}
+            mainProviderCcns={mainProviderCcns}
             prefetchedData={{
               loading: storytellerLoading,
               measures: storytellerMeasures,

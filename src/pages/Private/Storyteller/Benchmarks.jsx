@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderBarChart from "../../../components/Charts/ProviderBarChart";
+import TrendLineChart from "../../../components/Charts/TrendLineChart";
 import styles from "../ChartDashboard.module.css";
 
 export default function Benchmarks({ 
@@ -8,20 +9,19 @@ export default function Benchmarks({
   radiusInMiles, 
   nearbyProviders, 
   nearbyDhcCcns, 
+  mainProviderCcns,
   prefetchedData,
   providerTypeFilter,
   setProviderTypeFilter,
   selectedPublishDate,
-  setSelectedPublishDate
+  setSelectedPublishDate,
+  chartMode,
+  setChartMode
 }) {
-  // TODO: For future development - this component will need to handle trend data
-  // The benchmarks tab should show line graphs with data from all available time periods
-  // rather than just a single publish date. This will require:
-  // 1. Fetching data for all available publish dates
-  // 2. Creating trend line charts showing performance over time
-  // 3. Allowing users to select multiple metrics for comparison
-  // 4. Showing trend analysis (improving, declining, stable)
   const [selectedMetric, setSelectedMetric] = useState(null);
+  const [trendData, setTrendData] = useState(null);
+  const [xAxisLabels, setXAxisLabels] = useState([]);
+  const [trendLoading, setTrendLoading] = useState(false);
 
   // Use prefetched data if available and the selected publish date matches the current date, otherwise use the hook
   const usePrefetchedData = prefetchedData && 
@@ -37,7 +37,8 @@ export default function Benchmarks({
     matrixNationalAverages,
     matrixError,
     allMatrixProviders,
-    availableProviderTypes
+    availableProviderTypes,
+    availablePublishDates
   } = useQualityMeasures(
     usePrefetchedData ? null : provider, 
     usePrefetchedData ? null : nearbyProviders, 
@@ -100,7 +101,112 @@ export default function Benchmarks({
     return finalMeasures.find((m) => m.code === selectedMetric);
   }, [finalMeasures, selectedMetric]);
 
-  // Early returns after all hooks
+  // Helper to format measure values (same as ProviderComparisonMatrix)
+  const formatValue = (val, measure) => {
+    if (val === null || val === undefined) return '—';
+
+    const isRating = measure && typeof measure.source === "string" && measure.source.toLowerCase() === "ratings";
+
+    if (isRating) {
+      return Math.round(val);
+    }
+    return Number(val).toFixed(2);
+  };
+
+  useEffect(() => {
+    if (chartMode !== "trend" || !selectedMetric || !availablePublishDates.length || !provider) {
+      setTrendData(null);
+      setTrendLoading(false);
+      return;
+    }
+    let isMounted = true;
+    setTrendLoading(true);
+    console.log('[Trend Debug] selectedMetric:', selectedMetric);
+    console.log('[Trend Debug] provider:', provider);
+    console.log('[Trend Debug] nearbyDhcCcns:', nearbyDhcCcns);
+    Promise.all(
+      [...availablePublishDates].sort().map(date => {
+        // Use mainProviderCcns prop for My Facility
+        const myFacilityCcns = mainProviderCcns || [];
+        // All market CCNs
+        const marketCcns = nearbyDhcCcns ? nearbyDhcCcns.map(row => row.ccn) : [];
+        // For the API, send all unique CCNs (main + market)
+        const ccns = Array.from(new Set([...myFacilityCcns, ...marketCcns]));
+        console.log('[Trend Debug] mainProviderCcns:', myFacilityCcns);
+        console.log('[Trend Debug] marketCcns:', marketCcns);
+        console.log('[Trend Debug] ccns for date', date, ccns);
+        const payload = { ccns, publish_date: date };
+        console.log('[Trend Debug] API payload for date', date, payload);
+        return fetch('/api/qm_combined', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(result => {
+          console.log('[Trend Debug] API result for date', date, result);
+          if (result && result.data) {
+            console.log('[Trend Debug] providerData for date', date, result.data.providerData);
+            console.log('[Trend Debug] measures for date', date, result.data.measures);
+          }
+          return { date, ...result, myFacilityCcns, marketCcns };
+        });
+      })
+    ).then(results => {
+      if (!isMounted) return;
+      // Build arrays for each series
+      const myFacility = [];
+      const marketAvg = [];
+      const nationalAvg = [];
+      const xAxisLabels = [];
+      results.forEach(res => {
+        if (!res.success || !res.data) {
+          myFacility.push(null);
+          marketAvg.push(null);
+          nationalAvg.push(null);
+          xAxisLabels.push(res.date);
+          return;
+        }
+        const { providerData, nationalAverages } = res.data;
+        const { myFacilityCcns, marketCcns } = res;
+        // Debug: log mainProviderCcns and all providerData CCNs (with types)
+        console.log('[Trend Debug] For date', res.date, 'myFacilityCcns:', myFacilityCcns, myFacilityCcns.map(x => typeof x));
+        const providerDataCcns = providerData.map(d => d.ccn);
+        console.log('[Trend Debug] For date', res.date, 'providerData CCNs:', providerDataCcns, providerDataCcns.map(x => typeof x));
+        // My Facility: average score for selectedMetric for mainProviderCcns (as strings)
+        const myRows = providerData.filter(d => myFacilityCcns.map(String).includes(String(d.ccn)) && d.code === selectedMetric);
+        console.log('[Trend Debug] For date', res.date, 'myRows:', myRows);
+        const myScore = myRows.length ? myRows.reduce((sum, d) => sum + (d.score || 0), 0) / myRows.length : null;
+        // Market Average: average score for selectedMetric for all marketCcns (as strings)
+        const marketRows = providerData.filter(d => marketCcns.map(String).includes(String(d.ccn)) && d.code === selectedMetric);
+        const marketScore = marketRows.length ? marketRows.reduce((sum, d) => sum + (d.score || 0), 0) / marketRows.length : null;
+        // National Average: from nationalAverages
+        const natScore = nationalAverages && nationalAverages[selectedMetric] ? nationalAverages[selectedMetric].score : null;
+        console.log('[Trend Debug] For date', res.date, {
+          providerData,
+          nationalAverages,
+          myRows,
+          myScore,
+          marketRows,
+          marketScore,
+          natScore
+        });
+        myFacility.push(myScore);
+        marketAvg.push(marketScore);
+        nationalAvg.push(natScore);
+        xAxisLabels.push(res.date);
+      });
+      setTrendData([
+        { label: "My Facility", values: myFacility },
+        { label: "Market Average", values: marketAvg },
+        { label: "National Average", values: nationalAvg }
+      ]);
+      setXAxisLabels(xAxisLabels);
+      setTrendLoading(false);
+    });
+    return () => { isMounted = false; };
+  }, [chartMode, selectedMetric, availablePublishDates, provider, mainProviderCcns, nearbyDhcCcns]);
+
   if (finalLoading) {
     return <div>Loading quality measure data...</div>;
   }
@@ -147,8 +253,26 @@ export default function Benchmarks({
         )}
       </div>
       <div className={styles.mainContent}>
-        <ProviderBarChart data={chartData} />
+        <div className={styles.chartContainer}>
+          {chartMode === "snapshot" ? (
+            <ProviderBarChart data={chartData} />
+          ) : trendLoading ? (
+            <div>Loading trend data...</div>
+          ) : (
+            Array.isArray(trendData) && trendData.length === 3 && trendData.every(s => s && Array.isArray(s.values)) ? (
+              <TrendLineChart 
+                data={trendData} 
+                xAxisLabels={xAxisLabels}
+                formatValue={(val) => formatValue(val, metricInfo)}
+                metricLabel={metricInfo ? (metricInfo.short_name || metricInfo.name) : ""} 
+              />
+            ) : (
+              <div>No trend data available for this metric.</div>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
-} 
+}
+   
