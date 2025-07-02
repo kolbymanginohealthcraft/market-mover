@@ -153,26 +153,12 @@ const ProviderComparisonMatrix = ({
   // Helper to format publish date as yyyy-mm
   const formatPublishDate = (dateStr) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    // Parse the date string directly to avoid timezone issues
+    const [year, month] = dateStr.split('-');
+    return `${year}-${month}`;
   };
 
-  // Add a SelectInput component for size variants
-  function SelectInput({ id, value, onChange, options, size = 'sm', ...props }) {
-    return (
-      <select
-        id={id}
-        value={value}
-        onChange={onChange}
-        className={size === 'sm' ? styles.selectSm : ''}
-        {...props}
-      >
-        {options.map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
-    );
-  }
+
 
   return (
     <div className={styles.matrixLayout}>
@@ -180,24 +166,7 @@ const ProviderComparisonMatrix = ({
       <aside className={styles.sidebarCol}>
         {/* Sticky sidebar title */}
         <div className={styles.stickySidebarTitle}>Settings</div>
-        <div className="providerTypeFilter">
-          {/* Only the label for the dropdown, no extra title/hint */}
-          {typeof window !== 'undefined' && (
-            <div className={styles.providerTypeContainer}>
-              <label htmlFor="provider-type-select" className={styles.providerTypeLabel}>Provider Type:</label>
-              <SelectInput
-                id="provider-type-select"
-                value={providerTypeFilter}
-                onChange={e => setProviderTypeFilter(e.target.value)}
-                options={availableProviderTypes}
-                size="sm"
-              />
-            </div>
-          )}
-        </div>
         <div className="selectMeasures">
-          <div className={styles.sidebarTitle}>Quality Measures</div>
-          <div className={styles.sidebarSubtitle}>Toggle and reorder measures to compare.</div>
           {/* Drag-and-drop and toggles here */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="measures">
@@ -267,31 +236,6 @@ const ProviderComparisonMatrix = ({
       {/* Table Section */}
       <section className={styles.tableCol}>
         <div className={styles.matrixWrapper}>
-          {/* Sticky table title INSIDE the scrollable wrapper */}
-          <div className={styles.stickyTableTitle}>
-            <div className={styles.stickyTableTitleContent}>
-              <span>Quality Measure Results{publishDate ? ` as of ${formatPublishDate(publishDate)}` : ''}</span>
-              {availablePublishDates.length > 1 && (
-                <div className={styles.publishDateContainer}>
-                  <label htmlFor="publish-date-select" className={styles.publishDateLabel}>
-                    Publish Date:
-                  </label>
-                  <select
-                    id="publish-date-select"
-                    value={selectedPublishDate || availablePublishDates[0]}
-                    onChange={(e) => setSelectedPublishDate(e.target.value)}
-                    className={styles.publishDateSelect}
-                  >
-                    {availablePublishDates.map(date => (
-                      <option key={date} value={date}>
-                        {formatPublishDate(date)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
           <div className={styles.tableScrollArea}>
             <table className={styles.matrixTable}>
               <thead>

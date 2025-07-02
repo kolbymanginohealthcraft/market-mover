@@ -3,12 +3,31 @@ import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderBarChart from "../../../components/Charts/ProviderBarChart";
 import styles from "../ChartDashboard.module.css";
 
-export default function Benchmarks({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, prefetchedData }) {
+export default function Benchmarks({ 
+  provider, 
+  radiusInMiles, 
+  nearbyProviders, 
+  nearbyDhcCcns, 
+  prefetchedData,
+  providerTypeFilter,
+  setProviderTypeFilter,
+  selectedPublishDate,
+  setSelectedPublishDate
+}) {
+  // TODO: For future development - this component will need to handle trend data
+  // The benchmarks tab should show line graphs with data from all available time periods
+  // rather than just a single publish date. This will require:
+  // 1. Fetching data for all available publish dates
+  // 2. Creating trend line charts showing performance over time
+  // 3. Allowing users to select multiple metrics for comparison
+  // 4. Showing trend analysis (improving, declining, stable)
   const [selectedMetric, setSelectedMetric] = useState(null);
-  const [providerTypeFilter, setProviderTypeFilter] = useState('');
 
-  // Use prefetched data if available, otherwise use the hook
-  const usePrefetchedData = prefetchedData && !prefetchedData.loading && !prefetchedData.error;
+  // Use prefetched data if available and the selected publish date matches the current date, otherwise use the hook
+  const usePrefetchedData = prefetchedData && 
+    !prefetchedData.loading && 
+    !prefetchedData.error && 
+    selectedPublishDate === prefetchedData.currentDate;
   
   const {
     matrixLoading,
@@ -22,7 +41,8 @@ export default function Benchmarks({ provider, radiusInMiles, nearbyProviders, n
   } = useQualityMeasures(
     usePrefetchedData ? null : provider, 
     usePrefetchedData ? null : nearbyProviders, 
-    usePrefetchedData ? null : nearbyDhcCcns
+    usePrefetchedData ? null : nearbyDhcCcns,
+    selectedPublishDate
   );
 
   // Use prefetched data when available
@@ -34,13 +54,6 @@ export default function Benchmarks({ provider, radiusInMiles, nearbyProviders, n
   const finalError = usePrefetchedData ? prefetchedData.error : matrixError;
   const finalAllProviders = usePrefetchedData ? prefetchedData.allProviders : allMatrixProviders;
   const finalProviderTypes = usePrefetchedData ? prefetchedData.providerTypes : availableProviderTypes;
-
-  // Set default provider type filter when available types change
-  useEffect(() => {
-    if (finalProviderTypes.length > 0 && !providerTypeFilter) {
-      setProviderTypeFilter(finalProviderTypes[0]);
-    }
-  }, [finalProviderTypes, providerTypeFilter]);
 
   // Set default metric when measures load
   useEffect(() => {

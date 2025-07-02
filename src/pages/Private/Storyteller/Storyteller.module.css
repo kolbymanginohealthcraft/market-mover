@@ -6,13 +6,27 @@
 
 .nav {
   display: flex;
-  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: 1px solid #e0e0e0;
   background: #f8f8f8;
   padding: 0.5rem 1rem;
   position: sticky;
   top: 0;
   z-index: 40;
+  gap: 1rem;
+}
+
+.navLeft {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .navLink {
@@ -35,6 +49,35 @@
   color: #265947;
   background: #e8f0ed;
   border-bottom: 3px solid #265947;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.selectSm {
+  font-size: 0.85rem !important;
+  padding: 3px 8px !important;
+  height: 1.7rem !important;
+  border-radius: 5px !important;
+  border: 1px solid #ddd;
+  background-color: white;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.selectSm:focus {
+  border: 1.5px solid #4a90e2;
 }
 
 .content {

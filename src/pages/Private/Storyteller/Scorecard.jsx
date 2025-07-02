@@ -1,16 +1,25 @@
-import { useState } from "react";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "../ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
 
 console.log("Scorecard component mounted");
 
-export default function Scorecard({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, prefetchedData }) {
-  const [providerTypeFilter, setProviderTypeFilter] = useState('');
-  const [selectedPublishDate, setSelectedPublishDate] = useState(null);
-
-  // Use prefetched data if available, otherwise use the hook
-  const usePrefetchedData = prefetchedData && !prefetchedData.loading && !prefetchedData.error;
+export default function Scorecard({ 
+  provider, 
+  radiusInMiles, 
+  nearbyProviders, 
+  nearbyDhcCcns, 
+  prefetchedData,
+  providerTypeFilter,
+  setProviderTypeFilter,
+  selectedPublishDate,
+  setSelectedPublishDate
+}) {
+  // Use prefetched data if available and the selected publish date matches the current date, otherwise use the hook
+  const usePrefetchedData = prefetchedData && 
+    !prefetchedData.loading && 
+    !prefetchedData.error && 
+    selectedPublishDate === prefetchedData.currentDate;
   
   const {
     matrixLoading,
@@ -42,11 +51,6 @@ export default function Scorecard({ provider, radiusInMiles, nearbyProviders, ne
   const finalProviderTypes = usePrefetchedData ? prefetchedData.providerTypes : availableProviderTypes;
   const finalPublishDates = usePrefetchedData ? prefetchedData.publishDates : availablePublishDates;
   const finalCurrentDate = usePrefetchedData ? prefetchedData.currentDate : currentPublishDate;
-
-  // Set default provider type filter when available types change
-  if (finalProviderTypes.length > 0 && !providerTypeFilter) {
-    setProviderTypeFilter(finalProviderTypes[0]);
-  }
 
   // Filter providers by selected type (if any)
   const filteredMatrixProviders = providerTypeFilter
