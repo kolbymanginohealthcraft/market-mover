@@ -166,6 +166,12 @@ button {
   }
 }
 
+/* ===== Storyteller Page Overrides ===== */
+/* Override Layout overflow when on storyteller pages */
+body[data-page="storyteller"] .page .main {
+  overflow: hidden !important;
+}
+
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);

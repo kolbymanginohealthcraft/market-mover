@@ -103,20 +103,22 @@ export default function Scorecard({
   }
 
   return (
-    <ProviderComparisonMatrix
-      provider={mainProviderInMatrix}
-      competitors={competitorsInMatrix}
-      measures={finalMeasures}
-      data={finalData}
-      marketAverages={finalMarketAverages}
-      nationalAverages={finalNationalAverages}
-      publishDate={finalCurrentDate}
-      providerTypeFilter={providerTypeFilter}
-      setProviderTypeFilter={setProviderTypeFilter}
-      availableProviderTypes={finalProviderTypes}
-      availablePublishDates={finalPublishDates}
-      selectedPublishDate={selectedPublishDate}
-      setSelectedPublishDate={setSelectedPublishDate}
-    />
+    <div className={styles.scorecardContainer}>
+      <ProviderComparisonMatrix
+        provider={mainProviderInMatrix}
+        competitors={competitorsInMatrix}
+        measures={finalMeasures}
+        data={finalData}
+        marketAverages={finalMarketAverages}
+        nationalAverages={finalNationalAverages}
+        publishDate={finalCurrentDate}
+        providerTypeFilter={providerTypeFilter}
+        setProviderTypeFilter={setProviderTypeFilter}
+        availableProviderTypes={finalProviderTypes}
+        availablePublishDates={finalPublishDates}
+        selectedPublishDate={selectedPublishDate}
+        setSelectedPublishDate={setSelectedPublishDate}
+      />
+    </div>
   );
 } 

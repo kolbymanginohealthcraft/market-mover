@@ -2,15 +2,15 @@
 .matrixLayout {
   display: flex;
   align-items: flex-start;
-  width: 100vw;
-  height: 100vh; /* Full viewport height */
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
   margin: 0;
   padding: 0;
-  overflow: hidden !important; /* No page scrollbars */
+  overflow: hidden;
   background: #f6f8fa;
 }
-
-
 
 .stickyTableTitleContent {
   display: flex;
@@ -18,8 +18,6 @@
   justify-content: space-between;
   width: 100%;
 }
-
-
 
 .ellipsisCell {
   white-space: nowrap;
@@ -54,7 +52,7 @@
   position: sticky !important;
   top: 0 !important;
   left: 0 !important;
-  height: 100vh; /* Full viewport height */
+  height: calc(100vh - 120px); /* Account for navbar and footer */
   min-width: 240px;
   max-width: 300px;
   background: #f8fafd;
@@ -147,23 +145,25 @@
   flex: 1 1 0%;
   min-width: 0;
   max-width: 100%;
-  height: 100vh; /* Full viewport height */
+  min-height: 0;
   margin: 0;
   padding: 0;
   position: relative;
   background: #fff;
   display: flex;
   flex-direction: column;
-  overflow: hidden !important;
+  height: 100%;
 }
 
 /* --- Matrix wrapper: only scrollable area, always show scrollbars --- */
 .matrixWrapper {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%; /* Full height */
-  width: 100%;
-  overflow: hidden;
 }
 
 .matrixWrapper::-webkit-scrollbar {
@@ -183,12 +183,12 @@
 .matrixTable {
   border-collapse: collapse;
   border-spacing: 0;
-  width: 100%;
-  min-width: calc(100vw + 100px); /* Force the table to be wider than the viewport to ensure horizontal scrollbar */
+  min-width: 900px;
+  width: max-content;
   background: #fff;
   font-size: 0.78rem;
   table-layout: fixed;
-  margin: 0; /* Remove margin to prevent spacing issues */
+  margin: 0;
 }
 
 .matrixTable th, .matrixTable td {
@@ -205,22 +205,22 @@
 .matrixTable th, .stickyHeader {
   position: sticky !important;
   top: 0 !important;
-  background: #f8f8f8 !important;
+  background: #e8f4fd !important;
   z-index: 100 !important;
   font-weight: 700;
   letter-spacing: 0.02em;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-  color: #222;
+  color: #1d8a68;
   text-align: center;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 4px double #265947;
 }
 
 /* --- First column: sticky, wide, ellipsis --- */
 .stickyCol {
   position: sticky !important;
   left: 0 !important;
-  background: #f8f9fa !important;
-  z-index: 110 !important;
+  background: #e8f4fd !important;
+  z-index: 100 !important;
   font-weight: 600;
   text-align: left !important;
   min-width: 200px;
@@ -232,13 +232,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.78rem;
+  color: #1d8a68;
 }
 
 .matrixTable th.stickyCol {
   left: 0 !important;
-  z-index: 120 !important;
-  background: #f4f6fa !important;
+  z-index: 110 !important;
   text-align: left !important;
+  position: sticky !important;
+  top: 0 !important;
 }
 
 /* Main provider row sticky column styling */
@@ -334,10 +336,6 @@
   font-weight: 600;
 }
 
-
-
-
-
 /* Legacy classes for backward compatibility */
 .win {
   background: #d4edda !important;
@@ -386,6 +384,8 @@
   font-weight: 700;
   border-left: 4px solid #265947;
   box-shadow: 0 2px 4px rgba(37, 89, 71, 0.1);
+  border-top: 3px solid #222 !important;
+  border-bottom: 3px solid #222 !important;
 }
 
 .matrixTable tbody tr.mainProviderRow:hover {
@@ -398,10 +398,6 @@
   font-weight: 700;
   color: #1d8a68;
 }
-
-
-
-
 
 /* --- Sticky sidebar title --- */
 .stickySidebarTitle {
@@ -431,10 +427,6 @@
   box-sizing: border-box;
 }
 
-html, body {
-  overflow: hidden !important;
-}
-
 .matrixTable th.stickyHeader:not(.stickyCol) {
   left: unset !important;
 }
@@ -442,50 +434,56 @@ html, body {
 .matrixTable thead {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
   background: #f8f8f8;
 }
 
 .tableScrollArea {
-  flex: 1 1 0;
-  width: 100%;
-  /* Create a container that can scroll both horizontally and vertically */
-  overflow: auto;
-  /* Always show horizontal scrollbar */
-  overflow-x: scroll;
-  overflow-y: auto;
-  /* Force horizontal scrollbar to always be visible */
-  scrollbar-width: auto; /* For Firefox */
-  -ms-overflow-style: auto; /* For Internet Explorer and Edge */
-  scrollbar-gutter: stable; /* This ensures the scrollbar is always visible */
-  /* Ensure content is always wider than container to trigger horizontal scroll */
-  padding-right: 1px;
-  box-sizing: border-box;
-  /* Make sure this container can grow to fill available space */
+  flex: 1 1 0%;
   min-height: 0;
-  /* Ensure the horizontal scrollbar is always at the bottom of the viewport */
+  min-width: 0;
+  height: 100%;
+  width: 100%;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #fff;
   position: relative;
 }
 
-/* Always show horizontal scrollbar for the table scroll area */
+.tableScrollInner {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .tableScrollArea::-webkit-scrollbar {
   height: 14px;
   width: 14px;
   background: #f8fafd;
   display: block !important; /* Always show scrollbar */
 }
-
 .tableScrollArea::-webkit-scrollbar-thumb {
   background: #bfc7d1;
   border-radius: 8px;
 }
-
-.tableScrollArea::-webkit-scrollbar-track {
+.tableScrollArea::-webkit-scrollbar-corner {
   background: #f8fafd;
 }
 
-.tableScrollArea::-webkit-scrollbar-corner {
-  background: #f8fafd;
+.matrixTable th.stickyCol {
+  left: 0 !important;
+  z-index: 110 !important;
+  text-align: left !important;
+  position: sticky !important;
+  top: 0 !important;
+}
+
+.matrixTable tbody tr.mainProviderRow {
+  background: var(--highlight-selected-provider) !important;
+  font-weight: 700;
+  border-left: 4px solid #265947;
+  box-shadow: 0 2px 4px rgba(37, 89, 71, 0.1);
+  border-top: 3px solid #222 !important;
+  border-bottom: 3px solid #222 !important;
 }
 
  

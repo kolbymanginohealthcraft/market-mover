@@ -8,6 +8,14 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   const location = useLocation();
   const base = location.pathname.replace(/\/storyteller.*/, "/storyteller");
   
+  // Set body attribute for CSS overrides
+  useEffect(() => {
+    document.body.setAttribute('data-page', 'storyteller');
+    return () => {
+      document.body.removeAttribute('data-page');
+    };
+  }, []);
+  
   // Move state management to this level so it can be shared between tabs
   const [providerTypeFilter, setProviderTypeFilter] = useState('');
   const [selectedPublishDate, setSelectedPublishDate] = useState(null);
