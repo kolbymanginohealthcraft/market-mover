@@ -3,8 +3,11 @@ import useNearbyProviders from "../../../hooks/useNearbyProviders";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "../ProviderComparisonMatrix";
 
+console.log("Scorecard component mounted");
+
 export default function Scorecard({ provider, radiusInMiles }) {
   const [providerTypeFilter, setProviderTypeFilter] = useState('');
+  const [selectedPublishDate, setSelectedPublishDate] = useState(null);
 
   // Get nearby providers and their CCNs
   const { providers: nearbyProviders, ccns: nearbyDhcCcns } = useNearbyProviders(provider, radiusInMiles);
@@ -18,8 +21,10 @@ export default function Scorecard({ provider, radiusInMiles }) {
     matrixNationalAverages,
     matrixError,
     allMatrixProviders,
-    availableProviderTypes
-  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns);
+    availableProviderTypes,
+    availablePublishDates,
+    currentPublishDate
+  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate);
 
   // Set default provider type filter when available types change
   if (availableProviderTypes.length > 0 && !providerTypeFilter) {
@@ -55,10 +60,13 @@ export default function Scorecard({ provider, radiusInMiles }) {
       data={matrixData}
       marketAverages={matrixMarketAverages}
       nationalAverages={matrixNationalAverages}
-      publishDate={null} // TODO: Add publish date from quality measures
+      publishDate={currentPublishDate}
       providerTypeFilter={providerTypeFilter}
       setProviderTypeFilter={setProviderTypeFilter}
       availableProviderTypes={availableProviderTypes}
+      availablePublishDates={availablePublishDates}
+      selectedPublishDate={selectedPublishDate}
+      setSelectedPublishDate={setSelectedPublishDate}
     />
   );
 } 

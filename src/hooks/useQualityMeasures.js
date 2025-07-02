@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns) {
+export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate = null) {
   const [matrixLoading, setMatrixLoading] = useState(true);
   const [matrixMeasures, setMatrixMeasures] = useState([]);
   const [matrixData, setMatrixData] = useState({});
@@ -10,6 +10,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   const [allMatrixProviders, setAllMatrixProviders] = useState([]);
   const [matrixProviderIdToCcns, setMatrixProviderIdToCcns] = useState({});
   const [availableProviderTypes, setAvailableProviderTypes] = useState([]);
+  const [availablePublishDates, setAvailablePublishDates] = useState([]);
+  const [currentPublishDate, setCurrentPublishDate] = useState(null);
 
   useEffect(() => {
     async function fetchMatrixData() {
@@ -65,15 +67,42 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         const uniqueTypes = Array.from(new Set(allProviders.map(p => p.type).filter(Boolean)));
         setAvailableProviderTypes(uniqueTypes);
 
-        // 5. Find latest publish_date
-        const latestResponse = await fetch('/api/qm_post/latest');
-        if (!latestResponse.ok) throw new Error('Failed to fetch latest publish date');
-        const latestResult = await latestResponse.json();
-        if (!latestResult.success) throw new Error(latestResult.error);
-        const publish_date = latestResult.data.publish_date?.value || latestResult.data.publish_date;
+        // 5. Fetch available publish dates
+        const availableDatesResponse = await fetch('/api/qm_post/available-dates');
+        if (!availableDatesResponse.ok) throw new Error('Failed to fetch available publish dates');
+        const availableDatesResult = await availableDatesResponse.json();
+        if (!availableDatesResult.success) throw new Error(availableDatesResult.error);
+        const availableDates = availableDatesResult.data;
+        setAvailablePublishDates(availableDates);
+
+        // 6. Determine which publish date to use
+        let publish_date;
+        if (availableDates.length === 0) {
+          console.log("⚠️ No available publish dates found");
+          setMatrixError("No quality measure data available for any publish date");
+          setMatrixLoading(false);
+          return;
+        }
+        
+        if (selectedPublishDate && availableDates.includes(selectedPublishDate)) {
+          publish_date = selectedPublishDate;
+        } else {
+          // Use the most recent date as default
+          publish_date = availableDates[0];
+        }
+        setCurrentPublishDate(publish_date);
+        
+        console.log('📅 Using publish date:', publish_date, 'from available dates:', availableDates);
 
         // 6. Fetch all quality measure data for these CCNs and measures
         const allCcns = Object.values(providerDhcToCcns).flat();
+        
+        console.log('🔍 Fetching quality measure data:', {
+          providerDhc: provider?.dhc,
+          allCcnsCount: allCcns.length,
+          publish_date,
+          sampleCcns: allCcns.slice(0, 5)
+        });
         
         const providerDataResponse = await fetch('/api/qm_provider/data', {
           method: 'POST',
@@ -84,6 +113,12 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         const providerDataResult = await providerDataResponse.json();
         if (!providerDataResult.success) throw new Error(providerDataResult.error);
         const providerData = providerDataResult.data;
+        
+        console.log('📊 Quality measure data received:', {
+          dataCount: providerData.length,
+          uniqueCcns: [...new Set(providerData.map(d => d.ccn))].length,
+          uniqueCodes: [...new Set(providerData.map(d => d.code))].length
+        });
         
         // Check which CCNs have data vs which we requested
         const ccnsWithData = [...new Set(providerData.map(d => d.ccn))];
@@ -144,13 +179,16 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
         // 9. Organize data for ProviderComparisonMatrix
         let dataByDhc = {};
+        let providersWithData = 0;
         allProviders.forEach(p => {
           const ccns = providerDhcToCcns[p.dhc] || [];
           dataByDhc[p.dhc] = {};
+          let providerHasData = false;
           measures.forEach(m => {
             // Aggregate quality measure data for all CCNs for this provider and measure
             const foundData = providerData.filter(d => ccns.includes(d.ccn) && d.code === m.code);
             if (foundData.length > 0) {
+              providerHasData = true;
               // Average if multiple CCNs
               const avgScore = foundData.reduce((sum, d) => sum + (d.score || 0), 0) / foundData.length;
               const avgPercentile = foundData.reduce((sum, d) => sum + (d.percentile_column || 0), 0) / foundData.length;
@@ -160,6 +198,14 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
               };
             }
           });
+          if (providerHasData) providersWithData++;
+        });
+        
+        console.log('🏥 Provider data summary:', {
+          totalProviders: allProviders.length,
+          providersWithData,
+          mainProviderDhc: provider?.dhc,
+          mainProviderHasData: Object.keys(dataByDhc[provider?.dhc] || {}).length > 0
         });
 
         setMatrixMeasures(measures);
@@ -177,7 +223,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
       }
     }
     fetchMatrixData();
-  }, [provider, nearbyProviders, nearbyDhcCcns]);
+  }, [provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate]);
 
   return {
     matrixLoading,
@@ -188,6 +234,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
     matrixError,
     allMatrixProviders,
     matrixProviderIdToCcns,
-    availableProviderTypes
+    availableProviderTypes,
+    availablePublishDates,
+    currentPublishDate
   };
 } 

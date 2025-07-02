@@ -29,6 +29,9 @@ const ProviderComparisonMatrix = ({
   providerTypeFilter,
   setProviderTypeFilter,
   availableProviderTypes = [],
+  availablePublishDates = [],
+  selectedPublishDate,
+  setSelectedPublishDate,
 }) => {
   // Sidebar: measure selection and drag-and-drop order
   const allMeasureCodes = measures.map((m) => m.code);
@@ -216,7 +219,42 @@ const ProviderComparisonMatrix = ({
         <div className={styles.matrixWrapper}>
           {/* Sticky table title */}
           <div className={styles.stickyTableTitle}>
-            Quality Measure Results{publishDate ? ` as of ${publishDate}` : ''}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Quality Measure Results{publishDate ? ` as of ${new Date(publishDate).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              })}` : ''}</span>
+              {availablePublishDates.length > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label htmlFor="publish-date-select" style={{ fontSize: '0.85rem', fontWeight: 500, color: '#666' }}>
+                    Publish Date:
+                  </label>
+                  <select
+                    id="publish-date-select"
+                    value={selectedPublishDate || availablePublishDates[0]}
+                    onChange={(e) => setSelectedPublishDate(e.target.value)}
+                    style={{
+                      fontSize: '0.85rem',
+                      padding: '4px 8px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    {availablePublishDates.map(date => (
+                      <option key={date} value={date}>
+                        {new Date(date).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
           <table className={styles.matrixTable}>
             <thead>
