@@ -6,6 +6,7 @@ import styles from "./Storyteller.module.css";
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, prefetchedData }) {
   const location = useLocation();
   const base = location.pathname.replace(/\/storyteller.*/, "/storyteller");
+  
   return (
     <div className={styles.container}>
       <nav className={styles.nav}>

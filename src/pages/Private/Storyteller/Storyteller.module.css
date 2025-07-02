@@ -10,17 +10,31 @@
   border-bottom: 1px solid #e0e0e0;
   background: #f8f8f8;
   padding: 0.5rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .navLink {
-  font-weight: 400;
-  color: #333;
+  font-weight: 500;
+  color: #666;
   text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.navLink:hover {
+  background: #e8f0ed;
+  color: #265947;
 }
 
 .navLink.active {
-  font-weight: 700;
+  font-weight: 600;
   color: #265947;
+  background: #e8f0ed;
+  border-bottom: 3px solid #265947;
 }
 
 .content {

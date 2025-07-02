@@ -80,18 +80,45 @@ const ProviderComparisonMatrix = ({
     return (data[rowKey] && data[rowKey][measureCode]) || {};
   };
 
-  // Conditional formatting: green if highest percentile, red if lowest, neutral otherwise (higher is always better)
+  // Calculate average percentile for each provider
+  const calculateAveragePercentile = (providerKey) => {
+    const percentiles = selectedMeasureObjs
+      .map(m => getCell(providerKey, m.code)?.percentile)
+      .filter(p => p !== null && p !== undefined);
+    
+    if (percentiles.length === 0) return null;
+    return percentiles.reduce((sum, p) => sum + p, 0) / percentiles.length;
+  };
+
+  // Sort rows by average percentile (descending)
+  const sortedRows = [...rows].sort((a, b) => {
+    const avgA = calculateAveragePercentile(a.key);
+    const avgB = calculateAveragePercentile(b.key);
+    
+    if (avgA === null && avgB === null) return 0;
+    if (avgA === null) return 1;
+    if (avgB === null) return -1;
+    
+    return avgB - avgA; // Descending order
+  });
+
+  // Continuous conditional formatting with Excel-style green-red gradient
   const getCellClass = (measureCode, values, direction, rowIdx) => {
-    // Only use percentile for comparison, higher is always better
-    const scores = values.map((v) => v?.percentile ?? null).filter((v) => v !== null);
-    if (scores.length === 0) return '';
-    const best = Math.max(...scores);
-    const worst = Math.min(...scores);
+    const percentiles = values.map((v) => v?.percentile ?? null).filter((v) => v !== null);
+    if (percentiles.length === 0) return '';
+    
     const value = values[rowIdx]?.percentile;
     if (value === undefined) return '';
-    if (value === best) return styles.win;
-    if (value === worst) return styles.loss;
-    return styles.neutral;
+    
+    // Calculate percentile as percentage (0-100)
+    const percentile = value * 100;
+    
+    // Create continuous color scale: 0% = red, 50% = yellow, 100% = green
+    if (percentile >= 80) return styles.excellent;
+    if (percentile >= 60) return styles.good;
+    if (percentile >= 40) return styles.average;
+    if (percentile >= 20) return styles.poor;
+    return styles.veryPoor;
   };
 
   // Tooltip state for provider details
@@ -100,11 +127,20 @@ const ProviderComparisonMatrix = ({
   // Helper to format measure values
   const formatValue = (val, measure) => {
     if (val === null || val === undefined) return '—';
-    // Star ratings: show as integer if measure.source === 'ratings'
-    if (measure && measure.source === 'ratings') {
+
+    // Always show integer for these columns
+    const STAR_RATING_COLUMNS = [
+      "overall", "survey", "qm", "qm long", "qm short", "staffing"
+    ];
+
+    const isRating = measure && (
+      (typeof measure.source === "string" && measure.source.toLowerCase() === "ratings") ||
+      STAR_RATING_COLUMNS.includes(measure.name?.toLowerCase())
+    );
+
+    if (isRating) {
       return Math.round(val);
     }
-    // Otherwise, two decimals
     return Number(val).toFixed(2);
   };
 
@@ -112,6 +148,13 @@ const ProviderComparisonMatrix = ({
   const formatPercentile = (val) => {
     if (val === null || val === undefined) return '';
     return ` (${Math.round(val * 100)}%)`;
+  };
+
+  // Helper to format publish date as yyyy-mm
+  const formatPublishDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   };
 
   // Add a SelectInput component for size variants
@@ -154,7 +197,7 @@ const ProviderComparisonMatrix = ({
         </div>
         <div className="selectMeasures">
           <div className={styles.sidebarTitle}>Quality Measures</div>
-          <div className={styles.sidebarHint}>Toggle and reorder measures to compare.</div>
+          <div className={styles.sidebarSubtitle}>Toggle and reorder measures to compare.</div>
           {/* Drag-and-drop and toggles here */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="measures">
@@ -170,23 +213,27 @@ const ProviderComparisonMatrix = ({
                     return (
                       <Draggable key={code} draggableId={code} index={index}>
                         {(provided, snapshot) => (
-                          <li
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={styles.metricItem}
-                            style={{
-                              ...provided.draggableProps.style,
-                              backgroundColor: snapshot.isDragging ? '#e0f7ff' : undefined,
+                                                  <li
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={styles.metricItem}
+                          style={{
+                            ...provided.draggableProps.style,
+                            backgroundColor: snapshot.isDragging ? '#e0f7ff' : undefined,
+                          }}
+                          onClick={() => toggleMeasure(code)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMeasures.includes(code)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleMeasure(code);
                             }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedMeasures.includes(code)}
-                              onChange={() => toggleMeasure(code)}
-                            />
-                            {m.name}
-                          </li>
+                          />
+                          {m.name}
+                        </li>
                         )}
                       </Draggable>
                     );
@@ -201,11 +248,14 @@ const ProviderComparisonMatrix = ({
             {measures
               .filter((m) => !selectedMeasures.includes(m.code))
               .map((m) => (
-                <li key={m.code} className={styles.unselectedItem}>
+                <li key={m.code} className={styles.unselectedItem} onClick={() => toggleMeasure(m.code)}>
                   <input
                     type="checkbox"
                     checked={false}
-                    onChange={() => toggleMeasure(m.code)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleMeasure(m.code);
+                    }}
                   />
                   {m.name}
                 </li>
@@ -217,14 +267,10 @@ const ProviderComparisonMatrix = ({
       {/* Table Section */}
       <section className={styles.tableCol}>
         <div className={styles.matrixWrapper}>
-          {/* Sticky table title */}
+          {/* Sticky table title INSIDE the scrollable wrapper */}
           <div className={styles.stickyTableTitle}>
             <div className={styles.stickyTableTitleContent}>
-              <span>Quality Measure Results{publishDate ? ` as of ${new Date(publishDate).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-              })}` : ''}</span>
+              <span>Quality Measure Results{publishDate ? ` as of ${formatPublishDate(publishDate)}` : ''}</span>
               {availablePublishDates.length > 1 && (
                 <div className={styles.publishDateContainer}>
                   <label htmlFor="publish-date-select" className={styles.publishDateLabel}>
@@ -238,11 +284,7 @@ const ProviderComparisonMatrix = ({
                   >
                     {availablePublishDates.map(date => (
                       <option key={date} value={date}>
-                        {new Date(date).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                        {formatPublishDate(date)}
                       </option>
                     ))}
                   </select>
@@ -250,60 +292,68 @@ const ProviderComparisonMatrix = ({
               )}
             </div>
           </div>
-          <table className={styles.matrixTable}>
-            <thead>
-              <tr>
-                {/* Top-left cell: sticky header and sticky column */}
-                <th className={`${styles.stickyCol} ${styles.stickyHeader}`}>Provider</th>
-                {selectedMeasureObjs.map((m) => (
-                  <th key={m.code} className={styles.stickyHeader} title={m.description}>{m.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, rowIdx) => (
-                <tr key={row.key} className={rowIdx === 0 ? styles.mainProviderRow : undefined}>
-                  <td
-                    className={`${styles.stickyCol} ${styles.ellipsisCell}`}
-                    onMouseEnter={e => {
-                      if (row.providerObj && (row.providerObj.street || row.providerObj.network)) {
-                        setTooltip({
-                          show: true,
-                          text: `${row.providerObj.street ? row.providerObj.street + ', ' : ''}${row.providerObj.city ? row.providerObj.city + ', ' : ''}${row.providerObj.state ? row.providerObj.state + ' ' : ''}${row.providerObj.zip ? row.providerObj.zip : ''}\n${row.providerObj.network ? 'Network: ' + row.providerObj.network : ''}`,
-                          x: e.clientX,
-                          y: e.clientY + 12,
-                        });
-                      }
-                    }}
-                    onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
-                  >
-                    <span className={styles.ellipsis}>{row.label}</span>
-                  </td>
-                  {selectedMeasureObjs.map((m, colIdx) => {
-                    // Gather all values for this measure for conditional formatting
-                    const values = rows.map((r) => getCell(r.key, m.code));
-                    const cell = getCell(row.key, m.code);
-                    const cellClass = getCellClass(m.code, values, m.direction, rowIdx);
-                    return (
-                      <td key={m.code} className={cellClass}>
-                        {cell.score !== undefined ? (
-                          <span>
-                            {/* Star ratings always integer, others two decimals */}
-                            {m.source === 'ratings' ? Math.round(cell.score) : Number(cell.score).toFixed(2)}
-                            {cell.percentile !== undefined && (
-                              <span className={styles.percentile}>{formatPercentile(cell.percentile)}</span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className={styles.noData}>—</span>
-                        )}
-                      </td>
-                    );
-                  })}
+          <div className={styles.tableScrollArea}>
+            <table className={styles.matrixTable}>
+              <thead>
+                <tr>
+                  {/* Top-left cell: sticky header and sticky column */}
+                  <th className={`${styles.stickyCol} ${styles.stickyHeader}`}>Provider</th>
+                  <th className={styles.stickyHeader} title="Average percentile across selected measures">Avg %</th>
+                  {selectedMeasureObjs.map((m) => (
+                    <th key={m.code} className={styles.stickyHeader} title={m.description}>{m.name}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedRows.map((row, rowIdx) => (
+                  <tr key={row.key} className={row.key === provider?.dhc ? styles.mainProviderRow : undefined}>
+                    <td
+                      className={`${styles.stickyCol} ${styles.ellipsisCell}`}
+                      onMouseEnter={e => {
+                        if (row.providerObj && (row.providerObj.street || row.providerObj.network)) {
+                          setTooltip({
+                            show: true,
+                            text: `${row.providerObj.street ? row.providerObj.street + ', ' : ''}${row.providerObj.city ? row.providerObj.city + ', ' : ''}${row.providerObj.state ? row.providerObj.state + ' ' : ''}${row.providerObj.zip ? row.providerObj.zip : ''}\n${row.providerObj.network ? 'Network: ' + row.providerObj.network : ''}`,
+                            x: e.clientX,
+                            y: e.clientY + 12,
+                          });
+                        }
+                      }}
+                      onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
+                    >
+                      <span className={styles.ellipsis}>{row.label}</span>
+                    </td>
+                    <td className={styles.averagePercentile}>
+                      {(() => {
+                        const avg = calculateAveragePercentile(row.key);
+                        return avg !== null ? `${Math.round(avg * 100)}%` : '—';
+                      })()}
+                    </td>
+                    {selectedMeasureObjs.map((m, colIdx) => {
+                      // Gather all values for this measure for conditional formatting
+                      const values = sortedRows.map((r) => getCell(r.key, m.code));
+                      const cell = getCell(row.key, m.code);
+                      const cellClass = getCellClass(m.code, values, m.direction, rowIdx);
+                      return (
+                        <td key={m.code} className={cellClass}>
+                          {cell.score !== undefined ? (
+                            <span>
+                              {formatValue(cell.score, m)}
+                              {cell.percentile !== undefined && (
+                                <span className={styles.percentile}>{formatPercentile(cell.percentile)}</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className={styles.noData}>—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {/* Tooltip popup (fixed position, not clipped) */}
           {tooltip.show && (
             <div

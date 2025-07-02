@@ -189,7 +189,7 @@
 }
 
 .highlightedRow {
-  background-color: #fff8cc !important;
+  background-color: var(--highlight-selected-provider) !important;
 }
 
 /* --- Tagging --- */

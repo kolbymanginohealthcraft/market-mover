@@ -27,9 +27,10 @@ export default function SubNavbar({ providerId: providerDhc }) {
       </NavLink>
       <NavLink
         to={`${prefix}/storyteller/scorecard${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
+        className={({ isActive }) => {
+          const isOnStorytellerRoute = location.pathname.includes('/storyteller');
+          return `${styles.tab} ${(isActive || isOnStorytellerRoute) ? styles.activeTab : ""}`;
+        }}
       >
         Storyteller
       </NavLink>

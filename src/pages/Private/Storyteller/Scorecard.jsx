@@ -1,6 +1,7 @@
 import { useState } from "react";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "../ProviderComparisonMatrix";
+import styles from "./Scorecard.module.css";
 
 console.log("Scorecard component mounted");
 
@@ -58,55 +59,25 @@ export default function Scorecard({ provider, radiusInMiles, nearbyProviders, ne
 
   if (finalLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100%',
-        padding: '2rem',
-        color: '#666'
-      }}>
-        <div style={{ 
-          width: '40px', 
-          height: '40px', 
-          border: '4px solid #f3f3f3', 
-          borderTop: '4px solid #265947', 
-          borderRadius: '50%', 
-          animation: 'spin 1s linear infinite',
-          marginBottom: '1rem'
-        }}></div>
-        <div style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <div className={styles.loadingTitle}>
           {usePrefetchedData ? 'Loading Quality Measure Data...' : 'Loading Quality Measure Data...'}
         </div>
-        <div style={{ fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px' }}>
+        <div className={styles.loadingSubtitle}>
           {usePrefetchedData ? 'Using prefetched data...' : 'Fetching provider comparisons, market averages, and national benchmarks'}
         </div>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
 
   if (finalError) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100%',
-        padding: '2rem',
-        color: '#666'
-      }}>
-        <div style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '1rem', color: '#d32f2f' }}>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorTitle}>
           Error loading quality measure data
         </div>
-        <div style={{ fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px', marginBottom: '1rem' }}>
+        <div className={styles.errorMessage}>
           {finalError}
         </div>
         <button 
@@ -115,15 +86,7 @@ export default function Scorecard({ provider, radiusInMiles, nearbyProviders, ne
             clearCache();
             window.location.reload();
           }}
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: '#265947',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.9rem'
-          }}
+          className={styles.retryButton}
         >
           Retry
         </button>
