@@ -72,23 +72,17 @@ serve(async (req) => {
       });
     }
 
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("id, license_quantity")
-      .eq("team_id", team.id)
-      .single();
-
     const { count: currentMembers } = await supabase
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("team_id", team.id);
 
     console.log("📊 Current members:", currentMembers);
-    console.log("📦 License limit:", subscription?.license_quantity);
+    console.log("📦 License limit:", team.max_users);
 
     if (
-      subscription?.license_quantity !== null &&
-      currentMembers >= subscription.license_quantity
+      team.max_users !== null &&
+      currentMembers >= team.max_users
     ) {
       return new Response(
         JSON.stringify({ error: "No available licenses on this team" }),

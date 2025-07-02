@@ -236,70 +236,66 @@ const ProviderComparisonMatrix = ({
       {/* Table Section */}
       <section className={styles.tableCol}>
         <div className={styles.matrixWrapper}>
-          <div className={styles.tableScrollArea}>
-            <div className={styles.tableScrollInner}>
-              <table className={styles.matrixTable}>
-                <thead>
-                  <tr>
-                    {/* Top-left cell: sticky header and sticky column */}
-                    <th className={`${styles.stickyCol} ${styles.stickyHeader}`}>Provider</th>
-                    <th className={styles.stickyHeader} title="Average percentile across selected measures">Avg %</th>
-                    {selectedMeasureObjs.map((m) => (
-                      <th key={m.code} className={styles.stickyHeader} title={m.description}>{m.name}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedRows.map((row, rowIdx) => (
-                    <tr key={row.key} className={row.key === provider?.dhc ? styles.mainProviderRow : undefined}>
-                      <td
-                        className={`${styles.stickyCol} ${styles.ellipsisCell}`}
-                        onMouseEnter={e => {
-                          if (row.providerObj && (row.providerObj.street || row.providerObj.network)) {
-                            setTooltip({
-                              show: true,
-                              text: `${row.providerObj.street ? row.providerObj.street + ', ' : ''}${row.providerObj.city ? row.providerObj.city + ', ' : ''}${row.providerObj.state ? row.providerObj.state + ' ' : ''}${row.providerObj.zip ? row.providerObj.zip : ''}\n${row.providerObj.network ? 'Network: ' + row.providerObj.network : ''}`,
-                              x: e.clientX,
-                              y: e.clientY + 12,
-                            });
-                          }
-                        }}
-                        onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
-                      >
-                        <span className={styles.ellipsis}>{row.label}</span>
-                      </td>
-                      <td className={styles.averagePercentile}>
-                        {(() => {
-                          const avg = calculateAveragePercentile(row.key);
-                          return avg !== null ? `${Math.round(avg * 100)}%` : '—';
-                        })()}
-                      </td>
-                      {selectedMeasureObjs.map((m, colIdx) => {
-                        // Gather all values for this measure for conditional formatting
-                        const values = sortedRows.map((r) => getCell(r.key, m.code));
-                        const cell = getCell(row.key, m.code);
-                        const cellClass = getCellClass(m.code, values, m.direction, rowIdx);
-                        return (
-                          <td key={m.code} className={cellClass}>
-                            {cell.score !== undefined ? (
-                              <span>
-                                {formatValue(cell.score, m)}
-                                {cell.percentile !== undefined && (
-                                  <span className={styles.percentile}>{formatPercentile(cell.percentile)}</span>
-                                )}
-                              </span>
-                            ) : (
-                              <span className={styles.noData}>—</span>
+          <table className={styles.matrixTable}>
+            <thead>
+              <tr>
+                {/* Top-left cell: sticky header and sticky column */}
+                <th className={`${styles.stickyCol} ${styles.stickyHeader} ${styles.stickyCorner}`}>Provider</th>
+                <th className={styles.stickyHeader} title="Average percentile across selected measures">Avg %</th>
+                {selectedMeasureObjs.map((m) => (
+                  <th key={m.code} className={styles.stickyHeader} title={m.description}>{m.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.map((row, rowIdx) => (
+                <tr key={row.key} className={row.key === provider?.dhc ? styles.mainProviderRow : undefined}>
+                  <td
+                    className={`${styles.stickyCol} ${styles.ellipsisCell}`}
+                    onMouseEnter={e => {
+                      if (row.providerObj && (row.providerObj.street || row.providerObj.network)) {
+                        setTooltip({
+                          show: true,
+                          text: `${row.providerObj.street ? row.providerObj.street + ', ' : ''}${row.providerObj.city ? row.providerObj.city + ', ' : ''}${row.providerObj.state ? row.providerObj.state + ' ' : ''}${row.providerObj.zip ? row.providerObj.zip : ''}\n${row.providerObj.network ? 'Network: ' + row.providerObj.network : ''}`,
+                          x: e.clientX,
+                          y: e.clientY + 12,
+                        });
+                      }
+                    }}
+                    onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
+                  >
+                    <span className={styles.ellipsis}>{row.label}</span>
+                  </td>
+                  <td className={styles.averagePercentile}>
+                    {(() => {
+                      const avg = calculateAveragePercentile(row.key);
+                      return avg !== null ? `${Math.round(avg * 100)}%` : '—';
+                    })()}
+                  </td>
+                  {selectedMeasureObjs.map((m, colIdx) => {
+                    // Gather all values for this measure for conditional formatting
+                    const values = sortedRows.map((r) => getCell(r.key, m.code));
+                    const cell = getCell(row.key, m.code);
+                    const cellClass = getCellClass(m.code, values, m.direction, rowIdx);
+                    return (
+                      <td key={m.code} className={cellClass}>
+                        {cell.score !== undefined ? (
+                          <span>
+                            {formatValue(cell.score, m)}
+                            {cell.percentile !== undefined && (
+                              <span className={styles.percentile}>{formatPercentile(cell.percentile)}</span>
                             )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          </span>
+                        ) : (
+                          <span className={styles.noData}>—</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
           {/* Tooltip popup (fixed position, not clipped) */}
           {tooltip.show && (
             <div

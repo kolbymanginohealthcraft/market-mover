@@ -8,8 +8,9 @@
   min-width: 0;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: hidden; /* Layer 1: Container - no overflow */
   background: #f6f8fa;
+  position: relative;
 }
 
 .stickyTableTitleContent {
@@ -52,7 +53,7 @@
   position: sticky !important;
   top: 0 !important;
   left: 0 !important;
-  height: calc(100vh - 120px); /* Account for navbar and footer */
+  height: 100%; /* Use full height of parent container */
   min-width: 240px;
   max-width: 300px;
   background: #f8fafd;
@@ -144,40 +145,57 @@
 .tableCol {
   flex: 1 1 0%;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   max-width: 100%;
+  min-width: 0;
   min-height: 0;
   margin: 0;
   padding: 0;
   position: relative;
   background: #fff;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  /* height: 100%; */
+  /* overflow: hidden; */
 }
 
-/* --- Matrix wrapper: only scrollable area, always show scrollbars --- */
+/* --- Matrix wrapper: scrollable area with fixed height --- */
 .matrixWrapper {
   flex: 1 1 0%;
-  min-height: 0;
   min-width: 0;
-  height: 100%;
+  min-height: 0;
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  height: 70vh;
+  overflow: auto;
+  background: #fff;
+  position: relative;
+  scrollbar-width: auto;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
+/* Custom scrollbar styling for webkit browsers */
 .matrixWrapper::-webkit-scrollbar {
-  height: 14px;
-  width: 14px;
-  background: #f8fafd;
-  display: block !important; /* Always show scrollbar */
+  width: 12px;
+  height: 12px;
 }
+
+.matrixWrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+
 .matrixWrapper::-webkit-scrollbar-thumb {
-  background: #bfc7d1;
-  border-radius: 8px;
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
 }
+
+.matrixWrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 .matrixWrapper::-webkit-scrollbar-corner {
-  background: #f8fafd;
+  background: #f1f1f1;
 }
 
 .matrixTable {
@@ -187,8 +205,13 @@
   width: max-content;
   background: #fff;
   font-size: 0.78rem;
-  table-layout: fixed;
   margin: 0;
+  /* Layer 3: Table - content that can be larger than viewport */
+  position: relative;
+  /* Ensure table can expand beyond viewport */
+  table-layout: auto;
+  white-space: nowrap;
+
 }
 
 .matrixTable th, .matrixTable td {
@@ -200,6 +223,9 @@
   color: #222;
   overflow-wrap: break-word;
   white-space: normal;
+  /* Ensure cells don't shrink below minimum width */
+  min-width: 90px;
+  max-width: none;
 }
 
 .matrixTable th, .stickyHeader {
@@ -213,6 +239,8 @@
   color: #1d8a68;
   text-align: center;
   border-bottom: 4px double #265947;
+  white-space: normal;
+  word-break: break-word;
 }
 
 /* --- First column: sticky, wide, ellipsis --- */
@@ -220,7 +248,7 @@
   position: sticky !important;
   left: 0 !important;
   background: #e8f4fd !important;
-  z-index: 100 !important;
+  z-index: 120 !important;
   font-weight: 600;
   text-align: left !important;
   min-width: 200px;
@@ -237,7 +265,7 @@
 
 .matrixTable th.stickyCol {
   left: 0 !important;
-  z-index: 110 !important;
+  z-index: 120 !important;
   text-align: left !important;
   position: sticky !important;
   top: 0 !important;
@@ -250,11 +278,11 @@
   color: #1d8a68;
 }
 
-/* --- All other columns: fixed width, allow wrapping --- */
+/* --- All other columns: allow expansion, allow wrapping --- */
 .matrixTable th:not(.stickyCol), .matrixTable td:not(.stickyCol) {
-  min-width: 90px;
-  max-width: 90px;
-  width: 90px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
   overflow-wrap: break-word;
   white-space: normal;
   text-align: left;
@@ -438,43 +466,12 @@
   background: #f8f8f8;
 }
 
-.tableScrollArea {
-  flex: 1 1 0%;
-  min-height: 0;
-  min-width: 0;
-  height: 100%;
-  width: 100%;
-  max-height: 70vh;
-  overflow-y: auto;
-  background: #fff;
-  position: relative;
-}
-
-.tableScrollInner {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.tableScrollArea::-webkit-scrollbar {
-  height: 14px;
-  width: 14px;
-  background: #f8fafd;
-  display: block !important; /* Always show scrollbar */
-}
-.tableScrollArea::-webkit-scrollbar-thumb {
-  background: #bfc7d1;
-  border-radius: 8px;
-}
-.tableScrollArea::-webkit-scrollbar-corner {
-  background: #f8fafd;
-}
-
-.matrixTable th.stickyCol {
+.matrixTable td.stickyCol {
+  position: sticky !important;
   left: 0 !important;
   z-index: 110 !important;
+  background: #e8f4fd !important;
   text-align: left !important;
-  position: sticky !important;
-  top: 0 !important;
 }
 
 .matrixTable tbody tr.mainProviderRow {
@@ -486,4 +483,32 @@
   border-bottom: 3px solid #222 !important;
 }
 
- 
+.stickyCorner {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 130 !important;
+  background: #e8f4fd !important;
+}
+
+.matrixTable th.stickyHeader {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 120 !important;
+  background: #e8f4fd !important;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.matrixTable td.stickyCol {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 110 !important;
+  background: #e8f4fd !important;
+  text-align: left !important;
+}
+
+.matrixTable th, .stickyHeader {
+  white-space: normal;
+  word-break: break-word;
+}

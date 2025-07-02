@@ -51,21 +51,12 @@ export default function UserProfile() {
       if (profileData.team_id) {
         const { data: teamData } = await supabase
           .from("teams")
-          .select("name, max_users")
+          .select("name, max_users, tier")
           .eq("id", profileData.team_id)
           .single();
 
-        const { data: subData } = await supabase
-          .from("subscriptions")
-          .select("plan_id, status, plans(name)")
-          .eq("team_id", profileData.team_id)
-          .in("status", ["active", "trialing"])
-          .order("renewed_at", { ascending: false })
-          .limit(1)
-          .single();
-
         setSubscription({
-          plan_name: subData?.plans?.name || "free",
+          plan_name: teamData?.tier || "free",
           team_name: teamData?.name || null,
           max_users: teamData?.max_users || null,
         });

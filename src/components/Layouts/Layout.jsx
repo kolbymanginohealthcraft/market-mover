@@ -11,7 +11,7 @@ export default function Layout() {
   return (
     <div className={styles.page}>
       <Navbar />
-      <main className={`${styles.main} ${isStorytellerPage ? styles.mainNoScroll : ''}`}>
+      <main className={styles.main}>
         <Outlet />
       </main>
       <Footer />

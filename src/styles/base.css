@@ -167,10 +167,10 @@ button {
 }
 
 /* ===== Storyteller Page Overrides ===== */
-/* Override Layout overflow when on storyteller pages */
-body[data-page="storyteller"] .page .main {
+/* Allow scrolling on storyteller pages - removed overflow hidden override */
+/* body[data-page="storyteller"] .page .main {
   overflow: hidden !important;
-}
+} */
 
 @keyframes logo-spin {
   from {
