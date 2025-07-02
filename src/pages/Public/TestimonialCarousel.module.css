@@ -2,6 +2,14 @@
   background: linear-gradient(135deg, #d1f3ed 0%, #f6f9f8 100%);
   padding: 60px 24px;
   text-align: center;
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.section.inView {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .container {
@@ -14,17 +22,25 @@
   font-weight: 700;
   color: #265947;
   margin-bottom: 40px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s;
 }
 
-/* New: Carousel controls including arrows */
-.carouselControls {
+.title.inView {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Carousel container with buttons on sides */
+.carouselContainer {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 16px;
+  position: relative;
 }
 
-/* Arrow buttons */
+/* Arrow buttons positioned on sides */
 .arrow {
   background-color: #ffffff;
   border: 2px solid #1dadbe;
@@ -38,14 +54,20 @@
   color: #1dadbe;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 .arrow:hover {
   background-color: #e3f4f0;
   color: #1d8a9f;
   border-color: #1d8a9f;
+  transform: scale(1.05);
 }
 
+.arrow:active {
+  transform: scale(0.95);
+}
 
 /* Scrollable container */
 .carouselWrapper {
@@ -54,6 +76,15 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s;
+  flex: 1;
+}
+
+.carouselWrapper.inView {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .carouselWrapper::-webkit-scrollbar {
@@ -93,4 +124,21 @@
   font-weight: 600;
   color: #265947;
   font-size: 0.95rem;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+  .carouselContainer {
+    gap: 8px;
+  }
+  
+  .arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+  }
+  
+  .carouselWrapper {
+    padding: 0 4px;
+  }
 }

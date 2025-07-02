@@ -1,8 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import styles from "./LandingPage.module.css";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import Button from "../../components/Buttons/Button";
 import Hero from "./Hero";
 import About from "./About";
@@ -12,13 +10,8 @@ import TestimonialCarousel from "./TestimonialCarousel";
 import MarketPreview from "./MarketPreview";
 
 const LandingPage = () => {
-  useEffect(() => {
-    AOS.init({ duration: 800, once: true });
-  }, []);
-
   return (
     <div className={styles.page}>
-
       {/* Sections */}
       <Hero />
       <About />
@@ -26,7 +19,6 @@ const LandingPage = () => {
       <WhosItFor />
       <TestimonialCarousel />
       <MarketPreview />
-
 
       {/* CTA Section */}
       <section className={styles.ctaSection}>

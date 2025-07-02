@@ -25,7 +25,7 @@ export default function Hero() {
   return (
     <section className={styles.hero} ref={heroRef}>
       <div className={styles.heroGrid}>
-        <div className={styles.heroTextCard}>
+        <div className={styles.heroTextCard} data-aos="fade-right" data-aos-delay="200">
           <h1 className={styles.heroTitle}>Smarter Decisions, Powered by Data</h1>
 
           <p className={styles.heroSubtitle}>
@@ -76,7 +76,7 @@ export default function Hero() {
           </Link>
         </div>
 
-        <div className={styles.heroImageWrapper}>
+        <div className={styles.heroImageWrapper} data-aos="fade-left" data-aos-delay="500">
           <img src={heroImage} alt="Market insights dashboard" className={styles.heroImage} />
         </div>
       </div>

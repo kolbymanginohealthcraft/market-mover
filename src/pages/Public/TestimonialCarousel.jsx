@@ -1,7 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import styles from './TestimonialCarousel.module.css';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
 
 const testimonials = [
   {
@@ -57,17 +55,40 @@ const testimonials = [
 ];
 
 export default function TestimonialCarousel() {
+  const carouselRef = useRef();
+  const sectionRef = useRef();
+  const titleRef = useRef();
+  const carouselWrapperRef = useRef();
+
   useEffect(() => {
-    AOS.init({ duration: 800, once: true });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add(styles.inView);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    // Observe the section, title, and carousel wrapper
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    if (titleRef.current) observer.observe(titleRef.current);
+    if (carouselWrapperRef.current) observer.observe(carouselWrapperRef.current);
+
+    return () => observer.disconnect();
   }, []);
 
-  const carouselRef = useRef();
-
   const scroll = (direction) => {
-    if (carouselRef.current) {
-      const { scrollLeft, clientWidth } = carouselRef.current;
-      const scrollAmount = clientWidth * 0.9;
-      carouselRef.current.scrollTo({
+    if (carouselWrapperRef.current) {
+      const { scrollLeft, clientWidth } = carouselWrapperRef.current;
+      // Calculate scroll amount based on card width + gap
+      const cardWidth = 280; // min-width of card
+      const gap = 24; // gap between cards
+      const scrollAmount = cardWidth + gap;
+      
+      carouselWrapperRef.current.scrollTo({
         left: direction === 'right' ? scrollLeft + scrollAmount : scrollLeft - scrollAmount,
         behavior: 'smooth',
       });
@@ -75,23 +96,23 @@ export default function TestimonialCarousel() {
   };
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} ref={sectionRef}>
       <div className={styles.container}>
-        <h2 className={styles.title}>Testimonials</h2>
-        <div className={styles.carouselWrapper}>
-          <div className={styles.carousel}>
-            {testimonials.map((t, idx) => (
-              <div className={styles.card} key={idx}>
-                <p className={styles.quote}>{t.quote}</p>
-                <div className={styles.author}>{t.name}, {t.role}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className={styles.carouselControls}>
+        <h2 className={styles.title} ref={titleRef}>Testimonials</h2>
+        <div className={styles.carouselContainer}>
           <button className={styles.arrow} onClick={() => scroll('left')}>
             ←
           </button>
+          <div className={styles.carouselWrapper} ref={carouselWrapperRef}>
+            <div className={styles.carousel} ref={carouselRef}>
+              {testimonials.map((t, idx) => (
+                <div className={styles.card} key={idx}>
+                  <p className={styles.quote}>{t.quote}</p>
+                  <div className={styles.author}>{t.name}, {t.role}</div>
+                </div>
+              ))}
+            </div>
+          </div>
           <button className={styles.arrow} onClick={() => scroll('right')}>
             →
           </button>

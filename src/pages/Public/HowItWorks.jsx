@@ -1,7 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from './HowItWorks.module.css';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
 
 const steps = [
   {
@@ -31,18 +29,43 @@ const steps = [
 ];
 
 export default function HowItWorks() {
+  const sectionRef = useRef();
+  const titleRef = useRef();
+  const cardRefs = useRef([]);
+
   useEffect(() => {
-    AOS.init({ duration: 800, once: true });
-    AOS.refresh();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add(styles.inView);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    // Observe the section, title, and cards
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    if (titleRef.current) observer.observe(titleRef.current);
+    cardRefs.current.forEach(card => {
+      if (card) observer.observe(card);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} ref={sectionRef}>
       <div className={styles.container}>
-        <h2 className={styles.title}>How It Works</h2>
+        <h2 className={styles.title} ref={titleRef}>How It Works</h2>
         <div className={styles.grid}>
           {steps.map((step, index) => (
-            <div className={styles.card} key={index}>
+            <div 
+              className={styles.card} 
+              key={index}
+              ref={el => cardRefs.current[index] = el}
+            >
               <div className={styles.icon}>{step.icon}</div>
               <h3 className={styles.stepTitle}>{step.title}</h3>
               <p className={styles.stepDescription}>{step.description}</p>

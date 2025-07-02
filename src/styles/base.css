@@ -180,3 +180,14 @@ button {
     transform: rotate(360deg);
   }
 }
+
+/* ===== AOS Animation Support ===== */
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  [data-aos] {
+    transition: none !important;
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

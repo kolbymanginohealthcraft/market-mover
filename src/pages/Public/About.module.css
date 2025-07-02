@@ -1,6 +1,14 @@
 .about {
   background-color: #ffffff;
   padding: 60px 24px;
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.about.inView {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .container {
@@ -17,6 +25,30 @@
 .columnRight {
   text-align: left;
   padding: 0 12px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.columnLeft.inView {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.2s;
+}
+
+.columnRight.inView {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.4s;
+}
+
+/* Initial transform for slide-in effect */
+.columnLeft {
+  transform: translateX(-30px);
+}
+
+.columnRight {
+  transform: translateX(30px);
 }
 
 /* Section Headings */
@@ -56,6 +88,20 @@
 
   .container::before {
     display: none;
+  }
+  
+  /* Adjust transforms for mobile */
+  .columnLeft {
+    transform: translateY(30px);
+  }
+  
+  .columnRight {
+    transform: translateY(30px);
+  }
+  
+  .columnLeft.inView,
+  .columnRight.inView {
+    transform: translateY(0);
   }
 }
 
