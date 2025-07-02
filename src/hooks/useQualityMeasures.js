@@ -4,6 +4,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const apiCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// Function to clear the client-side cache
+export function clearClientCache() {
+  apiCache.clear();
+  console.log('🧹 Client-side cache cleared');
+}
+
 function getCacheKey(endpoint, params = {}) {
   return `${endpoint}:${JSON.stringify(params)}`;
 }

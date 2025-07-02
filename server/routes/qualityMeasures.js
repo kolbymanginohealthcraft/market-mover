@@ -378,6 +378,7 @@ router.post("/qm_combined", async (req, res) => {
     let actualPublishDate = publish_date;
     let availableDates = [];
     
+    // Try to get dates from qm_post first
     if (existingTables.includes('qm_post')) {
       const [datesRows] = await myBigQuery.query({
         query: `SELECT DISTINCT publish_date FROM \`market-mover-464517.quality.qm_post\` ORDER BY publish_date DESC`,
@@ -390,11 +391,29 @@ router.post("/qm_combined", async (req, res) => {
         if (row.publish_date) return String(row.publish_date);
         return null;
       }).filter(Boolean);
+    }
+    
+    // If no dates from qm_post, try qm_provider as fallback
+    if (availableDates.length === 0 && existingTables.includes('qm_provider')) {
+      console.log("📅 No dates found in qm_post, checking qm_provider...");
+      const [providerDatesRows] = await myBigQuery.query({
+        query: `SELECT DISTINCT publish_date FROM \`market-mover-464517.quality.qm_provider\` ORDER BY publish_date DESC`,
+        location: "US"
+      });
       
-      // If publish_date is 'latest' or not found in available dates, use the most recent
-      if (publish_date === 'latest' || !availableDates.includes(publish_date)) {
-        actualPublishDate = availableDates[0] || null;
-      }
+      availableDates = providerDatesRows.map(row => {
+        if (typeof row.publish_date === 'string') return row.publish_date;
+        if (row.publish_date && typeof row.publish_date === 'object' && row.publish_date.value) return row.publish_date.value;
+        if (row.publish_date) return String(row.publish_date);
+        return null;
+      }).filter(Boolean);
+      
+      console.log("📅 Found dates in qm_provider:", availableDates);
+    }
+    
+    // If publish_date is 'latest' or not found in available dates, use the most recent
+    if (publish_date === 'latest' || !availableDates.includes(publish_date)) {
+      actualPublishDate = availableDates[0] || null;
     }
     
     console.log('📅 Using publish date:', actualPublishDate, 'from available dates:', availableDates);
@@ -563,6 +582,29 @@ router.get("/qm_debug", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ BigQuery qm_debug query error:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Cache clearing endpoint
+router.post("/clear-cache", async (req, res) => {
+  try {
+    // Import the cache module
+    const cache = await import('../utils/cache.js');
+    cache.default.clear();
+    
+    console.log("🧹 Cache cleared via API endpoint");
+    res.status(200).json({ 
+      success: true, 
+      message: "Cache cleared successfully",
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("❌ Cache clearing error:", err);
     res.status(500).json({ 
       success: false, 
       error: err.message,
