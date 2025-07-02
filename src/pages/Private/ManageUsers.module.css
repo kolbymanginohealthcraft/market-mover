@@ -198,8 +198,38 @@
 .subscriptionActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 12px;
+}
+
+/* --- Inline style replacements --- */
+.editButton {
+  margin-left: 8px;
+}
+
+.cancelButton {
+  margin-left: 8px;
+}
+
+.actionsHeader {
+  width: 100px;
+}
+
+.deleteButton {
+  min-height: 30px;
+  padding: 4px 8px;
+  line-height: 1.2;
+}
+
+.upgradeButton {
+  margin-left: 12px;
+}
+
+.purchaseButton {
+  margin-left: 12px;
+}
+
+.deleteAccountButton {
+  margin-left: 12px;
 }
 
 .backButtonRow {
@@ -208,12 +238,11 @@
   margin-bottom: 16px;
 }
 
-
 /* Fix delete button row height so it doesn't stretch taller */
 .table tbody tr td:last-child button {
   padding: 4px 8px;
   line-height: 1.2;
-  min-height: 30px
+  min-height: 30px;
 }
 
 @keyframes fadeOut {

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../app/supabaseClient";
 import { useNavigate } from "react-router-dom";
+import styles from "./CompleteProfile.module.css";
 
 export default function CompleteProfile() {
   const [loading, setLoading] = useState(true);
@@ -57,9 +58,9 @@ export default function CompleteProfile() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ maxWidth: "500px", margin: "0 auto", padding: "2rem" }}>
+    <div className={styles.container}>
       <h2>Complete Your Profile</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className={styles.form}>
         <input
           type="text"
           placeholder="First Name"
@@ -83,7 +84,7 @@ export default function CompleteProfile() {
         />
         <button type="submit">Save and Continue</button>
       </form>
-      {message && <p>{message}</p>}
+      {message && <p className={styles.message}>{message}</p>}
     </div>
   );
 }

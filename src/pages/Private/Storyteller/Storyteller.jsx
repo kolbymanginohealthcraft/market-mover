@@ -1,21 +1,28 @@
 import { Routes, Route, NavLink, useLocation, Navigate } from "react-router-dom";
 import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
+import styles from "./Storyteller.module.css";
 
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, prefetchedData }) {
   const location = useLocation();
   const base = location.pathname.replace(/\/storyteller.*/, "/storyteller");
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <nav style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e0e0e0', background: '#f8f8f8', padding: '0.5rem 1rem' }}>
-        <NavLink to={`${base}/scorecard`} style={({ isActive }) => ({ fontWeight: isActive ? 700 : 400, color: isActive ? '#265947' : '#333', textDecoration: 'none' })}>
+    <div className={styles.container}>
+      <nav className={styles.nav}>
+        <NavLink 
+          to={`${base}/scorecard`} 
+          className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+        >
           Scorecard
         </NavLink>
-        <NavLink to={`${base}/benchmarks`} style={({ isActive }) => ({ fontWeight: isActive ? 700 : 400, color: isActive ? '#265947' : '#333', textDecoration: 'none' })}>
+        <NavLink 
+          to={`${base}/benchmarks`} 
+          className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+        >
           Benchmarks
         </NavLink>
       </nav>
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div className={styles.content}>
         <Routes>
           <Route path="scorecard" element={<Scorecard provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} nearbyDhcCcns={nearbyDhcCcns} prefetchedData={prefetchedData} />} />
           <Route path="benchmarks" element={<Benchmarks provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} nearbyDhcCcns={nearbyDhcCcns} prefetchedData={prefetchedData} />} />

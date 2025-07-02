@@ -292,7 +292,7 @@ export default function ManageUsers() {
                 size="sm"
                 variant="gray"
                 onClick={() => setEditingTeamName(true)}
-                style={{ marginLeft: 8 }}
+                className={styles.editButton}
               >
                 Edit
               </Button>
@@ -327,7 +327,7 @@ export default function ManageUsers() {
                     setNewTeamName(teamInfo.name);
                   }}
                   disabled={savingTeamName}
-                  style={{ marginLeft: 8 }}
+                  className={styles.cancelButton}
                 >
                   Cancel
                 </Button>
@@ -423,7 +423,7 @@ export default function ManageUsers() {
               <th>Name</th>
               <th>Title</th>
               <th>Email</th>
-              <th style={{ width: "100px" }}>Actions</th>
+              <th className={styles.actionsHeader}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -441,11 +441,7 @@ export default function ManageUsers() {
                       variant="red"
                       ghost
                       onClick={() => onDelete(member)}
-                      style={{
-                        minHeight: "30px",
-                        padding: "4px 8px",
-                        lineHeight: "1.2",
-                      }}
+                      className={styles.deleteButton}
                     >
                       Delete
                     </Button>
@@ -472,7 +468,7 @@ export default function ManageUsers() {
           <Button variant="gold" size="md" disabled>
             Upgrade / Downgrade (Coming Soon)
           </Button>
-          <Button variant="teal" size="md" disabled style={{ marginLeft: 12 }}>
+          <Button variant="teal" size="md" disabled className={styles.purchaseButton}>
             Purchase Licenses (Coming Soon)
           </Button>
           <Button
@@ -480,7 +476,7 @@ export default function ManageUsers() {
             size="md"
             ghost
             disabled
-            style={{ marginLeft: 12 }}
+            className={styles.deleteAccountButton}
           >
             Delete Account (Coming Soon)
           </Button>

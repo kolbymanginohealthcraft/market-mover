@@ -1,0 +1,38 @@
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form input {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form button {
+  padding: 0.75rem;
+  background: #265947;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.form button:hover {
+  background: #1d8a68;
+}
+
+.message {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+} 

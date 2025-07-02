@@ -1,4 +1,5 @@
 import { useState } from "react";
+import styles from "./InviteUserBox.module.css";
 
 export default function InviteUserBox({ teamId }) {
   const [email, setEmail] = useState("");
@@ -24,16 +25,17 @@ export default function InviteUserBox({ teamId }) {
   };
 
   return (
-    <div style={{ marginTop: "20px" }}>
+    <div className={styles.container}>
       <input
         type="email"
         placeholder="Enter email to invite"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
+        className={styles.input}
       />
-      <button onClick={handleInvite}>Invite</button>
-      <div>{status}</div>
+      <button onClick={handleInvite} className={styles.button}>Invite</button>
+      <div className={styles.status}>{status}</div>
     </div>
   );
 }

@@ -140,8 +140,8 @@ const ProviderComparisonMatrix = ({
         <div className="providerTypeFilter">
           {/* Only the label for the dropdown, no extra title/hint */}
           {typeof window !== 'undefined' && (
-            <div style={{ width: '100%' }}>
-              <label htmlFor="provider-type-select" style={{ marginRight: 8, fontWeight: 600, color: '#3a3a3a', fontSize: '0.85rem', letterSpacing: '0.01em' }}>Provider Type:</label>
+            <div className={styles.providerTypeContainer}>
+              <label htmlFor="provider-type-select" className={styles.providerTypeLabel}>Provider Type:</label>
               <SelectInput
                 id="provider-type-select"
                 value={providerTypeFilter}
@@ -219,28 +219,22 @@ const ProviderComparisonMatrix = ({
         <div className={styles.matrixWrapper}>
           {/* Sticky table title */}
           <div className={styles.stickyTableTitle}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className={styles.stickyTableTitleContent}>
               <span>Quality Measure Results{publishDate ? ` as of ${new Date(publishDate).toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'short', 
                 day: 'numeric' 
               })}` : ''}</span>
               {availablePublishDates.length > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label htmlFor="publish-date-select" style={{ fontSize: '0.85rem', fontWeight: 500, color: '#666' }}>
+                <div className={styles.publishDateContainer}>
+                  <label htmlFor="publish-date-select" className={styles.publishDateLabel}>
                     Publish Date:
                   </label>
                   <select
                     id="publish-date-select"
                     value={selectedPublishDate || availablePublishDates[0]}
                     onChange={(e) => setSelectedPublishDate(e.target.value)}
-                    style={{
-                      fontSize: '0.85rem',
-                      padding: '4px 8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      backgroundColor: 'white'
-                    }}
+                    className={styles.publishDateSelect}
                   >
                     {availablePublishDates.map(date => (
                       <option key={date} value={date}>
@@ -270,8 +264,7 @@ const ProviderComparisonMatrix = ({
               {rows.map((row, rowIdx) => (
                 <tr key={row.key} className={rowIdx === 0 ? styles.mainProviderRow : undefined}>
                   <td
-                    className={styles.stickyCol}
-                    style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    className={`${styles.stickyCol} ${styles.ellipsisCell}`}
                     onMouseEnter={e => {
                       if (row.providerObj && (row.providerObj.street || row.providerObj.network)) {
                         setTooltip({
@@ -314,8 +307,8 @@ const ProviderComparisonMatrix = ({
           {/* Tooltip popup (fixed position, not clipped) */}
           {tooltip.show && (
             <div
-              className={styles.providerTooltipPopup}
-              style={{ left: tooltip.x + 10, top: tooltip.y, position: 'fixed' }}
+              className={`${styles.providerTooltipPopup} ${styles.tooltipPopup}`}
+              style={{ left: tooltip.x + 10, top: tooltip.y }}
             >
               {tooltip.text}
             </div>

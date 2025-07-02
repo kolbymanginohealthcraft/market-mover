@@ -10,6 +10,55 @@
   background: #f6f8fa;
 }
 
+/* --- Inline style replacements --- */
+.providerTypeContainer {
+  width: 100%;
+}
+
+.providerTypeLabel {
+  margin-right: 8px;
+  font-weight: 600;
+  color: #3a3a3a;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
+.stickyTableTitleContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.publishDateContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.publishDateLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.publishDateSelect {
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.ellipsisCell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltipPopup {
+  position: fixed;
+}
+
 .sidebarCol {
   position: sticky !important;
   top: 0 !important;

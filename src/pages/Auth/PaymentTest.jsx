@@ -105,73 +105,62 @@ export default function PaymentTest() {
   };
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 400 }}>
+    <div className={styles.container}>
       <h2>Team Payment</h2>
 
-      <div style={{ marginBottom: "0.5rem" }}>
+      <div className={styles.formGroup}>
         <label>Card Number</label>
         <input
           value={number}
           onChange={(e) => setNumber(e.target.value)}
-          style={{ width: "100%" }}
         />
       </div>
 
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <div>
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
           <label>Exp Month</label>
           <input
             value={expMonth}
             onChange={(e) => setExpMonth(e.target.value)}
-            style={{ width: "4rem" }}
           />
         </div>
-        <div>
+        <div className={styles.formGroup}>
           <label>Exp Year</label>
           <input
             value={expYear}
             onChange={(e) => setExpYear(e.target.value)}
-            style={{ width: "4rem" }}
           />
         </div>
-        <div>
+        <div className={styles.formGroup}>
           <label>CVV</label>
           <input
             value={cvv}
             onChange={(e) => setCvv(e.target.value)}
-            style={{ width: "4rem" }}
           />
         </div>
       </div>
 
-      <div style={{ marginBottom: "0.5rem" }}>
+      <div className={styles.formGroup}>
         <label>Amount (USD)</label>
         <input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          style={{ width: "6rem" }}
+          className={styles.amountInput}
         />
       </div>
 
-      <button onClick={handlePay} disabled={loading}>
+      <button className={styles.submitButton} onClick={handlePay} disabled={loading}>
         {loading ? "Processing…" : "Submit Payment"}
       </button>
 
       {error && (
-        <div style={{ marginTop: "1rem", color: "red" }}>
+        <div className={styles.errorMessage}>
           Error: {error}
         </div>
       )}
 
       {result && !error && (
-        <div
-          style={{
-            marginTop: "1rem",
-            padding: "1rem",
-            background: "#f4f4f4",
-            borderRadius: "4px",
-          }}
-        >
+        <div className={styles.resultContainer}>
           <p>
             <strong>Authorized!</strong>
           </p>
