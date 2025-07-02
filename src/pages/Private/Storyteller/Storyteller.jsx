@@ -140,18 +140,26 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
                   outline={chartMode !== "snapshot"}
                   onClick={() => {
                     setChartMode("snapshot");
-                    setShowSnapshotDropdown(!showSnapshotDropdown);
                   }}
                   className={styles.snapshotButton}
                 >
                   Snapshot
-                  {selectedPublishDate && chartMode === "snapshot" && (
+                  {selectedPublishDate && (
                     <span className={styles.selectedDate}>
                       ({formatPublishDate(selectedPublishDate)})
                     </span>
                   )}
-                  {chartMode === "snapshot" && availablePublishDates.length > 1 && (
-                    <span className={styles.dropdownArrow}>▼</span>
+                  {availablePublishDates.length > 1 && (
+                    <button
+                      className={styles.dropdownArrow}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setChartMode("snapshot");
+                        setShowSnapshotDropdown(!showSnapshotDropdown);
+                      }}
+                    >
+                      ▼
+                    </button>
                   )}
                 </Button>
                 {chartMode === "snapshot" && showSnapshotDropdown && availablePublishDates.length > 1 && (
