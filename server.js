@@ -27,14 +27,12 @@ const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        process.env.FRONTEND_URL, 
-        'https://market-mover-rust.vercel.app',
-        'https://market-mover.vercel.app',
-        'https://your-frontend-domain.vercel.app'
-      ].filter(Boolean)
-    : 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://market-mover-rust.vercel.app',
+    'https://market-mover.vercel.app',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true
 }));
 app.use(express.json());
