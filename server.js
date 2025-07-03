@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
+import cors from "cors";
 
 import qualityMeasures from "./server/routes/qualityMeasures.js";
 import searchProviders from "./server/routes/searchProviders.js";
@@ -25,6 +26,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL, 'https://your-frontend-domain.vercel.app']
+    : 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
 // Basic health check
