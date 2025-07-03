@@ -115,5 +115,12 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  // console.log(`✅ Express API server running at http://localhost:${PORT}`);
+  console.log(`✅ Express API server running at http://localhost:${PORT}`);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
 });
