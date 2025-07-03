@@ -28,7 +28,7 @@ export default function useCensusData(provider, radiusInMiles, year = '2022') {
     setError(null);
 
     try {
-      const response = await fetch(apiUrl(`/api/census-data?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&level=tract&year=${year}`));
+      const response = await fetch(apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}`));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
