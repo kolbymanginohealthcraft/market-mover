@@ -9,7 +9,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  min-height: calc(100vh - 80px); /* fills screen on shorterish devices */
+  min-height: calc(100vh - 80px); /* fills screen on shorty devices */
 }
 
 .card {
