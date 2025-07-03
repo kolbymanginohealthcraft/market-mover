@@ -8,11 +8,10 @@ import { useEffect, useState } from "react";
  *
  * @param {object} provider - The main provider object (must have latitude, longitude)
  * @param {number} radiusInMiles - The market radius in miles
- * @param {string} level - Geographic level ('tract', defaults to 'tract')
- * @param {string} year - ACS year (defaults to '2021')
+ * @param {string} year - ACS year (defaults to '2022')
  * @returns {object} { data, loading, error, refetch }
  */
-export default function useCensusData(provider, radiusInMiles, level = 'tract', year = '2021') {
+export default function useCensusData(provider, radiusInMiles, year = '2022') {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,7 +28,7 @@ export default function useCensusData(provider, radiusInMiles, level = 'tract', 
 
     try {
       const response = await fetch(
-        `/api/census-data?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&level=${level}&year=${year}`
+        `/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}`
       );
 
       if (!response.ok) {
@@ -54,7 +53,7 @@ export default function useCensusData(provider, radiusInMiles, level = 'tract', 
 
   useEffect(() => {
     fetchCensusData();
-  }, [provider?.latitude, provider?.longitude, radiusInMiles, level, year]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, year]);
 
   const refetch = () => {
     fetchCensusData();
