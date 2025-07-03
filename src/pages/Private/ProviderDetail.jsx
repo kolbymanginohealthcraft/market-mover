@@ -21,6 +21,7 @@ import NearbyTab from "./NearbyTab";
 import ChartsTab from "./ChartDashboard";
 import DiagnosesTab from "./DiagnosesTab";
 import ProceduresTab from "./ProceduresTab";
+import PopulationTab from "./PopulationTab";
 import ReferralsTab from "./ReferralsTab";
 import FinancialTab from "./FinancialTab";
 import SafetyTab from "./SafetyTab";
@@ -263,6 +264,7 @@ export default function ProviderDetail() {
         <Route path="charts" element={<ChartsTab provider={provider} />} />
         <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+        <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
         <Route path="financial" element={<FinancialTab provider={provider} />} />
         <Route path="safety" element={<SafetyTab provider={provider} />} />

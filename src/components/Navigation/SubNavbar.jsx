@@ -59,6 +59,14 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Procedures
       </NavLink>
       <NavLink
+        to={`${prefix}/population${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Population
+      </NavLink>
+      <NavLink
         to={`${prefix}/referrals${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
