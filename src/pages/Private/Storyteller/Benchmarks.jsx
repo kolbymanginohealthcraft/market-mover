@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import ProviderBarChart from "../../../components/Charts/ProviderBarChart";
 import TrendLineChart from "../../../components/Charts/TrendLineChart";
 import styles from "../ChartDashboard.module.css";
+import { apiUrl } from '../../../utils/api';
 
 export default function Benchmarks({ 
   provider, 
@@ -22,6 +23,8 @@ export default function Benchmarks({
   const [trendData, setTrendData] = useState(null);
   const [xAxisLabels, setXAxisLabels] = useState([]);
   const [trendLoading, setTrendLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Use prefetched data if available and the selected publish date matches the current date, otherwise use the hook
   const usePrefetchedData = prefetchedData && 
@@ -112,6 +115,30 @@ export default function Benchmarks({
     }
     return Number(val).toFixed(2);
   };
+
+  const fetchData = useCallback(async () => {
+    if (!provider?.dhc || !nearbyProviders?.length) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🔍 Fetching benchmarks data for provider:', provider?.dhc);
+      
+      return fetch(apiUrl('/api/qm_combined'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dhc: provider.dhc,
+          nearby_dhcs: nearbyProviders.map(p => p.dhc),
+          radius: radiusInMiles
+        })
+      });
+    } catch (e) {
+      console.error('Error fetching benchmarks data:', e);
+      setError(e.message);
+    }
+  }, [provider?.dhc, nearbyProviders, radiusInMiles]);
 
   useEffect(() => {
     if (chartMode !== "trend" || !selectedMetric || !availablePublishDates.length || !provider) {

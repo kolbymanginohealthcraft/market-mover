@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../utils/api';
 
 export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyProviders }) {
   const [providerData, setProviderData] = useState(null);
@@ -24,7 +25,7 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
       console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch("/api/related-npis", {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +49,7 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
       }
       
       // Now fetch diagnosis data by provider
-      const response = await fetch("/api/diagnoses-by-provider", {
+      const response = await fetch(apiUrl("/api/diagnoses-by-provider"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +79,7 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
     try {
       const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
       
-      const npisResponse = await fetch("/api/related-npis", {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dhc_ids: allProviderDhcs }),
@@ -87,7 +88,7 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
       const npisResult = await npisResponse.json();
       const npis = npisResult.data.map(row => row.npi);
       
-      const debugResponse = await fetch("/api/diagnoses-debug-org-dhc", {
+      const debugResponse = await fetch(apiUrl("/api/diagnoses-debug-org-dhc"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ npis }),
@@ -104,7 +105,7 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
 
   const debugTables = async () => {
     try {
-      const response = await fetch("/api/diagnoses-debug-tables");
+      const response = await fetch(apiUrl("/api/diagnoses-debug-tables"));
       const result = await response.json();
       console.log("🔍 Table Debug Data:", result);
       alert(`Debug info logged to console. Check browser console for table structure details.`);
@@ -116,7 +117,7 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
 
   const testClients = async () => {
     try {
-      const response = await fetch("/api/diagnoses-test-clients");
+      const response = await fetch(apiUrl("/api/diagnoses-test-clients"));
       const result = await response.json();
       console.log("🔍 BigQuery Clients Test:", result);
       alert(`Test results logged to console. Check browser console for details.`);

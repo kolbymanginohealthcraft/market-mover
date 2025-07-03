@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../utils/api';
 
 export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearbyProviders }) {
   const [serviceLineData, setServiceLineData] = useState(null);
@@ -24,7 +25,7 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
       console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch("/api/related-npis", {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +49,7 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
       }
       
       // Now fetch diagnosis data by service line
-      const response = await fetch("/api/diagnoses-by-service-line", {
+      const response = await fetch(apiUrl("/api/diagnoses-by-service-line"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,11 +64,12 @@ export default function DiagnosesByServiceLine({ provider, radiusInMiles, nearby
       if (result.success) {
         setServiceLineData(result.data);
       } else {
+        console.error("❌ Backend error:", result);
         setError(result.message || "Failed to fetch service line diagnosis data");
       }
     } catch (err) {
-      console.error("Error fetching service line diagnosis data:", err);
-      setError("Failed to fetch service line diagnosis data");
+      console.error("❌ Error fetching service line diagnosis data:", err);
+      setError(`Failed to fetch service line diagnosis data: ${err.message}`);
     } finally {
       setLoading(false);
     }

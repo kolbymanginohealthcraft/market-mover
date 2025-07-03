@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../utils/api';
 
 export default function ProceduresByServiceLine({ provider, radiusInMiles, nearbyProviders }) {
   const [serviceLineData, setServiceLineData] = useState(null);
@@ -24,7 +25,7 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
       // Get all provider DHCs in the market (main provider + nearby providers)
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch("/api/related-npis", {
+      const npisResponse = await fetch(apiUrl('/api/related-npis'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +49,7 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
       }
       
       // Now fetch procedure data by service line
-      const response = await fetch("/api/procedures-by-service-line", {
+      const response = await fetch(apiUrl('/api/procedures-by-service-line'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

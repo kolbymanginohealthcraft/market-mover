@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { apiUrl } from '../utils/api';
 
 // Simple cache for API responses
 const apiCache = new Map();
@@ -65,7 +66,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         
         // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs
         if (!providerDhcToCcns[provider.dhc]) {
-          const ccnResponse = await fetch('/api/related-ccns', {
+          const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dhc_ids: [provider.dhc] })
@@ -105,7 +106,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             publish_date: selectedPublishDate || 'latest'
           });
           
-          const combinedResponse = await fetch('/api/qm_combined', {
+          const combinedResponse = await fetch(apiUrl('/api/qm_combined'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../utils/api';
 
 export function useProviderDensity(lat, lon, radius = 25) {
   const [data, setData] = useState(null);
@@ -17,9 +18,7 @@ export function useProviderDensity(lat, lon, radius = 25) {
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/provider-density?lat=${lat}&lon=${lon}&radius=${radius}`
-        );
+        const response = await fetch(apiUrl(`/api/provider-density?lat=${lat}&lon=${lon}&radius=${radius}`));
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,7 +67,7 @@ export function useProviderDensityDetails(lat, lon, radius = 25, specialty = nul
           url += `&specialty=${encodeURIComponent(specialty)}`;
         }
 
-        const response = await fetch(url);
+        const response = await fetch(apiUrl(url));
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

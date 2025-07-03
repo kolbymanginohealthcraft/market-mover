@@ -4,6 +4,7 @@ import styles from './OnboardingPage.module.css';
 import ButtonGroup from '../../components/Buttons/ButtonGroup';
 import Button from '../../components/Buttons/Button';
 import { PLANS, calculatePrice, calculateSavings } from '../../data/planData';
+import { apiUrl } from '../../utils/api';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -14,14 +15,14 @@ export default function OnboardingPage() {
       return <p className={styles.explanation}>Use a team access code provided by your administrator to join an existing team.</p>;
     }
     if (selectedPath === 'create') {
-      return <p className={styles.explanation}>Create your own team and choose a plan that fits your needs. You’ll be able to invite others later.</p>;
+      return <p className={styles.explanation}>Create your own team and choose a plan that fits your needs. You'll be able to invite others later.</p>;
     }
     return null;
   };
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Let’s get started</h2>
+      <h2 className={styles.title}>Let's get started</h2>
       <p className={styles.subtitle}>Choose your path:</p>
 
       <ButtonGroup
@@ -49,32 +50,53 @@ export default function OnboardingPage() {
 function JoinTeamForm() {
   const [code, setCode] = useState('');
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const handleJoin = async () => {
-    const res = await fetch('/api/join-team', {
-      method: 'POST',
-      body: JSON.stringify({ code }),
-      headers: { 'Content-Type': 'application/json' },
-    });
+  const handleJoinTeam = async () => {
+    if (!code.trim()) {
+      setError('Please enter a team code');
+      return;
+    }
 
-    const data = await res.json();
-    if (res.ok) {
-      window.location.href = '/app/home';
-    } else {
-      setError(data.error || 'Invalid access code.');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(apiUrl('/api/join-team'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          team_code: code,
+          user_id: user.id
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = '/app/home';
+      } else {
+        setError(data.error || 'Invalid access code.');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again later.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className={styles.formCard}>
-      <h3>Enter your team’s access code</h3>
+      <h3>Enter your team's access code</h3>
       <input
         value={code}
         onChange={(e) => setCode(e.target.value)}
         placeholder="e.g. HEALTH123"
         className={styles.input}
       />
-      <Button variant="blue" onClick={handleJoin}>
+      <Button variant="blue" onClick={handleJoinTeam} disabled={loading}>
         Join Team
       </Button>
       {error && <p className={styles.error}>{error}</p>}

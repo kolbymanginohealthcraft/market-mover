@@ -17,6 +17,7 @@ import Spinner from "../../components/Buttons/Spinner";
 import Button from "../../components/Buttons/Button";
 import styles from "./NearbyTab.module.css";
 import { useDropdownClose } from "../../hooks/useDropdownClose";
+import { apiUrl } from '../../utils/api';
 
 const defaultIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -92,7 +93,7 @@ export default function NearbyTab({
     console.log("[CCN DEBUG] Fetching CCNs for DHC IDs:", dhcIds);
     if (!dhcIds.length) return;
     try {
-      const response = await fetch(`/api/related-ccns`, {
+      const response = await fetch(apiUrl('/api/related-ccns'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dhc_ids: dhcIds }),

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from '../utils/api';
 
 /**
  * useCensusData
@@ -27,9 +28,7 @@ export default function useCensusData(provider, radiusInMiles, year = '2022') {
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}`
-      );
+      const response = await fetch(apiUrl(`/api/census-data?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&level=tract&year=${year}`));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -85,7 +84,7 @@ export function useAvailableCensusYears() {
       setError(null);
 
       try {
-        const response = await fetch('/api/census-data/available-years');
+        const response = await fetch(apiUrl('/api/census-data/available-years'));
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

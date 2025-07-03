@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../utils/api';
 
 export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProviders }) {
   const [monthlyData, setMonthlyData] = useState(null);
@@ -24,7 +25,7 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
       console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch("/api/related-npis", {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +49,7 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
       }
       
       // Now fetch diagnosis data by month
-      const response = await fetch("/api/diagnoses-volume", {
+      const response = await fetch(apiUrl("/api/diagnoses-volume"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,11 +68,12 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
           setError("No monthly diagnosis data found for the specified NPIs in the last 12 months");
         }
       } else {
+        console.error("❌ Backend error:", result);
         setError(result.message || "Failed to fetch monthly diagnosis data");
       }
     } catch (err) {
-      console.error("Error fetching monthly diagnosis data:", err);
-      setError("Failed to fetch monthly diagnosis data");
+      console.error("❌ Error fetching monthly diagnosis data:", err);
+      setError(`Failed to fetch monthly diagnosis data: ${err.message}`);
     } finally {
       setLoading(false);
     }

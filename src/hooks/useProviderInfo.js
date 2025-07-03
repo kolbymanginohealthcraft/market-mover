@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from '../utils/api';
 
 export default function useProviderInfo(dhc) {
   const [provider, setProvider] = useState(null);
@@ -10,7 +11,7 @@ export default function useProviderInfo(dhc) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/search-providers?dhc=${dhc}`);
+        const response = await fetch(apiUrl(`/api/search-providers?dhc=${dhc}`));
         
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         

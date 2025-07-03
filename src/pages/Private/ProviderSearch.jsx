@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Button from "../../components/Buttons/Button";
 import styles from "./ProviderSearch.module.css";
+import { apiUrl } from '../../utils/api';
 
 export default function ProviderSearch() {
   const [queryText, setQueryText] = useState("");
@@ -25,6 +26,27 @@ export default function ProviderSearch() {
     setCurrentPage(1);
   }, [selectedType, selectedState]);
 
+  const searchProviders = async (q) => {
+    if (!q.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(apiUrl(`/api/search-providers?search=${encodeURIComponent(q)}`));
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      if (result.success) {
+        setResults(result.data);
+      } else {
+        setError(result.error || 'Search failed');
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('Search failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async () => {
     setLoading(true);
     setError(null);
@@ -34,7 +56,7 @@ export default function ProviderSearch() {
     const q = queryText.trim();
     setLastSearchTerm(q);
     try {
-      const response = await fetch(`/api/search-providers?search=${encodeURIComponent(q)}`);
+      const response = await fetch(apiUrl(`/api/search-providers?search=${encodeURIComponent(q)}`));
       
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       

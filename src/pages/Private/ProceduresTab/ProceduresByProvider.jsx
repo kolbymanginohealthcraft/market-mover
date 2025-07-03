@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "../DiagnosesTab.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../utils/api';
 
 export default function ProceduresByProvider({ provider, radiusInMiles, nearbyProviders }) {
   const [providerData, setProviderData] = useState(null);
@@ -24,7 +25,7 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
       // Get all provider DHCs in the market (main provider + nearby providers)
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch("/api/related-npis", {
+      const npisResponse = await fetch(apiUrl('/api/related-npis'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +49,7 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
       }
       
       // Now fetch procedure data by provider
-      const response = await fetch("/api/procedures-by-provider", {
+      const response = await fetch(apiUrl('/api/procedures-by-provider'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,7 +76,7 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
 
   const testClients = async () => {
     try {
-      const response = await fetch("/api/procedures-test-clients");
+      const response = await fetch(apiUrl('/api/procedures-test-clients'));
       const result = await response.json();
       console.log("🔍 BigQuery Clients Test (Procedures):", result);
       alert(`Test results logged to console. Check browser console for details.`);

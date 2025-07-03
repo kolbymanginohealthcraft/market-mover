@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from '../utils/api';
 
 /**
  * useNearbyProviders
@@ -27,13 +28,16 @@ export default function useNearbyProviders(provider, radiusInMiles) {
       setLoading(true);
       setError(null);
       try {
-        // Fetch nearby providers
-        const response = await fetch(
-          `/api/nearby-providers?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`
-        );
+        console.log('🔍 Fetching nearby providers for:', provider.dhc, 'at', provider.latitude, provider.longitude, 'radius:', radiusInMiles);
+        
+        // Fetch nearby providers using the correct endpoint and parameters
+        const response = await fetch(apiUrl(`/api/nearby-providers?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`));
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'Failed to fetch nearby providers');
+        
+        console.log('✅ Nearby providers fetched:', result.data?.length || 0, 'providers');
+        
         // Filter out the main provider from the results
         const filteredProviders = result.data.filter(p => p.dhc !== provider.dhc);
         setProviders(filteredProviders);
@@ -43,7 +47,8 @@ export default function useNearbyProviders(provider, radiusInMiles) {
         if (dhcIds.length === 0) {
           setCcns([]);
         } else {
-          const ccnResponse = await fetch('/api/related-ccns', {
+          console.log('🔍 Fetching CCNs for', dhcIds.length, 'providers');
+          const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dhc_ids: dhcIds })
@@ -52,11 +57,13 @@ export default function useNearbyProviders(provider, radiusInMiles) {
           const ccnResult = await ccnResponse.json();
           if (ccnResult.success) {
             setCcns(ccnResult.data || []);
+            console.log('✅ CCNs fetched:', ccnResult.data?.length || 0, 'CCNs');
           } else {
             setCcns([]);
           }
         }
       } catch (err) {
+        console.error('❌ Error fetching nearby providers:', err);
         setError(err.message);
         setProviders([]);
         setCcns([]);

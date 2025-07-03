@@ -2,7 +2,9 @@ import React from 'react';
 import styles from './OverviewTab.module.css';
 
 export default function OverviewTab({ provider }) {
-  if (!provider) return <p>Loading provider data...</p>;
+  if (!provider) {
+    return <p>Loading provider data...</p>;
+  }
 
   return (
     <div className={styles.profileCard}>

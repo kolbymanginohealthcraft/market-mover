@@ -10,6 +10,7 @@ import {
 import styles from "./ProviderDetail.module.css";
 import { Pencil, Check, X } from "lucide-react";
 import { useDebounce } from 'use-debounce';
+import { apiUrl } from '../../utils/api';
 
 import useProviderInfo from "../../hooks/useProviderInfo";
 import useNearbyProviders from "../../hooks/useNearbyProviders";
@@ -100,11 +101,14 @@ export default function ProviderDetail() {
   useEffect(() => {
     async function fetchMainProviderCcns() {
       if (!provider?.dhc) return setMainProviderCcns([]);
-      const response = await fetch('/api/related-ccns', {
+      console.log('Fetching related CCNs for provider:', provider?.dhc);
+      const response = await fetch(apiUrl('/api/related-ccns'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dhc_ids: [provider.dhc] })
-      });
+        body: JSON.stringify({ dhc: provider?.dhc })
+      })
+      .catch(err => { console.error('Fetch error (related-ccns):', err); throw err; });
+      console.log('Fetch completed for related CCNs');
       if (!response.ok) return setMainProviderCcns([]);
       const result = await response.json();
       if (result.success) {
