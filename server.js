@@ -28,7 +28,12 @@ const __dirname = path.dirname(__filename);
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, 'https://your-frontend-domain.vercel.app']
+    ? [
+        process.env.FRONTEND_URL, 
+        'https://market-mover-rust.vercel.app',
+        'https://market-mover.vercel.app',
+        'https://your-frontend-domain.vercel.app'
+      ].filter(Boolean)
     : 'http://localhost:5173',
   credentials: true
 }));
