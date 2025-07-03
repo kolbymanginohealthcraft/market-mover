@@ -114,6 +114,14 @@ export default function SubNavbar({ providerId: providerDhc }) {
       >
         Executives
       </NavLink>
+      <NavLink
+        to={`${prefix}/provider-density${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Provider Density
+      </NavLink>
     </nav>
   );
 }

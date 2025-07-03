@@ -14,6 +14,7 @@ import testVendorConnection from "./server/routes/testVendorConnection.js";
 import diagnoses from "./server/routes/diagnoses.js";
 import procedures from "./server/routes/procedures.js";
 import censusData from "./server/routes/censusData.js";
+import providerDensity from "./server/routes/providerDensity.js";
 
 
 dotenv.config();
@@ -40,6 +41,7 @@ app.use("/api", testVendorConnection);
 app.use("/api", diagnoses);
 app.use("/api", procedures);
 app.use("/api", censusData);
+app.use("/api", providerDensity);
 
 
 // ✅ Invite User Route

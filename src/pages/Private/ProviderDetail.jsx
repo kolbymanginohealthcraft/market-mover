@@ -28,6 +28,7 @@ import SafetyTab from "./SafetyTab";
 import MAEnrollmentTab from "./MAEnrollmentTab";
 import StaffingTab from "./StaffingTab";
 import ExecutivesTab from "./ExecutivesTab";
+import ProviderDensityPage from "./ProviderDensityPage";
 import SubNavbar from "../../components/Navigation/SubNavbar";
 import Spinner from "../../components/Buttons/Spinner";
 import Storyteller from "./Storyteller/Storyteller";
@@ -271,6 +272,7 @@ export default function ProviderDetail() {
         <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} />} />
         <Route path="staffing" element={<StaffingTab provider={provider} />} />
         <Route path="executives" element={<ExecutivesTab provider={provider} />} />
+        <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>
     </div>

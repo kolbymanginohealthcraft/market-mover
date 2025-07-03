@@ -36,7 +36,6 @@ import ProviderSearch from "../pages/Private/ProviderSearch";
 import ProviderDetail from "../pages/Private/ProviderDetail";
 import UserProfile from "../pages/Private/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
-
 // Team-related pages
 import OnboardingPage from "../pages/Auth/OnboardingPage";
 import PaymentTest from "../pages/Auth/PaymentTest";
