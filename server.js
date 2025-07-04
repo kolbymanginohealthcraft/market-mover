@@ -21,7 +21,7 @@ import providerDensity from "./server/routes/providerDensity.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -119,6 +119,8 @@ app.use((req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Express API server running at http://0.0.0.0:${PORT}`);
+}).on('error', (err) => {
+  console.error('❌ Server error:', err);
 });
 
 process.on('uncaughtException', (err) => {

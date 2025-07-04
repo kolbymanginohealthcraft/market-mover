@@ -9,4 +9,7 @@ export default defineConfig({
       '/api': 'http://localhost:5000', // 👈 Proxy API requests to Express
     },
   },
+  optimizeDeps: {
+    include: ['maplibre-gl']
+  }
 });

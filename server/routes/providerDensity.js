@@ -15,7 +15,7 @@ const router = express.Router();
  * Returns: Array of provider counts by specialty within the specified radius.
  */
 router.get("/provider-density", async (req, res) => {
-  const { lat, lon, radius = 25 } = req.query;
+  const { lat, lon, radius = 25, refresh } = req.query;
 
   if (!lat || !lon) {
     return res.status(400).json({
@@ -27,10 +27,11 @@ router.get("/provider-density", async (req, res) => {
   const radiusMeters = Number(radius) * 1609.34; // Convert miles to meters
 
   try {
-    // Check cache first
+    // Check cache first (unless refresh is requested)
     const cacheKey = `provider-density-${lat}-${lon}-${radius}`;
-    const cachedResult = cache.get(cacheKey);
+    const cachedResult = !refresh ? cache.get(cacheKey) : null;
     if (cachedResult) {
+      console.log(`Serving cached provider density data for ${lat},${lon} (${radius}mi)`);
       return res.json({
         success: true,
         data: cachedResult,
@@ -47,6 +48,8 @@ router.get("/provider-density", async (req, res) => {
       WHERE primary_address_lat IS NOT NULL 
         AND primary_address_long IS NOT NULL
         AND npi_deactivation_date IS NULL
+        AND primary_taxonomy_classification IS NOT NULL
+        AND TRIM(primary_taxonomy_classification) != ''
         AND ST_DISTANCE(
           ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
           ST_GEOGPOINT(@lon, @lat)
@@ -62,6 +65,14 @@ router.get("/provider-density", async (req, res) => {
         lon: Number(lon),
         radiusMeters,
       },
+    });
+
+    // Log the results for debugging
+    console.log(`Provider density query results for ${lat},${lon} (${radius}mi):`, {
+      totalSpecialties: rows.length,
+      totalProviders: rows.reduce((sum, row) => sum + row.provider_count, 0),
+      sampleSpecialties: rows.slice(0, 3).map(row => ({ specialty: row.specialty, count: row.provider_count })),
+      hasNullSpecialties: rows.some(row => !row.specialty)
     });
 
     // Cache the result for 5 minutes
@@ -123,6 +134,8 @@ router.get("/provider-density-details", async (req, res) => {
         WHERE primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
           AND npi_deactivation_date IS NULL
+          AND primary_taxonomy_classification IS NOT NULL
+          AND TRIM(primary_taxonomy_classification) != ''
           AND primary_taxonomy_classification = @specialty
           AND ST_DISTANCE(
             ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
@@ -151,6 +164,8 @@ router.get("/provider-density-details", async (req, res) => {
         WHERE primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
           AND npi_deactivation_date IS NULL
+          AND primary_taxonomy_classification IS NOT NULL
+          AND TRIM(primary_taxonomy_classification) != ''
           AND ST_DISTANCE(
             ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
             ST_GEOGPOINT(@lon, @lat)

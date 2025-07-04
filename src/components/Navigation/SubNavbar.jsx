@@ -26,6 +26,14 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Nearby Providers
       </NavLink>
       <NavLink
+        to={`${prefix}/mapbox${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Mapbox Map
+      </NavLink>
+      <NavLink
         to={`${prefix}/storyteller/scorecard${search}`}
         className={({ isActive }) => {
           const isOnStorytellerRoute = location.pathname.includes('/storyteller');
@@ -75,44 +83,12 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Referrals
       </NavLink>
       <NavLink
-        to={`${prefix}/financial${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Financial
-      </NavLink>
-      <NavLink
-        to={`${prefix}/safety${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Safety
-      </NavLink>
-      <NavLink
         to={`${prefix}/ma-enrollment${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }
       >
         MA Enrollment
-      </NavLink>
-      <NavLink
-        to={`${prefix}/staffing${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Staffing
-      </NavLink>
-      <NavLink
-        to={`${prefix}/executives${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Executives
       </NavLink>
       <NavLink
         to={`${prefix}/provider-density${search}`}

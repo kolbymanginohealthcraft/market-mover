@@ -1,12 +1,7 @@
 import CensusDataPanel from "../../components/CensusDataPanel";
-import Spinner from "../../components/Buttons/Spinner";
 import styles from "./PopulationTab.module.css";
 
 export default function PopulationTab({ provider, radiusInMiles }) {
-  if (!provider) {
-    return <Spinner message="Loading provider data..." />;
-  }
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>

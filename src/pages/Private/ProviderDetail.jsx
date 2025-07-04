@@ -19,16 +19,13 @@ import useQualityMeasures from "../../hooks/useQualityMeasures";
 
 import OverviewTab from "./OverviewTab";
 import NearbyTab from "./NearbyTab";
+import MapLibreTab from "./MapboxTab";
 import ChartsTab from "./ChartDashboard";
 import DiagnosesTab from "./DiagnosesTab";
 import ProceduresTab from "./ProceduresTab";
 import PopulationTab from "./PopulationTab";
 import ReferralsTab from "./ReferralsTab";
-import FinancialTab from "./FinancialTab";
-import SafetyTab from "./SafetyTab";
 import MAEnrollmentTab from "./MAEnrollmentTab";
-import StaffingTab from "./StaffingTab";
-import ExecutivesTab from "./ExecutivesTab";
 import ProviderDensityPage from "./ProviderDensityPage";
 import SubNavbar from "../../components/Navigation/SubNavbar";
 import Spinner from "../../components/Buttons/Spinner";
@@ -245,6 +242,7 @@ export default function ProviderDetail() {
       <Routes>
         <Route path="overview" element={<OverviewTab provider={provider} />} />
         <Route path="nearby" element={<NearbyTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} isInSavedMarket={isInSavedMarket} />} />
+        <Route path="mapbox" element={<MapLibreTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} isInSavedMarket={isInSavedMarket} />} />
         <Route path="storyteller/*" element={
           <Storyteller
             provider={provider}
@@ -271,11 +269,7 @@ export default function ProviderDetail() {
         <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
-        <Route path="financial" element={<FinancialTab provider={provider} />} />
-        <Route path="safety" element={<SafetyTab provider={provider} />} />
         <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} />} />
-        <Route path="staffing" element={<StaffingTab provider={provider} />} />
-        <Route path="executives" element={<ExecutivesTab provider={provider} />} />
         <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>

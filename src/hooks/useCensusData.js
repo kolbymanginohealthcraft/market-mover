@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { apiUrl } from '../utils/api';
 
 /**
@@ -14,21 +14,39 @@ import { apiUrl } from '../utils/api';
  */
 export default function useCensusData(provider, radiusInMiles, year = '2022') {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
 
   const fetchCensusData = async () => {
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles) {
       setData(null);
       setError(null);
+      setLoading(false);
       return;
     }
+
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}`));
+      const response = await fetch(
+        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}`),
+        {
+          signal: abortControllerRef.current.signal,
+          headers: {
+            'Cache-Control': 'max-age=3600', // Cache for 1 hour
+          }
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -42,6 +60,11 @@ export default function useCensusData(provider, radiusInMiles, year = '2022') {
 
       setData(result.data);
     } catch (err) {
+      // Don't set error if request was cancelled
+      if (err.name === 'AbortError') {
+        return;
+      }
+      
       console.error("❌ Census data fetch error:", err);
       setError(err.message);
       setData(null);
@@ -52,6 +75,13 @@ export default function useCensusData(provider, radiusInMiles, year = '2022') {
 
   useEffect(() => {
     fetchCensusData();
+
+    // Cleanup function to cancel request when component unmounts or dependencies change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [provider?.latitude, provider?.longitude, radiusInMiles, year]);
 
   const refetch = () => {
@@ -84,7 +114,11 @@ export function useAvailableCensusYears() {
       setError(null);
 
       try {
-        const response = await fetch(apiUrl('/api/census-data/available-years'));
+        const response = await fetch(apiUrl('/api/census-data/available-years'), {
+          headers: {
+            'Cache-Control': 'max-age=86400', // Cache for 24 hours
+          }
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

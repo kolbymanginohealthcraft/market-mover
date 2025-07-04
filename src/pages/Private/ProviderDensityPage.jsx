@@ -17,6 +17,7 @@ export default function ProviderDensityPage({ radius = 25 }) {
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
   const [viewMode, setViewMode] = useState('chart');
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Get provider info to use its location
   const { provider, loading: providerLoading } = useProviderInfo(dhc);
@@ -28,16 +29,38 @@ export default function ProviderDensityPage({ radius = 25 }) {
   const { data: densityData, loading: densityLoading, error: densityError } = useProviderDensity(lat, lon, radius);
   const { data: detailsData, loading: detailsLoading, error: detailsError } = useProviderDensityDetails(lat, lon, radius, selectedSpecialty);
 
-  // Filter data based on search term
-  const filteredData = densityData?.filter(item => 
-    item.specialty.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    window.location.reload(); // Force a complete refresh
+  };
+
+  // Debug logging
+  useEffect(() => {
+    if (densityData) {
+      console.log('Provider density data received:', {
+        totalItems: densityData.length,
+        totalProviders: densityData.reduce((sum, item) => sum + item.provider_count, 0),
+        sampleSpecialties: densityData.slice(0, 3).map(item => ({ specialty: item.specialty, count: item.provider_count })),
+        hasNullSpecialties: densityData.some(item => !item.specialty)
+      });
+    }
+  }, [densityData]);
+
+  // Filter data based on search term - handle null specialty values
+  const filteredData = densityData?.filter(item => {
+    // Skip items with null, undefined, or empty specialty
+    if (!item.specialty || item.specialty.trim() === '') {
+      console.warn('Found item with null/undefined/empty specialty:', item);
+      return false;
+    }
+    return item.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+  }) || [];
 
   const handleSpecialtyClick = (specialty) => {
     setSelectedSpecialty(selectedSpecialty === specialty ? null : specialty);
   };
 
-  const totalProviders = filteredData?.reduce((sum, item) => sum + item.provider_count, 0) || 0;
+  const totalProviders = filteredData?.reduce((sum, item) => sum + (item.provider_count || 0), 0) || 0;
 
   if (providerLoading || densityLoading) {
     return (
@@ -90,6 +113,15 @@ export default function ProviderDensityPage({ radius = 25 }) {
             <button className={`${styles.toggleButton} ${viewMode === 'list' ? styles.active : ''}`} onClick={() => setViewMode('list')}>List View</button>
           </div>
         </div>
+        <div className={styles.controlGroup}>
+          <button 
+            className={styles.refreshButton} 
+            onClick={handleRefresh}
+            disabled={densityLoading}
+          >
+            {densityLoading ? 'Refreshing...' : 'Refresh Data'}
+          </button>
+        </div>
       </div>
 
       <div className={styles.summary}>
@@ -105,62 +137,82 @@ export default function ProviderDensityPage({ radius = 25 }) {
           <h3>Top Specialty</h3>
           <p className={styles.summaryText}>{filteredData?.[0]?.specialty || 'N/A'}</p>
         </div>
+        <div className={styles.summaryCard}>
+          <h3>Data Quality</h3>
+          <p className={styles.summaryText}>{densityData ? `${densityData.length} specialties` : 'Loading...'}</p>
+        </div>
       </div>
 
       {viewMode === 'chart' ? (
         <div className={styles.chartContainer}>
-          <div className={styles.chartSection}>
-            <h3>Provider Count by Specialty</h3>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="specialty" angle={-45} textAnchor="end" height={100} interval={0} tick={{ fontSize: 12 }} />
-                <YAxis />
-                <Tooltip formatter={(value) => [value.toLocaleString(), 'Providers']} labelFormatter={label => `Specialty: ${label}`} />
-                <Bar dataKey="provider_count" fill="#8884d8" onClick={data => handleSpecialtyClick(data.specialty)} style={{ cursor: 'pointer' }} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className={styles.chartSection}>
-            <h3>Distribution by Specialty</h3>
-            <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={filteredData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ specialty, percent }) => `${specialty} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={150}
-                  fill="#8884d8"
-                  dataKey="provider_count"
-                  onClick={data => handleSpecialtyClick(data.specialty)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {filteredData?.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [value.toLocaleString(), 'Providers']} labelFormatter={label => `Specialty: ${label}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {filteredData && filteredData.length > 0 ? (
+            <>
+              <div className={styles.chartSection}>
+                <h3>Provider Count by Specialty</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="specialty" angle={-45} textAnchor="end" height={100} interval={0} tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [value.toLocaleString(), 'Providers']} labelFormatter={label => `Specialty: ${label}`} />
+                    <Bar dataKey="provider_count" fill="#8884d8" onClick={data => handleSpecialtyClick(data.specialty)} style={{ cursor: 'pointer' }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className={styles.chartSection}>
+                <h3>Distribution by Specialty</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <PieChart>
+                    <Pie
+                      data={filteredData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ specialty, percent }) => `${specialty} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={150}
+                      fill="#8884d8"
+                      dataKey="provider_count"
+                      onClick={data => handleSpecialtyClick(data.specialty)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {filteredData?.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [value.toLocaleString(), 'Providers']} labelFormatter={label => `Specialty: ${label}`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          ) : (
+            <div className={styles.noData}>
+              <h3>No Data Available</h3>
+              <p>No provider data found for the selected location and radius.</p>
+            </div>
+          )}
         </div>
       ) : (
         <div className={styles.listContainer}>
           <h3>Provider Count by Specialty</h3>
-          <div className={styles.specialtyList}>
-            {filteredData?.map((item, index) => (
-              <div key={item.specialty} className={`${styles.specialtyItem} ${selectedSpecialty === item.specialty ? styles.selected : ''}`} onClick={() => handleSpecialtyClick(item.specialty)}>
-                <div className={styles.specialtyRank}>#{index + 1}</div>
-                <div className={styles.specialtyInfo}>
-                  <h4>{item.specialty}</h4>
-                  <p>{item.provider_count.toLocaleString()} providers</p>
+          {filteredData && filteredData.length > 0 ? (
+            <div className={styles.specialtyList}>
+              {filteredData.map((item, index) => (
+                <div key={item.specialty} className={`${styles.specialtyItem} ${selectedSpecialty === item.specialty ? styles.selected : ''}`} onClick={() => handleSpecialtyClick(item.specialty)}>
+                  <div className={styles.specialtyRank}>#{index + 1}</div>
+                  <div className={styles.specialtyInfo}>
+                    <h4>{item.specialty}</h4>
+                    <p>{item.provider_count.toLocaleString()} providers</p>
+                  </div>
+                  <div className={styles.specialtyPercentage}>{((item.provider_count / totalProviders) * 100).toFixed(1)}%</div>
                 </div>
-                <div className={styles.specialtyPercentage}>{((item.provider_count / totalProviders) * 100).toFixed(1)}%</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.noData}>
+              <h3>No Data Available</h3>
+              <p>No provider data found for the selected location and radius.</p>
+            </div>
+          )}
         </div>
       )}
 

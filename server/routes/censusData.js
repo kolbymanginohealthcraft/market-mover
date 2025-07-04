@@ -277,164 +277,265 @@ router.get('/census-acs-api', async (req, res) => {
   if (!lat || !lon || !radius) {
     return res.status(400).json({ success: false, error: 'lat, lon, and radius are required' });
   }
+
+  // Check cache first
+  const cacheKey = `census_acs_${lat}_${lon}_${radius}_${year}`;
+  const cachedData = cache.get('census_acs', { lat, lon, radius, year });
+  if (cachedData) {
+    console.log('📦 Serving census ACS data from cache');
+    return res.status(200).json({ success: true, data: cachedData });
+  }
+
   try {
-    // 1. Get all tract centroids from BigQuery
+    const radiusMeters = parseFloat(radius) * 1609.34;
+    const centerLat = parseFloat(lat);
+    const centerLon = parseFloat(lon);
+
+    // 1. Get tracts within radius using BigQuery spatial functions (much faster)
     const bqQuery = `
-      SELECT geo_id, state_fips_code, county_fips_code, tract_ce, internal_point_lat AS lat, internal_point_lon AS lon
+      SELECT 
+        geo_id, 
+        state_fips_code, 
+        county_fips_code, 
+        tract_ce, 
+        internal_point_lat AS lat, 
+        internal_point_lon AS lon, 
+        area_land_meters
       FROM \`bigquery-public-data.geo_census_tracts.us_census_tracts_national\`
+      WHERE ST_DISTANCE(
+        ST_GEOGPOINT(CAST(internal_point_lon AS FLOAT64), CAST(internal_point_lat AS FLOAT64)),
+        ST_GEOGPOINT(@centerLon, @centerLat)
+      ) <= @radiusMeters
     `;
-    const [tractRows] = await myBigQuery.query({ query: bqQuery, location: 'US' });
-    // 2. Filter tracts by radius
-    const center = [parseFloat(lon), parseFloat(lat)];
-    const radiusMiles = parseFloat(radius);
-    const filteredTracts = tractRows.filter(t => {
-      const from = turf.point([parseFloat(t.lon), parseFloat(t.lat)]);
-      const to = turf.point(center);
-      const dist = turf.distance(from, to, { units: 'miles' });
-      return dist <= radiusMiles;
+    
+    const [tractRows] = await myBigQuery.query({ 
+      query: bqQuery, 
+      location: 'US',
+      params: {
+        centerLat: Number(centerLat),
+        centerLon: Number(centerLon),
+        radiusMeters: Number(radiusMeters)
+      }
     });
-    if (filteredTracts.length === 0) {
-      return res.status(200).json({ success: true, data: { market_totals: { total_population: 0, population_65_plus: 0, median_income: 0, total_tracts: 0, acs_year: year }, geographic_units: [] } });
+
+    if (tractRows.length === 0) {
+      const emptyResult = { 
+        market_totals: { 
+          total_population: 0, 
+          population_65_plus: 0, 
+          median_income: 0, 
+          total_tracts: 0, 
+          acs_year: year 
+        }, 
+        geographic_units: [] 
+      };
+      
+      // Cache empty results for a shorter time
+      cache.set('census_acs', { lat, lon, radius, year }, emptyResult, 5 * 60 * 1000); // 5 minutes
+      return res.status(200).json({ success: true, data: emptyResult });
     }
-    // 3. Group by state/county
+
+    // 2. Group by state/county for batch API calls
     const tractsByCounty = {};
-    for (const t of filteredTracts) {
+    for (const t of tractRows) {
       const key = `${t.state_fips_code}${t.county_fips_code}`;
-      if (!tractsByCounty[key]) tractsByCounty[key] = { state: t.state_fips_code, county: t.county_fips_code, tracts: [] };
+      if (!tractsByCounty[key]) {
+        tractsByCounty[key] = { 
+          state: t.state_fips_code, 
+          county: t.county_fips_code, 
+          tracts: [] 
+        };
+      }
       tractsByCounty[key].tracts.push(t.tract_ce);
     }
-    // 4. Fetch ACS data for each county
+
+    // 3. Fetch ACS data for each county (with parallel processing)
     const ACS_VARS = [
-      // Population
       'B01001_001E', // total pop
-      // Age
       'B01001_003E','B01001_004E','B01001_005E','B01001_006E', // male under 18
       'B01001_027E','B01001_028E','B01001_029E','B01001_030E', // female under 18
       'B01001_020E','B01001_021E','B01001_022E','B01001_023E','B01001_024E','B01001_025E', // male 65+
       'B01001_044E','B01001_045E','B01001_046E','B01001_047E','B01001_048E','B01001_049E', // female 65+
-      // Race/ethnicity
-      'B02001_002E', // White alone
-      'B02001_003E', // Black alone
-      'B02001_005E', // Asian alone
+      'B02001_002E', 'B02001_003E', 'B02001_004E', 'B02001_005E', 'B02001_006E', 'B02001_007E', 'B02001_008E', // race
       'B03003_003E', // Hispanic/Latino
-      // Economic
-      'B19013_001E', // median income
-      'B19301_001E', // per capita income
-      'B17001_001E', // poverty universe
-      'B17001_002E', // below poverty
-      // Insurance
-      'B27010_001E', // insurance universe
-      'B27010_017E', // uninsured
-      // Disability
-      'B18101_001E', // disability universe
-      'B18101_004E', // male with disability
-      'B18101_007E', // female with disability
-      // Education
-      'B15003_001E', // education universe
-      'B15003_022E','B15003_023E','B15003_024E','B15003_025E', // bachelor's+
-      // Housing/cost of living
-      'B25064_001E', // median gross rent
-      'B25077_001E'  // median home value
+      'B19013_001E', 'B19301_001E', 'B17001_001E', 'B17001_002E', // economic
+      'B27010_001E', 'B27010_017E', // insurance
+      'B18101_001E', 'B18101_004E', 'B18101_007E', // disability
+      'B15003_001E', 'B15003_022E','B15003_023E','B15003_024E','B15003_025E', // education
+      'B25064_001E', 'B25077_001E' // housing
     ].join(',');
+
+    // Process counties in parallel (with rate limiting)
+    const batchSize = 3; // Process 3 counties at a time to avoid rate limits
+    const countyKeys = Object.keys(tractsByCounty);
     let allTractData = [];
-    for (const key of Object.keys(tractsByCounty)) {
-      const { state, county, tracts } = tractsByCounty[key];
-      const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=tract:*&in=state:${state}+county:${county}`;
-      const resp = await fetch(url);
-      const data = await resp.json();
-      const header = data[0];
-      const rows = data.slice(1);
-      for (const row of rows) {
-        const obj = {};
-        header.forEach((h, i) => { obj[h] = row[i]; });
-        if (tracts.includes(obj['tract'])) {
-          // Calculate 65+ population
-          const m65 = ['B01001_020E','B01001_021E','B01001_022E','B01001_023E','B01001_024E','B01001_025E'].map(k => Number(obj[k]) || 0).reduce((a,b) => a+b,0);
-          const f65 = ['B01001_044E','B01001_045E','B01001_046E','B01001_047E','B01001_048E','B01001_049E'].map(k => Number(obj[k]) || 0).reduce((a,b) => a+b,0);
-          // Calculate under 18 population
-          const mUnder18 = ['B01001_003E','B01001_004E','B01001_005E','B01001_006E'].map(k => Number(obj[k]) || 0).reduce((a,b) => a+b,0);
-          const fUnder18 = ['B01001_027E','B01001_028E','B01001_029E','B01001_030E'].map(k => Number(obj[k]) || 0).reduce((a,b) => a+b,0);
-          // Bachelor's+
-          const bachelors = ['B15003_022E','B15003_023E','B15003_024E','B15003_025E'].map(k => Number(obj[k]) || 0).reduce((a,b) => a+b,0);
-          allTractData.push({
-            total_pop: Number(obj['B01001_001E']) || 0,
-            pop_65_plus: m65 + f65,
-            pop_under_18: mUnder18 + fUnder18,
-            white: Number(obj['B02001_002E']) || 0,
-            black: Number(obj['B02001_003E']) || 0,
-            asian: Number(obj['B02001_005E']) || 0,
-            hispanic: Number(obj['B03003_003E']) || 0,
-            median_income: Number(obj['B19013_001E']) || 0,
-            per_capita_income: Number(obj['B19301_001E']) || 0,
-            poverty_universe: Number(obj['B17001_001E']) || 0,
-            below_poverty: Number(obj['B17001_002E']) || 0,
-            insurance_universe: Number(obj['B27010_001E']) || 0,
-            uninsured: Number(obj['B27010_017E']) || 0,
-            disability_universe: Number(obj['B18101_001E']) || 0,
-            male_disability: Number(obj['B18101_004E']) || 0,
-            female_disability: Number(obj['B18101_007E']) || 0,
-            education_universe: Number(obj['B15003_001E']) || 0,
-            bachelors_plus: bachelors,
-            median_rent: Number(obj['B25064_001E']) || 0,
-            median_home_value: Number(obj['B25077_001E']) || 0
-          });
+
+    for (let i = 0; i < countyKeys.length; i += batchSize) {
+      const batch = countyKeys.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (key) => {
+        const { state, county, tracts } = tractsByCounty[key];
+        const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=tract:*&in=state:${state}+county:${county}`;
+        
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) {
+            console.warn(`⚠️ Census API error for ${state}-${county}: ${resp.status}`);
+            return [];
+          }
+          
+          const data = await resp.json();
+          const header = data[0];
+          const rows = data.slice(1);
+          
+          return rows
+            .filter(row => {
+              const obj = {};
+              header.forEach((h, idx) => { obj[h] = row[idx]; });
+              return tracts.includes(obj['tract']);
+            })
+            .map(row => {
+              const obj = {};
+              header.forEach((h, idx) => { obj[h] = row[idx]; });
+              
+              // Calculate derived values
+              const m65 = ['B01001_020E','B01001_021E','B01001_022E','B01001_023E','B01001_024E','B01001_025E']
+                .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+              const f65 = ['B01001_044E','B01001_045E','B01001_046E','B01001_047E','B01001_048E','B01001_049E']
+                .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+              const mUnder18 = ['B01001_003E','B01001_004E','B01001_005E','B01001_006E']
+                .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+              const fUnder18 = ['B01001_027E','B01001_028E','B01001_029E','B01001_030E']
+                .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+              const bachelors = ['B15003_022E','B15003_023E','B15003_024E','B15003_025E']
+                .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+              
+              // Find tract info
+              const tractInfo = tractRows.find(t => t.tract_ce === obj['tract']);
+              
+              return {
+                total_pop: Number(obj['B01001_001E']) || 0,
+                pop_65_plus: m65 + f65,
+                pop_under_18: mUnder18 + fUnder18,
+                white: Number(obj['B02001_002E']) || 0,
+                black: Number(obj['B02001_003E']) || 0,
+                native_american: Number(obj['B02001_004E']) || 0,
+                asian: Number(obj['B02001_005E']) || 0,
+                pacific_islander: Number(obj['B02001_006E']) || 0,
+                some_other_race: Number(obj['B02001_007E']) || 0,
+                two_or_more: Number(obj['B02001_008E']) || 0,
+                hispanic: Number(obj['B03003_003E']) || 0,
+                median_income: Number(obj['B19013_001E']) || 0,
+                per_capita_income: Number(obj['B19301_001E']) || 0,
+                poverty_universe: Number(obj['B17001_001E']) || 0,
+                below_poverty: Number(obj['B17001_002E']) || 0,
+                insurance_universe: Number(obj['B27010_001E']) || 0,
+                uninsured: Number(obj['B27010_017E']) || 0,
+                disability_universe: Number(obj['B18101_001E']) || 0,
+                male_disability: Number(obj['B18101_004E']) || 0,
+                female_disability: Number(obj['B18101_007E']) || 0,
+                education_universe: Number(obj['B15003_001E']) || 0,
+                bachelors_plus: bachelors,
+                median_rent: Number(obj['B25064_001E']) || 0,
+                median_home_value: Number(obj['B25077_001E']) || 0,
+                land_area_meters: tractInfo ? Number(tractInfo.area_land_meters) || 0 : 0,
+                latitude: tractInfo ? parseFloat(tractInfo.lat) : 0,
+                longitude: tractInfo ? parseFloat(tractInfo.lon) : 0,
+                tract_id: obj['tract'],
+                state: obj['state'],
+                county: obj['county']
+              };
+            });
+        } catch (error) {
+          console.error(`❌ Error fetching data for ${state}-${county}:`, error);
+          return [];
         }
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      allTractData.push(...batchResults.flat());
+      
+      // Small delay between batches to be respectful to Census API
+      if (i + batchSize < countyKeys.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
-    // 5. Aggregate
-    let total_population = 0, population_65_plus = 0, population_under_18 = 0;
-    let white = 0, black = 0, asian = 0, hispanic = 0;
-    let median_income_sum = 0, median_income_count = 0;
-    let per_capita_income_sum = 0, per_capita_income_count = 0;
-    let below_poverty = 0, poverty_universe = 0;
-    let uninsured = 0, insurance_universe = 0;
-    let disability = 0, disability_universe = 0;
-    let bachelors_plus = 0, education_universe = 0;
-    let median_rent_sum = 0, median_rent_count = 0;
-    let median_home_value_sum = 0, median_home_value_count = 0;
-    for (const t of allTractData) {
-      total_population += t.total_pop;
-      population_65_plus += t.pop_65_plus;
-      population_under_18 += t.pop_under_18;
-      white += t.white;
-      black += t.black;
-      asian += t.asian;
-      hispanic += t.hispanic;
-      if (t.median_income > 0) { median_income_sum += t.median_income; median_income_count++; }
-      if (t.per_capita_income > 0) { per_capita_income_sum += t.per_capita_income; per_capita_income_count++; }
-      below_poverty += t.below_poverty;
-      poverty_universe += t.poverty_universe;
-      uninsured += t.uninsured;
-      insurance_universe += t.insurance_universe;
-      disability += t.male_disability + t.female_disability;
-      disability_universe += t.disability_universe;
-      bachelors_plus += t.bachelors_plus;
-      education_universe += t.education_universe;
-      if (t.median_rent > 0) { median_rent_sum += t.median_rent; median_rent_count++; }
-      if (t.median_home_value > 0) { median_home_value_sum += t.median_home_value; median_home_value_count++; }
-    }
+
+    // 4. Aggregate data efficiently
+    const totals = allTractData.reduce((acc, t) => {
+      acc.total_population += t.total_pop;
+      acc.population_65_plus += t.pop_65_plus;
+      acc.population_under_18 += t.pop_under_18;
+      acc.white += t.white;
+      acc.black += t.black;
+      acc.native_american += t.native_american;
+      acc.asian += t.asian;
+      acc.pacific_islander += t.pacific_islander;
+      acc.some_other_race += t.some_other_race;
+      acc.two_or_more += t.two_or_more;
+      acc.hispanic += t.hispanic;
+      acc.below_poverty += t.below_poverty;
+      acc.poverty_universe += t.poverty_universe;
+      acc.uninsured += t.uninsured;
+      acc.insurance_universe += t.insurance_universe;
+      acc.disability += t.male_disability + t.female_disability;
+      acc.disability_universe += t.disability_universe;
+      acc.bachelors_plus += t.bachelors_plus;
+      acc.education_universe += t.education_universe;
+      acc.total_land_area_meters += t.land_area_meters;
+      
+      // Track weighted sums for averages
+      if (t.median_income > 0) { acc.median_income_sum += t.median_income; acc.median_income_count++; }
+      if (t.per_capita_income > 0) { acc.per_capita_income_sum += t.per_capita_income; acc.per_capita_income_count++; }
+      if (t.median_rent > 0) { acc.median_rent_sum += t.median_rent; acc.median_rent_count++; }
+      if (t.median_home_value > 0) { acc.median_home_value_sum += t.median_home_value; acc.median_home_value_count++; }
+      
+      return acc;
+    }, {
+      total_population: 0, population_65_plus: 0, population_under_18: 0,
+      white: 0, black: 0, native_american: 0, asian: 0, pacific_islander: 0,
+      some_other_race: 0, two_or_more: 0, hispanic: 0,
+      below_poverty: 0, poverty_universe: 0,
+      uninsured: 0, insurance_universe: 0,
+      disability: 0, disability_universe: 0,
+      bachelors_plus: 0, education_universe: 0,
+      total_land_area_meters: 0,
+      median_income_sum: 0, median_income_count: 0,
+      per_capita_income_sum: 0, per_capita_income_count: 0,
+      median_rent_sum: 0, median_rent_count: 0,
+      median_home_value_sum: 0, median_home_value_count: 0
+    });
+
     const result = {
       market_totals: {
-        total_population,
-        population_65_plus,
-        population_under_18,
-        white,
-        black,
-        asian,
-        hispanic,
-        median_income: median_income_count ? Math.round(median_income_sum / median_income_count) : null,
-        per_capita_income: per_capita_income_count ? Math.round(per_capita_income_sum / per_capita_income_count) : null,
-        poverty_rate: poverty_universe ? below_poverty / poverty_universe : null,
-        uninsured_rate: insurance_universe ? uninsured / insurance_universe : null,
-        disability_rate: disability_universe ? disability / disability_universe : null,
-        bachelors_plus_rate: education_universe ? bachelors_plus / education_universe : null,
-        median_rent: median_rent_count ? Math.round(median_rent_sum / median_rent_count) : null,
-        median_home_value: median_home_value_count ? Math.round(median_home_value_sum / median_home_value_count) : null,
+        total_population: totals.total_population,
+        population_65_plus: totals.population_65_plus,
+        population_under_18: totals.population_under_18,
+        white: totals.white,
+        black: totals.black,
+        native_american: totals.native_american,
+        asian: totals.asian,
+        pacific_islander: totals.pacific_islander,
+        some_other_race: totals.some_other_race,
+        two_or_more: totals.two_or_more,
+        hispanic: totals.hispanic,
+        median_income: totals.median_income_count ? Math.round(totals.median_income_sum / totals.median_income_count) : null,
+        per_capita_income: totals.per_capita_income_count ? Math.round(totals.per_capita_income_sum / totals.per_capita_income_count) : null,
+        poverty_rate: totals.poverty_universe ? totals.below_poverty / totals.poverty_universe : null,
+        uninsured_rate: totals.insurance_universe ? totals.uninsured / totals.insurance_universe : null,
+        disability_rate: totals.disability_universe ? totals.disability / totals.disability_universe : null,
+        bachelors_plus_rate: totals.education_universe ? totals.bachelors_plus / totals.education_universe : null,
+        median_rent: totals.median_rent_count ? Math.round(totals.median_rent_sum / totals.median_rent_count) : null,
+        median_home_value: totals.median_home_value_count ? Math.round(totals.median_home_value_sum / totals.median_home_value_count) : null,
         total_tracts: allTractData.length,
+        total_land_area_meters: totals.total_land_area_meters,
         acs_year: year
       },
-      geographic_units: []
+      geographic_units: allTractData
     };
+
+    // Cache the result for 1 hour (census data doesn't change frequently)
+    cache.set('census_acs', { lat, lon, radius, year }, result, 60 * 60 * 1000);
+
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     console.error('❌ Census ACS API error:', err);
