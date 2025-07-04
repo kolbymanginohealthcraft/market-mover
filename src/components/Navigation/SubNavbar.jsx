@@ -18,20 +18,12 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Overview
       </NavLink>
       <NavLink
-        to={`${prefix}/nearby${search}`}
+        to={`${prefix}/provider-listing${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }
       >
-        Nearby Providers
-      </NavLink>
-      <NavLink
-        to={`${prefix}/mapbox${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Mapbox Map
+        Provider Listing
       </NavLink>
       <NavLink
         to={`${prefix}/storyteller/scorecard${search}`}

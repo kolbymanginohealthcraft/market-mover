@@ -1,8 +1,8 @@
-# MapLibreTab Implementation
+# ProviderListingTab Implementation
 
 ## Overview
 
-The `MapLibreTab` component is a high-performance alternative to the Leaflet-based `NearbyTab` component. It uses MapLibre GL JS for better rendering performance, especially when handling thousands of provider markers. **MapLibre GL JS is completely free and open source - no API tokens or credit cards required!**
+The `ProviderListingTab` component is a high-performance alternative to the Leaflet-based `NearbyTab` component. It uses MapLibre GL JS for better rendering performance, especially when handling thousands of provider markers. **MapLibre GL JS is completely free and open source - no API tokens or credit cards required!**
 
 ## Key Features
 
@@ -43,7 +43,7 @@ The `MapLibreTab` component is a high-performance alternative to the Leaflet-bas
 
 ### Component Props
 ```javascript
-MapLibreTab({
+ProviderListingTab({
   provider,        // Main provider object with lat/lon
   radiusInMiles,   // Market radius in miles
   providers,       // Array of all providers (main + nearby)
@@ -125,7 +125,7 @@ Navigate to any provider detail page and click on "Mapbox Map" in the navigation
 - ❌ Limited clustering options
 - ❌ Raster tiles (blurry at high zoom)
 
-### MapLibre GL JS (MapLibreTab)
+### MapLibre GL JS (ProviderListingTab)
 - ✅ Smooth performance with 1000+ markers
 - ✅ WebGL-based rendering
 - ✅ Built-in clustering support
@@ -139,7 +139,7 @@ Navigate to any provider detail page and click on "Mapbox Map" in the navigation
 MapLibre GL JS is completely free and open source. No API tokens, credit cards, or account setup required!
 
 ```javascript
-// In MapLibreTab.jsx - no access token needed!
+// In ProviderListingTab.jsx - no access token needed!
 // Using OpenStreetMap tiles which are free and open source
 ```
 

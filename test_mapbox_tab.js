@@ -1,7 +1,7 @@
-// Test script for MapLibreTab component
+// Test script for ProviderListingTab component
 // MapLibre GL JS is completely free - no API tokens or credit cards required!
 
-console.log("🧪 Testing MapLibreTab Component");
+console.log("🧪 Testing ProviderListingTab Component");
 console.log("==================================");
 
 // Test provider data
@@ -80,7 +80,7 @@ console.log("\n📊 Test Parameters:");
 console.log(`   Radius: ${testRadiusInMiles} miles`);
 console.log(`   Saved Market: ${testIsInSavedMarket}`);
 
-console.log("\n🎯 Expected MapLibreTab Features:");
+console.log("\n🎯 Expected ProviderListingTab Features:");
 console.log("   ✅ Main provider marker (red circle)");
 console.log("   ✅ Radius circle overlay");
 console.log("   ✅ Nearby provider markers (blue/green circles)");
@@ -107,5 +107,5 @@ console.log("   ✅ Open source and community driven");
 console.log("   ✅ No usage limits or charges");
 console.log("   ✅ Uses OpenStreetMap tiles (free)");
 
-console.log("\n✅ Test data ready for MapLibreTab component");
-console.log("   Navigate to any provider detail page and click 'Mapbox Map' tab to test"); 
+console.log("\n✅ Test data ready for ProviderListingTab component");
+console.log("   Navigate to any provider detail page and click 'Provider Listing' tab to test"); 

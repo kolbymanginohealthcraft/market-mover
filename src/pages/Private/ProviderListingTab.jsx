@@ -4,20 +4,20 @@ import maplibregl from "maplibre-gl";
 import { supabase } from "../../app/supabaseClient";
 import Spinner from "../../components/Buttons/Spinner";
 import Button from "../../components/Buttons/Button";
-import styles from "./NearbyTab.module.css";
+import styles from "./ProviderListingTab.module.css";
 import { useDropdownClose } from "../../hooks/useDropdownClose";
 import { apiUrl } from '../../utils/api';
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
 
-export default function MapLibreTab({
+export default function ProviderListingTab({
   provider,
   radiusInMiles,
   providers,
   isInSavedMarket,
 }) {
-  console.log("🎯 MapLibreTab component loaded!");
+  console.log("🎯 ProviderListingTab component loaded!");
   console.log("Provider:", provider);
   console.log("Providers:", providers);
   console.log("Radius:", radiusInMiles);
@@ -277,7 +277,7 @@ export default function MapLibreTab({
     return <Spinner message="Loading nearby providers..." />;
   }
   
-  console.log("✅ Rendering MapLibreTab component");
+  console.log("✅ Rendering ProviderListingTab component");
 
   const allTypes = Array.from(
     new Set(
@@ -766,12 +766,12 @@ export default function MapLibreTab({
       </div>
     );
   } catch (error) {
-    console.error("❌ Error in MapLibreTab:", error);
+    console.error("❌ Error in ProviderListingTab:", error);
     return (
       <div className={styles.container}>
         <div style={{ padding: '20px', textAlign: 'center' }}>
           <h3>Error loading map</h3>
-          <p>There was an error loading the MapLibreTab component.</p>
+          <p>There was an error loading the ProviderListingTab component.</p>
           <p>Error: {error.message}</p>
         </div>
       </div>

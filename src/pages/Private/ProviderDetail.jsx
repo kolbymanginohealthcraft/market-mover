@@ -18,8 +18,7 @@ import useMarketData from "../../hooks/useMarketData";
 import useQualityMeasures from "../../hooks/useQualityMeasures";
 
 import OverviewTab from "./OverviewTab";
-import NearbyTab from "./NearbyTab";
-import MapLibreTab from "./MapboxTab";
+import ProviderListingTab from "./ProviderListingTab";
 import ChartsTab from "./ChartDashboard";
 import DiagnosesTab from "./DiagnosesTab";
 import ProceduresTab from "./ProceduresTab";
@@ -241,8 +240,7 @@ export default function ProviderDetail() {
 
       <Routes>
         <Route path="overview" element={<OverviewTab provider={provider} />} />
-        <Route path="nearby" element={<NearbyTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} isInSavedMarket={isInSavedMarket} />} />
-        <Route path="mapbox" element={<MapLibreTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} isInSavedMarket={isInSavedMarket} />} />
+        <Route path="provider-listing" element={<ProviderListingTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} isInSavedMarket={isInSavedMarket} />} />
         <Route path="storyteller/*" element={
           <Storyteller
             provider={provider}
