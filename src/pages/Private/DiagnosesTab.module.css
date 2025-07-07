@@ -222,6 +222,61 @@
   min-height: 400px;
 }
 
+/* Claim Type Selection Styles */
+.claimTypeSelection {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.selectionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.selectionLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #265947;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selectionButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.selectionButton {
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectionButton:hover {
+  border-color: #265947;
+  color: #265947;
+  background-color: #f0f8f4;
+}
+
+.selectionButton.activeSelection {
+  background: #265947;
+  border-color: #265947;
+  color: white;
+}
+
 /* Component Container Styles */
 .componentContainer {
   background: white;

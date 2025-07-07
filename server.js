@@ -14,6 +14,7 @@ import getNearbyProviders from "./server/routes/getNearbyProviders.js";
 import testVendorConnection from "./server/routes/testVendorConnection.js";
 import diagnoses from "./server/routes/diagnoses.js";
 import procedures from "./server/routes/procedures.js";
+import claims from "./server/routes/claims.js";
 import censusData from "./server/routes/censusData.js";
 import providerDensity from "./server/routes/providerDensity.js";
 
@@ -50,6 +51,7 @@ app.use("/api", getNearbyProviders);
 app.use("/api", testVendorConnection);
 app.use("/api", diagnoses);
 app.use("/api", procedures);
+app.use("/api", claims);
 app.use("/api", censusData);
 app.use("/api", providerDensity);
 

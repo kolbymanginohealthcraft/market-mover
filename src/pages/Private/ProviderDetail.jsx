@@ -22,6 +22,7 @@ import ProviderListingTab from "./ProviderListingTab";
 import ChartsTab from "./ChartDashboard";
 import DiagnosesTab from "./DiagnosesTab";
 import ProceduresTab from "./ProceduresTab";
+import ClaimsTab from "./ClaimsTab";
 import PopulationTab from "./PopulationTab";
 import ReferralsTab from "./ReferralsTab";
 import MAEnrollmentTab from "./MAEnrollmentTab";
@@ -265,6 +266,7 @@ export default function ProviderDetail() {
         <Route path="charts" element={<ChartsTab provider={provider} />} />
         <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+        <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
         <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} />} />

@@ -51,12 +51,12 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Diagnoses
       </NavLink>
       <NavLink
-        to={`${prefix}/procedures${search}`}
+        to={`${prefix}/claims${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }
       >
-        Procedures
+        Claims
       </NavLink>
       <NavLink
         to={`${prefix}/population${search}`}
