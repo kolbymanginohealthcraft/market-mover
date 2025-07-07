@@ -201,6 +201,17 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
         </div>
       </nav>
       
+      {/* Temporary Banner - Quality Analysis & Insights */}
+      <div className={styles.comingSoonBanner}>
+        <div className={styles.bannerIcon}>📈</div>
+        <div className={styles.bannerContent}>
+          <h3>Quality Analysis & Market Insights</h3>
+          <p>
+            This section brings together quality measures and market benchmarks to help you better understand provider performance and trends. Here, you can review comparative analytics and gain insights that support informed decision-making and market readiness. Additional features and deeper analyses are planned for future updates.
+          </p>
+        </div>
+      </div>
+
       <div className={styles.content}>
         <Routes>
           <Route path="scorecard" element={

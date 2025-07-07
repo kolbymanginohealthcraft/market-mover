@@ -634,6 +634,17 @@ export default function ProviderListingTab({
   try {
     return (
       <div className={styles.container}>
+        {/* Temporary Banner - Provider Listing & Network Analysis */}
+        <div className={styles.comingSoonBanner}>
+          <div className={styles.bannerIcon}>🔍</div>
+          <div className={styles.bannerContent}>
+            <h3>Provider Listing & Network Analysis</h3>
+            <p>
+              This section provides a comprehensive view of all providers in your market area, helping you identify potential partners, assess competitive landscapes, and understand network opportunities. You can filter by provider type, search for specific providers, and tag them as partners or competitors to build your strategic network intelligence.
+            </p>
+          </div>
+        </div>
+
         <div className={styles.controlsRow}>
           <div className={`${styles.controlsGroup} ${styles.buttonsGroup}`}>
             <div className={styles.dropdownContainer} ref={dropdownRef}>
@@ -681,7 +692,7 @@ export default function ProviderListingTab({
               className="button-sm"
               onClick={() => setShowOnlyCCNs((prev) => !prev)}
             >
-              Only show providers with CCNs
+              Only show Medicare-certified providers
             </Button>
           </div>
 

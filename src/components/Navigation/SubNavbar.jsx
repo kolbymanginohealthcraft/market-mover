@@ -26,21 +26,12 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Provider Listing
       </NavLink>
       <NavLink
-        to={`${prefix}/storyteller/scorecard${search}`}
-        className={({ isActive }) => {
-          const isOnStorytellerRoute = location.pathname.includes('/storyteller');
-          return `${styles.tab} ${(isActive || isOnStorytellerRoute) ? styles.activeTab : ""}`;
-        }}
-      >
-        Storyteller
-      </NavLink>
-      <NavLink
-        to={`${prefix}/claims${search}`}
+        to={`${prefix}/provider-density${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }
       >
-        Claims
+        Provider Density
       </NavLink>
       <NavLink
         to={`${prefix}/population${search}`}
@@ -51,20 +42,29 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Population
       </NavLink>
       <NavLink
+        to={`${prefix}/claims${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        Claims
+      </NavLink>
+      <NavLink
+        to={`${prefix}/storyteller/scorecard${search}`}
+        className={({ isActive }) => {
+          const isOnStorytellerRoute = location.pathname.includes('/storyteller');
+          return `${styles.tab} ${(isActive || isOnStorytellerRoute) ? styles.activeTab : ""}`;
+        }}
+      >
+        Storyteller
+      </NavLink>
+      <NavLink
         to={`${prefix}/ma-enrollment${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }
       >
         MA Enrollment
-      </NavLink>
-      <NavLink
-        to={`${prefix}/provider-density${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Provider Density
       </NavLink>
     </nav>
   );

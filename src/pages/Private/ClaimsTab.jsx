@@ -30,6 +30,21 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
         <h2>Claims Analysis <span className={styles.subheader}>Market analysis for the last 12 months</span></h2>
       </div>
 
+      {/* Temporary Banner - Coming Soon */}
+      <div className={styles.comingSoonBanner}>
+        <div className={styles.bannerIcon}>🚀</div>
+        <div className={styles.bannerContent}>
+          <h3>Enhanced Claims Analysis Coming Soon</h3>
+          <p>
+            We're building a comprehensive claims analysis section that will revolutionize how you understand market dynamics. 
+            Soon you'll have access to advanced search capabilities, detailed filtering options, and deep-dive analytics including 
+            claim volume trends, cost analysis, provider performance metrics, service line breakdowns, and patient journey insights. 
+            This powerful tool will help you identify market opportunities, track competitive positioning, and make data-driven 
+            strategic decisions with unprecedented granularity and precision.
+          </p>
+        </div>
+      </div>
+
       {/* Claim Type Selection */}
       <div className={styles.claimTypeSelection}>
         <div className={styles.selectionGroup}>

@@ -21,7 +21,7 @@ export default function Home() {
   const whatsNew = [
     { title: '🎉 New Scorecard Tool', description: 'Compare across 40+ metrics.', date: 'May 1' },
     { title: '📍 Market Data Updated', description: 'April 2025 CMS data now live.', date: 'Apr 29' },
-    { title: '🧠 Smarter Suggestions', description: 'New guidance added to “Help Me Decide”.', date: 'Apr 25' },
+    { title: '🧠 Smarter Suggestions', description: 'New guidance added to "Help Me Decide".', date: 'Apr 25' },
   ];
 
   const helpContent = {
@@ -68,6 +68,17 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
+      {/* Temporary Banner - Dashboard Development */}
+      <div className={styles.comingSoonBanner}>
+        <div className={styles.bannerIcon}>🏠</div>
+        <div className={styles.bannerContent}>
+          <h3>Dashboard Development in Progress</h3>
+          <p>
+            Welcome to your Market Mover dashboard! This is currently a placeholder interface that will soon become your personalized command center. In the future, you'll see real activity tracking, progress metrics, personalized recommendations, and insights tailored to your market analysis needs. We're building a comprehensive dashboard that will help you track your usage, monitor market changes, and get actionable insights to drive your strategic decisions.
+          </p>
+        </div>
+      </div>
+
       <header className={styles.heroBox}>
         <h1 className={styles.hero}>{greeting}</h1>
         <p className={styles.subtext}>{quote}</p>

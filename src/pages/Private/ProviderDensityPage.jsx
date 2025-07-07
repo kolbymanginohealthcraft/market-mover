@@ -95,6 +95,17 @@ export default function ProviderDensityPage({ radius = 25 }) {
         </p>
       </div>
 
+      {/* Temporary Banner - Provider Density Analysis */}
+      <div className={styles.comingSoonBanner}>
+        <div className={styles.bannerIcon}>🏥</div>
+        <div className={styles.bannerContent}>
+          <h3>Provider Density & Network Analysis</h3>
+          <p>
+            This section helps you understand the prevalence of licensed professionals in your area, which directly impacts your ability to staff and seek additional resources for your provider network. By analyzing provider density by specialty, you can identify staffing opportunities, assess competitive landscapes, and make informed decisions about network expansion and recruitment strategies.
+          </p>
+        </div>
+      </div>
+
       <div className={styles.controls}>
         <div className={styles.controlGroup}>
           <label>Search Specialties:</label>

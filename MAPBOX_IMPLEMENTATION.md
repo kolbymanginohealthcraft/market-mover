@@ -15,14 +15,14 @@ The `ProviderListingTab` component is a high-performance alternative to the Leaf
 ### 🗺️ Map Features
 - **Main provider marker** (red circle) - represents the selected provider
 - **Radius circle overlay** - shows the market area boundary
-- **Nearby provider markers** - color-coded by CCN status (green = has CCN, blue = no CCN)
+- **Nearby provider markers** - color-coded by Medicare certification status (green = Medicare-certified with CCN, blue = other providers)
 - **Interactive popups** - click markers to see provider details
 - **Navigation controls** - zoom, pan, and fullscreen controls
 - **Hover effects** - markers change size when hovered
 
 ### 📊 Data Visualization
 - **Provider filtering** by type (Hospital, Clinic, Specialty, etc.)
-- **CCN filtering** - show only providers with CCNs
+- **Medicare certification filtering** - show only Medicare-certified providers
 - **Search functionality** - filter providers by name
 - **Provider tagging** - tag providers as partners or competitors (in saved markets)
 - **Distance sorting** - providers sorted by distance from main provider
@@ -109,7 +109,7 @@ Navigate to any provider detail page and click on "Mapbox Map" in the navigation
 - **Click markers** to see provider details in popups
 - **Use navigation controls** to zoom, pan, and enter fullscreen
 - **Hover over table rows** to highlight corresponding map markers
-- **Use filters** to show specific provider types or CCN providers
+- **Use filters** to show specific provider types or Medicare-certified providers
 - **Search** for providers by name
 
 ### 3. Provider Tagging (Saved Markets)

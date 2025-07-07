@@ -26,6 +26,7 @@
     border-radius: 0.4rem;
     font-size: 0.9rem;
     cursor: pointer;
+    transition: background-color 0.2s ease;
   }
   
   .createButton:hover {
@@ -83,6 +84,52 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+  
+  .detailsBottomRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 0.3rem;
+  }
+  
+  .radiusText {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .actionButtons {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+  }
+  
+  .actionButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.3rem;
+    transition: background-color 0.2s ease;
+  }
+  
+  .actionButton:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .actionButton svg {
+    width: 14px;
+    height: 14px;
+    color: #666;
+    transition: color 0.2s ease;
+  }
+  
+  .actionButton:hover svg {
+    color: #333;
   }
   
   .linkText {
