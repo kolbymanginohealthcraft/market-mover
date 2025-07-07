@@ -240,7 +240,7 @@ export default function ProviderListingTab({
 
     const tagMap = {};
     data?.forEach((tag) => {
-      tagMap[tag.tagged_provider_id] = tag.tag_type;
+      tagMap[tag.tagged_provider_id] = tag.tag_type; // tagged_provider_id now contains BigQuery dhc values
     });
     setTags(tagMap);
   };
@@ -585,26 +585,49 @@ export default function ProviderListingTab({
     }
   }, [layersAdded, uniqueResults, ccnProviderIds, tags, provider]);
 
-  const handleTag = async (providerId, tagType) => {
+  const handleTag = async (providerDhc, tagType) => {
     if (!isInSavedMarket || !marketId) return;
     try {
-      setSavingTagId(providerId);
+      setSavingTagId(providerDhc);
       const { error } = await supabase.from("market_provider_tags").upsert(
         {
           market_id: marketId,
-          tagged_provider_id: providerId,
+          tagged_provider_id: providerDhc, // Store BigQuery dhc value
           tag_type: tagType,
         },
         { onConflict: ["market_id", "tagged_provider_id"] }
       );
 
       if (!error) {
-        setTags((prev) => ({ ...prev, [providerId]: tagType }));
+        setTags((prev) => ({ ...prev, [providerDhc]: tagType }));
         setTaggingProviderId(null);
         setTimeout(() => setSavingTagId(null), 500);
       }
     } catch (err) {
       console.error("Unexpected error tagging provider:", err);
+    }
+  };
+
+  const handleUntag = async (providerDhc) => {
+    if (!isInSavedMarket || !marketId) return;
+    try {
+      setSavingTagId(providerDhc);
+      const { error } = await supabase
+        .from("market_provider_tags")
+        .delete()
+        .eq("market_id", marketId)
+        .eq("tagged_provider_id", providerDhc);
+
+      if (!error) {
+        setTags((prev) => {
+          const newTags = { ...prev };
+          delete newTags[providerDhc];
+          return newTags;
+        });
+        setTimeout(() => setSavingTagId(null), 500);
+      }
+    } catch (err) {
+      console.error("Unexpected error untagging provider:", err);
     }
   };
 
@@ -735,20 +758,34 @@ export default function ProviderListingTab({
                               </button>
                             </div>
                           ) : (
-                            <span
-                              className={`${
-                                tags[p.dhc] === "partner"
-                                  ? styles.partnerBadge
-                                  : tags[p.dhc] === "competitor"
-                                  ? styles.competitorBadge
-                                  : styles.tagDefault
-                              } ${
-                                savingTagId === p.dhc ? styles.animatePulse : ""
-                              }`}
-                              onClick={() => setTaggingProviderId(p.dhc)}
-                            >
-                              {tags[p.dhc] || "Tag"}
-                            </span>
+                            <div className={styles.tagContainer}>
+                              <span
+                                className={`${
+                                  tags[p.dhc] === "partner"
+                                    ? styles.partnerBadge
+                                    : tags[p.dhc] === "competitor"
+                                    ? styles.competitorBadge
+                                    : styles.tagDefault
+                                } ${
+                                  savingTagId === p.dhc ? styles.animatePulse : ""
+                                }`}
+                                onClick={() => setTaggingProviderId(p.dhc)}
+                              >
+                                {tags[p.dhc] || "Tag"}
+                              </span>
+                              {tags[p.dhc] && (
+                                <button
+                                  className={styles.untagButton}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUntag(p.dhc);
+                                  }}
+                                  title="Remove tag"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
                       )}

@@ -35,22 +35,6 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Storyteller
       </NavLink>
       <NavLink
-        to={`${prefix}/charts${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Charts
-      </NavLink>
-      <NavLink
-        to={`${prefix}/diagnoses${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Diagnoses
-      </NavLink>
-      <NavLink
         to={`${prefix}/claims${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
@@ -65,14 +49,6 @@ export default function SubNavbar({ providerId: providerDhc }) {
         }
       >
         Population
-      </NavLink>
-      <NavLink
-        to={`${prefix}/referrals${search}`}
-        className={({ isActive }) =>
-          `${styles.tab} ${isActive ? styles.activeTab : ""}`
-        }
-      >
-        Referrals
       </NavLink>
       <NavLink
         to={`${prefix}/ma-enrollment${search}`}

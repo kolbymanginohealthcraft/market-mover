@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styles from '../../pages/Public/TermsAndConditions.module.css';
 import LegalNavbar from '../Navigation/LegalNavbar';
+import DevelopmentBanner from '../Navigation/DevelopmentBanner';
 
 function LegalLayout() {
   const location = useLocation();
@@ -26,6 +27,7 @@ function LegalLayout() {
 
   return (
     <div className={styles.container}>
+      <DevelopmentBanner />
       <LegalNavbar closeWindow={closeWindow} />
       <div className={styles.contentWrapper}>
         <Outlet />

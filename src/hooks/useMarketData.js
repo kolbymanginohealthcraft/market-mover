@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../app/supabaseClient";
 
-export default function useMarketData(marketId, providerId, radiusInMiles, navigate) {
+export default function useMarketData(marketId, providerDhc, radiusInMiles, navigate) {
   const [currentMarketName, setCurrentMarketName] = useState("");
   const [isEditingMarket, setIsEditingMarket] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -47,7 +47,7 @@ export default function useMarketData(marketId, providerId, radiusInMiles, navig
       .from("saved_market")
       .insert({
         user_id: userId,
-        provider_id: providerId,
+        provider_id: providerDhc,
         radius_miles: radius,
         name: marketName,
         created_at: new Date().toISOString(),
@@ -88,7 +88,7 @@ export default function useMarketData(marketId, providerId, radiusInMiles, navig
     const lastSegment = currentPath.split("/").pop();
     const validTabs = ["overview", "nearby", "scorecard", "charts", "matrix", "quality"];
     const subTab = validTabs.includes(lastSegment) ? lastSegment : "overview";
-    navigate(`/app/provider/${providerId}/${subTab}?radius=${radius}&marketId=${marketId}`);
+    navigate(`/app/provider/${providerDhc}/${subTab}?radius=${radius}&marketId=${marketId}`);
   };
 
   return {

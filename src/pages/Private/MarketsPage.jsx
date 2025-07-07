@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
+import { apiUrl } from '../../utils/api';
 import styles from "./MarketsPage.module.css";
 import { Pencil, Trash, Check, X } from "lucide-react";
 
@@ -17,9 +18,10 @@ export default function MarketsPage() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) return;
 
+      // Fetch saved markets (provider_id now contains BigQuery dhc values)
       const { data: savedMarkets, error: marketsError } = await supabase
         .from("saved_market")
-        .select("id, name, radius_miles, provider_dhc (name, street, city, state, zip, network, type)")
+        .select("id, name, radius_miles, provider_id, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -29,9 +31,44 @@ export default function MarketsPage() {
         return;
       }
 
+      // Fetch provider details from BigQuery for each saved market
+      const marketsWithProviders = await Promise.all(
+        savedMarkets.map(async (market) => {
+          try {
+            const response = await fetch(`${apiUrl}/getNpis`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dhc_ids: [market.provider_id] })
+            });
+            
+            if (response.ok) {
+              const providerData = await response.json();
+              const provider = providerData.providers?.[0];
+              return {
+                ...market,
+                provider: provider || null
+              };
+            } else {
+              console.error(`Failed to fetch provider ${market.provider_id}`);
+              return {
+                ...market,
+                provider: null
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching provider ${market.provider_id}:`, error);
+            return {
+              ...market,
+              provider: null
+            };
+          }
+        })
+      );
+
+      // Fetch tags data
       const { data: tagsData, error: tagsError } = await supabase
         .from("market_provider_tags")
-        .select("market_id, tag_type, org_dhc (id, name)");
+        .select("market_id, tag_type, tagged_provider_id");
 
       if (tagsError) {
         console.error("Error fetching market tags:", tagsError);
@@ -39,19 +76,45 @@ export default function MarketsPage() {
         return;
       }
 
+      // Fetch provider details for tagged providers
+      const taggedProviderIds = [...new Set(tagsData?.map(tag => tag.tagged_provider_id) || [])];
+      let taggedProvidersMap = {};
+      
+      if (taggedProviderIds.length > 0) {
+        try {
+          const response = await fetch(`${apiUrl}/getNpis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dhc_ids: taggedProviderIds })
+          });
+          
+          if (response.ok) {
+            const taggedProvidersData = await response.json();
+            taggedProvidersData.providers?.forEach(provider => {
+              taggedProvidersMap[provider.dhc] = provider;
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching tagged providers:", error);
+        }
+      }
+
       const tagsByMarket = {};
       tagsData?.forEach((tag) => {
         if (!tagsByMarket[tag.market_id]) {
           tagsByMarket[tag.market_id] = { partners: [], competitors: [] };
         }
+        const taggedProvider = taggedProvidersMap[tag.tagged_provider_id];
+        const providerName = taggedProvider?.name || "(Unnamed)";
+        
         if (tag.tag_type === "partner") {
-          tagsByMarket[tag.market_id].partners.push(tag.org_dhc?.name || "(Unnamed)");
+          tagsByMarket[tag.market_id].partners.push(providerName);
         } else if (tag.tag_type === "competitor") {
-          tagsByMarket[tag.market_id].competitors.push(tag.org_dhc?.name || "(Unnamed)");
+          tagsByMarket[tag.market_id].competitors.push(providerName);
         }
       });
 
-      const enrichedMarkets = savedMarkets.map((market) => ({
+      const enrichedMarkets = marketsWithProviders.map((market) => ({
         ...market,
         partners: tagsByMarket[market.id]?.partners || [],
         competitors: tagsByMarket[market.id]?.competitors || [],
@@ -160,62 +223,57 @@ export default function MarketsPage() {
                   ) : (
                     <span
                       className={styles.linkText}
-                      onClick={() => goToMarket(m.provider_dhc, m.radius_miles, m.id)}
+                      onClick={() => goToMarket(m.provider_id, m.radius_miles, m.id)}
                     >
                       {m.name}
                     </span>
                   )}
                 </div>
-
-                {editingId === m.id ? (
-                  <div className={styles.editRow}>
-                    <input
-                      type="number"
-                      className={styles.inlineInput}
-                      value={editedFields[`${m.id}-radius_miles`] || ""}
-                      onChange={(e) =>
-                        setEditedFields((prev) => ({
-                          ...prev,
-                          [`${m.id}-radius_miles`]: e.target.value,
-                        }))
-                      }
-                      onKeyDown={(e) => handleKeyDown(e, m.id)}
-                      placeholder="Radius (mi)"
-                    />
-                    <div className={styles.iconGroup}>
-                      <button className={styles.iconButton} onClick={() => saveFields(m.id)}>
-                        <Check size={16} />
-                      </button>
-                      <button className={styles.iconButton} onClick={cancelEditing}>
-                        <X size={16} />
-                      </button>
-                    </div>
+                <div className={styles.detailsBottomRow}>
+                  <span className={styles.radiusText}>{m.radius_miles} mi radius</span>
+                  <div className={styles.actionButtons}>
+                    {editingId === m.id ? (
+                      <>
+                        <button
+                          className={styles.actionButton}
+                          onClick={() => saveFields(m.id)}
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button
+                          className={styles.actionButton}
+                          onClick={cancelEditing}
+                        >
+                          <X size={14} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.actionButton}
+                          onClick={() => startEditing(m)}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          className={styles.actionButton}
+                          onClick={() => handleDelete(m.id)}
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <div className={styles.smallDetail}>{m.radius_miles} mi radius</div>
-                    <div className={styles.smallDetail}>
-                      {new Date(m.created_at).toLocaleString()}
-                    </div>
-                    <div className={styles.iconGroup}>
-                      <button className={styles.iconButton} onClick={() => startEditing(m)}>
-                        <Pencil size={16} />
-                      </button>
-                      <button className={styles.iconButton} onClick={() => handleDelete(m.id)}>
-                        <Trash size={16} />
-                      </button>
-                    </div>
-                  </>
-                )}
+                </div>
               </td>
 
               <td className={styles.providerCell}>
-                <div className={styles.providerName}>{m.org_dhc?.name || "—"}</div>
+                <div className={styles.providerName}>{m.provider?.name || "—"}</div>
                 <div className={styles.providerDetail}>
-                  {`${m.org_dhc?.street}, ${m.org_dhc?.city}, ${m.org_dhc?.state} ${m.org_dhc?.zip}`}
+                  {m.provider ? `${m.provider.street}, ${m.provider.city}, ${m.provider.state} ${m.provider.zip}` : "—"}
                 </div>
-                <div className={styles.providerDetail}>{m.org_dhc?.type || "—"}</div>
-                <div className={styles.providerDetail}>{m.org_dhc?.network || "—"}</div>
+                <div className={styles.providerDetail}>{m.provider?.type || "—"}</div>
+                <div className={styles.providerDetail}>{m.provider?.network || "—"}</div>
               </td>
 
               <td className={styles.partnerCell}>

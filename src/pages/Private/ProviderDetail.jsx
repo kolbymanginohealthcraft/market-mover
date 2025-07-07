@@ -85,8 +85,18 @@ export default function ProviderDetail() {
   }, [provider, nearbyProviders]);
 
   const handlePopupKeyDown = (e) => {
-    if (e.key === "Enter") handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false));
-    if (e.key === "Escape") setShowPopup(false);
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!marketName.trim()) {
+        alert('Please enter a market name');
+        return;
+      }
+      handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false));
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setShowPopup(false);
+    }
   };
 
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function ProviderDetail() {
     async function fetchMainProviderCcns() {
       if (!provider?.dhc) return setMainProviderCcns([]);
       console.log('Fetching related CCNs for provider:', provider?.dhc);
-      const response = await fetch(apiUrl('/api/related-ccns'), {
+      const response = await fetch(apiUrl('related-ccns'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dhc: provider?.dhc })
@@ -225,7 +235,18 @@ export default function ProviderDetail() {
               className={styles.popupInput}
             />
             <div className={styles.popupButtons}>
-              <button onClick={() => handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false))} className={styles.popupSave}>
+              <button 
+                onClick={() => {
+                  if (!marketName.trim()) {
+                    alert('Please enter a market name');
+                    return;
+                  }
+                  console.log('Save market clicked:', { marketName, radiusInMiles, providerDhc: provider?.dhc });
+                  handleSaveMarket(marketName, radiusInMiles, () => setShowPopup(false));
+                }} 
+                className={styles.popupSave}
+                disabled={!marketName.trim()}
+              >
                 Confirm
               </button>
               <button onClick={() => setShowPopup(false)} className={styles.popupCancel}>
