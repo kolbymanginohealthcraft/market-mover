@@ -1,3 +1,0 @@
-functions:
-  process-payment:
-    verify_jwt: false
