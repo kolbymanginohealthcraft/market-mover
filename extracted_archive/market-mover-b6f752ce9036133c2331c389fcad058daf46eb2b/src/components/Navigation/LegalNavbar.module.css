@@ -1,0 +1,59 @@
+/* src/components/LegalNavbar.module.css */
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background-color: #265947;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999; /* Ensure it's on top */
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  width: 100%; /* Ensure full width */
+  justify-content: space-between; /* Space between items */
+}
+
+.tabContainer {
+  display: flex;
+  gap: 1rem;
+  margin-right: auto; /* Pushes tabs to the left */
+}
+
+.activeTab {
+  font-weight: bold;
+  color: #f1b62c;
+  border-bottom: 2px solid #f1b62c;
+  padding-bottom: 4px;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.inactiveTab {
+  color: #fff;
+  text-decoration: none;
+  padding-bottom: 4px;
+  transition: color 0.3s;
+}
+
+.closeButton {
+  background-color: #f1b62c;
+  border: none;
+  padding: 8px 16px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+  margin-left: auto; /* Pushes the button to the far right */
+}
+
+.closeButton:hover {
+  background-color: #1d4037;
+}

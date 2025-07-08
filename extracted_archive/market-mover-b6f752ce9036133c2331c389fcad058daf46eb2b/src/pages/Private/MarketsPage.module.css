@@ -1,0 +1,235 @@
+.container {
+    width: 100%;
+    margin: 2rem 0;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+  
+  .headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .heading {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .createButton {
+    background-color: #1dadbe;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .createButton:hover {
+    background-color: #1598a8;
+  }
+  
+  .empty {
+    text-align: center;
+    font-size: 1rem;
+    color: #777;
+    margin-top: 2rem;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    background-color: #fff;
+    table-layout: auto;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+    white-space: normal;
+  }
+  
+  .table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+    color: #444;
+    font-size: 0.85rem;
+  }
+  
+  .table tr:hover {
+    background-color: #f0f8ff;
+  }
+  
+  .colDetails {
+    width: 15%;
+    min-width: 200px;
+  }
+  
+  .detailsCell {
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-right: 0.5rem;
+  }
+  
+  .detailsTopRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .detailsBottomRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 0.3rem;
+  }
+  
+  .radiusText {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .actionButtons {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+  }
+  
+  .actionButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.3rem;
+    transition: background-color 0.2s ease;
+  }
+  
+  .actionButton:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .actionButton svg {
+    width: 14px;
+    height: 14px;
+    color: #666;
+    transition: color 0.2s ease;
+  }
+  
+  .actionButton:hover svg {
+    color: #333;
+  }
+  
+  .linkText {
+    cursor: pointer;
+    color: #1dadbe;
+    text-decoration: underline;
+    font-weight: 600;
+    font-size: 1rem;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  
+  .linkText:hover {
+    color: #1598a8;
+    text-decoration: none;
+  }
+  
+  .smallDetail {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .editRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+  }
+  
+  .inlineInput {
+    width: 100%;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .iconGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  
+  .iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .iconButton svg {
+    width: 16px;
+    height: 16px;
+    color: #999;
+    transition: color 0.2s ease;
+  }
+  
+  .iconButton svg:hover {
+    color: #555;
+  }
+  
+  .providerCell,
+  .partnerCell,
+  .competitorCell {
+    width: 28%;
+    vertical-align: top;
+  }
+  
+  .providerName {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  
+  .providerDetail {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.2;
+  }
+  
+  .list {
+    padding-left: 1rem;
+    margin: 0.5rem 0 0 0;
+  }
+  
+  .list li {
+    font-size: 0.85rem;
+    color: #444;
+    margin-bottom: 0.3rem;
+  }
+  
+  @media (max-width: 768px) {
+    .table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
+
+  

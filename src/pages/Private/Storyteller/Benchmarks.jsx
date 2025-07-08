@@ -61,22 +61,54 @@ export default function Benchmarks({
 
   // Set default metric when measures load
   useEffect(() => {
-    if (!selectedMetric && finalMeasures.length > 0) {
-      setSelectedMetric(finalMeasures[0].code);
+    if (!selectedMetric && finalFilteredMeasures.length > 0) {
+      setSelectedMetric(finalFilteredMeasures[0].code);
     }
-  }, [finalMeasures, selectedMetric]);
+  }, [finalFilteredMeasures, selectedMetric]);
 
-  // Filter providers by selected type (if any)
-  const filteredMatrixProviders = useMemo(() => {
-    return providerTypeFilter
-      ? finalAllProviders.filter(p => p.type === providerTypeFilter)
-      : finalAllProviders;
-  }, [providerTypeFilter, finalAllProviders]);
+  // Filter measures by selected setting (if any) instead of filtering providers
+  const filteredMeasures = finalMeasures.filter(m => {
+    // If no filter is selected, show all measures
+    if (!providerTypeFilter || providerTypeFilter === 'All') {
+      return true;
+    }
+    
+    // Infer setting from measure code since database setting field might be empty
+    let inferredSetting = 'Other';
+    if (m.code && m.code.includes('HOSPITAL')) inferredSetting = 'Hospital';
+    else if (m.code && m.code.includes('SNF')) inferredSetting = 'SNF';
+    else if (m.code && m.code.includes('HH')) inferredSetting = 'HH';
+    else if (m.code && m.code.includes('HOSPICE')) inferredSetting = 'Hospice';
+    else if (m.code && m.code.includes('IRF')) inferredSetting = 'IRF';
+    else if (m.code && m.code.includes('LTCH')) inferredSetting = 'LTCH';
+    else if (m.code && m.code.includes('CAH')) inferredSetting = 'Hospital';
+    
+    return inferredSetting === providerTypeFilter;
+  });
 
-  // Main provider for the benchmarks
-  const mainProviderInMatrix = useMemo(() => {
-    return filteredMatrixProviders.find(p => p.dhc === provider?.dhc);
-  }, [filteredMatrixProviders, provider?.dhc]);
+  // Fallback: if no measures found for selected setting, show all measures
+  const finalFilteredMeasures = filteredMeasures.length > 0 ? filteredMeasures : finalMeasures;
+
+  // Show ALL providers, but only the measures that match the selected setting
+  // This allows users to see all providers but only the relevant measures
+  const filteredProviders = finalAllProviders;
+
+  // Main provider for the benchmarks (show all providers)
+  const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
+
+  // DEBUG: Log filtering info
+  console.log('🔍 Benchmarks filtering:', {
+    providerTypeFilter,
+    totalMeasures: finalMeasures.length,
+    filteredMeasuresCount: filteredMeasures.length,
+    finalFilteredMeasuresCount: finalFilteredMeasures.length,
+    totalProviders: finalAllProviders.length,
+    filteredProvidersCount: filteredProviders.length,
+    mainProviderHasData: mainProviderInMatrix ? 'YES' : 'NO',
+    selectedMetric,
+    filteredMeasures: filteredMeasures.map(m => ({ code: m.code, name: m.name })),
+    finalFilteredMeasures: finalFilteredMeasures.map(m => ({ code: m.code, name: m.name }))
+  });
 
   // Prepare chart data for selected metric
   const chartData = useMemo(() => {
@@ -101,8 +133,8 @@ export default function Benchmarks({
 
   // Get metric display info
   const metricInfo = useMemo(() => {
-    return finalMeasures.find((m) => m.code === selectedMetric);
-  }, [finalMeasures, selectedMetric]);
+    return finalFilteredMeasures.find((m) => m.code === selectedMetric);
+  }, [finalFilteredMeasures, selectedMetric]);
 
   // Helper to format measure values (same as ProviderComparisonMatrix)
   const formatValue = (val, measure) => {
@@ -261,7 +293,7 @@ export default function Benchmarks({
             onChange={(e) => setSelectedMetric(e.target.value)}
             style={{ marginLeft: 8 }}
           >
-            {finalMeasures.map((m) => (
+            {finalFilteredMeasures.map((m) => (
               <option key={m.code} value={m.code}>
                 {m.short_name || m.name}
               </option>

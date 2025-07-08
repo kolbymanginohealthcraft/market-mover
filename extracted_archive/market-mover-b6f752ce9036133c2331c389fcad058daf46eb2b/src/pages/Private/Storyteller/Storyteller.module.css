@@ -1,0 +1,247 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f8f8;
+  padding: 0.5rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  gap: 1rem;
+}
+
+.navLeft {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 5rem;
+  flex-wrap: wrap;
+}
+
+.navLink {
+  font-weight: 500;
+  color: #666;
+  text-decoration: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.navLink:hover {
+  background: #e8f0ed;
+  color: #265947;
+}
+
+.navLink.active {
+  font-weight: 600;
+  color: #265947;
+  background: #e8f0ed;
+  border-bottom: 3px solid #265947;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filterLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.selectSm {
+  font-size: 0.85rem !important;
+  padding: 3px 8px !important;
+  height: 1.7rem !important;
+  border-radius: 5px !important;
+  border: 1px solid #ddd;
+  background-color: white;
+  outline: none;
+  transition: border 0.2s;
+  margin: 0 !important;
+}
+
+.selectSm:focus {
+  border: 1.5px solid #4a90e2;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.toggleLabel:hover {
+  background-color: #e8f0ed;
+}
+
+.toggleLabel input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggleLabel input[type="radio"]:checked + span {
+  color: #265947;
+  font-weight: 600;
+}
+
+.viewToggleContainer {
+  position: relative;
+  display: flex;
+  gap: 0.1rem;
+  align-items: center;
+}
+
+.viewToggleContainer > * {
+  flex: 0 0 auto;
+}
+
+.dropdownArrow {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 3px;
+  color: inherit;
+  font-size: 0.7rem;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.dropdownArrow:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.toggleButton {
+  position: relative;
+  padding-right: 8px;
+  width: 180px;
+}
+
+.selectedDate {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-left: 0.25rem;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.snapshotButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+  padding-right: 28px;
+  width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.snapshotDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 150px;
+  margin-top: 4px;
+}
+
+.dropdownHeader {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  background: #f8f8f8;
+}
+
+.dropdownItem {
+  width: 100%;
+  border-radius: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.content {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Coming Soon Banner Styles */
+.comingSoonBanner {
+  background: linear-gradient(135deg, #265947 0%, #1e4a3a 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(38, 89, 71, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.bannerIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.bannerContent h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: white;
+}
+
+.bannerContent p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+} 

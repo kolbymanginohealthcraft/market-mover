@@ -1,0 +1,20 @@
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* CTA Section with sloping top */
+.ctaSection {
+  background-color: #265947;
+  color: white;
+  padding: 100px 24px 80px;
+  text-align: center;
+  clip-path: polygon(0 20%, 100% 0, 100% 100%, 0% 100%);
+}
+
+/* CTA Heading */
+.ctaSection h2 {
+  font-size: 1.9rem;
+  margin-bottom: 24px;
+  color: white;
+}

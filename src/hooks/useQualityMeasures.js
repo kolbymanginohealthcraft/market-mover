@@ -80,18 +80,24 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           });
         }
 
+        // DEBUG: Log CCNs for main provider
+        console.log('🔍 Main provider CCNs:', {
+          dhc: provider?.dhc,
+          ccns: providerDhcToCcns[provider?.dhc] || [],
+          allProviderDhcToCcns: Object.keys(providerDhcToCcns).length
+        });
+
         // 4. Only include providers with at least one CCN
         allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
         
-        // 4b. Get unique provider types for dropdown
-        const uniqueTypes = Array.from(new Set(allProviders.map(p => p.type).filter(Boolean)));
-        setAvailableProviderTypes(uniqueTypes);
+        // 4b. Get unique measure settings for dropdown (instead of provider types)
+        // This will be populated after we fetch the measures data
 
         // 5. Get all CCNs for the combined request
         const allCcns = Object.values(providerDhcToCcns).flat();
         
         // 6. Check cache for combined data
-        const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date: selectedPublishDate || 'latest' });
+        const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date: selectedPublishDate || '2025-04-01' });
         const cachedData = getCachedData(cacheKey);
         
         let combinedData;
@@ -103,7 +109,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           console.log('🔍 Fetching combined quality measure data:', {
             providerDhc: provider?.dhc,
             allCcnsCount: allCcns.length,
-            publish_date: selectedPublishDate || 'latest'
+            publish_date: selectedPublishDate || '2025-04-01'
           });
           
           const combinedResponse = await fetch(apiUrl('/api/qm_combined'), {
@@ -111,7 +117,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               ccns: allCcns, 
-              publish_date: selectedPublishDate || 'latest' 
+              publish_date: selectedPublishDate || '2025-04-01' 
             })
           });
           
@@ -133,6 +139,15 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           availableDatesCount: availableDates?.length || 0,
           availableDates: availableDates || []
         });
+        
+        // DEBUG: Log sample provider data to see what we're getting
+        if (providerData && providerData.length > 0) {
+          console.log('🔍 Sample provider data:', providerData.slice(0, 3));
+          console.log('🔍 Provider data CCNs:', [...new Set(providerData.map(d => d.ccn))].slice(0, 10));
+          console.log('🔍 Provider data codes:', [...new Set(providerData.map(d => d.code))].slice(0, 10));
+        } else {
+          console.log('⚠️ No provider data received');
+        }
         
         // 8. Set available publish dates
         setAvailablePublishDates(availableDates);
@@ -161,10 +176,52 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         if (selectedPublishDate && availableDates.includes(selectedPublishDate)) {
           publish_date = selectedPublishDate;
         } else {
-          // Use the most recent date as default
-          publish_date = availableDates[0];
+          // Default to April 2025 if available, otherwise use the most recent date
+          const april2025 = '2025-04-01';
+          publish_date = availableDates.includes(april2025) ? april2025 : availableDates[0];
         }
         setCurrentPublishDate(publish_date);
+        
+        // DEBUG: Log publish date selection
+        console.log('📅 Publish date selection:', {
+          selectedPublishDate,
+          availableDates,
+          chosenDate: publish_date,
+          mainProviderCcns: providerDhcToCcns[provider?.dhc] || []
+        });
+
+        // 10b. Get unique measure settings for dropdown
+        const uniqueSettings = Array.from(new Set(measures.map(m => m.setting).filter(Boolean)));
+        
+        // DEBUG: If no settings found, try to infer from measure codes or use defaults
+        if (uniqueSettings.length === 0) {
+          console.log('⚠️ No settings found in measures data, trying to infer from measure codes...');
+          // Try to infer settings from measure codes (common patterns)
+          const inferredSettings = [];
+          measures.forEach(m => {
+            if (m.code && m.code.includes('HOSPITAL')) inferredSettings.push('Hospital');
+            else if (m.code && m.code.includes('SNF')) inferredSettings.push('SNF');
+            else if (m.code && m.code.includes('HH')) inferredSettings.push('HH');
+            else if (m.code && m.code.includes('HOSPICE')) inferredSettings.push('Hospice');
+            else if (m.code && m.code.includes('IRF')) inferredSettings.push('IRF');
+            else if (m.code && m.code.includes('LTCH')) inferredSettings.push('LTCH');
+            else if (m.code && m.code.includes('CAH')) inferredSettings.push('Hospital');
+            else if (m.code && m.code.includes('OPPS')) inferredSettings.push('Outpatient');
+            else inferredSettings.push('Other');
+          });
+          const uniqueInferred = Array.from(new Set(inferredSettings));
+          console.log('🔍 Inferred settings:', uniqueInferred);
+          console.log('🔍 Sample measure codes for inference:', measures.slice(0, 10).map(m => m.code));
+          setAvailableProviderTypes(uniqueInferred);
+        } else {
+          console.log('✅ Using settings from database:', uniqueSettings);
+          setAvailableProviderTypes(uniqueSettings);
+        }
+        
+        // DEBUG: Log measures data to see what fields are available
+        console.log('🔍 Measures data sample:', measures.slice(0, 3));
+        console.log('🔍 Unique settings found:', uniqueSettings);
+        console.log('🔍 Settings from first 5 measures:', measures.slice(0, 5).map(m => ({ code: m.code, setting: m.setting, name: m.name })));
         
         console.log('📅 Using publish date:', publish_date, 'from available dates:', availableDates);
         console.log('📊 Combined data received:', {
@@ -174,7 +231,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           availableDatesCount: availableDates.length
         });
 
-        // 10. Calculate market averages from the provider data
+        // 11. Calculate market averages from the provider data
         let marketAverages = {};
         if (nearbyDhcCcns.length > 0) {
           const marketCcns = nearbyDhcCcns.map(row => row.ccn).filter(Boolean);
@@ -198,7 +255,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           });
         }
 
-        // 11. Organize data for ProviderComparisonMatrix
+        // 12. Organize data for ProviderComparisonMatrix
         let dataByDhc = {};
         let providersWithData = 0;
         allProviders.forEach(p => {

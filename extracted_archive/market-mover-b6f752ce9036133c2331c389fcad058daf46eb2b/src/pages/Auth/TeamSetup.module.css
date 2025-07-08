@@ -1,0 +1,60 @@
+.page {
+  padding: 40px;
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: 'Work Sans', sans-serif;
+}
+
+.title {
+  font-size: 2rem;
+  color: #265947;
+  margin-bottom: 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+input {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+button {
+  background-color: #3fb985;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background-color: #2f9b72;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.planNote {
+  color: #5f6b6d;
+  font-size: 0.95rem;
+}
+
+.error {
+  color: #d64550;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}

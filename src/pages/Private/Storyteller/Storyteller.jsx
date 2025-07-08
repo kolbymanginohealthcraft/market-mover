@@ -20,7 +20,7 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   
   // Move state management to this level so it can be shared between tabs
   const [showBanner, setShowBanner] = useState(true);
-  const [providerTypeFilter, setProviderTypeFilter] = useState('All');
+  const [providerTypeFilter, setProviderTypeFilter] = useState(null);
   const [selectedPublishDate, setSelectedPublishDate] = useState('');
   const [chartMode, setChartMode] = useState('snapshot');
   const [showSnapshotDropdown, setShowSnapshotDropdown] = useState(false);
@@ -31,17 +31,26 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   const availablePublishDates = prefetchedData?.publishDates || [];
   const currentPublishDate = prefetchedData?.currentDate || null;
 
+  // DEBUG: Log availableProviderTypes and providerTypeFilter
+  console.log('Storyteller availableProviderTypes:', availableProviderTypes, 'providerTypeFilter:', providerTypeFilter, 'prefetchedData:', prefetchedData);
+
   // Set default provider type filter when available types change
   useEffect(() => {
     if (availableProviderTypes.length > 0 && !providerTypeFilter) {
-      setProviderTypeFilter(availableProviderTypes[0]);
+      // Default to SNF if available, otherwise use the first available type
+      const defaultType = availableProviderTypes.includes('SNF') ? 'SNF' : availableProviderTypes[0];
+      setProviderTypeFilter(defaultType);
+      console.log('🎯 Setting default provider type filter to:', defaultType);
     }
   }, [availableProviderTypes, providerTypeFilter]);
 
   // Set default publish date when available dates change
   useEffect(() => {
     if (availablePublishDates.length > 0 && !selectedPublishDate) {
-      setSelectedPublishDate(availablePublishDates[0]);
+      // Default to April 2025 if available, otherwise use the most recent date
+      const april2025 = '2025-04-01';
+      const defaultDate = availablePublishDates.includes(april2025) ? april2025 : availablePublishDates[0];
+      setSelectedPublishDate(defaultDate);
     }
   }, [availablePublishDates, selectedPublishDate]);
 
@@ -120,10 +129,10 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
         </div>
         
         <div className={styles.navRight}>
-          {/* Provider Type Filter */}
-          {typeof window !== 'undefined' && availableProviderTypes.length > 0 && (
+          {/* Measure Setting Filter */}
+          {typeof window !== 'undefined' && (
             <div className={styles.filterGroup}>
-              <label htmlFor="provider-type-select" className={styles.filterLabel}>Provider Type:</label>
+              <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
               <SelectInput
                 id="provider-type-select"
                 value={providerTypeFilter}

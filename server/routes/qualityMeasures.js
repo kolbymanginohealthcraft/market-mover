@@ -45,7 +45,8 @@ router.get("/qm_dictionary", async (req, res) => {
         description, 
         name, 
         active,
-        sort_order
+        sort_order,
+        setting
       FROM \`market-mover-464517.quality.qm_dictionary\`
       WHERE active = true
       ORDER BY sort_order
@@ -437,7 +438,7 @@ router.post("/qm_combined", async (req, res) => {
       // Measures
       existingTables.includes('qm_dictionary') ? 
         myBigQuery.query({
-          query: `SELECT code, label, direction, description, name, active, sort_order FROM \`market-mover-464517.quality.qm_dictionary\` WHERE active = true ORDER BY sort_order`,
+          query: `SELECT code, label, direction, description, name, active, sort_order, setting FROM \`market-mover-464517.quality.qm_dictionary\` WHERE active = true ORDER BY sort_order`,
           location: "US"
         }) : Promise.resolve([[]]),
       
