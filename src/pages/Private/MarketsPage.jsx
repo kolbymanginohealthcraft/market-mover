@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import { apiUrl } from '../../utils/api';
 import styles from "./MarketsPage.module.css";
-import { Pencil, Trash, Check, X } from "lucide-react";
+import { Pencil, Trash, Check, X, ChevronUp, ChevronDown } from "lucide-react";
 import Button from "../../components/Buttons/Button";
 
 export default function MarketsPage() {
@@ -11,6 +11,7 @@ export default function MarketsPage() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editedFields, setEditedFields] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const navigate = useNavigate();
   const nameInputRef = useRef(null); // 🆕 Ref for name input
 
@@ -176,8 +177,85 @@ export default function MarketsPage() {
     navigate(`/app/provider/${providerDhc}/overview?radius=${radius}&marketId=${marketId}`);
   };
 
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortMarkets = (markets, key, direction) => {
+    return [...markets].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (key) {
+        case 'name':
+          aValue = a.name?.toLowerCase() || '';
+          bValue = b.name?.toLowerCase() || '';
+          break;
+        case 'radius':
+          aValue = a.radius_miles || 0;
+          bValue = b.radius_miles || 0;
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at || 0);
+          bValue = new Date(b.created_at || 0);
+          break;
+        case 'provider_name':
+          aValue = a.provider?.name?.toLowerCase() || '';
+          bValue = b.provider?.name?.toLowerCase() || '';
+          break;
+        case 'provider_city':
+          aValue = a.provider?.city?.toLowerCase() || '';
+          bValue = b.provider?.city?.toLowerCase() || '';
+          break;
+        case 'partners_count':
+          aValue = a.partners?.length || 0;
+          bValue = b.partners?.length || 0;
+          break;
+        case 'competitors_count':
+          aValue = a.competitors?.length || 0;
+          bValue = b.competitors?.length || 0;
+          break;
+        default:
+          aValue = '';
+          bValue = '';
+      }
+
+      if (aValue < bValue) {
+        return direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return null;
+    }
+    return sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
+  };
+
+  const SortableHeader = ({ children, sortKey, className }) => (
+    <th 
+      className={`${styles.sortableHeader} ${className || ''}`}
+      onClick={() => handleSort(sortKey)}
+    >
+      <div className={styles.headerContent}>
+        {children}
+        {getSortIcon(sortKey)}
+      </div>
+    </th>
+  );
+
   if (loading) return <p className={styles.empty}>Loading your saved markets...</p>;
   if (!markets.length) return <div className={styles.empty}>You have no saved markets.</div>;
+
+  const sortedMarkets = sortMarkets(markets, sortConfig.key, sortConfig.direction);
 
   return (
     <div className={styles.container}>
@@ -188,14 +266,22 @@ export default function MarketsPage() {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th className={styles.colDetails}>Details</th>
-            <th>Selected Provider</th>
-            <th>Partners</th>
-            <th>Competitors</th>
+            <SortableHeader sortKey="name" className={styles.colDetails}>
+              Details
+            </SortableHeader>
+            <SortableHeader sortKey="provider_name">
+              Selected Provider
+            </SortableHeader>
+            <SortableHeader sortKey="partners_count">
+              Partners
+            </SortableHeader>
+            <SortableHeader sortKey="competitors_count">
+              Competitors
+            </SortableHeader>
           </tr>
         </thead>
         <tbody>
-          {markets.map((m) => (
+          {sortedMarkets.map((m) => (
             <tr key={m.id}>
               <td className={styles.detailsCell}>
                 <div className={styles.detailsTopRow}>
