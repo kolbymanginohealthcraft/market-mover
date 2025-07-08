@@ -213,16 +213,42 @@
 
 /* Coming Soon Banner Styles */
 .comingSoonBanner {
-  background: linear-gradient(135deg, #265947 0%, #1e4a3a 100%);
-  color: white;
+  background: linear-gradient(135deg, #ffd85e 0%, #f1b62c 100%);
+  color: #265947;
   padding: 2rem;
   border-radius: 12px;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 12px rgba(38, 89, 71, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(255, 216, 94, 0.2);
+  border: 2px dashed rgba(38, 89, 71, 0.3);
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: rgba(38, 89, 71, 0.8);
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: rgba(38, 89, 71, 0.1);
+  color: #265947;
 }
 
 .bannerIcon {
@@ -235,13 +261,13 @@
   margin: 0 0 1rem 0;
   font-size: 1.4rem;
   font-weight: 600;
-  color: white;
+  color: #265947;
 }
 
 .bannerContent p {
   margin: 0;
   font-size: 1rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(38, 89, 71, 0.9);
   font-weight: 400;
 } 

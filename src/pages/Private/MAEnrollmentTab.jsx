@@ -1,18 +1,30 @@
+import React, { useState } from 'react';
 import styles from "./MAEnrollmentTab.module.css";
 
 export default function MAEnrollmentTab({ provider }) {
+  const [showBanner, setShowBanner] = useState(true);
+
+  const handleCloseBanner = () => {
+    setShowBanner(false);
+  };
+
   return (
     <div className={styles.container}>
-      {/* Temporary Banner - MA Enrollment Analysis */}
-      <div className={styles.comingSoonBanner}>
-        <div className={styles.bannerIcon}>📊</div>
-        <div className={styles.bannerContent}>
-          <h3>Medicare Advantage Enrollment Analysis</h3>
-          <p>
-            This section will explore the important transition from traditional Medicare to Medicare Advantage as it becomes more prevalent year over year. We will show trends in CMS enrollment statistics and track MA penetration rates compared to national averages in your market. This analysis will help you understand enrollment patterns and market dynamics as the healthcare landscape continues to evolve toward managed care models.
-          </p>
+      {/* Enhanced Banner - Early Adopter Excitement */}
+      {showBanner && (
+        <div className={styles.comingSoonBanner}>
+          <button className={styles.closeButton} onClick={handleCloseBanner}>
+            ×
+          </button>
+          <div className={styles.bannerIcon}>📊</div>
+          <div className={styles.bannerContent}>
+            <h3>Medicare Advantage Enrollment Analysis</h3>
+            <p>
+              This section will explore the critical transition from traditional Medicare to Medicare Advantage as it becomes more prevalent year over year. As we continue developing, you'll see comprehensive trends in CMS enrollment statistics, MA penetration rates compared to national averages, predictive enrollment modeling, and deep market dynamics analysis that will help you understand and plan for the evolving healthcare landscape toward managed care models.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.content}>
         <div className={styles.icon}>📋</div>

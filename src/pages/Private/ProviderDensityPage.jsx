@@ -18,13 +18,14 @@ export default function ProviderDensityPage({ radius = 25 }) {
   const [viewMode, setViewMode] = useState('chart');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showBanner, setShowBanner] = useState(true);
 
   // Get provider info to use its location
-  const { provider, loading: providerLoading } = useProviderInfo(dhc);
+  const { provider: providerInfo, loading: providerLoading } = useProviderInfo(dhc);
   
   // Use provider's location if available, otherwise use defaults
-  const lat = provider?.latitude || searchParams.get('lat') || '32.4324';
-  const lon = provider?.longitude || searchParams.get('lon') || '-86.6577';
+  const lat = providerInfo?.latitude || searchParams.get('lat') || '32.4324';
+  const lon = providerInfo?.longitude || searchParams.get('lon') || '-86.6577';
 
   const { data: densityData, loading: densityLoading, error: densityError } = useProviderDensity(lat, lon, radius);
   const { data: detailsData, loading: detailsLoading, error: detailsError } = useProviderDensityDetails(lat, lon, radius, selectedSpecialty);
@@ -62,6 +63,10 @@ export default function ProviderDensityPage({ radius = 25 }) {
 
   const totalProviders = filteredData?.reduce((sum, item) => sum + (item.provider_count || 0), 0) || 0;
 
+  const handleCloseBanner = () => {
+    setShowBanner(false);
+  };
+
   if (providerLoading || densityLoading) {
     return (
       <div className={styles.container}>
@@ -87,24 +92,21 @@ export default function ProviderDensityPage({ radius = 25 }) {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>Provider Density Analysis</h1>
-        <p>
-          Active practitioners by specialty within {radius} miles of {provider?.name || 'selected location'}
-          {provider && ` (${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)})`}
-        </p>
-      </div>
-
-      {/* Temporary Banner - Provider Density Analysis */}
-      <div className={styles.comingSoonBanner}>
-        <div className={styles.bannerIcon}>🏥</div>
-        <div className={styles.bannerContent}>
-          <h3>Provider Density & Network Analysis</h3>
-          <p>
-            This section helps you understand the prevalence of licensed professionals in your area, which directly impacts your ability to staff and seek additional resources for your provider network. By analyzing provider density by specialty, you can identify staffing opportunities, assess competitive landscapes, and make informed decisions about network expansion and recruitment strategies.
-          </p>
+      {/* Enhanced Banner - Early Adopter Excitement */}
+      {showBanner && (
+        <div className={styles.comingSoonBanner}>
+          <button className={styles.closeButton} onClick={handleCloseBanner}>
+            ×
+          </button>
+          <div className={styles.bannerIcon}>🏥</div>
+          <div className={styles.bannerContent}>
+            <h3>Provider Density & Network Analysis</h3>
+            <p>
+              This tool helps you understand the prevalence of licensed professionals in your area, directly impacting your ability to staff and seek additional resources for your provider network. As we continue developing, you'll see enhanced analytics and deeper competitive intelligence that will help you approach network expansion and recruitment strategies.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.controls}>
         <div className={styles.controlGroup}>
@@ -257,4 +259,4 @@ export default function ProviderDensityPage({ radius = 25 }) {
       )}
     </div>
   );
-} 
+}

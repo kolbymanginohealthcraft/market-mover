@@ -146,13 +146,25 @@ export default function MarketsPage() {
   const saveFields = async (id) => {
     const updatedName = editedFields[`${id}-name`];
     const updatedRadius = Number(editedFields[`${id}-radius_miles`]);
+    
+    // Validate inputs
+    if (!updatedName || updatedName.trim() === '') {
+      alert('Please enter a valid market name');
+      return;
+    }
+    
+    if (isNaN(updatedRadius) || updatedRadius < 1 || updatedRadius > 100) {
+      alert('Please enter a valid radius between 1 and 100 miles');
+      return;
+    }
+    
     await supabase
       .from("saved_market")
-      .update({ name: updatedName, radius_miles: updatedRadius })
+      .update({ name: updatedName.trim(), radius_miles: updatedRadius })
       .eq("id", id);
     setMarkets((prev) =>
       prev.map((m) =>
-        m.id === id ? { ...m, name: updatedName, radius_miles: updatedRadius } : m
+        m.id === id ? { ...m, name: updatedName.trim(), radius_miles: updatedRadius } : m
       )
     );
     setEditingId(null);
@@ -311,7 +323,29 @@ export default function MarketsPage() {
                   )}
                 </div>
                 <div className={styles.detailsBottomRow}>
-                  <span className={styles.radiusText}>{m.radius_miles} mi radius</span>
+                  {editingId === m.id ? (
+                    <div className={styles.editRow}>
+                      <input
+                        className={styles.inlineInput}
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={editedFields[`${m.id}-radius_miles`] || ""}
+                        onChange={(e) =>
+                          setEditedFields((prev) => ({
+                            ...prev,
+                            [`${m.id}-radius_miles`]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) => handleKeyDown(e, m.id)}
+                        placeholder="Radius (miles)"
+                        style={{ width: '80px' }}
+                      />
+                      <span className={styles.radiusText}>mi radius</span>
+                    </div>
+                  ) : (
+                    <span className={styles.radiusText}>{m.radius_miles} mi radius</span>
+                  )}
                 </div>
                 <div className={styles.actionButtons}>
                   {editingId === m.id ? (

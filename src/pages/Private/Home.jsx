@@ -10,6 +10,7 @@ export default function Home() {
   const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [quote, setQuote] = useState('');
+  const [showBanner, setShowBanner] = useState(true);
 
   const motivationalQuotes = [
     "Every great decision starts with great data.",
@@ -66,18 +67,27 @@ export default function Home() {
     if (testimonial.trim()) setSubmitted(true);
   };
 
+  const handleCloseBanner = () => {
+    setShowBanner(false);
+  };
+
   return (
     <div className={styles.page}>
-      {/* Temporary Banner - Dashboard Development */}
-      <div className={styles.comingSoonBanner}>
-        <div className={styles.bannerIcon}>🏠</div>
-        <div className={styles.bannerContent}>
-          <h3>Dashboard Development in Progress</h3>
-          <p>
-            Welcome to your Market Mover dashboard! This is currently a placeholder interface that will soon become your personalized command center. In the future, you'll see real activity tracking, progress metrics, personalized recommendations, and insights tailored to your market analysis needs. We're building a comprehensive dashboard that will help you track your usage, monitor market changes, and get actionable insights to drive your strategic decisions.
-          </p>
+      {/* Enhanced Banner - Early Adopter Excitement */}
+      {showBanner && (
+        <div className={styles.comingSoonBanner}>
+          <button className={styles.closeButton} onClick={handleCloseBanner}>
+            ×
+          </button>
+          <div className={styles.bannerIcon}>🚀</div>
+          <div className={styles.bannerContent}>
+            <h3>Welcome to the Future of Market Intelligence!</h3>
+            <p>
+              You're getting in on the ground floor of something special! We're thrilled to have you as an early adopter of Market Mover. While we're still building out the full dashboard experience, you're among the first to access our powerful market analysis tools. As we continue developing, you'll see real-time activity tracking, personalized insights, and advanced analytics that will revolutionize how you understand healthcare markets. Your feedback and early adoption are invaluable as we shape the future of market intelligence together!
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <header className={styles.heroBox}>
         <h1 className={styles.hero}>{greeting}</h1>

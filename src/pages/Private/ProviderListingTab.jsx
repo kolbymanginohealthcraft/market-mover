@@ -36,6 +36,7 @@ export default function ProviderListingTab({
   const [layersReady, setLayersReady] = useState(false);
   const [layersAdded, setLayersAdded] = useState(false);
   const [dataReady, setDataReady] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
 
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -631,19 +632,28 @@ export default function ProviderListingTab({
     }
   };
 
+  const handleCloseBanner = () => {
+    setShowBanner(false);
+  };
+
   try {
     return (
       <div className={styles.container}>
-        {/* Temporary Banner - Provider Listing & Network Analysis */}
-        <div className={styles.comingSoonBanner}>
-          <div className={styles.bannerIcon}>🔍</div>
-          <div className={styles.bannerContent}>
-            <h3>Provider Listing & Network Analysis</h3>
-            <p>
-              This section provides a comprehensive view of all providers in your market area, helping you identify potential partners, assess competitive landscapes, and understand network opportunities. You can filter by provider type, search for specific providers, and tag them as partners or competitors to build your strategic network intelligence.
-            </p>
+        {/* Enhanced Banner - Early Adopter Excitement */}
+        {showBanner && (
+          <div className={styles.comingSoonBanner}>
+            <button className={styles.closeButton} onClick={handleCloseBanner}>
+              ×
+            </button>
+            <div className={styles.bannerIcon}>🔍</div>
+            <div className={styles.bannerContent}>
+              <h3>Provider Listing & Network Analysis</h3>
+              <p>
+                This section gives you a complete view of all providers in your market area, helping you identify potential partners, assess competitive landscapes, and build strategic network intelligence. As we continue developing, you'll see enhanced filtering, advanced analytics, and deeper insights that will revolutionize how you understand provider networks. Your feedback helps us refine these tools!
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.controlsRow}>
           <div className={`${styles.controlsGroup} ${styles.buttonsGroup}`}>

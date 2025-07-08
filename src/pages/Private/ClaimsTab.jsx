@@ -6,6 +6,7 @@ import ClaimsByProvider from "./ClaimsTab/ClaimsByProvider";
 import ClaimsByServiceLine from "./ClaimsTab/ClaimsByServiceLine";
 
 export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) {
+  const [showBanner, setShowBanner] = useState(true);
   const [activeTab, setActiveTab] = useState("month");
   const [claimType, setClaimType] = useState("rendered"); // "rendered" or "referred"
   const [dataType, setDataType] = useState("diagnosis"); // "diagnosis" or "procedure"
@@ -24,26 +25,27 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
     }
   }, [claimType, dataType, availableDataTypes]);
 
+  const handleCloseBanner = () => {
+    setShowBanner(false);
+  };
+
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2>Claims Analysis <span className={styles.subheader}>Market analysis for the last 12 months</span></h2>
-      </div>
-
-      {/* Temporary Banner - Coming Soon */}
-      <div className={styles.comingSoonBanner}>
-        <div className={styles.bannerIcon}>🚀</div>
-        <div className={styles.bannerContent}>
-          <h3>Enhanced Claims Analysis Coming Soon</h3>
-          <p>
-            We're building a comprehensive claims analysis section that will revolutionize how you understand market dynamics. 
-            Soon you'll have access to advanced search capabilities, detailed filtering options, and deep-dive analytics including 
-            claim volume trends, cost analysis, provider performance metrics, service line breakdowns, and patient journey insights. 
-            This powerful tool will help you identify market opportunities, track competitive positioning, and make data-driven 
-            strategic decisions with unprecedented granularity and precision.
-          </p>
+      {/* Enhanced Banner - Early Adopter Excitement */}
+      {showBanner && (
+        <div className={styles.comingSoonBanner}>
+          <button className={styles.closeButton} onClick={handleCloseBanner}>
+            ×
+          </button>
+          <div className={styles.bannerIcon}>🚀</div>
+          <div className={styles.bannerContent}>
+            <h3>Enhanced Claims Analysis Coming Soon</h3>
+            <p>
+              We're building comprehensive claims analysis powered by a robust multi-year all-payer database. Soon you'll have access to claim volume trends, cost analysis, and service line breakdowns. This tool will help you identify market opportunities and make data-driven strategic decisions with unprecedented granularity.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Claim Type Selection */}
       <div className={styles.claimTypeSelection}>
@@ -78,6 +80,10 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
               </button>
             ))}
           </div>
+        </div>
+
+        <div className={styles.timeframeInfo}>
+          Market analysis for the last 12 months
         </div>
       </div>
 

@@ -19,8 +19,9 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   }, []);
   
   // Move state management to this level so it can be shared between tabs
-  const [providerTypeFilter, setProviderTypeFilter] = useState('');
-  const [selectedPublishDate, setSelectedPublishDate] = useState(null);
+  const [showBanner, setShowBanner] = useState(true);
+  const [providerTypeFilter, setProviderTypeFilter] = useState('All');
+  const [selectedPublishDate, setSelectedPublishDate] = useState('');
   const [chartMode, setChartMode] = useState('snapshot');
   const [showSnapshotDropdown, setShowSnapshotDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -96,8 +97,10 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
     );
   }
 
+  const handleCloseBanner = () => {
+    setShowBanner(false);
+  };
 
-  
   return (
     <div className={styles.container}>
       <nav className={styles.nav}>
@@ -201,16 +204,21 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
         </div>
       </nav>
       
-      {/* Temporary Banner - Quality Analysis & Insights */}
-      <div className={styles.comingSoonBanner}>
-        <div className={styles.bannerIcon}>📈</div>
-        <div className={styles.bannerContent}>
-          <h3>Quality Analysis & Market Insights</h3>
-          <p>
-            This section brings together quality measures and market benchmarks to help you better understand provider performance and trends. Here, you can review comparative analytics and gain insights that support informed decision-making and market readiness. Additional features and deeper analyses are planned for future updates.
-          </p>
+      {/* Enhanced Banner - Early Adopter Excitement */}
+      {showBanner && (
+        <div className={styles.comingSoonBanner}>
+          <button className={styles.closeButton} onClick={handleCloseBanner}>
+            ×
+          </button>
+          <div className={styles.bannerIcon}>📈</div>
+          <div className={styles.bannerContent}>
+            <h3>Quality Analysis & Market Insights</h3>
+            <p>
+              This section brings together quality measures and benchmarks to help you identify marketable wins and address clinical areas of weakness. You'll see where your competitors may be lacking and gain the foresight to position your services strategically. As we continue developing, you'll access enhanced comparative analytics and predictive insights that will transform your market approach.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.content}>
         <Routes>
