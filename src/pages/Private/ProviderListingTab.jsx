@@ -7,6 +7,7 @@ import Button from "../../components/Buttons/Button";
 import styles from "./ProviderListingTab.module.css";
 import { useDropdownClose } from "../../hooks/useDropdownClose";
 import { apiUrl } from '../../utils/api';
+import Banner from "../../components/Banner";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
@@ -640,20 +641,12 @@ export default function ProviderListingTab({
     return (
       <div className={styles.container}>
         {/* Enhanced Banner - Early Adopter Excitement */}
-        {showBanner && (
-          <div className={styles.comingSoonBanner}>
-            <button className={styles.closeButton} onClick={handleCloseBanner}>
-              ×
-            </button>
-            <div className={styles.bannerIcon}>🔍</div>
-            <div className={styles.bannerContent}>
-              <h3>Provider Listing & Network Analysis</h3>
-              <p>
-                This section gives you a complete view of all providers in your market area, helping you identify potential partners, assess competitive landscapes, and build strategic network intelligence. As we continue developing, you'll see enhanced filtering, advanced analytics, and deeper insights that will revolutionize how you understand provider networks. Your feedback helps us refine these tools!
-              </p>
-            </div>
-          </div>
-        )}
+        <Banner
+          title="Provider Listing & Network Analysis"
+          message="This section gives you a complete view of all providers in your market area, helping you identify potential partners, assess competitive landscapes, and build strategic network intelligence. As we continue developing, you'll see enhanced filtering, advanced analytics, and deeper insights that will revolutionize how you understand provider networks. Your feedback helps us refine these tools!"
+          icon="🔍"
+          onClose={handleCloseBanner}
+        />
 
         <div className={styles.controlsRow}>
           <div className={`${styles.controlsGroup} ${styles.buttonsGroup}`}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from './OverviewTab.module.css';
+import Banner from '../../components/Banner';
 
 export default function OverviewTab({ provider }) {
   const [showBanner, setShowBanner] = useState(true);
@@ -15,20 +16,12 @@ export default function OverviewTab({ provider }) {
   return (
     <div className={styles.container}>
       {/* Enhanced Banner - Early Adopter Excitement */}
-      {showBanner && (
-        <div className={styles.comingSoonBanner}>
-          <button className={styles.closeButton} onClick={handleCloseBanner}>
-            ×
-          </button>
-          <div className={styles.bannerIcon}>📊</div>
-          <div className={styles.bannerContent}>
-            <h3>Customizable Dashboard Coming Soon</h3>
-            <p>
-              Soon you'll be able to personalize your dashboard with the metrics that matter most to you, arrange data points to fit your workflow, and create a view that perfectly matches your strategic needs. Your early feedback helps us shape the future of provider intelligence!
-            </p>
-          </div>
-        </div>
-      )}
+      <Banner
+        title="Customizable Dashboard Coming Soon"
+        message="Soon you'll be able to personalize your dashboard with the metrics that matter most to you, arrange data points to fit your workflow, and create a view that perfectly matches your strategic needs. Your early feedback helps us shape the future of provider intelligence!"
+        icon="📊"
+        onClose={handleCloseBanner}
+      />
 
       <div className={styles.profileCard}>
         <div className={styles.profileHeader}>

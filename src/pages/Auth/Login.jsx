@@ -100,11 +100,11 @@ const Login = () => {
         <div className={localStyles.switchMode}>
   {mode === 'login' ? (
     <>
-      <Button variant="blue" ghost size="sm" onClick={handleCreateAccount}>
-        Create an account
-      </Button>
       <Button variant="blue" ghost size="sm" onClick={() => { setMode('reset'); resetForm(); }}>
         Forgot password?
+      </Button>
+      <Button variant="blue" ghost size="sm" onClick={handleCreateAccount}>
+        Create an account
       </Button>
     </>
   ) : (

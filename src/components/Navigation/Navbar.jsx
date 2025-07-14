@@ -63,7 +63,7 @@ const Navbar = () => {
       <>
         <Link to="/faq" onClick={closeMenu} className={styles.link}>FAQ</Link>
         <Link to="/pricing" onClick={closeMenu} className={styles.link}>Pricing</Link>
-        <Link to="/login" onClick={closeMenu} className="button-nav">Login</Link>
+        <Link to="/login" onClick={closeMenu} className="button-nav">Log In</Link>
       </>
     );
 

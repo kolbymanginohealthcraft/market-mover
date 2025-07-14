@@ -75,11 +75,14 @@ export default function Scorecard({
   // Fallback: if no measures found for selected setting, show all measures
   const finalFilteredMeasures = filteredMeasures.length > 0 ? filteredMeasures : finalMeasures;
 
-  // Show ALL providers, but only the measures that match the selected setting
-  // This allows users to see all providers but only the relevant measures
-  const filteredProviders = finalAllProviders;
+  // Filter providers to ONLY show those that have data for the filtered measures
+  const filteredProviders = finalAllProviders.filter(provider => {
+    const providerData = finalData[provider.dhc] || {};
+    // Check if this provider has data for ANY of the filtered measures
+    return finalFilteredMeasures.some(measure => providerData[measure.code]);
+  });
 
-  // Main provider for the scorecard (show all providers)
+  // Main provider for the scorecard (only show providers with data for selected setting)
   const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
 
   // DEBUG: Log filtering info
@@ -115,7 +118,7 @@ export default function Scorecard({
     // Debug: Show provider data availability
     providerDataDebug: finalAllProviders.slice(0, 5).map(provider => {
       const providerData = finalData[provider.dhc] || {};
-      const hasFilteredData = filteredMeasures.some(measure => providerData[measure.code]);
+      const hasFilteredData = finalFilteredMeasures.some(measure => providerData[measure.code]);
       const measureCount = Object.keys(providerData).length;
       return {
         dhc: provider.dhc,
@@ -130,8 +133,8 @@ export default function Scorecard({
       dhc: provider.dhc,
       name: provider.name,
       allMeasures: Object.keys(finalData[provider.dhc] || {}),
-      filteredMeasures: filteredMeasures.filter(m => finalData[provider.dhc]?.[m.code]),
-      hasFilteredData: filteredMeasures.some(m => finalData[provider.dhc]?.[m.code])
+      filteredMeasures: finalFilteredMeasures.filter(m => finalData[provider.dhc]?.[m.code]),
+      hasFilteredData: finalFilteredMeasures.some(m => finalData[provider.dhc]?.[m.code])
     } : null
   });
 

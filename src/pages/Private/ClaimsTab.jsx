@@ -4,6 +4,7 @@ import Spinner from "../../components/Buttons/Spinner";
 import ClaimsByMonth from "./ClaimsTab/ClaimsByMonth";
 import ClaimsByProvider from "./ClaimsTab/ClaimsByProvider";
 import ClaimsByServiceLine from "./ClaimsTab/ClaimsByServiceLine";
+import Banner from "../../components/Banner";
 
 export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) {
   const [showBanner, setShowBanner] = useState(true);
@@ -32,20 +33,12 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   return (
     <div className={styles.container}>
       {/* Enhanced Banner - Early Adopter Excitement */}
-      {showBanner && (
-        <div className={styles.comingSoonBanner}>
-          <button className={styles.closeButton} onClick={handleCloseBanner}>
-            ×
-          </button>
-          <div className={styles.bannerIcon}>🚀</div>
-          <div className={styles.bannerContent}>
-            <h3>Enhanced Claims Analysis Coming Soon</h3>
-            <p>
-              We're building comprehensive claims analysis powered by a robust multi-year all-payer database. Soon you'll have access to claim volume trends, cost analysis, and service line breakdowns. This tool will help you identify market opportunities and make data-driven strategic decisions with unprecedented granularity.
-            </p>
-          </div>
-        </div>
-      )}
+      <Banner
+        title="Enhanced Claims Analysis Coming Soon"
+        message="We're building comprehensive claims analysis powered by a robust multi-year all-payer database. Soon you'll have access to claim volume trends, cost analysis, and service line breakdowns. This tool will help you identify market opportunities and make data-driven strategic decisions with unprecedented granularity."
+        icon="🚀"
+        onClose={handleCloseBanner}
+      />
 
       {/* Claim Type Selection */}
       <div className={styles.claimTypeSelection}>

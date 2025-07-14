@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Home.module.css';
+import Banner from '../../components/Banner';
 
 export default function Home() {
   const userRole = 'analyst';
@@ -14,7 +15,7 @@ export default function Home() {
 
   const motivationalQuotes = [
     "Every great decision starts with great data.",
-    "Turn insight into action — every day.",
+    "Turn insight into action - every day.",
     "Grow smart. Win big.",
     "Use the data. Own the market.",
   ];
@@ -74,20 +75,12 @@ export default function Home() {
   return (
     <div className={styles.page}>
       {/* Enhanced Banner - Early Adopter Excitement */}
-      {showBanner && (
-        <div className={styles.comingSoonBanner}>
-          <button className={styles.closeButton} onClick={handleCloseBanner}>
-            ×
-          </button>
-          <div className={styles.bannerIcon}>🚀</div>
-          <div className={styles.bannerContent}>
-            <h3>Welcome to the Future of Market Intelligence!</h3>
-            <p>
-              You're getting in on the ground floor of something special! We're thrilled to have you as an early adopter of Market Mover. While we're still building out the full dashboard experience, you're among the first to access our powerful market analysis tools. As we continue developing, you'll see real-time activity tracking, personalized insights, and advanced analytics that will revolutionize how you understand healthcare markets. Your feedback and early adoption are invaluable as we shape the future of market intelligence together!
-            </p>
-          </div>
-        </div>
-      )}
+      <Banner
+        title="Welcome to your simple sales and marketing enhancer!"
+        message="We're thrilled to support your business goals through innovative analytics! We are constantly evolving Market Mover’s capabilities, so keep an eye out for alerts on new features. Some exciting additions coming soon include real-time activity tracking and personalized insights to help you deepen your understanding of healthcare markets."
+        icon="🚀"
+        onClose={handleCloseBanner}
+      />
 
       <header className={styles.heroBox}>
         <h1 className={styles.hero}>{greeting}</h1>
@@ -96,7 +89,7 @@ export default function Home() {
 
       <div className={styles.wrapper}>
         <aside className={styles.sidebar}>
-          <h2 className={styles.columnTitle}>🛠️ Getting Started</h2>
+          <h2 className={styles.columnTitle}>🛠️ Quick Links</h2>
 
           <div className={styles.sidebarSection}>
             <h3 className={styles.sectionTitle}>🪰 Recommended Tools</h3>

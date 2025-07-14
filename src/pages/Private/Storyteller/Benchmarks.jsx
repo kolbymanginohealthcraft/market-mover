@@ -59,13 +59,6 @@ export default function Benchmarks({
   const finalAllProviders = usePrefetchedData ? prefetchedData.allProviders : allMatrixProviders;
   const finalProviderTypes = usePrefetchedData ? prefetchedData.providerTypes : availableProviderTypes;
 
-  // Set default metric when measures load
-  useEffect(() => {
-    if (!selectedMetric && finalFilteredMeasures.length > 0) {
-      setSelectedMetric(finalFilteredMeasures[0].code);
-    }
-  }, [finalFilteredMeasures, selectedMetric]);
-
   // Filter measures by selected setting (if any) instead of filtering providers
   const filteredMeasures = finalMeasures.filter(m => {
     // If no filter is selected, show all measures
@@ -89,12 +82,27 @@ export default function Benchmarks({
   // Fallback: if no measures found for selected setting, show all measures
   const finalFilteredMeasures = filteredMeasures.length > 0 ? filteredMeasures : finalMeasures;
 
-  // Show ALL providers, but only the measures that match the selected setting
-  // This allows users to see all providers but only the relevant measures
-  const filteredProviders = finalAllProviders;
+  // Filter providers to ONLY show those that have data for the filtered measures
+  const filteredProviders = finalAllProviders.filter(provider => {
+    const providerData = finalData[provider.dhc] || {};
+    // Check if this provider has data for ANY of the filtered measures
+    return finalFilteredMeasures.some(measure => providerData[measure.code]);
+  });
 
-  // Main provider for the benchmarks (show all providers)
+  // Main provider for the benchmarks (only show providers with data for selected setting)
   const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
+
+  // Set default metric when measures load
+  useEffect(() => {
+    if (!selectedMetric && finalFilteredMeasures.length > 0) {
+      setSelectedMetric(finalFilteredMeasures[0].code);
+    } else if (selectedMetric && !finalFilteredMeasures.some(m => m.code === selectedMetric)) {
+      // If selected metric is not in filtered measures, select the first available
+      if (finalFilteredMeasures.length > 0) {
+        setSelectedMetric(finalFilteredMeasures[0].code);
+      }
+    }
+  }, [finalFilteredMeasures, selectedMetric]);
 
   // DEBUG: Log filtering info
   console.log('🔍 Benchmarks filtering:', {

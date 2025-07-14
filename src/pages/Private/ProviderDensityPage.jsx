@@ -4,6 +4,7 @@ import { useProviderDensity, useProviderDensityDetails } from '../../hooks/usePr
 import useProviderInfo from '../../hooks/useProviderInfo';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import styles from './ProviderDensityPage.module.css';
+import Banner from '../../components/Banner';
 
 const COLORS = [
   '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#ff0000',
@@ -93,20 +94,12 @@ export default function ProviderDensityPage({ radius = 25 }) {
   return (
     <div className={styles.container}>
       {/* Enhanced Banner - Early Adopter Excitement */}
-      {showBanner && (
-        <div className={styles.comingSoonBanner}>
-          <button className={styles.closeButton} onClick={handleCloseBanner}>
-            ×
-          </button>
-          <div className={styles.bannerIcon}>🏥</div>
-          <div className={styles.bannerContent}>
-            <h3>Provider Density & Network Analysis</h3>
-            <p>
-              This tool helps you understand the prevalence of licensed professionals in your area, directly impacting your ability to staff and seek additional resources for your provider network. As we continue developing, you'll see enhanced analytics and deeper competitive intelligence that will help you approach network expansion and recruitment strategies.
-            </p>
-          </div>
-        </div>
-      )}
+      <Banner
+        title="Provider Density & Network Analysis"
+        message="This tool helps you understand the prevalence of licensed professionals in your area, directly impacting your ability to staff and seek additional resources for your provider network. As we continue developing, you'll see enhanced analytics and deeper competitive intelligence that will help you approach network expansion and recruitment strategies."
+        icon="🏥"
+        onClose={handleCloseBanner}
+      />
 
       <div className={styles.controls}>
         <div className={styles.controlGroup}>
