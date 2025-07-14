@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../../components/Buttons/Button";
 import styles from "./ProviderSearch.module.css";
 import { apiUrl } from '../../utils/api';
+import { trackProviderSearch } from '../../utils/activityTracker';
 
 export default function ProviderSearch() {
   const [queryText, setQueryText] = useState("");
@@ -47,7 +48,7 @@ export default function ProviderSearch() {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchTerm) => {
     setLoading(true);
     setError(null);
     setSelectedType("All");
@@ -64,14 +65,20 @@ export default function ProviderSearch() {
       
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
+        // Track the search with the actual result count
+        await trackProviderSearch(q, result.data.length);
       } else {
         setError(result.error || 'No results found');
         setResults([]);
+        // Track the search with 0 results
+        await trackProviderSearch(q, 0);
       }
     } catch (err) {
       console.error("💥 Search error:", err);
       setError(err.message);
       setResults([]);
+      // Track the search with 0 results on error
+      await trackProviderSearch(q, 0);
     }
 
     setLoading(false);

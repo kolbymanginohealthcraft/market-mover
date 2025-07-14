@@ -11,6 +11,7 @@ import styles from "./ProviderDetail.module.css";
 import { Pencil, Check, X } from "lucide-react";
 import { useDebounce } from 'use-debounce';
 import { apiUrl } from '../../utils/api';
+import { trackProviderView } from '../../utils/activityTracker';
 
 import useProviderInfo from "../../hooks/useProviderInfo";
 import useNearbyProviders from "../../hooks/useNearbyProviders";
@@ -43,6 +44,7 @@ export default function ProviderDetail() {
   const [marketName, setMarketName] = useState("");
   const inputRef = useRef(null);
   const [mainProviderCcns, setMainProviderCcns] = useState([]);
+  const hasTrackedView = useRef(false);
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
@@ -126,6 +128,14 @@ export default function ProviderDetail() {
     }
     fetchMainProviderCcns();
   }, [provider?.dhc]);
+
+  // Track provider view activity (only once per provider)
+  useEffect(() => {
+    if (provider && !loading && !hasTrackedView.current) {
+      trackProviderView(provider.dhc, provider.name);
+      hasTrackedView.current = true;
+    }
+  }, [provider, loading]);
 
   if (loading || !provider) {
     return <Spinner message="Loading provider details..." />;

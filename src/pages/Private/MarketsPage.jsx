@@ -5,6 +5,7 @@ import { apiUrl } from '../../utils/api';
 import styles from "./MarketsPage.module.css";
 import { Pencil, Trash, Check, X, ChevronUp, ChevronDown } from "lucide-react";
 import Button from "../../components/Buttons/Button";
+import { trackMarketSave } from '../../utils/activityTracker';
 
 export default function MarketsPage() {
   const [markets, setMarkets] = useState([]);
@@ -185,8 +186,11 @@ export default function MarketsPage() {
     }
   };
 
-  const goToMarket = (providerDhc, radius, marketId) => {
+  const goToMarket = async (providerDhc, radius, marketId) => {
     navigate(`/app/provider/${providerDhc}/overview?radius=${radius}&marketId=${marketId}`);
+    // Track market view when user clicks on a saved market
+    const marketName = markets.find(m => m.id === marketId)?.name || "Unknown Market";
+    await trackMarketSave(marketId, marketName, radius);
   };
 
   const handleSort = (key) => {

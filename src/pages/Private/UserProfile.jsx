@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import styles from "./UserProfile.module.css";
 import Button from "../../components/Buttons/Button";
+import { trackActivity } from "../../utils/activityTracker";
 
 export default function UserProfile() {
   const [profile, setProfile] = useState({
@@ -92,6 +93,11 @@ export default function UserProfile() {
       })
       .eq("id", user.id);
 
+    if (!error) {
+      // Track profile completion activity
+      await trackActivity('profile_completion', null, 'Profile Updated');
+    }
+    
     setMessage(error ? `❌ ${error.message}` : "✅ Profile updated");
     setSaving(false);
     setTimeout(() => setMessage(""), 3000);

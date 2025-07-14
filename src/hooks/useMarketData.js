@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../app/supabaseClient";
+import { trackActivity } from "../utils/activityTracker";
 
 export default function useMarketData(marketId, providerDhc, radiusInMiles, navigate) {
   const [currentMarketName, setCurrentMarketName] = useState("");
@@ -60,6 +61,10 @@ export default function useMarketData(marketId, providerDhc, radiusInMiles, navi
       setSaveMessage(`Error: ${insertError.message}`);
     } else {
       setSaveMessage("Market saved successfully!");
+      
+      // Track the market save activity
+      await trackActivity('save_market', savedMarket.id, marketName, { radius });
+      
       onSuccess(); // e.g. close popup
       redirectToCurrentTab(savedMarket.id, radius);
     }
