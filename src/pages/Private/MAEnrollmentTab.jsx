@@ -57,29 +57,33 @@ export default function MAEnrollmentTab({ provider, radiusInMiles }) {
     <div className={styles.page}>
       <div className={styles.content}>
         <div className={styles.header}>
-          <h2>Medicare Enrollment</h2>
-          <p>Medicare enrollment data for {publishDate}</p>
-          
-          {/* Type Selector */}
-          <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
-            <label htmlFor="type-select" style={{ marginRight: '0.5rem', fontWeight: '500' }}>
-              Plan Type:
-            </label>
-            <select
-              id="type-select"
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                fontSize: '0.9rem'
-              }}
-            >
-              <option value="ALL">All Plans (MA + PDP)</option>
-              <option value="MA">Medicare Advantage Only</option>
-              <option value="PDP">Prescription Drug Plans Only</option>
-            </select>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Medicare Enrollment</h2>
+            <span style={{ color: '#666', fontSize: '0.9rem' }}>
+              Medicare enrollment data for {publishDate}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label htmlFor="type-select" style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                Plan Type:
+              </label>
+              <select
+                id="type-select"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  fontSize: '0.9rem',
+                  width: 'auto',
+                  minWidth: '120px'
+                }}
+              >
+                <option value="ALL">All Plans (MA + PDP)</option>
+                <option value="MA">Medicare Advantage Only</option>
+                <option value="PDP">Prescription Drug Plans Only</option>
+              </select>
+            </div>
           </div>
         </div>
         

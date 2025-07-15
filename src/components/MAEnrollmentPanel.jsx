@@ -49,7 +49,6 @@ export default function MAEnrollmentPanel({ data, loading, error, type = "ALL" }
     <div className={styles.panel}>
       <div className={styles.header}>
         <h3>Enrollment Data - {getTypeLabel(type)}</h3>
-        <p>Showing {orgList.length} organizations</p>
       </div>
 
       <div className={styles.summary}>

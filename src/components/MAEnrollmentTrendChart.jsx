@@ -107,7 +107,6 @@ export default function MAEnrollmentTrendChart({ data, loading, error, startDate
     <div className={styles.chart}>
       <div className={styles.header}>
         <h3>Enrollment Trends - {getTypeLabel(type)}</h3>
-        <p>Total enrollment: {totalEnrollment.toLocaleString()}</p>
       </div>
 
       <div className={styles.chartContainer}>
