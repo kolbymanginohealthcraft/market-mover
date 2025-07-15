@@ -1,3 +1,8 @@
+.page {
+  padding: 24px;
+  margin: 0;
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -10,18 +15,18 @@
 }
 
 .content {
-  text-align: center;
   background: white;
-  padding: 3rem;
+  padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid #e0e0e0;
-  max-width: 500px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
 }
 
 .content h2 {

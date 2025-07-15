@@ -296,10 +296,6 @@
   margin-left: 0.5rem;
 }
 
-.providerPhone:hover {
-  text-decoration: underline;
-}
-
 .cardRight {
   flex-shrink: 0;
 }

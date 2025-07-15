@@ -15,7 +15,8 @@ export default function HomeLayout({
   announcements,
   announcementsLoading,
   userFirstName,
-  quote
+  quote,
+  greetingText
 }) {
   return (
     <div className={styles.wrapper}>
@@ -31,6 +32,7 @@ export default function HomeLayout({
           progressLoading={progressLoading}
           streaks={streaks}
           quote={quote}
+          greetingText={greetingText}
         />
 
         <div className={styles.contentGrid}>

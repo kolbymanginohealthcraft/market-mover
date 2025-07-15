@@ -13,6 +13,7 @@ export default function Home() {
   const [showBanner, setShowBanner] = useState(true);
   const [marketLinks, setMarketLinks] = useState({});
   const [error, setError] = useState(null);
+  const [greetingText, setGreetingText] = useState('Hello, welcome to Market Mover 👋');
 
   // Custom hooks for data
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
@@ -53,16 +54,11 @@ export default function Home() {
 
     fetchUserProfile();
 
-    const hour = new Date().getHours();
-    const greetingTime =
-      hour < 12 ? 'Good morning' :
-      hour < 18 ? 'Good afternoon' :
-      'Good evening';
+    const newGreetingText = userFirstName 
+      ? `Hello ${userFirstName}, welcome to Market Mover 👋`
+      : 'Hello, welcome to Market Mover 👋';
     
-    const greetingText = userFirstName 
-      ? `${greetingTime} ${userFirstName}, welcome to Market Mover 👋`
-      : `${greetingTime}, welcome to Market Mover 👋`;
-    
+    setGreetingText(newGreetingText);
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, [userFirstName]);
 
@@ -166,6 +162,7 @@ export default function Home() {
         announcementsLoading={announcementsLoading}
         userFirstName={userFirstName}
         quote={quote}
+        greetingText={greetingText}
       />
     </div>
   );

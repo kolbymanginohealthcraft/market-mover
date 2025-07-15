@@ -302,7 +302,7 @@ export default function ProviderDetail() {
         <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
-        <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} />} />
+        <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>

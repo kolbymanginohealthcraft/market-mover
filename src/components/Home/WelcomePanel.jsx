@@ -1,12 +1,12 @@
 import styles from './WelcomePanel.module.css';
 
-export default function WelcomePanel({ userFirstName, progressLoading, streaks, quote }) {
+export default function WelcomePanel({ userFirstName, progressLoading, streaks, quote, greetingText }) {
   return (
     <div className={styles.welcomePanel}>
       <div className={styles.welcomeContent}>
         <div className={styles.welcomeText}>
           <h1 className={styles.greeting}>
-            {userFirstName ? `Good morning ${userFirstName}, welcome to Market Mover 👋` : 'Good morning, welcome to Market Mover 👋'}
+            {greetingText}
           </h1>
           <p className={styles.subtext}>{quote}</p>
         </div>
