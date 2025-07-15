@@ -60,6 +60,12 @@ export default function AdminSettings() {
       icon: '📢'
     },
     {
+      title: '💬 Feedback Approvals',
+      description: 'Review and approve testimonials and feature requests',
+      link: '/app/manage-feedback',
+      icon: '💬'
+    },
+    {
       title: '👥 User Management',
       description: 'Manage user accounts, roles, and permissions',
       link: '/app/manage-users',

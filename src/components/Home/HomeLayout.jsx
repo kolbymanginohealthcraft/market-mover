@@ -2,9 +2,7 @@ import styles from './HomeLayout.module.css';
 import QuickLinksSidebar from './QuickLinksSidebar';
 import ActivityPanel from './ActivityPanel';
 import AnnouncementsPanel from './AnnouncementsPanel';
-import TestimonialPanel from './TestimonialPanel';
 import WelcomePanel from './WelcomePanel';
-import ProgressPanel from './ProgressPanel';
 
 export default function HomeLayout({
   activities,
@@ -16,8 +14,6 @@ export default function HomeLayout({
   streaks,
   announcements,
   announcementsLoading,
-  onSubmitTestimonial,
-  testimonialLoading,
   userFirstName,
   quote
 }) {
@@ -47,19 +43,9 @@ export default function HomeLayout({
           />
 
           <div className={styles.rightColumn}>
-            <ProgressPanel
-              progressLoading={progressLoading}
-              streaks={streaks}
-            />
-
             <AnnouncementsPanel
               announcements={announcements}
               announcementsLoading={announcementsLoading}
-            />
-
-            <TestimonialPanel
-              onSubmitTestimonial={onSubmitTestimonial}
-              loading={testimonialLoading}
             />
           </div>
         </div>

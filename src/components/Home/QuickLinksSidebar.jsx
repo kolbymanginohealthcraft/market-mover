@@ -12,7 +12,7 @@ export default function QuickLinksSidebar() {
           <Link to="/app/search">
             <Button variant="blue" size="md" className={styles.quickLinkButton}>
               <span className={styles.emoji}>🔍</span>
-              <span className={styles.buttonText}>Search Markets</span>
+              <span className={styles.buttonText}>Search Providers</span>
             </Button>
           </Link>
           <Link to="/app/markets">
@@ -25,6 +25,12 @@ export default function QuickLinksSidebar() {
             <Button variant="accent" size="md" className={styles.quickLinkButton}>
               <span className={styles.emoji}>👤</span>
               <span className={styles.buttonText}>My Profile</span>
+            </Button>
+          </Link>
+          <Link to="/app/feedback">
+            <Button variant="purple" size="md" className={styles.quickLinkButton}>
+              <span className={styles.emoji}>💬</span>
+              <span className={styles.buttonText}>Feedback</span>
             </Button>
           </Link>
         </div>

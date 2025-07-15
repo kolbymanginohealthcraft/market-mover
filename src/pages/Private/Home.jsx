@@ -17,7 +17,7 @@ export default function Home() {
   // Custom hooks for data
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
   const { progress, streaks, roi, loading: progressLoading } = useUserProgress();
-  const { announcements, submitTestimonial, loading: announcementsLoading } = useTestimonials();
+  const { announcements, loading: announcementsLoading } = useTestimonials();
 
   const motivationalQuotes = [
     "Every great decision starts with great data.",
@@ -100,15 +100,6 @@ export default function Home() {
     fetchMarketLinks();
   }, [activities]);
 
-  const handleSubmitTestimonial = async (testimonial, consent) => {
-    try {
-      await submitTestimonial(testimonial, consent);
-    } catch (error) {
-      console.error('Error submitting testimonial:', error);
-      throw error;
-    }
-  };
-
   const handleCloseBanner = () => {
     setShowBanner(false);
   };
@@ -173,8 +164,6 @@ export default function Home() {
         streaks={streaks}
         announcements={announcements}
         announcementsLoading={announcementsLoading}
-        onSubmitTestimonial={handleSubmitTestimonial}
-        testimonialLoading={announcementsLoading}
         userFirstName={userFirstName}
         quote={quote}
       />

@@ -27,6 +27,7 @@ import SelectPlan from "../pages/Public/SelectPlan";
 import ProfileSetup from "../pages/Auth/ProfileSetup";
 import ManageUsers from "../pages/Private/ManageUsers";
 import ManageAnnouncements from "../pages/Private/ManageAnnouncements";
+import ManageFeedback from "../pages/Private/ManageFeedback";
 import AdminSettings from "../pages/Private/AdminSettings";
 import CompleteProfile from "../pages/Private/CompleteProfile";
 import TermsAndConditions from "../pages/Public/TermsAndConditions";
@@ -38,6 +39,7 @@ import ProviderSearch from "../pages/Private/ProviderSearch";
 import ProviderDetail from "../pages/Private/ProviderDetail";
 import UserProfile from "../pages/Private/UserProfile";
 import MarketsPage from "../pages/Private/MarketsPage";
+import Feedback from "../pages/Private/Feedback";
 // Team-related pages
 import OnboardingPage from "../pages/Auth/OnboardingPage";
 import PaymentTest from "../pages/Auth/PaymentTest";
@@ -114,9 +116,11 @@ function App() {
           <Route path="explore" element={<Explore />} />
           <Route path="markets" element={<MarketsPage />} />
           <Route path="profile" element={<UserProfile />} />
+          <Route path="feedback" element={<Feedback />} />
           <Route path="provider/:dhc/*" element={<ProviderDetail />} />
           <Route path="manage-users" element={<ManageUsers />} />
           <Route path="manage-announcements" element={<ManageAnnouncements />} />
+          <Route path="manage-feedback" element={<ManageFeedback />} />
           <Route path="admin" element={<AdminSettings />} />
           <Route path="billing-history" element={<BillingHistory />} />
         </Route>
