@@ -29,6 +29,7 @@ import ManageUsers from "../pages/Private/ManageUsers";
 import ManageAnnouncements from "../pages/Private/ManageAnnouncements";
 import ManageFeedback from "../pages/Private/ManageFeedback";
 import AdminSettings from "../pages/Private/AdminSettings";
+import AnalyticsDashboard from "../pages/Private/AnalyticsDashboard";
 import CompleteProfile from "../pages/Private/CompleteProfile";
 import TermsAndConditions from "../pages/Public/TermsAndConditions";
 import PrivacyPolicy from "../pages/Public/PrivacyPolicy";
@@ -122,6 +123,7 @@ function App() {
           <Route path="manage-announcements" element={<ManageAnnouncements />} />
           <Route path="manage-feedback" element={<ManageFeedback />} />
           <Route path="admin" element={<AdminSettings />} />
+          <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
           <Route path="billing-history" element={<BillingHistory />} />
         </Route>
 

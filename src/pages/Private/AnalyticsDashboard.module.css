@@ -1,0 +1,398 @@
+.container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 32px;
+  border-bottom: 2px solid #e2e8e7;
+  padding-bottom: 16px;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #5f6b6d;
+  font-size: 1.1rem;
+  margin: 0 0 16px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.loading p {
+  color: #5f6b6d;
+  font-size: 1.1rem;
+}
+
+.error {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.error h2 {
+  color: #dc2626;
+  margin-bottom: 16px;
+}
+
+.error p {
+  color: #5f6b6d;
+  margin-bottom: 24px;
+}
+
+.analyticsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.section {
+  background: #fff;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.section h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #3599b8;
+  margin-bottom: 20px;
+}
+
+.section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #265947;
+  margin-bottom: 16px;
+}
+
+/* Metrics Grid */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metricCard {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.metricValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 4px;
+}
+
+.metricLabel {
+  color: #5f6b6d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Activity Breakdown */
+.activityBreakdown {
+  margin-top: 20px;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fbfa;
+  border-radius: 6px;
+  border: 1px solid #e2e8e7;
+}
+
+.activityIcon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+.activityName {
+  flex: 1;
+  color: #265947;
+  font-weight: 500;
+}
+
+.activityCount {
+  background: #3599b8;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Feature Usage */
+.featureUsage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.featureCard {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.featureHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.featureName {
+  font-weight: 600;
+  color: #265947;
+}
+
+.featurePercentage {
+  background: #3599b8;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.featureBar {
+  height: 8px;
+  background: #e2e8e7;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.featureBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3599b8, #265947);
+  transition: width 0.3s ease;
+}
+
+.featureUsers {
+  color: #5f6b6d;
+  font-size: 0.9rem;
+}
+
+/* Engagement Grid */
+.engagementGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.engagementCard {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.engagementValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 8px;
+}
+
+.engagementLabel {
+  color: #5f6b6d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Feedback Grid */
+.feedbackGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.feedbackCard {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.feedbackCard h3 {
+  margin-bottom: 16px;
+  color: #265947;
+}
+
+.feedbackStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.feedbackStat {
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  color: #5f6b6d;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* System Health */
+.systemHealth {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.healthCard {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.healthValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 8px;
+}
+
+.healthLabel {
+  color: #5f6b6d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Footer */
+.footer {
+  background: #fff;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.note {
+  text-align: center;
+}
+
+.note h3 {
+  color: #3599b8;
+  margin-bottom: 12px;
+}
+
+.note p {
+  color: #5f6b6d;
+  line-height: 1.6;
+}
+
+.note a {
+  color: #3599b8;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.note a:hover {
+  color: #265947;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .analyticsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .engagementGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .feedbackGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .systemHealth {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .feedbackStats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metricValue {
+    font-size: 1.5rem;
+  }
+  
+  .engagementValue {
+    font-size: 2rem;
+  }
+  
+  .healthValue {
+    font-size: 2rem;
+  }
+} 

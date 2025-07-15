@@ -73,8 +73,8 @@ export default function AdminSettings() {
     },
     {
       title: '📊 Analytics Dashboard',
-      description: 'View system usage analytics and user activity',
-      link: '/app/analytics',
+      description: 'View platform usage analytics and user engagement metrics',
+      link: '/app/analytics-dashboard',
       icon: '📊'
     },
     {
