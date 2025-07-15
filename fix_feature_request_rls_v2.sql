@@ -30,9 +30,9 @@ CREATE POLICY "view_approved_requests" ON feature_requests
 CREATE POLICY "insert_own_requests" ON feature_requests
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- 3. Users can update vote counts on approved requests
-CREATE POLICY "update_votes" ON feature_requests
-    FOR UPDATE USING (status = 'approved');
+-- 3. Users can update their own approved requests
+CREATE POLICY "update_own_requests" ON feature_requests
+    FOR UPDATE USING (auth.uid() = user_id AND status = 'approved');
 
 -- 4. Admins can do everything (view, insert, update, delete)
 CREATE POLICY "admin_full_access" ON feature_requests

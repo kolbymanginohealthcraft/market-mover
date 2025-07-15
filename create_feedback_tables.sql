@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS feature_requests (
   title TEXT NOT NULL,
   description TEXT,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  votes INTEGER DEFAULT 0,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'declined')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -46,16 +45,30 @@ CREATE POLICY "Users can delete their own votes" ON feature_request_votes
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_feature_requests_votes ON feature_requests(votes DESC);
 CREATE INDEX IF NOT EXISTS idx_feature_requests_created_at ON feature_requests(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_feature_request_votes_user_id ON feature_request_votes(user_id);
 CREATE INDEX IF NOT EXISTS idx_feature_request_votes_request_id ON feature_request_votes(feature_request_id);
+CREATE INDEX IF NOT EXISTS idx_feature_request_votes_count ON feature_request_votes(feature_request_id);
 
 -- Insert some sample feature requests
-INSERT INTO feature_requests (title, description, user_id, votes) VALUES
-  ('Dark Mode Support', 'Add a dark theme option for better visibility in low-light environments', auth.uid(), 5),
-  ('Export to PDF', 'Allow users to export market reports and data to PDF format', auth.uid(), 3),
-  ('Mobile App', 'Create a mobile app for iOS and Android devices', auth.uid(), 8),
-  ('Advanced Filtering', 'Add more filtering options for provider searches', auth.uid(), 2),
-  ('Data Visualization', 'Add charts and graphs to visualize market data', auth.uid(), 4)
-ON CONFLICT DO NOTHING; 
+INSERT INTO feature_requests (title, description, user_id) VALUES
+  ('Dark Mode Support', 'Add a dark theme option for better visibility in low-light environments', auth.uid()),
+  ('Export to PDF', 'Allow users to export market reports and data to PDF format', auth.uid()),
+  ('Mobile App', 'Create a mobile app for iOS and Android devices', auth.uid()),
+  ('Advanced Filtering', 'Add more filtering options for provider searches', auth.uid()),
+  ('Data Visualization', 'Add charts and graphs to visualize market data', auth.uid())
+ON CONFLICT DO NOTHING;
+
+-- Create a view to calculate vote counts dynamically
+CREATE OR REPLACE VIEW feature_requests_with_votes AS
+SELECT 
+  fr.*,
+  COALESCE(vote_counts.vote_count, 0) as votes
+FROM feature_requests fr
+LEFT JOIN (
+  SELECT 
+    feature_request_id,
+    COUNT(*) as vote_count
+  FROM feature_request_votes
+  GROUP BY feature_request_id
+) vote_counts ON fr.id = vote_counts.feature_request_id; 

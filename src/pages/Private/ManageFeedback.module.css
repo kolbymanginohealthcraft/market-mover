@@ -1,7 +1,6 @@
 .page {
   padding: 24px;
-  width: 100%;
-  max-width: none;
+  margin: 0;
 }
 
 .container {
@@ -247,6 +246,39 @@
   white-space: nowrap;
 }
 
+.statusFilterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statusButton {
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.statusButton:hover {
+  background: #e9ecef;
+}
+
+.statusActive {
+  background: #3fb985;
+  color: white;
+  border: 1px solid #3fb985;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
 
 
 @media (max-width: 1024px) {

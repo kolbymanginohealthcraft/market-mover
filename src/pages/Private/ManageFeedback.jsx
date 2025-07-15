@@ -12,6 +12,8 @@ export default function ManageFeedback() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [testimonialStatus, setTestimonialStatus] = useState('pending');
+  const [featureRequestStatus, setFeatureRequestStatus] = useState('pending');
 
   useEffect(() => {
     const checkUser = async () => {
@@ -40,21 +42,21 @@ export default function ManageFeedback() {
 
   useEffect(() => {
     if (isAdmin) {
-      fetchPendingContent();
+      fetchContent();
     }
-  }, [isAdmin]);
+  }, [isAdmin, testimonialStatus, featureRequestStatus]);
 
-  const fetchPendingContent = async () => {
+  const fetchContent = async () => {
     setLoading(true);
-    console.log('Fetching pending content...');
+    console.log(`Fetching content with testimonial status: ${testimonialStatus}, feature request status: ${featureRequestStatus}`);
     
     try {
-      // Fetch pending feature requests (simple query first)
+      // Fetch feature requests with selected status
       console.log('Fetching feature requests...');
       const { data: requestsData, error: requestsError } = await supabase
         .from('feature_requests')
         .select('*')
-        .eq('status', 'pending');
+        .eq('status', featureRequestStatus);
 
       if (requestsError) {
         console.error('Error fetching feature requests:', requestsError);
@@ -102,12 +104,12 @@ export default function ManageFeedback() {
         }
       }
 
-      // Fetch pending testimonials (simple query first)
+      // Fetch testimonials with selected status
       console.log('Fetching testimonials...');
       const { data: testimonialsData, error: testimonialsError } = await supabase
         .from('user_testimonials')
         .select('*')
-        .eq('status', 'pending');
+        .eq('status', testimonialStatus);
 
       if (testimonialsError) {
         console.error('Error fetching testimonials:', testimonialsError);
@@ -221,7 +223,7 @@ export default function ManageFeedback() {
       setTimeout(() => setSuccessMessage(''), 3000);
       
       // Refresh the data
-      fetchPendingContent();
+      fetchContent();
     } catch (err) {
       console.error(`Error approving ${type}:`, err);
       alert(`Failed to approve ${type}: ${err.message}`);
@@ -289,10 +291,32 @@ export default function ManageFeedback() {
       setTimeout(() => setSuccessMessage(''), 3000);
       
       // Refresh the data
-      fetchPendingContent();
+      fetchContent();
     } catch (err) {
       console.error(`Error rejecting ${type}:`, err);
       alert(`Failed to reject ${type}: ${err.message}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleMarkPending = async (type, id) => {
+    setProcessing(true);
+    try {
+      const table = type === 'testimonial' ? 'user_testimonials' : 'feature_requests';
+      const { error } = await supabase
+        .from(table)
+        .update({ status: 'pending' })
+        .eq('id', id);
+      if (error) {
+        alert('Failed to mark as pending');
+        return;
+      }
+      setSuccessMessage(`${type} marked as pending!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchContent();
+    } catch (err) {
+      alert('Failed to mark as pending');
     } finally {
       setProcessing(false);
     }
@@ -354,12 +378,31 @@ export default function ManageFeedback() {
           {/* Main Content Area */}
           <main className={styles.mainContent}>
             {loading ? (
-              <div className={styles.loading}>Loading pending content...</div>
+              <div className={styles.loading}>
+                {activeTab === 'testimonials'
+                  ? `Loading ${testimonialStatus} testimonials...`
+                  : `Loading ${featureRequestStatus} feature requests...`}
+              </div>
             ) : (
               <div className={styles.tabContent}>
                                 {activeTab === 'testimonials' && (
                   <div className={styles.testimonialsSection}>
-                    <h2>Pending Testimonials</h2>
+                    <h2>Testimonials</h2>
+                    <div className={styles.statusFilterRow}>
+                      <span>Status:</span>
+                      <button
+                        className={testimonialStatus === 'pending' ? styles.statusActive : styles.statusButton}
+                        onClick={() => setTestimonialStatus('pending')}
+                      >Pending</button>
+                      <button
+                        className={testimonialStatus === 'approved' ? styles.statusActive : styles.statusButton}
+                        onClick={() => setTestimonialStatus('approved')}
+                      >Approved</button>
+                      <button
+                        className={testimonialStatus === 'rejected' ? styles.statusActive : styles.statusButton}
+                        onClick={() => setTestimonialStatus('rejected')}
+                      >Rejected</button>
+                    </div>
                     {testimonials.length === 0 ? (
                       <div className={styles.emptyState}>
                         <p>No pending testimonials to review.</p>
@@ -403,22 +446,60 @@ export default function ManageFeedback() {
                                 </td>
                                 <td className={styles.actionsCell}>
                                   <div className={styles.actionButtons}>
-                                    <Button
-                                      variant="green"
-                                      size="sm"
-                                      onClick={() => handleApprove('testimonial', testimonial.id)}
-                                      disabled={processing}
-                                    >
-                                      ✅ Approve
-                                    </Button>
-                                    <Button
-                                      variant="red"
-                                      size="sm"
-                                      onClick={() => handleReject('testimonial', testimonial.id)}
-                                      disabled={processing}
-                                    >
-                                      ❌ Reject
-                                    </Button>
+                                    {testimonialStatus === 'pending' && <>
+                                      <Button
+                                        variant="green"
+                                        size="sm"
+                                        onClick={() => handleApprove('testimonial', testimonial.id)}
+                                        disabled={processing}
+                                      >
+                                        ✅ Approve
+                                      </Button>
+                                      <Button
+                                        variant="red"
+                                        size="sm"
+                                        onClick={() => handleReject('testimonial', testimonial.id)}
+                                        disabled={processing}
+                                      >
+                                        ❌ Reject
+                                      </Button>
+                                    </>}
+                                    {testimonialStatus === 'approved' && <>
+                                      <Button
+                                        variant="red"
+                                        size="sm"
+                                        onClick={() => handleReject('testimonial', testimonial.id)}
+                                        disabled={processing}
+                                      >
+                                        ❌ Reject
+                                      </Button>
+                                      <Button
+                                        variant="gray"
+                                        size="sm"
+                                        onClick={() => handleMarkPending('testimonial', testimonial.id)}
+                                        disabled={processing}
+                                      >
+                                        ⏳ Mark Pending
+                                      </Button>
+                                    </>}
+                                    {testimonialStatus === 'rejected' && <>
+                                      <Button
+                                        variant="green"
+                                        size="sm"
+                                        onClick={() => handleApprove('testimonial', testimonial.id)}
+                                        disabled={processing}
+                                      >
+                                        ✅ Approve
+                                      </Button>
+                                      <Button
+                                        variant="gray"
+                                        size="sm"
+                                        onClick={() => handleMarkPending('testimonial', testimonial.id)}
+                                        disabled={processing}
+                                      >
+                                        ⏳ Mark Pending
+                                      </Button>
+                                    </>}
                                   </div>
                                 </td>
                               </tr>
@@ -432,7 +513,22 @@ export default function ManageFeedback() {
 
                                 {activeTab === 'feature-requests' && (
                   <div className={styles.featureRequestsSection}>
-                    <h2>Pending Feature Requests</h2>
+                    <h2>Feature Requests</h2>
+                    <div className={styles.statusFilterRow}>
+                      <span>Status:</span>
+                      <button
+                        className={featureRequestStatus === 'pending' ? styles.statusActive : styles.statusButton}
+                        onClick={() => setFeatureRequestStatus('pending')}
+                      >Pending</button>
+                      <button
+                        className={featureRequestStatus === 'approved' ? styles.statusActive : styles.statusButton}
+                        onClick={() => setFeatureRequestStatus('approved')}
+                      >Approved</button>
+                      <button
+                        className={featureRequestStatus === 'rejected' ? styles.statusActive : styles.statusButton}
+                        onClick={() => setFeatureRequestStatus('rejected')}
+                      >Rejected</button>
+                    </div>
                     {featureRequests.length === 0 ? (
                       <div className={styles.emptyState}>
                         <p>No pending feature requests to review.</p>
@@ -472,22 +568,60 @@ export default function ManageFeedback() {
                                 </td>
                                 <td className={styles.actionsCell}>
                                   <div className={styles.actionButtons}>
-                                    <Button
-                                      variant="green"
-                                      size="sm"
-                                      onClick={() => handleApprove('feature-request', request.id)}
-                                      disabled={processing}
-                                    >
-                                      ✅ Approve
-                                    </Button>
-                                    <Button
-                                      variant="red"
-                                      size="sm"
-                                      onClick={() => handleReject('feature-request', request.id)}
-                                      disabled={processing}
-                                    >
-                                      ❌ Reject
-                                    </Button>
+                                    {featureRequestStatus === 'pending' && <>
+                                      <Button
+                                        variant="green"
+                                        size="sm"
+                                        onClick={() => handleApprove('feature-request', request.id)}
+                                        disabled={processing}
+                                      >
+                                        ✅ Approve
+                                      </Button>
+                                      <Button
+                                        variant="red"
+                                        size="sm"
+                                        onClick={() => handleReject('feature-request', request.id)}
+                                        disabled={processing}
+                                      >
+                                        ❌ Reject
+                                      </Button>
+                                    </>}
+                                    {featureRequestStatus === 'approved' && <>
+                                      <Button
+                                        variant="red"
+                                        size="sm"
+                                        onClick={() => handleReject('feature-request', request.id)}
+                                        disabled={processing}
+                                      >
+                                        ❌ Reject
+                                      </Button>
+                                      <Button
+                                        variant="gray"
+                                        size="sm"
+                                        onClick={() => handleMarkPending('feature-request', request.id)}
+                                        disabled={processing}
+                                      >
+                                        ⏳ Mark Pending
+                                      </Button>
+                                    </>}
+                                    {featureRequestStatus === 'rejected' && <>
+                                      <Button
+                                        variant="green"
+                                        size="sm"
+                                        onClick={() => handleApprove('feature-request', request.id)}
+                                        disabled={processing}
+                                      >
+                                        ✅ Approve
+                                      </Button>
+                                      <Button
+                                        variant="gray"
+                                        size="sm"
+                                        onClick={() => handleMarkPending('feature-request', request.id)}
+                                        disabled={processing}
+                                      >
+                                        ⏳ Mark Pending
+                                      </Button>
+                                    </>}
                                   </div>
                                 </td>
                               </tr>
