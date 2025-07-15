@@ -11,7 +11,8 @@ ADD CONSTRAINT user_activities_activity_type_check
 CHECK (activity_type = ANY (ARRAY[
   'search_providers'::text,
   'view_provider'::text, 
-  'save_market'::text
+  'save_market'::text,
+  'view_market'::text
 ]));
 
 -- Remove any existing activities with the removed types

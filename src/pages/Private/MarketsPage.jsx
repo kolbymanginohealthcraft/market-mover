@@ -5,7 +5,7 @@ import { apiUrl } from '../../utils/api';
 import styles from "./MarketsPage.module.css";
 import { Pencil, Trash, Check, X, ChevronUp, ChevronDown } from "lucide-react";
 import Button from "../../components/Buttons/Button";
-import { trackMarketSave } from '../../utils/activityTracker';
+import { trackMarketView } from '../../utils/activityTracker';
 
 export default function MarketsPage() {
   const [markets, setMarkets] = useState([]);
@@ -63,29 +63,23 @@ export default function MarketsPage() {
         try {
           console.log("🔍 Fetching providers for DHCs:", allDhcIds);
           
-          // Fetch providers one by one using the existing search-providers endpoint
-          const providerPromises = allDhcIds.map(async (dhc) => {
-            try {
-              const providerResponse = await fetch(apiUrl(`/api/search-providers?dhc=${dhc}`));
-              if (providerResponse.ok) {
-                const result = await providerResponse.json();
-                if (result.success && result.data) {
-                  return { dhc, provider: result.data };
-                }
-              }
-              return null;
-            } catch (error) {
-              console.error(`❌ Error fetching provider ${dhc}:`, error);
-              return null;
-            }
+          // Use batch endpoint instead of individual calls
+          const batchResponse = await fetch(apiUrl('/api/getProvidersByDhc'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dhc_ids: allDhcIds })
           });
-
-          const providerResults = await Promise.all(providerPromises);
-          providerResults.forEach(result => {
-            if (result) {
-              providerMap[result.dhc] = result.provider;
+          
+          if (batchResponse.ok) {
+            const result = await batchResponse.json();
+            if (result.success && result.providers) {
+              result.providers.forEach(provider => {
+                providerMap[provider.dhc] = provider;
+              });
             }
-          });
+          } else {
+            console.error("❌ Batch provider fetch failed:", batchResponse.status);
+          }
 
           console.log("✅ Provider map built:", providerMap);
         } catch (error) {
@@ -190,7 +184,7 @@ export default function MarketsPage() {
     navigate(`/app/provider/${providerDhc}/overview?radius=${radius}&marketId=${marketId}`);
     // Track market view when user clicks on a saved market
     const marketName = markets.find(m => m.id === marketId)?.name || "Unknown Market";
-    await trackMarketSave(marketId, marketName, radius);
+    await trackMarketView(marketId, marketName, radius);
   };
 
   const handleSort = (key) => {

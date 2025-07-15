@@ -20,5 +20,6 @@ ADD CONSTRAINT user_activities_activity_type_check
 CHECK (activity_type IN (
   'search_providers',
   'view_provider',
-  'save_market'
+  'save_market',
+  'view_market'
 )); 

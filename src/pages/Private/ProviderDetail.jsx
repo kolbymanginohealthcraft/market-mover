@@ -132,10 +132,12 @@ export default function ProviderDetail() {
   // Track provider view activity (only once per provider)
   useEffect(() => {
     if (provider && !loading && !hasTrackedView.current) {
-      trackProviderView(provider.dhc, provider.name);
+      if (!marketId) {
+        trackProviderView(provider.dhc, provider.name);
+      }
       hasTrackedView.current = true;
     }
-  }, [provider, loading]);
+  }, [provider, loading, marketId]);
 
   if (loading || !provider) {
     return <Spinner message="Loading provider details..." />;

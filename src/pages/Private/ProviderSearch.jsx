@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import Button from "../../components/Buttons/Button";
 import styles from "./ProviderSearch.module.css";
 import { apiUrl } from '../../utils/api';
 import { trackProviderSearch } from '../../utils/activityTracker';
 
 export default function ProviderSearch() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [queryText, setQueryText] = useState("");
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,10 +19,18 @@ export default function ProviderSearch() {
   const [resultsPerPage] = useState(50);
 
   const searchInputRef = useRef(null);
+  const lastTrackedSearch = useRef(""); // Track the last search term that was logged
 
+  // Read search parameter from URL and perform search on page load
   useEffect(() => {
-    searchInputRef.current?.focus();
-  }, []);
+    const searchTerm = searchParams.get('search');
+    if (searchTerm) {
+      setQueryText(searchTerm);
+      handleSearch(searchTerm, true); // true = from URL
+    } else {
+      searchInputRef.current?.focus();
+    }
+  }, [searchParams]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -48,13 +58,22 @@ export default function ProviderSearch() {
     }
   };
 
-  const handleSearch = async (searchTerm) => {
+  const handleSearch = async (searchTerm = null, fromUrl = false) => {
     setLoading(true);
     setError(null);
     setSelectedType("All");
     setSelectedState("All");
     setCurrentPage(1);
-    const q = queryText.trim();
+    
+    // Use provided search term or current query text
+    const q = searchTerm || queryText.trim();
+    if (!q) return;
+    
+    // Update URL only if not from URL (manual search)
+    if (!fromUrl) {
+      navigate(`/app/search?search=${encodeURIComponent(q)}`, { replace: true });
+    }
+    
     setLastSearchTerm(q);
     try {
       const response = await fetch(apiUrl(`/api/search-providers?search=${encodeURIComponent(q)}`));
@@ -65,20 +84,29 @@ export default function ProviderSearch() {
       
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
-        // Track the search with the actual result count
-        await trackProviderSearch(q, result.data.length);
+        // Only track the search if it's a new search term
+        if (lastTrackedSearch.current !== q) {
+          await trackProviderSearch(q, result.data.length);
+          lastTrackedSearch.current = q;
+        }
       } else {
         setError(result.error || 'No results found');
         setResults([]);
-        // Track the search with 0 results
-        await trackProviderSearch(q, 0);
+        // Only track the search if it's a new search term
+        if (lastTrackedSearch.current !== q) {
+          await trackProviderSearch(q, 0);
+          lastTrackedSearch.current = q;
+        }
       }
     } catch (err) {
       console.error("💥 Search error:", err);
       setError(err.message);
       setResults([]);
-      // Track the search with 0 results on error
-      await trackProviderSearch(q, 0);
+      // Only track the search if it's a new search term
+      if (lastTrackedSearch.current !== q) {
+        await trackProviderSearch(q, 0);
+        lastTrackedSearch.current = q;
+      }
     }
 
     setLoading(false);
@@ -120,6 +148,10 @@ export default function ProviderSearch() {
           className={styles.form}
           onSubmit={(e) => {
             e.preventDefault();
+            // Reset tracking when user manually submits a new search
+            if (lastTrackedSearch.current !== queryText.trim()) {
+              lastTrackedSearch.current = "";
+            }
             handleSearch();
           }}
         >

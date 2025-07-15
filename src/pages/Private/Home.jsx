@@ -18,9 +18,10 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false);
   const [quote, setQuote] = useState('');
   const [showBanner, setShowBanner] = useState(true);
+  const [marketLinks, setMarketLinks] = useState({}); // Store market links
 
   // Custom hooks for data
-  const { activities, loading: activitiesLoading, trackActivity } = useUserActivity();
+  const { activities, loading: activitiesLoading, trackActivity, deleteActivity, deleteAllActivities } = useUserActivity();
   const { progress, streaks, roi, loading: progressLoading } = useUserProgress();
   const { announcements, submitTestimonial, loading: announcementsLoading } = useTestimonials();
 
@@ -60,12 +61,13 @@ export default function Home() {
   // Helper function to format activity text
   const getActivityText = (activity) => {
     const activityTexts = {
-      'search_providers': `Searched for: <strong>"${activity.target_name}"</strong> (${activity.metadata?.resultCount || 0} results)`,
-      'view_provider': `Viewed provider: <strong>${activity.target_name || 'Unknown Provider'}</strong>`,
-      'save_market': `Saved market: <strong>${activity.target_name}</strong> (${activity.metadata?.radius || 0} mile radius)`
+      'search_providers': `🔍 Searched for <strong>${activity.target_name}</strong> (${activity.metadata?.resultCount || 0} results)`,
+      'view_provider': `👤 Viewed provider <strong>${activity.target_name || 'Unknown Provider'}</strong>`,
+      'save_market': `📍 Saved market <strong>${activity.target_name}</strong> (${activity.metadata?.radius || 0} mile radius)`,
+      'view_market': `📍 Viewed market <strong>${activity.target_name}</strong> (${activity.metadata?.radius || 0} mile radius)`
     };
     
-    return activityTexts[activity.activity_type] || `Performed action: <strong>${activity.activity_type}</strong>`;
+    return activityTexts[activity.activity_type] || `Action: ${activity.activity_type}`;
   };
 
   useEffect(() => {
@@ -107,6 +109,40 @@ export default function Home() {
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, [userFirstName]);
 
+  // Fetch market links for saved market activities
+  useEffect(() => {
+    const fetchMarketLinks = async () => {
+      if (!activities.length) return;
+
+      const savedMarketActivities = activities.filter(activity => 
+        (activity.activity_type === 'save_market' || activity.activity_type === 'view_market') && activity.target_id
+      );
+
+      if (savedMarketActivities.length === 0) return;
+
+      const marketIds = savedMarketActivities.map(activity => activity.target_id);
+      
+      try {
+        const { data: marketData, error } = await supabase
+          .from('saved_market')
+          .select('id, provider_id, radius_miles')
+          .in('id', marketIds);
+
+        if (!error && marketData) {
+          const links = {};
+          marketData.forEach(market => {
+            links[market.id] = `/app/provider/${market.provider_id}/overview?radius=${market.radius_miles}&marketId=${market.id}`;
+          });
+          setMarketLinks(links);
+        }
+      } catch (err) {
+        console.error('Error fetching market links:', err);
+      }
+    };
+
+    fetchMarketLinks();
+  }, [activities]);
+
   const handleSubmitTestimonial = async () => {
     if (!testimonial.trim()) return;
     
@@ -127,22 +163,12 @@ export default function Home() {
 
   const clearAllActivities = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      console.log('Clearing all activities for user:', user.id);
-      
-      const { error } = await supabase
-        .from('user_activities')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error clearing activities:', error);
-      } else {
+      console.log('Clearing all activities...');
+      const success = await deleteAllActivities();
+      if (success) {
         console.log('Successfully cleared all activities');
-        // Refresh the activities list
-        window.location.reload();
+      } else {
+        console.error('Failed to clear all activities');
       }
     } catch (err) {
       console.error('Error clearing activities:', err);
@@ -152,18 +178,11 @@ export default function Home() {
   const clearActivity = async (activityId) => {
     try {
       console.log('Clearing activity:', activityId);
-      
-      const { error } = await supabase
-        .from('user_activities')
-        .delete()
-        .eq('id', activityId);
-
-      if (error) {
-        console.error('Error clearing activity:', error);
-      } else {
+      const success = await deleteActivity(activityId);
+      if (success) {
         console.log('Successfully cleared activity:', activityId);
-        // Refresh the activities list
-        window.location.reload();
+      } else {
+        console.error('Failed to clear activity:', activityId);
       }
     } catch (err) {
       console.error('Error clearing activity:', err);
@@ -235,21 +254,40 @@ export default function Home() {
               <p>Loading activities...</p>
             ) : activities.length > 0 ? (
               <ul className={styles.activityList}>
-                {activities.slice(0, 10).map((activity, index) => (
-                  <li key={activity.id} className={styles.activityItem}>
-                    <span 
-                      className={styles.activityText}
-                      dangerouslySetInnerHTML={{ __html: getActivityText(activity) }}
-                    />
-                    <button 
-                      onClick={() => clearActivity(activity.id)}
-                      className={styles.clearSingleButton}
-                      title="Remove this activity"
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
+                {activities.slice(0, 10).map((activity, index) => {
+                  // Get the appropriate link for each activity type
+                  const getActivityLink = (activity) => {
+                    const links = {
+                      'search_providers': `/app/search?search=${encodeURIComponent(activity.target_name)}`,
+                      'view_provider': `/app/provider/${activity.target_id}`,
+                      'save_market': marketLinks[activity.target_id] || `/app/markets`, // Use stored link or fallback
+                      'view_market': marketLinks[activity.target_id] || `/app/markets` // Use stored link or fallback
+                    };
+                    
+                    return links[activity.activity_type] || '#';
+                  };
+
+                  return (
+                    <li key={activity.id} className={styles.activityItem}>
+                      <Link 
+                        to={getActivityLink(activity)}
+                        className={styles.activityLink}
+                      >
+                        <span 
+                          className={styles.activityText}
+                          dangerouslySetInnerHTML={{ __html: getActivityText(activity) }}
+                        />
+                      </Link>
+                      <button 
+                        onClick={() => clearActivity(activity.id)}
+                        className={styles.clearSingleButton}
+                        title="Remove this activity"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p>No recent activity. Start exploring to see your activity here!</p>

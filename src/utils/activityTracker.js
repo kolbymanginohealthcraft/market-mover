@@ -42,7 +42,8 @@ export const trackActivity = async (activityType, targetId = null, targetName = 
 export const ACTIVITY_TYPES = {
   SEARCH_PROVIDERS: 'search_providers',
   VIEW_PROVIDER: 'view_provider',
-  SAVE_MARKET: 'save_market'
+  SAVE_MARKET: 'save_market',
+  VIEW_MARKET: 'view_market'
 };
 
 // Helper functions for common activities
@@ -56,4 +57,8 @@ export const trackProviderView = (providerDhc, providerName) => {
 
 export const trackMarketSave = (marketId, marketName, radius) => {
   return trackActivity(ACTIVITY_TYPES.SAVE_MARKET, marketId, marketName, { radius });
+};
+
+export const trackMarketView = (marketId, marketName, radius) => {
+  return trackActivity(ACTIVITY_TYPES.VIEW_MARKET, marketId, marketName, { radius });
 }; 
