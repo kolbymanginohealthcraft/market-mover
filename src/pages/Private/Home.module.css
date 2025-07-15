@@ -41,7 +41,7 @@
 }
 
 .main {
-  flex: 1;
+  flex: 0 1 600px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -52,7 +52,7 @@
 }
 
 .rightColumn {
-  flex: 0 0 280px;
+  flex: 1 0 320px;
   padding-left: 16px;
   /* border-left: 2px solid #e2e8e7; */
 }

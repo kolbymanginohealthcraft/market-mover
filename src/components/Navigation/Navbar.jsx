@@ -57,6 +57,7 @@ const Navbar = () => {
         <Link to="/app/search" onClick={closeMenu} className={styles.link}>Search</Link>
         <Link to="/app/markets" onClick={closeMenu} className={styles.link}>Markets</Link>
         <Link to="/app/profile" onClick={closeMenu} className={styles.link}>Profile</Link>
+        <Link to="/app/admin" onClick={closeMenu} className={styles.link}>Admin</Link>
         <button onClick={() => { closeMenu(); handleLogout(); }} className="button-nav">Logout</button>
       </>
     ) : (

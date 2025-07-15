@@ -26,6 +26,8 @@ import UseCasesPage from "../pages/Public/UseCasesPage";
 import SelectPlan from "../pages/Public/SelectPlan";
 import ProfileSetup from "../pages/Auth/ProfileSetup";
 import ManageUsers from "../pages/Private/ManageUsers";
+import ManageAnnouncements from "../pages/Private/ManageAnnouncements";
+import AdminSettings from "../pages/Private/AdminSettings";
 import CompleteProfile from "../pages/Private/CompleteProfile";
 import TermsAndConditions from "../pages/Public/TermsAndConditions";
 import PrivacyPolicy from "../pages/Public/PrivacyPolicy";
@@ -114,6 +116,8 @@ function App() {
           <Route path="profile" element={<UserProfile />} />
           <Route path="provider/:dhc/*" element={<ProviderDetail />} />
           <Route path="manage-users" element={<ManageUsers />} />
+          <Route path="manage-announcements" element={<ManageAnnouncements />} />
+          <Route path="admin" element={<AdminSettings />} />
           <Route path="billing-history" element={<BillingHistory />} />
         </Route>
 
