@@ -38,13 +38,20 @@ router.get("/search-providers", async (req, res) => {
           LOWER(city) LIKE LOWER(@search) OR
           LOWER(state) LIKE LOWER(@search) OR
           LOWER(zip) LIKE LOWER(@search) OR
-          LOWER(phone) LIKE LOWER(@search)
+          LOWER(phone) LIKE LOWER(@search) OR
+          LOWER(street) LIKE LOWER(@search)
+        ORDER BY 
+          CASE 
+            WHEN LOWER(name) LIKE LOWER(@search) THEN 1
+            WHEN LOWER(city) LIKE LOWER(@search) THEN 2
+            ELSE 3
+          END,
+          name
       `;
       params = { search: `%${search}%` };
     } else {
       query = `
         SELECT * FROM \`market-mover-464517.providers.org_dhc\`
-        LIMIT 500
       `;
       params = {};
     }
