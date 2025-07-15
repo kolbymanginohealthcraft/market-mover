@@ -4,14 +4,15 @@ import { apiUrl } from "../utils/api";
 /**
  * useMAEnrollmentData
  *
- * Fetches MA Enrollment, penetration, and plan/contract info for all counties in a market area.
+ * Fetches MA/PDP Enrollment, penetration, and plan/contract info for all counties in a market area.
  *
  * @param {object} provider - The main provider object (must have latitude, longitude)
  * @param {number} radiusInMiles - The market radius in miles
  * @param {string} publishDate - Publish date (YYYY-MM-DD)
+ * @param {string} type - Plan type: "MA", "PDP", or "ALL"
  * @returns {object} { data, loading, error, refetch }
  */
-export default function useMAEnrollmentData(provider, radiusInMiles, publishDate) {
+export default function useMAEnrollmentData(provider, radiusInMiles, publishDate, type = "ALL") {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,16 +57,16 @@ export default function useMAEnrollmentData(provider, radiusInMiles, publishDate
       const fipsList = Array.from(fipsSet);
       if (fipsList.length === 0) throw new Error('No counties found in market area');
 
-      // 2. Fetch MA Enrollment data for these FIPS codes and publish date
+      // 2. Fetch MA/PDP Enrollment data for these FIPS codes and publish date
       const maResp = await fetch(apiUrl('/api/ma-enrollment'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fipsList, publishDate }),
+        body: JSON.stringify({ fipsList, publishDate, type }),
         signal: abortControllerRef.current.signal
       });
-      if (!maResp.ok) throw new Error(`Failed to fetch MA Enrollment data: ${maResp.status}`);
+      if (!maResp.ok) throw new Error(`Failed to fetch enrollment data: ${maResp.status}`);
       const maResult = await maResp.json();
-      if (!maResult.success) throw new Error(maResult.error || 'Failed to fetch MA Enrollment data');
+      if (!maResult.success) throw new Error(maResult.error || 'Failed to fetch enrollment data');
       setData(maResult.data);
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -83,10 +84,103 @@ export default function useMAEnrollmentData(provider, radiusInMiles, publishDate
         abortControllerRef.current.abort();
       }
     };
-  }, [provider?.latitude, provider?.longitude, radiusInMiles, publishDate]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, publishDate, type]);
 
   const refetch = () => {
     fetchMAEnrollmentData();
+  };
+
+  return { data, loading, error, refetch };
+}
+
+/**
+ * useMAEnrollmentTrendData
+ *
+ * Fetches MA/PDP Enrollment trend data over a date range for all counties in a market area.
+ *
+ * @param {object} provider - The main provider object (must have latitude, longitude)
+ * @param {number} radiusInMiles - The market radius in miles
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @param {string} type - Plan type: "MA", "PDP", or "ALL"
+ * @returns {object} { data, loading, error, refetch }
+ */
+export function useMAEnrollmentTrendData(provider, radiusInMiles, startDate, endDate, type = "ALL") {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  const fetchMAEnrollmentTrendData = async () => {
+    if (!provider?.latitude || !provider?.longitude || !radiusInMiles || !startDate || !endDate) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Get county FIPS codes for the market area
+      const fipsResp = await fetch(
+        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`),
+        { signal: abortControllerRef.current.signal }
+      );
+      if (!fipsResp.ok) throw new Error(`Failed to fetch FIPS codes: ${fipsResp.status}`);
+      const fipsResult = await fipsResp.json();
+      if (!fipsResult.success) throw new Error(fipsResult.error || 'Failed to fetch FIPS codes');
+      // Extract unique county FIPS codes from geographic_units
+      const tracts = fipsResult.data?.geographic_units || [];
+      const fipsSet = new Set();
+      tracts.forEach(t => {
+        if (t.state && t.county) {
+          // FIPS is state + county code, zero-padded
+          const fips = `${t.state.toString().padStart(2, '0')}${t.county.toString().padStart(3, '0')}`;
+          fipsSet.add(fips);
+        }
+      });
+      const fipsList = Array.from(fipsSet);
+      if (fipsList.length === 0) throw new Error('No counties found in market area');
+
+      // 2. Fetch MA/PDP Enrollment trend data for these FIPS codes and date range
+      const maResp = await fetch(apiUrl('/api/ma-enrollment-trend'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fipsList, startDate, endDate, type }),
+        signal: abortControllerRef.current.signal
+      });
+      if (!maResp.ok) throw new Error(`Failed to fetch enrollment trend data: ${maResp.status}`);
+      const maResult = await maResp.json();
+      if (!maResult.success) throw new Error(maResult.error || 'Failed to fetch enrollment trend data');
+      setData(maResult.data);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setError(err.message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMAEnrollmentTrendData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, startDate, endDate, type]);
+
+  const refetch = () => {
+    fetchMAEnrollmentTrendData();
   };
 
   return { data, loading, error, refetch };
