@@ -19,7 +19,15 @@ export default function useUserProgress() {
         .select('*')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist, just set empty progress
+        if (error.code === '42P01') { // Table doesn't exist
+          console.log('user_progress table not found, using empty progress');
+          setProgress({});
+          return;
+        }
+        throw error;
+      }
 
       const progressData = {};
       (data || []).forEach(item => {
@@ -34,6 +42,7 @@ export default function useUserProgress() {
     } catch (err) {
       console.error('Error fetching progress:', err);
       setError(err.message);
+      setProgress({}); // Fallback to empty progress
     }
   };
 
@@ -48,7 +57,15 @@ export default function useUserProgress() {
         .select('*')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist, just set empty streaks
+        if (error.code === '42P01') { // Table doesn't exist
+          console.log('user_streaks table not found, using empty streaks');
+          setStreaks({});
+          return;
+        }
+        throw error;
+      }
 
       const streaksData = {};
       (data || []).forEach(item => {
@@ -63,6 +80,7 @@ export default function useUserProgress() {
     } catch (err) {
       console.error('Error fetching streaks:', err);
       setError(err.message);
+      setStreaks({}); // Fallback to empty streaks
     }
   };
 
@@ -81,7 +99,18 @@ export default function useUserProgress() {
         .eq('month_year', currentMonth)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (error) {
+        // If table doesn't exist or no data found, use defaults
+        if (error.code === '42P01' || error.code === 'PGRST116') {
+          console.log('user_roi table not found or no data, using defaults');
+          setRoi({
+            hours_saved: 0,
+            value_unlocked: 0,
+            reports_generated: 0,
+            markets_explored: 0
+          });
+          return;
+        }
         throw error;
       }
 
@@ -94,6 +123,12 @@ export default function useUserProgress() {
     } catch (err) {
       console.error('Error fetching ROI:', err);
       setError(err.message);
+      setRoi({
+        hours_saved: 0,
+        value_unlocked: 0,
+        reports_generated: 0,
+        markets_explored: 0
+      });
     }
   };
 
@@ -114,7 +149,14 @@ export default function useUserProgress() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist, just return
+        if (error.code === '42P01') {
+          console.log('user_progress table not found, skipping update');
+          return null;
+        }
+        throw error;
+      }
 
       // Update local state
       setProgress(prev => ({
@@ -161,6 +203,11 @@ export default function useUserProgress() {
         }
       }
     } catch (err) {
+      // If table doesn't exist, just skip initialization
+      if (err.code === '42P01') {
+        console.log('user_progress table not found, skipping initialization');
+        return;
+      }
       console.error('Error initializing progress:', err);
     }
   };
@@ -168,13 +215,18 @@ export default function useUserProgress() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await initializeProgress();
-      await Promise.all([
-        fetchProgress(),
-        fetchStreaks(),
-        fetchROI()
-      ]);
-      setLoading(false);
+      try {
+        await initializeProgress();
+        await Promise.all([
+          fetchProgress(),
+          fetchStreaks(),
+          fetchROI()
+        ]);
+      } catch (err) {
+        console.error('Error loading data:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();

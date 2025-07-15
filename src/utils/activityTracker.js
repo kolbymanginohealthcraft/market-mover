@@ -40,6 +40,7 @@ export const trackActivity = async (activityType, targetId = null, targetName = 
 
 // Predefined activity types
 export const ACTIVITY_TYPES = {
+  LOGIN: 'login',
   SEARCH_PROVIDERS: 'search_providers',
   VIEW_PROVIDER: 'view_provider',
   SAVE_MARKET: 'save_market',

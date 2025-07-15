@@ -1,0 +1,40 @@
+.panel {
+  background: #fff;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #265947;
+  margin-bottom: 12px;
+}
+
+.updateList {
+  list-style: none;
+  padding-left: 0;
+  font-size: 0.95rem;
+  color: #5f6b6d;
+  margin: 0;
+}
+
+.updateItem {
+  margin-bottom: 12px;
+}
+
+.updateTitle {
+  font-weight: 600;
+  color: #1dadbe;
+}
+
+.updateDescription {
+  font-size: 0.9rem;
+  color: #5f6b6d;
+}
+
+.updateDate {
+  font-size: 0.8rem;
+  color: #999;
+} 

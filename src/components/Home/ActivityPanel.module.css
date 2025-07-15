@@ -1,0 +1,96 @@
+.panel {
+  background: #fff;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #265947;
+  margin-bottom: 12px;
+}
+
+.activityList {
+  list-style: none;
+  padding-left: 0;
+  font-size: 0.95rem;
+  color: #5f6b6d;
+  margin: 0;
+}
+
+.activityHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.clearButton {
+  background: none;
+  border: 1px solid #e2e8e7;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  color: #5f6b6d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearButton:hover {
+  background: #f9fbfa;
+  border-color: #cbd5d3;
+}
+
+.activityItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityLink {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.activityLink:hover {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+
+.activityText {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #1f2937;
+}
+
+.clearSingleButton {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  margin-left: 6px;
+}
+
+.clearSingleButton:hover {
+  background: #f0f0f0;
+  color: #666;
+} 
