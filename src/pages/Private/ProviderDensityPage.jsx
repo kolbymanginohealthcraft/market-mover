@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { useProviderDensity, useProviderDensityDetails } from '../../hooks/useProviderDensity';
 import useProviderInfo from '../../hooks/useProviderInfo';
 import styles from './ProviderDensityPage.module.css';
 import Banner from '../../components/Banner';
+import ButtonGroup from '../../components/Buttons/ButtonGroup';
+import Button from '../../components/Buttons/Button';
 
 export default function ProviderDensityPage({ radius }) {
   const { dhc } = useParams();
@@ -13,6 +15,10 @@ export default function ProviderDensityPage({ radius }) {
   const [showBanner, setShowBanner] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownSearch, setDropdownSearch] = useState('');
+  const [sortBy, setSortBy] = useState('count'); // 'count', 'name'
+  const [providerSearch, setProviderSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [providersPerPage] = useState(10);
   const dropdownRef = useRef(null);
 
   // Get provider info to use its location
@@ -24,6 +30,9 @@ export default function ProviderDensityPage({ radius }) {
 
   const { data: densityData, loading: densityLoading, error: densityError } = useProviderDensity(lat, lon, radius);
   const { data: detailsData, loading: detailsLoading, error: detailsError } = useProviderDensityDetails(lat, lon, radius, selectedSpecialty);
+
+  // Get all providers data (not filtered by specialty)
+  const { data: allProvidersData, loading: allProvidersLoading, error: allProvidersError } = useProviderDensityDetails(lat, lon, radius, null);
 
   // Debug logging
   useEffect(() => {
@@ -67,6 +76,22 @@ export default function ProviderDensityPage({ radius }) {
     return selectedSpecialties.includes(item.specialty);
   }) || [];
 
+  // Sort filtered data
+  const sortedData = useMemo(() => {
+    if (!filteredData) return [];
+    
+    return [...filteredData].sort((a, b) => {
+      switch (sortBy) {
+        case 'count':
+          return b.provider_count - a.provider_count;
+        case 'name':
+          return a.specialty.localeCompare(b.specialty);
+        default:
+          return b.provider_count - a.provider_count;
+      }
+    });
+  }, [filteredData, sortBy]);
+
   const handleSpecialtyClick = (specialty) => {
     setSelectedSpecialty(selectedSpecialty === specialty ? null : specialty);
   };
@@ -85,6 +110,15 @@ export default function ProviderDensityPage({ radius }) {
     setSelectedSpecialties([]);
   };
 
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleProviderSearch = (e) => {
+    setProviderSearch(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   const handleEscapeKey = (e) => {
     if (e.key === 'Escape') {
       setShowDropdown(false);
@@ -101,9 +135,26 @@ export default function ProviderDensityPage({ radius }) {
 
   const totalProviders = filteredData?.reduce((sum, item) => sum + (item.provider_count || 0), 0) || 0;
 
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-  };
+  // Filter and paginate providers
+  const filteredProviders = useMemo(() => {
+    const providers = selectedSpecialty ? detailsData : allProvidersData;
+    if (!providers) return [];
+    
+    return providers.filter(provider => {
+      const searchTerm = providerSearch.toLowerCase();
+      const name = (provider.provider_name || '').toLowerCase();
+      const npi = provider.npi.toString();
+      
+      return name.includes(searchTerm) || npi.includes(searchTerm);
+    });
+  }, [selectedSpecialty, detailsData, allProvidersData, providerSearch]);
+
+  const totalPages = Math.ceil(filteredProviders.length / providersPerPage);
+  const startIndex = (currentPage - 1) * providersPerPage;
+  const endIndex = startIndex + providersPerPage;
+  const currentProviders = filteredProviders.slice(startIndex, endIndex);
+
+
 
   if (providerLoading || densityLoading) {
     return (
@@ -130,12 +181,7 @@ export default function ProviderDensityPage({ radius }) {
 
   return (
     <div className={styles.container} onKeyDown={handleEscapeKey}>
-      <Banner
-        title="Provider Density & Network Analysis"
-        message="This tool helps you understand the prevalence of licensed professionals in your area, directly impacting your ability to staff and seek additional resources for your provider network. As we continue developing, you'll see enhanced analytics and deeper competitive intelligence that will help you approach network expansion and recruitment strategies."
-        icon="🏥"
-        onClose={handleCloseBanner}
-      />
+
 
       <div className={styles.controls}>
         <div className={styles.controlGroup}>
@@ -212,18 +258,30 @@ export default function ProviderDensityPage({ radius }) {
       </div>
 
       <div className={styles.twoColumnLayout}>
-        <div className={styles.leftColumn}>
-          <div className={styles.specialtySection}>
-            <h3>Provider Count by Specialty</h3>
-            {filteredData && filteredData.length > 0 ? (
+                    <div className={styles.leftColumn}>
+              <div className={styles.specialtySection}>
+                <div className={styles.sectionHeader}>
+                  <h3>Provider Count by Specialty</h3>
+                  <ButtonGroup
+                    options={[
+                      { label: 'Sort by Count', value: 'count' },
+                      { label: 'Sort by Specialty', value: 'name' }
+                    ]}
+                    selected={sortBy}
+                    onSelect={setSortBy}
+                    size="sm"
+                    variant="blue"
+                  />
+                </div>
+                {sortedData && sortedData.length > 0 ? (
               <div className={styles.specialtyTable}>
                 <div className={styles.tableHeader}>
                   <div className={styles.rankColumn}>#</div>
                   <div className={styles.specialtyColumn}>Specialty</div>
                   <div className={styles.countColumn}>Providers</div>
                 </div>
-                <div className={styles.tableBody}>
-                  {filteredData.map((item, index) => (
+                                  <div className={styles.tableBody}>
+                    {sortedData.map((item, index) => (
                     <div key={item.specialty} className={`${styles.tableRow} ${selectedSpecialty === item.specialty ? styles.selected : ''}`} onClick={() => handleSpecialtyClick(item.specialty)}>
                       <div className={styles.rankColumn}>{index + 1}</div>
                       <div className={styles.specialtyColumn}>{item.specialty}</div>
@@ -241,45 +299,78 @@ export default function ProviderDensityPage({ radius }) {
           </div>
         </div>
 
-        <div className={styles.rightColumn}>
-          {selectedSpecialty ? (
-            <div className={styles.providerDetailsSection}>
-              <h3>Provider Details: {selectedSpecialty}</h3>
-              {detailsLoading ? (
-                <div className={styles.loading}>Loading provider details...</div>
-              ) : detailsError ? (
-                <div className={styles.error}>Error loading details: {detailsError}</div>
-              ) : (
-                <div className={styles.providerList}>
-                  <div className={styles.providerTable}>
-                    <div className={styles.providerTableHeader}>
-                      <div className={styles.npiColumn}>NPI</div>
-                      <div className={styles.providerNameColumn}>Provider Name</div>
-                      <div className={styles.distanceColumn}>Distance</div>
-                    </div>
-                    <div className={styles.providerTableBody}>
-                      {detailsData?.map((provider) => (
-                        <div key={provider.npi} className={styles.providerTableRow}>
-                          <div className={styles.npiColumn}>{provider.npi}</div>
-                          <div className={styles.providerNameColumn}>{provider.provider_name || 'N/A'}</div>
-                          <div className={styles.distanceColumn}>{provider.distance_miles} mi</div>
-                        </div>
-                      ))}
-                    </div>
+                    <div className={styles.rightColumn}>
+              <div className={styles.providerDetailsSection}>
+                <div className={styles.sectionHeader}>
+                  <h3>Provider Details</h3>
+                  <div className={styles.providerSearchContainer}>
+                    <input
+                      type="text"
+                      placeholder="Search providers..."
+                      value={providerSearch}
+                      onChange={handleProviderSearch}
+                      className={styles.providerSearchInput}
+                    />
                   </div>
-                  {detailsData?.length === 0 && (
-                    <div className={styles.noData}>No providers found for this specialty</div>
+                  {totalPages > 1 && (
+                    <div className={styles.pagination}>
+                      <Button
+                        outline
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <span className={styles.pageInfo}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        outline
+                        size="sm"
+                        disabled={currentPage === totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   )}
                 </div>
-              )}
+                
+                {(detailsLoading || allProvidersLoading) ? (
+                  <div className={styles.loading}>Loading provider details...</div>
+                ) : (detailsError || allProvidersError) ? (
+                  <div className={styles.error}>Error loading details: {detailsError || allProvidersError}</div>
+                ) : (
+                  <div className={styles.providerList}>
+                    <div className={styles.providerTable}>
+                      <div className={styles.providerTableHeader}>
+                        <div className={styles.npiColumn}>NPI</div>
+                        <div className={styles.providerNameColumn}>Provider Name</div>
+                        <div className={styles.distanceColumn}>Distance</div>
+                      </div>
+                      <div className={styles.providerTableBody}>
+                        {currentProviders.map((provider) => (
+                          <div key={provider.npi} className={styles.providerTableRow}>
+                            <div className={styles.npiColumn}>{provider.npi}</div>
+                            <div className={styles.providerNameColumn}>{provider.provider_name || 'N/A'}</div>
+                            <div className={styles.distanceColumn}>{provider.distance_miles} mi</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {filteredProviders.length === 0 && (
+                      <div className={styles.noData}>
+                        {providerSearch ? 'No providers found matching your search' : 'No providers found'}
+                      </div>
+                    )}
+                    
+
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className={styles.noSelection}>
-              <h3>Select a Specialty</h3>
-              <p>Click on a specialty from the list to view provider details.</p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

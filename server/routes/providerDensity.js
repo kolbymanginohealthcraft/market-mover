@@ -142,7 +142,6 @@ router.get("/provider-density-details", async (req, res) => {
             ST_GEOGPOINT(@lon, @lat)
           ) <= @radiusMeters
         ORDER BY distance_meters ASC
-        LIMIT 100
       `;
       params = {
         lat: Number(lat),
@@ -171,7 +170,6 @@ router.get("/provider-density-details", async (req, res) => {
             ST_GEOGPOINT(@lon, @lat)
           ) <= @radiusMeters
         ORDER BY distance_meters ASC
-        LIMIT 100
       `;
       params = {
         lat: Number(lat),

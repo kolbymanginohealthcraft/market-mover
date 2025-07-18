@@ -257,17 +257,69 @@
   padding: 24px;
 }
 
-.specialtySection h3 {
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  min-height: 40px;
+}
+
+.sectionHeader h3 {
+  margin: 0;
   color: #265947;
   font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
+
+
+
+.providerSearchContainer {
+  min-width: 250px;
+}
+
+.providerSearchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin: 0;
+}
+
+.providerSearchInput:focus {
+  outline: none;
+  border-color: #1DADBE;
+  box-shadow: 0 0 0 3px rgba(29, 173, 190, 0.1);
+}
+
+.providerSearchInput::placeholder {
+  color: #9ca3af;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pageInfo {
+  font-size: 0.85rem;
+  color: #5f6b6d;
+  font-weight: 500;
+}
+
+
 
 .specialtyList {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 500px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -319,7 +371,6 @@
 }
 
 .providerDetailsSection h3 {
-  margin-bottom: 20px;
   color: #265947;
   font-size: 1.3rem;
 }
@@ -352,7 +403,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   overflow: hidden;
-  max-height: 500px;
+  max-height: 400px;
 }
 
 .providerTableHeader {
@@ -371,7 +422,7 @@
 }
 
 .providerTableBody {
-  max-height: 450px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -475,7 +526,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   overflow: hidden;
-  max-height: 500px;
+  max-height: 400px;
 }
 
 .tableHeader {
@@ -491,7 +542,7 @@
 }
 
 .tableBody {
-  max-height: 500px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
