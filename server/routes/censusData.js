@@ -264,6 +264,72 @@ router.get("/census-data/schema/:year", async (req, res) => {
 });
 
 /**
+ * GET /api/census-data/county-names
+ * 
+ * Query params:
+ *   - stateFips: State FIPS code (required)
+ * 
+ * Returns: County names for the specified state
+ */
+router.get("/census-data/county-names", async (req, res) => {
+  const { stateFips } = req.query;
+
+  if (!stateFips) {
+    return res.status(400).json({
+      success: false,
+      error: "stateFips is required"
+    });
+  }
+
+  try {
+    // Check cache first
+    const cacheKey = `county_names_${stateFips}`;
+    const cachedData = cache.get('county_names', { stateFips });
+    if (cachedData) {
+      console.log('📦 Serving county names from cache');
+      return res.status(200).json({ success: true, data: cachedData });
+    }
+
+    const query = `
+      SELECT 
+        county_fips_code,
+        area_name
+      FROM \`bigquery-public-data.census_utility.fips_codes_all\`
+      WHERE state_fips_code = @stateFips
+        AND summary_level = '050'
+        AND county_fips_code LIKE CONCAT(@stateFips, '%')
+      ORDER BY area_name
+    `;
+
+    const [rows] = await myBigQuery.query({
+      query,
+      location: "US",
+      params: { stateFips }
+    });
+
+    const countyNames = {};
+    rows.forEach(row => {
+      countyNames[row.county_fips_code] = row.area_name;
+    });
+
+    // Cache the result for 24 hours (county names don't change frequently)
+    cache.set('county_names', { stateFips }, countyNames, 24 * 60 * 60 * 1000);
+
+    res.status(200).json({
+      success: true,
+      data: countyNames
+    });
+
+  } catch (err) {
+    console.error("❌ County names query error:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
  * GET /api/census-acs-api
  * Query params:
  *   - lat: Latitude of market center (required)
@@ -322,6 +388,112 @@ async function getNationalAverages(year) {
     };
   } catch (error) {
     console.error('❌ Error fetching national averages:', error);
+    return null;
+  }
+}
+
+async function getStateAverages(stateFips, year) {
+  try {
+    const STATE_VARS = [
+      'B01001_001E', // total pop
+      'B19013_001E', // median income
+      'B19301_001E', // per capita income
+      'B17001_001E', 'B17001_002E', // poverty
+      'B27010_001E', 'B27010_017E', // insurance
+      'B18101_001E', 'B18101_004E', 'B18101_007E', // disability
+      'B15003_001E', 'B15003_022E','B15003_023E','B15003_024E','B15003_025E', // education
+      'B25064_001E', 'B25077_001E' // housing
+    ].join(',');
+
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${STATE_VARS}&for=state:${stateFips}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Census API error for state data: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    const header = data[0];
+    const row = data[1];
+    const obj = {};
+    header.forEach((h, idx) => { obj[h] = row[idx]; });
+    
+    // Calculate derived values
+    const bachelors = ['B15003_022E','B15003_023E','B15003_024E','B15003_025E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    
+    return {
+      total_population: Number(obj['B01001_001E']) || 0,
+      median_income: Number(obj['B19013_001E']) || 0,
+      per_capita_income: Number(obj['B19301_001E']) || 0,
+      poverty_universe: Number(obj['B17001_001E']) || 0,
+      below_poverty: Number(obj['B17001_002E']) || 0,
+      insurance_universe: Number(obj['B27010_001E']) || 0,
+      uninsured: Number(obj['B27010_017E']) || 0,
+      disability_universe: Number(obj['B18101_001E']) || 0,
+      male_disability: Number(obj['B18101_004E']) || 0,
+      female_disability: Number(obj['B18101_007E']) || 0,
+      education_universe: Number(obj['B15003_001E']) || 0,
+      bachelors_plus: bachelors,
+      median_rent: Number(obj['B25064_001E']) || 0,
+      median_home_value: Number(obj['B25077_001E']) || 0
+    };
+  } catch (error) {
+    console.error('❌ Error fetching state averages:', error);
+    return null;
+  }
+}
+
+async function getCountyAverages(stateFips, countyFips, year) {
+  try {
+    const COUNTY_VARS = [
+      'B01001_001E', // total pop
+      'B19013_001E', // median income
+      'B19301_001E', // per capita income
+      'B17001_001E', 'B17001_002E', // poverty
+      'B27010_001E', 'B27010_017E', // insurance
+      'B18101_001E', 'B18101_004E', 'B18101_007E', // disability
+      'B15003_001E', 'B15003_022E','B15003_023E','B15003_024E','B15003_025E', // education
+      'B25064_001E', 'B25077_001E' // housing
+    ].join(',');
+
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${COUNTY_VARS}&for=county:${countyFips}&in=state:${stateFips}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Census API error for county data: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    const header = data[0];
+    const row = data[1];
+    const obj = {};
+    header.forEach((h, idx) => { obj[h] = row[idx]; });
+    
+    // Calculate derived values
+    const bachelors = ['B15003_022E','B15003_023E','B15003_024E','B15003_025E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    
+    return {
+      total_population: Number(obj['B01001_001E']) || 0,
+      median_income: Number(obj['B19013_001E']) || 0,
+      per_capita_income: Number(obj['B19301_001E']) || 0,
+      poverty_universe: Number(obj['B17001_001E']) || 0,
+      below_poverty: Number(obj['B17001_002E']) || 0,
+      insurance_universe: Number(obj['B27010_001E']) || 0,
+      uninsured: Number(obj['B27010_017E']) || 0,
+      disability_universe: Number(obj['B18101_001E']) || 0,
+      male_disability: Number(obj['B18101_004E']) || 0,
+      female_disability: Number(obj['B18101_007E']) || 0,
+      education_universe: Number(obj['B15003_001E']) || 0,
+      bachelors_plus: bachelors,
+      median_rent: Number(obj['B25064_001E']) || 0,
+      median_home_value: Number(obj['B25077_001E']) || 0
+    };
+  } catch (error) {
+    console.error('❌ Error fetching county averages:', error);
     return null;
   }
 }
@@ -562,6 +734,49 @@ router.get('/census-acs-api', async (req, res) => {
     // Fetch national averages
     const nationalAverages = await getNationalAverages(year);
     
+    // Get unique states and counties in the market area
+    const statesInMarket = [...new Set(allTractData.map(t => t.state))];
+    const countiesInMarket = [...new Set(allTractData.map(t => `${t.state}-${t.county}`))];
+    
+    // Fetch state and county averages
+    const stateAverages = {};
+    const countyAverages = {};
+    
+    // Fetch state averages for all states in the market
+    for (const stateFips of statesInMarket) {
+      const stateData = await getStateAverages(stateFips, year);
+      if (stateData) {
+        stateAverages[stateFips] = {
+          median_income: stateData.median_income,
+          per_capita_income: stateData.per_capita_income,
+          poverty_rate: stateData.poverty_universe ? stateData.below_poverty / stateData.poverty_universe : null,
+          uninsured_rate: stateData.insurance_universe ? stateData.uninsured / stateData.insurance_universe : null,
+          disability_rate: stateData.disability_universe ? (stateData.male_disability + stateData.female_disability) / stateData.disability_universe : null,
+          bachelors_plus_rate: stateData.education_universe ? stateData.bachelors_plus / stateData.education_universe : null,
+          median_rent: stateData.median_rent,
+          median_home_value: stateData.median_home_value
+        };
+      }
+    }
+    
+    // Fetch county averages for all counties in the market
+    for (const countyKey of countiesInMarket) {
+      const [stateFips, countyFips] = countyKey.split('-');
+      const countyData = await getCountyAverages(stateFips, countyFips, year);
+      if (countyData) {
+        countyAverages[countyKey] = {
+          median_income: countyData.median_income,
+          per_capita_income: countyData.per_capita_income,
+          poverty_rate: countyData.poverty_universe ? countyData.below_poverty / countyData.poverty_universe : null,
+          uninsured_rate: countyData.insurance_universe ? countyData.uninsured / countyData.insurance_universe : null,
+          disability_rate: countyData.disability_universe ? (countyData.male_disability + countyData.female_disability) / countyData.disability_universe : null,
+          bachelors_plus_rate: countyData.education_universe ? countyData.bachelors_plus / countyData.education_universe : null,
+          median_rent: countyData.median_rent,
+          median_home_value: countyData.median_home_value
+        };
+      }
+    }
+    
     const result = {
       market_totals: {
         total_population: totals.total_population,
@@ -597,6 +812,8 @@ router.get('/census-acs-api', async (req, res) => {
         median_rent: nationalAverages.median_rent,
         median_home_value: nationalAverages.median_home_value
       } : null,
+      state_averages: stateAverages,
+      county_averages: countyAverages,
       geographic_units: allTractData
     };
 
