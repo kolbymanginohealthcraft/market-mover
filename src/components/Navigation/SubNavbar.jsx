@@ -59,12 +59,20 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Storyteller
       </NavLink>
       <NavLink
-        to={`${prefix}/ma-enrollment${search}`}
+        to={`${prefix}/enrollment${search}`}
         className={({ isActive }) =>
           `${styles.tab} ${isActive ? styles.activeTab : ""}`
         }
       >
-        MA Enrollment
+        Enrollment
+      </NavLink>
+      <NavLink
+        to={`${prefix}/cms-enrollment${search}`}
+        className={({ isActive }) =>
+          `${styles.tab} ${isActive ? styles.activeTab : ""}`
+        }
+      >
+        CMS Enrollment
       </NavLink>
     </nav>
   );

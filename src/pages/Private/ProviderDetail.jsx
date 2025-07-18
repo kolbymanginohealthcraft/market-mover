@@ -27,6 +27,7 @@ import ClaimsTab from "./ClaimsTab";
 import PopulationTab from "./PopulationTab";
 import ReferralsTab from "./ReferralsTab";
 import MAEnrollmentTab from "./MAEnrollmentTab";
+import CMSEnrollmentTab from "./CMSEnrollmentTab";
 import ProviderDensityPage from "./ProviderDensityPage";
 import SubNavbar from "../../components/Navigation/SubNavbar";
 import Spinner from "../../components/Buttons/Spinner";
@@ -302,7 +303,8 @@ export default function ProviderDetail() {
         <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="referrals" element={<ReferralsTab provider={provider} />} />
-        <Route path="ma-enrollment" element={<MAEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
+        <Route path="enrollment" element={<MAEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
+        <Route path="cms-enrollment" element={<CMSEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>

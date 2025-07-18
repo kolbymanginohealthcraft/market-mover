@@ -9,10 +9,10 @@ import { apiUrl } from '../utils/api';
  *
  * @param {object} provider - The main provider object (must have latitude, longitude)
  * @param {number} radiusInMiles - The market radius in miles
- * @param {string} year - ACS year (defaults to '2022')
+ * @param {string} year - ACS year (defaults to '2023')
  * @returns {object} { data, loading, error, refetch }
  */
-export default function useCensusData(provider, radiusInMiles, year = '2022') {
+export default function useCensusData(provider, radiusInMiles, year = '2023') {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

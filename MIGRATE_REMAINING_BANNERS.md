@@ -12,7 +12,7 @@ The following pages still need to be migrated to use the new Banner component:
 - Provider Listing (`src/pages/Private/ProviderListingTab.jsx`)
 - Provider Density (`src/pages/Private/ProviderDensityPage.jsx`)
 - Storyteller (`src/pages/Private/Storyteller/Storyteller.jsx`)
-- MA Enrollment (`src/pages/Private/MAEnrollmentTab.jsx`)
+- Enrollment (`src/pages/Private/MAEnrollmentTab.jsx`)
 
 ## 🎉 Migration Complete!
 

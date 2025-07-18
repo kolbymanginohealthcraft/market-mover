@@ -26,8 +26,8 @@ const formatPercent = (num) => {
 };
 
 const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
-  // Hardcode year to 2022
-  const year = '2022';
+  // Hardcode year to 2023
+  const year = '2023';
   const { data, loading, error } = useCensusData(provider, radiusInMiles, year);
 
   // Memoize data processing to prevent unnecessary recalculations
@@ -135,6 +135,82 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
         </div>
       </div>
 
+      {/* Economics */}
+      <h4>Economics</h4>
+      <div className={styles.summaryGrid}>
+        <div className={styles.summaryItem}>
+          <label>Median Income</label>
+          <span className={styles.value}>{formatCurrency(market_totals.median_income)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatCurrency(data.national_averages.median_income)}</span>
+          )}
+        </div>
+        <div className={styles.summaryItem}>
+          <label>Per Capita Income</label>
+          <span className={styles.value}>{formatCurrency(market_totals.per_capita_income)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatCurrency(data.national_averages.per_capita_income)}</span>
+          )}
+        </div>
+        <div className={styles.summaryItem}>
+          <label>Poverty Rate</label>
+          <span className={styles.value}>{formatPercent(market_totals.poverty_rate)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatPercent(data.national_averages.poverty_rate)}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Housing & Cost of Living */}
+      <h4>Housing & Cost of Living</h4>
+      <div className={styles.summaryGrid}>
+        <div className={styles.summaryItem}>
+          <label>Median Rent</label>
+          <span className={styles.value}>{formatCurrency(market_totals.median_rent)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatCurrency(data.national_averages.median_rent)}</span>
+          )}
+        </div>
+        <div className={styles.summaryItem}>
+          <label>Median Home Value</label>
+          <span className={styles.value}>{formatCurrency(market_totals.median_home_value)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatCurrency(data.national_averages.median_home_value)}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Health & Insurance */}
+      <h4>Health & Insurance</h4>
+      <div className={styles.summaryGrid}>
+        <div className={styles.summaryItem}>
+          <label>Uninsured Rate</label>
+          <span className={styles.value}>{formatPercent(market_totals.uninsured_rate)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatPercent(data.national_averages.uninsured_rate)}</span>
+          )}
+        </div>
+        <div className={styles.summaryItem}>
+          <label>Disability Rate</label>
+          <span className={styles.value}>{formatPercent(market_totals.disability_rate)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatPercent(data.national_averages.disability_rate)}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Education */}
+      <h4>Education</h4>
+      <div className={styles.summaryGrid}>
+        <div className={styles.summaryItem}>
+          <label>Bachelor's+ Rate</label>
+          <span className={styles.value}>{formatPercent(market_totals.bachelors_plus_rate)}</span>
+          {data.national_averages && (
+            <span className={styles.nationalAverage}>US: {formatPercent(data.national_averages.bachelors_plus_rate)}</span>
+          )}
+        </div>
+      </div>
+
       {/* Demographics Section */}
       <div className={styles.demographicsSection}>
         <div className={styles.demographicsGrid}>
@@ -190,37 +266,9 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
         </div>
       </div>
 
-      {/* Economics */}
-      <h4>Economics</h4>
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryItem}><label>Median Income</label><span className={styles.value}>{formatCurrency(market_totals.median_income)}</span></div>
-        <div className={styles.summaryItem}><label>Per Capita Income</label><span className={styles.value}>{formatCurrency(market_totals.per_capita_income)}</span></div>
-        <div className={styles.summaryItem}><label>Poverty Rate</label><span className={styles.value}>{formatPercent(market_totals.poverty_rate)}</span></div>
-      </div>
-
-      {/* Housing & Cost of Living */}
-      <h4>Housing & Cost of Living</h4>
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryItem}><label>Median Rent</label><span className={styles.value}>{formatCurrency(market_totals.median_rent)}</span></div>
-        <div className={styles.summaryItem}><label>Median Home Value</label><span className={styles.value}>{formatCurrency(market_totals.median_home_value)}</span></div>
-      </div>
-
-      {/* Health & Insurance */}
-      <h4>Health & Insurance</h4>
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryItem}><label>Uninsured Rate</label><span className={styles.value}>{formatPercent(market_totals.uninsured_rate)}</span></div>
-        <div className={styles.summaryItem}><label>Disability Rate</label><span className={styles.value}>{formatPercent(market_totals.disability_rate)}</span></div>
-      </div>
-
-      {/* Education */}
-      <h4>Education</h4>
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryItem}><label>Bachelor's+ Rate</label><span className={styles.value}>{formatPercent(market_totals.bachelors_plus_rate)}</span></div>
-      </div>
-
       <div className={styles.footer}>
         <p className={styles.source}>
-          Source: U.S. Census Bureau American Community Survey (2022 5-Year Estimates)
+          Source: U.S. Census Bureau American Community Survey ({market_totals.acs_year} 5-Year Estimates)
         </p>
         <p className={styles.note}>
           Data represents census tract-level demographics within {radiusInMiles} miles of {provider.name}

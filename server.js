@@ -19,6 +19,7 @@ import censusData from "./server/routes/censusData.js";
 import providerDensity from "./server/routes/providerDensity.js";
 import getProvidersByDhc from "./server/routes/getProvidersByDhc.js";
 import maEnrollment from "./server/routes/maEnrollment.js";
+import cmsEnrollment from "./server/routes/cmsEnrollment.js";
 
 
 dotenv.config();
@@ -58,6 +59,7 @@ app.use("/api", censusData);
 app.use("/api", providerDensity);
 app.use("/api", getProvidersByDhc);
 app.use("/api", maEnrollment);
+app.use("/api", cmsEnrollment);
 
 
 // ✅ Invite User Route

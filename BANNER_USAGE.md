@@ -104,4 +104,4 @@ The following pages currently use banners that can be migrated:
 - Population (`/app/population`)
 - Claims (`/app/claims`)
 - Storyteller (`/app/storyteller`)
-- MA Enrollment (`/app/ma-enrollment`) 
+- Enrollment (`/app/enrollment`) 

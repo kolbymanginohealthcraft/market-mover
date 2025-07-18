@@ -272,8 +272,62 @@ router.get("/census-data/schema/:year", async (req, res) => {
  *   - year: ACS year (defaults to 2022)
  * Returns: Aggregated ACS data for tracts within the radius
  */
+// Helper function to fetch national averages
+async function getNationalAverages(year) {
+  try {
+    const NATIONAL_VARS = [
+      'B01001_001E', // total pop
+      'B19013_001E', // median income
+      'B19301_001E', // per capita income
+      'B17001_001E', 'B17001_002E', // poverty
+      'B27010_001E', 'B27010_017E', // insurance
+      'B18101_001E', 'B18101_004E', 'B18101_007E', // disability
+      'B15003_001E', 'B15003_022E','B15003_023E','B15003_024E','B15003_025E', // education
+      'B25064_001E', 'B25077_001E' // housing
+    ].join(',');
+
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${NATIONAL_VARS}&for=us:*`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Census API error for national data: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    const header = data[0];
+    const row = data[1];
+    const obj = {};
+    header.forEach((h, idx) => { obj[h] = row[idx]; });
+    
+    // Calculate derived values
+    const bachelors = ['B15003_022E','B15003_023E','B15003_024E','B15003_025E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    
+    return {
+      total_population: Number(obj['B01001_001E']) || 0,
+      median_income: Number(obj['B19013_001E']) || 0,
+      per_capita_income: Number(obj['B19301_001E']) || 0,
+      poverty_universe: Number(obj['B17001_001E']) || 0,
+      below_poverty: Number(obj['B17001_002E']) || 0,
+      insurance_universe: Number(obj['B27010_001E']) || 0,
+      uninsured: Number(obj['B27010_017E']) || 0,
+      disability_universe: Number(obj['B18101_001E']) || 0,
+      male_disability: Number(obj['B18101_004E']) || 0,
+      female_disability: Number(obj['B18101_007E']) || 0,
+      education_universe: Number(obj['B15003_001E']) || 0,
+      bachelors_plus: bachelors,
+      median_rent: Number(obj['B25064_001E']) || 0,
+      median_home_value: Number(obj['B25077_001E']) || 0
+    };
+  } catch (error) {
+    console.error('❌ Error fetching national averages:', error);
+    return null;
+  }
+}
+
 router.get('/census-acs-api', async (req, res) => {
-  const { lat, lon, radius, year = '2022' } = req.query;
+  const { lat, lon, radius, year = '2023' } = req.query;
   if (!lat || !lon || !radius) {
     return res.status(400).json({ success: false, error: 'lat, lon, and radius are required' });
   }
@@ -505,6 +559,9 @@ router.get('/census-acs-api', async (req, res) => {
       median_home_value_sum: 0, median_home_value_count: 0
     });
 
+    // Fetch national averages
+    const nationalAverages = await getNationalAverages(year);
+    
     const result = {
       market_totals: {
         total_population: totals.total_population,
@@ -530,6 +587,16 @@ router.get('/census-acs-api', async (req, res) => {
         total_land_area_meters: totals.total_land_area_meters,
         acs_year: year
       },
+      national_averages: nationalAverages ? {
+        median_income: nationalAverages.median_income,
+        per_capita_income: nationalAverages.per_capita_income,
+        poverty_rate: nationalAverages.poverty_universe ? nationalAverages.below_poverty / nationalAverages.poverty_universe : null,
+        uninsured_rate: nationalAverages.insurance_universe ? nationalAverages.uninsured / nationalAverages.insurance_universe : null,
+        disability_rate: nationalAverages.disability_universe ? (nationalAverages.male_disability + nationalAverages.female_disability) / nationalAverages.disability_universe : null,
+        bachelors_plus_rate: nationalAverages.education_universe ? nationalAverages.bachelors_plus / nationalAverages.education_universe : null,
+        median_rent: nationalAverages.median_rent,
+        median_home_value: nationalAverages.median_home_value
+      } : null,
       geographic_units: allTractData
     };
 

@@ -4,12 +4,13 @@ import MAEnrollmentPanel from "../../components/MAEnrollmentPanel";
 import MAEnrollmentTrendChart from "../../components/MAEnrollmentTrendChart";
 import useMAEnrollmentData, { useMAEnrollmentTrendData } from "../../hooks/useMAEnrollmentData";
 import { apiUrl } from "../../utils/api";
+import ButtonGroup from "../../components/Buttons/ButtonGroup";
 
 export default function MAEnrollmentTab({ provider, radiusInMiles }) {
   const [publishDates, setPublishDates] = useState([]);
   const [loadingDates, setLoadingDates] = useState(true);
   const [errorDates, setErrorDates] = useState(null);
-  const [selectedType, setSelectedType] = useState("ALL");
+  const [selectedType, setSelectedType] = useState("MA");
 
   useEffect(() => {
     async function fetchDates() {
@@ -44,14 +45,10 @@ export default function MAEnrollmentTab({ provider, radiusInMiles }) {
   if (errorDates) return <div>Error loading dates: {errorDates}</div>;
   if (!publishDates.length) return <div>No enrollment dates available.</div>;
 
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case "MA": return "Medicare Advantage";
-      case "PDP": return "Prescription Drug Plans";
-      case "ALL": return "All Plans";
-      default: return "All Plans";
-    }
-  };
+  const planTypeOptions = [
+    { label: "Medicare Advantage", value: "MA" },
+    { label: "Prescription Drug Plans", value: "PDP" }
+  ];
 
   return (
     <div className={styles.page}>
@@ -63,26 +60,16 @@ export default function MAEnrollmentTab({ provider, radiusInMiles }) {
               Medicare enrollment data for {publishDate}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="type-select" style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+              <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
                 Plan Type:
-              </label>
-              <select
-                id="type-select"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                style={{
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  fontSize: '0.9rem',
-                  width: 'auto',
-                  minWidth: '120px'
-                }}
-              >
-                <option value="ALL">All Plans (MA + PDP)</option>
-                <option value="MA">Medicare Advantage Only</option>
-                <option value="PDP">Prescription Drug Plans Only</option>
-              </select>
+              </span>
+              <ButtonGroup
+                options={planTypeOptions}
+                selected={selectedType}
+                onSelect={setSelectedType}
+                size="sm"
+                variant="blue"
+              />
             </div>
           </div>
         </div>

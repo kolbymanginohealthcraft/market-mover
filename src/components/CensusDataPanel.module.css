@@ -60,6 +60,7 @@
   padding: 15px;
   border-radius: 6px;
   border-left: 4px solid #007bff;
+  position: relative;
 }
 
 .summaryItem label {
@@ -75,6 +76,15 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: #333;
+}
+
+.nationalAverage {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
 }
 
 .footer {
@@ -159,6 +169,7 @@
 
 .demographicsSection {
   margin-bottom: 32px;
+  margin-top: 32px;
 }
 
 .demographicsGrid {
