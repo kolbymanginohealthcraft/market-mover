@@ -113,6 +113,7 @@
   color: #374151;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin: 0;
   min-width: 180px;
 }
 
@@ -164,33 +165,68 @@
 
 .metricItem {
   display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.metricItem:hover {
+  border-color: #3FB985;
+  box-shadow: 0 2px 8px rgba(63, 185, 133, 0.1);
+}
+
+.metricHeader {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  gap: 0.5rem;
 }
 
 .metricLabel {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: #666;
   font-weight: 500;
-  color: #374151;
+  flex: 1;
 }
 
-.metricValue {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+.benchmarkAverage {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  display: inline-block;
+  animation: benchmarkUpdate 0.6s ease-out;
+}
+
+@keyframes benchmarkUpdate {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
 }
 
 .value {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.2;
 }
 
 .percentage {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #666;
   font-weight: 500;
 }
 
@@ -398,6 +434,130 @@
   font-size: 0.95rem;
   color: #7f1d1d;
   margin: 0 0 20px 0;
+}
+
+.payersSection {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.emptyState h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.emptyState p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.comingSoon {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 16px;
+}
+
+.comingSoon span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.benchmarkControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.benchmarkDropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.benchmarkDropdown label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.dropdownContainer {
+  position: relative;
+}
+
+.dropdownButton {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  color: #333;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdownButton:hover {
+  border-color: #3FB985;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.dropdownItem {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdownItem.selected {
+  background-color: #e6f7f9;
+  color: #265947;
+  font-weight: 500;
 }
 
 /* Responsive Design */

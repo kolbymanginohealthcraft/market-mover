@@ -1,18 +1,241 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styles from "./CMSEnrollmentTab.module.css";
 import CMSEnrollmentPanel from "../../components/CMSEnrollmentPanel";
 import CMSEnrollmentTrendChart from "../../components/CMSEnrollmentTrendChart";
 import useCMSEnrollmentData from "../../hooks/useCMSEnrollmentData";
+import { useCMSEnrollmentDataByLevel, useCMSEnrollmentYears } from "../../hooks/useCMSEnrollmentData";
 import ButtonGroup from "../../components/Buttons/ButtonGroup";
 import Button from "../../components/Buttons/Button";
 
 export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
-  const [selectedView, setSelectedView] = useState('overview'); // 'overview', 'trends', 'demographics'
+  const [selectedView, setSelectedView] = useState('overview'); // 'overview', 'trends', 'demographics', 'payers'
   const [selectedTimeframe, setSelectedTimeframe] = useState('latest'); // 'latest', 'monthly', 'yearly'
   const [selectedMetric, setSelectedMetric] = useState('ma_and_other');
+  const [selectedBenchmark, setSelectedBenchmark] = useState('national'); // 'national', 'state-XX', 'county-XXXXX'
+  const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   
   // Fetch CMS enrollment data
   const { data, loading, error, latestMonth, months } = useCMSEnrollmentData(provider, radiusInMiles);
+  
+  // Fetch available years
+  const { data: availableYears } = useCMSEnrollmentYears();
+  
+  // Get the latest year for benchmarks
+  const latestYear = availableYears && availableYears.length > 0 ? availableYears[0] : '2023';
+  
+  // Helper functions for benchmark data
+  const getBenchmarkLevel = () => {
+    if (selectedBenchmark === 'national') return 'national';
+    if (selectedBenchmark.startsWith('state-')) return 'state';
+    if (selectedBenchmark.startsWith('county-')) return 'county';
+    return 'national';
+  };
+  
+  const getBenchmarkFips = () => {
+    if (selectedBenchmark === 'national') return null;
+    return selectedBenchmark.replace('state-', '').replace('county-', '');
+  };
+  
+  console.log('🔍 Hook parameters:', {
+    getBenchmarkLevel: getBenchmarkLevel(),
+    getBenchmarkFips: getBenchmarkFips(),
+    latestYear,
+    availableYears
+  });
+  
+  console.log('🔍 About to call useCMSEnrollmentDataByLevel...');
+  
+  // Fetch benchmark data based on selected benchmark
+  const { data: benchmarkData, error: benchmarkError } = useCMSEnrollmentDataByLevel(
+    getBenchmarkLevel(),
+    getBenchmarkFips(),
+    latestYear
+  );
+  
+  console.log('🔍 Hook called, benchmarkData:', benchmarkData?.length, 'benchmarkError:', benchmarkError);
+  console.log('🔍 Main data sample:', data?.slice(0, 2));
+  console.log('🔍 Latest month:', latestMonth);
+
+  // Get available states and counties from the main data
+  const getAvailableStates = () => {
+    if (!data) return [];
+    const states = [...new Set(data.map(r => r.state).filter(Boolean))];
+    return states;
+  };
+
+  const getAvailableCounties = () => {
+    if (!data) return [];
+    const counties = [...new Set(data.map(r => r.fips).filter(Boolean))];
+    return counties;
+  };
+
+  // Get display name for selected benchmark
+  const getSelectedBenchmarkDisplay = () => {
+    if (selectedBenchmark === 'national') {
+      return 'National';
+    } else if (selectedBenchmark.startsWith('state-')) {
+      const stateCode = selectedBenchmark.replace('state-', '');
+      return stateCode;
+    } else if (selectedBenchmark.startsWith('county-')) {
+      const countyFips = selectedBenchmark.replace('county-', '');
+      const countyData = data?.find(r => r.fips === countyFips);
+      return countyData ? `${countyData.county}, ${countyData.state}` : `County ${countyFips}`;
+    }
+    return 'National';
+  };
+
+  // Build benchmark options
+  const buildBenchmarkOptions = () => {
+    const options = [
+      { value: 'national', label: 'National' }
+    ];
+
+    // Add state options
+    const states = getAvailableStates();
+    states.forEach(stateCode => {
+      options.push({
+        value: `state-${stateCode}`,
+        label: stateCode
+      });
+    });
+
+    // Add county options
+    const counties = getAvailableCounties();
+    counties.forEach(countyFips => {
+      const countyData = data?.find(r => r.fips === countyFips);
+      if (countyData) {
+        options.push({
+          value: `county-${countyFips}`,
+          label: `${countyData.county}, ${countyData.state}`
+        });
+      }
+    });
+
+    return options;
+  };
+
+  // Helper function to get current benchmark data
+  const getCurrentBenchmark = () => {
+    console.log('🔍 Debugging benchmark data:', {
+      benchmarkData: benchmarkData?.length,
+      latestMonth,
+      selectedBenchmark,
+      getBenchmarkLevel: getBenchmarkLevel(),
+      getBenchmarkFips: getBenchmarkFips()
+    });
+    
+    if (!benchmarkData || !latestMonth) {
+      console.log('❌ No benchmark data or latest month');
+      return null;
+    }
+    
+    // For benchmark data, we want the same time period as the main data
+    // For National level, we might have 'Year' records instead of monthly data
+    let latestBenchmarkData;
+    if (selectedBenchmark === 'national') {
+      // For National benchmarks, look for 'Year' records if no monthly data is found
+      latestBenchmarkData = benchmarkData.filter(r => r.month === latestMonth);
+      if (latestBenchmarkData.length === 0) {
+        // Fallback to 'Year' records for National level
+        latestBenchmarkData = benchmarkData.filter(r => r.month === 'Year' || r.month_raw === 'Year');
+        console.log('📊 Using Year records for National benchmark:', latestBenchmarkData.length, 'records');
+      }
+    } else if (selectedBenchmark.startsWith('state-')) {
+      // For State benchmarks, look for any monthly data (not just the exact latest month)
+      // State data might have different month formats
+      latestBenchmarkData = benchmarkData.filter(r => r.month !== 'Year' && r.month_raw !== 'Year');
+      if (latestBenchmarkData.length === 0) {
+        // Fallback to 'Year' records for State level
+        latestBenchmarkData = benchmarkData.filter(r => r.month === 'Year' || r.month_raw === 'Year');
+        console.log('📊 Using Year records for State benchmark:', latestBenchmarkData.length, 'records');
+      } else {
+        console.log('📊 Using monthly records for State benchmark:', latestBenchmarkData.length, 'records');
+      }
+    } else {
+      latestBenchmarkData = benchmarkData.filter(r => r.month === latestMonth);
+    }
+    console.log('📊 Latest benchmark data:', latestBenchmarkData.length, 'records for month:', latestMonth);
+    console.log('📊 Sample benchmark record:', latestBenchmarkData[0]);
+    
+    if (latestBenchmarkData.length === 0) {
+      console.log('❌ No benchmark data for latest month:', latestMonth);
+      return null;
+    }
+    
+    // Aggregate the benchmark data
+    const totalBenes = latestBenchmarkData.reduce((sum, r) => sum + (r.total_benes || 0), 0);
+    const maOther = latestBenchmarkData.reduce((sum, r) => sum + (r.ma_and_other || 0), 0);
+    const originalMedicare = latestBenchmarkData.reduce((sum, r) => sum + (r.original_medicare || 0), 0);
+    const dualEligible = latestBenchmarkData.reduce((sum, r) => sum + (r.dual_total || 0), 0);
+    const agedTotal = latestBenchmarkData.reduce((sum, r) => sum + (r.aged_total || 0), 0);
+    const disabledTotal = latestBenchmarkData.reduce((sum, r) => sum + (r.disabled_total || 0), 0);
+    const drugTotal = latestBenchmarkData.reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0);
+    const drugPdp = latestBenchmarkData.reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0);
+    const drugMapd = latestBenchmarkData.reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0);
+    
+    const benchmark = {
+      totalBenes,
+      maOther,
+      originalMedicare,
+      dualEligible,
+      agedTotal,
+      disabledTotal,
+      drugTotal,
+      drugPdp,
+      drugMapd,
+      maPercentage: totalBenes > 0 ? ((maOther / totalBenes) * 100) : 0,
+      originalMedicarePercentage: totalBenes > 0 ? ((originalMedicare / totalBenes) * 100) : 0,
+      dualPercentage: totalBenes > 0 ? ((dualEligible / totalBenes) * 100) : 0,
+      agedPercentage: totalBenes > 0 ? ((agedTotal / totalBenes) * 100) : 0,
+      disabledPercentage: totalBenes > 0 ? ((disabledTotal / totalBenes) * 100) : 0,
+      drugPercentage: totalBenes > 0 ? ((drugTotal / totalBenes) * 100) : 0,
+      pdpPercentage: totalBenes > 0 ? ((drugPdp / totalBenes) * 100) : 0,
+      mapdPercentage: totalBenes > 0 ? ((drugMapd / totalBenes) * 100) : 0
+    };
+    
+    console.log('📊 Calculated benchmark:', benchmark);
+    console.log('📊 Key benchmark percentages:', {
+      maPercentage: benchmark.maPercentage,
+      originalMedicarePercentage: benchmark.originalMedicarePercentage,
+      dualPercentage: benchmark.dualPercentage,
+      agedPercentage: benchmark.agedPercentage,
+      disabledPercentage: benchmark.disabledPercentage,
+      drugPercentage: benchmark.drugPercentage,
+      pdpPercentage: benchmark.pdpPercentage,
+      mapdPercentage: benchmark.mapdPercentage
+    });
+    return benchmark;
+  };
+
+  // Helper function to render benchmark average
+  const renderBenchmarkAverage = (value, formatter = (val) => `${val?.toFixed(1)}%`) => {
+    console.log('🎯 Rendering benchmark for value:', value);
+    if (value === null || value === undefined) {
+      console.log('❌ Benchmark value is null/undefined, returning null');
+      return null;
+    }
+    
+    const formatted = formatter(value);
+    console.log('✅ Rendering benchmark with formatted value:', formatted);
+    return (
+      <span 
+        key={`${selectedBenchmark}-${value}`} 
+        className={styles.benchmarkAverage}
+      >
+        {formatted}
+      </span>
+    );
+  };
+
+  // Helper function to safely get benchmark value
+  const getBenchmarkValue = (property) => {
+    const benchmark = getCurrentBenchmark();
+    console.log('🔍 getBenchmarkValue called for:', property, 'benchmark:', benchmark);
+    if (!benchmark) return null;
+    const value = benchmark[property] || null;
+    console.log('🔍 Returning benchmark value:', value);
+    return value;
+  };
 
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
@@ -146,13 +369,49 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
             options={[
               { label: 'Overview', value: 'overview' },
               { label: 'Trends', value: 'trends' },
-              { label: 'Demographics', value: 'demographics' }
+              { label: 'Demographics', value: 'demographics' },
+              { label: 'Payers', value: 'payers' }
             ]}
             selected={selectedView}
             onSelect={setSelectedView}
             size="md"
             variant="blue"
           />
+        </div>
+        
+        <div className={styles.benchmarkControls}>
+          <div className={styles.benchmarkDropdown}>
+            <label>Benchmark:</label>
+            <div className={styles.dropdownContainer}>
+              <button 
+                className={styles.dropdownButton}
+                onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
+              >
+                {getSelectedBenchmarkDisplay()} ▼
+              </button>
+              {showBenchmarkDropdown && (
+                <div className={styles.dropdown}>
+                  {buildBenchmarkOptions().map(option => (
+                    <button
+                      key={option.value}
+                      className={`${styles.dropdownItem} ${selectedBenchmark === option.value ? styles.selected : ''}`}
+                      onClick={() => {
+                        setSelectedBenchmark(option.value);
+                        setShowBenchmarkDropdown(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {benchmarkError && (
+            <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
+              Benchmark Error: {benchmarkError}
+            </div>
+          )}
         </div>
         
         {selectedView === 'trends' && (
@@ -196,18 +455,28 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
                 <h3>Coverage Type</h3>
                 <div className={styles.metricGroup}>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>Medicare Advantage & Other</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{summaryStats?.maOther.toLocaleString()}</span>
-                      <span className={styles.percentage}>({summaryStats?.maPercentage}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>Medicare Advantage & Other</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('maPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{summaryStats?.maOther.toLocaleString()}</span>
+                    <span className={styles.percentage}>({summaryStats?.maPercentage}%)</span>
                   </div>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>Original Medicare</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{summaryStats?.originalMedicare.toLocaleString()}</span>
-                      <span className={styles.percentage}>({summaryStats?.originalMedicare > 0 && summaryStats?.totalBenes > 0 ? ((summaryStats.originalMedicare / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>Original Medicare</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('originalMedicarePercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{summaryStats?.originalMedicare.toLocaleString()}</span>
+                    <span className={styles.percentage}>({summaryStats?.originalMedicare > 0 && summaryStats?.totalBenes > 0 ? ((summaryStats.originalMedicare / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
                   </div>
                 </div>
               </div>
@@ -216,25 +485,40 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
                 <h3>Eligibility</h3>
                 <div className={styles.metricGroup}>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>Aged (65+)</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{demographicData ? Object.values(demographicData.ageGroups).reduce((sum, count) => sum + count, 0).toLocaleString() : '0'}</span>
-                      <span className={styles.percentage}>(100%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>Aged (65+)</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('agedPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{demographicData ? Object.values(demographicData.ageGroups).reduce((sum, count) => sum + count, 0).toLocaleString() : '0'}</span>
+                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
                   </div>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>Disabled</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{summaryStats?.totalBenes > 0 ? (summaryStats.totalBenes - Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0)).toLocaleString() : '0'}</span>
-                      <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((summaryStats.totalBenes - Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0)) / summaryStats.totalBenes * 100).toFixed(1) : 0}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>Disabled</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('disabledPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{summaryStats?.totalBenes > 0 ? (summaryStats.totalBenes - Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0)).toLocaleString() : '0'}</span>
+                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((summaryStats.totalBenes - Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0)) / summaryStats.totalBenes * 100).toFixed(1) : 0}%)</span>
                   </div>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>Dual Eligible</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{summaryStats?.dualEligible.toLocaleString()}</span>
-                      <span className={styles.percentage}>({summaryStats?.dualPercentage}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>Dual Eligible</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('dualPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{summaryStats?.dualEligible.toLocaleString()}</span>
+                    <span className={styles.percentage}>({summaryStats?.dualPercentage}%)</span>
                   </div>
                 </div>
               </div>
@@ -243,25 +527,40 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
                 <h3>Prescription Drug Coverage</h3>
                 <div className={styles.metricGroup}>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>With Drug Coverage</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0).toLocaleString()}</span>
-                      <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>With Drug Coverage</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('drugPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0).toLocaleString()}</span>
+                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
                   </div>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>PDP Only</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0).toLocaleString()}</span>
-                      <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>PDP Only</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('pdpPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0).toLocaleString()}</span>
+                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
                   </div>
                   <div className={styles.metricItem}>
-                    <span className={styles.metricLabel}>MAPD</span>
-                    <div className={styles.metricValue}>
-                      <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0).toLocaleString()}</span>
-                      <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
+                    <div className={styles.metricHeader}>
+                      <span className={styles.metricLabel}>MAPD</span>
+                      {getCurrentBenchmark() && (
+                        <span className={styles.benchmarkAverage}>
+                          {renderBenchmarkAverage(getBenchmarkValue('mapdPercentage'))}
+                        </span>
+                      )}
                     </div>
+                    <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0).toLocaleString()}</span>
+                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
                   </div>
                 </div>
               </div>
@@ -364,6 +663,18 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedView === 'payers' && (
+          <div className={styles.payersSection}>
+            <div className={styles.emptyState}>
+              <h3>Payer Enrollment Data</h3>
+              <p>Detailed enrollment breakdowns by payer will be available soon.</p>
+              <div className={styles.comingSoon}>
+                <span>🚧 Coming Soon</span>
               </div>
             </div>
           </div>

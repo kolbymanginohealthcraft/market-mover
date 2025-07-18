@@ -129,6 +129,127 @@ export default function useCMSEnrollmentData(provider, radiusInMiles) {
 }
 
 /**
+ * useCMSEnrollmentDataByLevel
+ *
+ * Fetches CMS enrollment data at different geographic levels (national, state, county).
+ *
+ * @param {string} selectedLevel - 'national', 'state', or 'county'
+ * @param {string} selectedFips - FIPS code for state/county (optional for national)
+ * @param {string} year - Year to fetch data for
+ * @returns {object} { data, loading, error, refetch }
+ */
+export function useCMSEnrollmentDataByLevel(selectedLevel, selectedFips, year) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false); // Changed to false initially
+  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  const fetchCMSEnrollmentDataByLevel = async () => {
+    console.log('🔍 useCMSEnrollmentDataByLevel called with:', { selectedLevel, selectedFips, year });
+    
+    if (!selectedLevel || !year) {
+      console.log('❌ Missing required parameters');
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Determine the geographic level and FIPS code
+      let geoLevel, fipsCode;
+      
+      if (selectedLevel === 'national') {
+        geoLevel = 'National';
+        fipsCode = null;
+      } else if (selectedLevel === 'state') {
+        geoLevel = 'State';
+        fipsCode = selectedFips;
+      } else if (selectedLevel === 'county') {
+        geoLevel = 'County';
+        fipsCode = selectedFips;
+      } else {
+        throw new Error('Invalid geographic level');
+      }
+
+      console.log('📡 Making API request with:', { geoLevel, fipsCode, year });
+
+      // Fetch CMS enrollment data for the specified level
+      const cmsResp = await fetch(apiUrl('/api/cms-enrollment-by-level'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          geoLevel, 
+          fipsCode, 
+          year 
+        }),
+        signal: abortControllerRef.current.signal
+      });
+      
+      console.log('📊 API response status:', cmsResp.status);
+      
+      if (!cmsResp.ok) {
+        const errorText = await cmsResp.text();
+        console.log('❌ API error response:', errorText);
+        throw new Error(`Failed to fetch CMS enrollment data: ${cmsResp.status}`);
+      }
+      
+      const cmsResult = await cmsResp.json();
+      console.log('📊 API result:', cmsResult);
+      
+      if (!cmsResult.success) throw new Error(cmsResult.error || 'Failed to fetch CMS enrollment data');
+      
+      console.log('🔍 Raw benchmark data sample:', cmsResult.data?.slice(0, 2));
+      // For National level, include 'Year' records since that's all we have
+      let filteredData;
+      if (selectedLevel === 'national') {
+        filteredData = cmsResult.data; // Include all records for National
+        console.log('✅ Setting National benchmark data (including Year records):', filteredData.length, 'records');
+      } else {
+        // Filter out 'Year' records for State/County to avoid December spikes
+        filteredData = cmsResult.data.filter(record => record.month_raw !== 'Year');
+        console.log('✅ Setting State/County benchmark data:', filteredData.length, 'records');
+      }
+      console.log('🔍 Filtered benchmark data sample:', filteredData?.slice(0, 2));
+      setData(filteredData);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('❌ Hook error:', err);
+      setError(err.message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('🔍 useCMSEnrollmentDataByLevel useEffect triggered with:', { selectedLevel, selectedFips, year });
+    fetchCMSEnrollmentDataByLevel();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [selectedLevel, selectedFips, year]);
+
+  const refetch = () => {
+    fetchCMSEnrollmentDataByLevel();
+  };
+
+  console.log('🔍 Hook returning:', { data: data?.length, loading, error });
+  return { data, loading, error, refetch };
+}
+
+/**
  * useCMSEnrollmentYears
  *
  * Fetches available years from the CMS enrollment dataset.

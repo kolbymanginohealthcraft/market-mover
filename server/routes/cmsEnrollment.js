@@ -3,6 +3,9 @@ import cache from "../utils/cache.js";
 
 const router = express.Router();
 
+// Helper function to safely parse numbers
+const safeParse = v => (v === undefined || v === null || isNaN(Number(v))) ? 0 : Number(v);
+
 // Helper to get the dataset UUID dynamically
 async function getMedicareEnrollmentUUID() {
   const catalogResponse = await fetch("https://data.cms.gov/data.json");
@@ -79,7 +82,6 @@ router.post("/cms-enrollment", async (req, res) => {
       'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12',
       'Year': '12'
     };
-    const safeParse = v => (v === undefined || v === null || isNaN(Number(v))) ? 0 : Number(v);
     const processedData = allData.map(record => {
       // Map month name to number
       let monthValue = record.MONTH;
@@ -129,6 +131,150 @@ router.post("/cms-enrollment", async (req, res) => {
   } catch (error) {
     console.error('❌ CMS enrollment error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/cms-enrollment-by-level
+ * Body: { geoLevel: "National"|"State"|"County", fipsCode?: "string", year: "string" }
+ * Returns: CMS enrollment data for the specified geographic level
+ */
+router.post("/cms-enrollment-by-level", async (req, res) => {
+  console.log('🚀 CMS enrollment by-level endpoint hit!');
+  let { geoLevel, fipsCode, year } = req.body;
+  
+  console.log('🔍 CMS enrollment by-level request:', { geoLevel, fipsCode, year });
+  
+  if (!geoLevel || !year) {
+    console.log('❌ Missing required parameters');
+    return res.status(400).json({ 
+      success: false, 
+      error: "geoLevel and year are required" 
+    });
+  }
+
+  try {
+    // Get UUID dynamically
+    const uuid = await getMedicareEnrollmentUUID();
+    console.log('📋 Using UUID:', uuid);
+
+    // Use cache for repeated queries
+    const cacheKey = `cms_enrollment_${geoLevel}_${fipsCode || 'national'}_${year}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      console.log('📦 Serving CMS enrollment by-level data from cache');
+      return res.json({ success: true, data: cached });
+    }
+
+    console.log(`🔍 Fetching CMS enrollment data for ${geoLevel} level, year ${year}...`);
+    if (fipsCode) {
+      console.log(`📍 FIPS code: ${fipsCode}`);
+    }
+
+    // Build API URL based on geographic level
+    let apiUrl;
+    if (geoLevel === 'National') {
+      apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[YEAR]=${year}`;
+    } else if (geoLevel === 'State') {
+      apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_STATE_ABRVTN]=${fipsCode}&filter[YEAR]=${year}`;
+    } else if (geoLevel === 'County') {
+      apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_FIPS_CD]=${fipsCode}&filter[YEAR]=${year}`;
+    } else {
+      console.log('❌ Invalid geoLevel:', geoLevel);
+      return res.status(400).json({ 
+        success: false, 
+        error: "geoLevel must be 'National', 'State', or 'County'" 
+      });
+    }
+
+    console.log(`📡 Calling CMS API: ${apiUrl}`);
+    const response = await fetch(apiUrl);
+    console.log(`📊 CMS API response status: ${response.status}`);
+    
+    if (!response.ok) {
+      console.log(`❌ CMS API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch CMS enrollment data: ${response.status} ${response.statusText}`);
+    }
+    const allData = await response.json();
+    console.log(`✅ Got ${allData.length} records for ${geoLevel} level`);
+    
+    if (allData.length > 0) {
+      console.log('📊 Sample record:', allData[0]);
+    }
+
+    // Process the data similar to the main endpoint
+    const monthNameToNumber = {
+      'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
+      'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12',
+      'Year': '12'
+    };
+    
+    // For National level, we might only have 'Year' records, so include them
+    const processedData = allData
+      .filter(record => {
+        // For National level, include 'Year' records if no monthly data is available
+        if (geoLevel === 'National') {
+          return true; // Include all records for National
+        }
+        return record.MONTH !== 'Year'; // Filter out yearly totals for State/County
+      })
+      .map(record => {
+        const monthValue = record.MONTH || '';
+        let monthNum = monthNameToNumber[monthValue] || (typeof monthValue === 'number' ? String(monthValue).padStart(2, '0') : '');
+        if (!monthNum) monthNum = monthValue === 'Year' ? '12' : '';
+        const monthId = record.YEAR && monthNum ? `${record.YEAR}-${monthNum}` : '';
+
+        return {
+          fips: record.BENE_FIPS_CD || '',
+          state: record.BENE_STATE_ABRVTN || '',
+          county: record.BENE_COUNTY_DESC || '',
+          year: record.YEAR || '',
+          month: monthId,
+          month_raw: monthValue,
+          total_benes: safeParse(record.TOT_BENES),
+          original_medicare: safeParse(record.ORGNL_MDCR_BENES),
+          ma_and_other: safeParse(record.MA_AND_OTH_BENES),
+          aged_total: safeParse(record.AGED_TOT_BENES),
+          disabled_total: safeParse(record.DSBLD_TOT_BENES),
+          male_total: safeParse(record.MALE_TOT_BENES),
+          female_total: safeParse(record.FEMALE_TOT_BENES),
+          dual_total: safeParse(record.DUAL_TOT_BENES),
+          prescription_drug_total: safeParse(record.PRSCRPTN_DRUG_TOT_BENES),
+          prescription_drug_pdp: safeParse(record.PRSCRPTN_DRUG_PDP_BENES),
+          prescription_drug_mapd: safeParse(record.PRSCRPTN_DRUG_MAPD_BENES),
+          // Age breakdowns
+          age_65_to_69: safeParse(record.AGE_65_TO_69_BENES),
+          age_70_to_74: safeParse(record.AGE_70_TO_74_BENES),
+          age_75_to_79: safeParse(record.AGE_75_TO_79_BENES),
+          age_80_to_84: safeParse(record.AGE_80_TO_84_BENES),
+          age_85_to_89: safeParse(record.AGE_85_TO_89_BENES),
+          age_90_to_94: safeParse(record.AGE_90_TO_94_BENES),
+          age_gt_94: safeParse(record.AGE_GT_94_BENES),
+          // Race/ethnicity
+          white_total: safeParse(record.WHITE_TOT_BENES),
+          black_total: safeParse(record.BLACK_TOT_BENES),
+          hispanic_total: safeParse(record.HSPNC_TOT_BENES),
+          api_total: safeParse(record.API_TOT_BENES),
+          native_indian_total: safeParse(record.NATIND_TOT_BENES),
+          other_total: safeParse(record.OTHR_TOT_BENES)
+        };
+      });
+
+    console.log(`✅ Processed ${processedData.length} CMS enrollment records for ${geoLevel} level`);
+    if (processedData.length > 0) {
+      console.log('📊 Sample processed record:', processedData[0]);
+    }
+    
+    cache.set(cacheKey, processedData);
+    console.log(`💾 Cached result for ${cacheKey}`);
+    res.json({ success: true, data: processedData });
+
+  } catch (error) {
+    console.error('❌ CMS enrollment by-level error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 
