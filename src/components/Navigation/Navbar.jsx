@@ -53,11 +53,10 @@ const Navbar = () => {
   const renderLinks = () =>
     user ? (
       <>
-        <Link to="/app/home" onClick={closeMenu} className={styles.link}>Home</Link>
+        <Link to="/app/dashboard" onClick={closeMenu} className={styles.link}>Dashboard</Link>
         <Link to="/app/search" onClick={closeMenu} className={styles.link}>Search</Link>
         <Link to="/app/markets" onClick={closeMenu} className={styles.link}>Markets</Link>
-        <Link to="/app/profile" onClick={closeMenu} className={styles.link}>Profile</Link>
-        <Link to="/app/admin" onClick={closeMenu} className={styles.link}>Admin</Link>
+        <Link to="/app/settings" onClick={closeMenu} className={styles.link}>Settings</Link>
         <button onClick={() => { closeMenu(); handleLogout(); }} className="button-nav">Logout</button>
       </>
     ) : (
@@ -71,7 +70,7 @@ const Navbar = () => {
   return (
     <nav className={styles.nav} ref={navRef}>
       <div className={styles.navTop}>
-        <Link to={user ? "/app/home" : "/"} className={styles.logoLink}>
+        <Link to={user ? "/app/dashboard" : "/"} className={styles.logoLink}>
           <img src={logo} alt="Healthcraft Logo" className={styles.logo} />
         </Link>
         <button className={styles.menuButton} onClick={toggleMenu} aria-label="Toggle menu">

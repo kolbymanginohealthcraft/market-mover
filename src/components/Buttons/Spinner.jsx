@@ -7,9 +7,10 @@ export default function Spinner({ message = "Loading..." }) {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        height: "80vh",
+        height: "40vh",
         fontSize: "1.5rem",
         color: "#1DADBE",
+        paddingTop: "60px",
       }}
     >
       <div className="loader" />

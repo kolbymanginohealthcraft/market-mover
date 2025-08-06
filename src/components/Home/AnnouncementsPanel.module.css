@@ -1,15 +1,5 @@
-.panel {
-  background: #fff;
-  border: 1px solid #e2e8e7;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.sectionTitle {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #265947;
-  margin-bottom: 12px;
+.content {
+  /* Content container - no background or border needed since parent handles it */
 }
 
 .updateList {
@@ -22,6 +12,14 @@
 
 .updateItem {
   margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.updateItem:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .updateTitle {

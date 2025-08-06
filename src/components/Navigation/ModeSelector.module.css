@@ -1,0 +1,82 @@
+.modeSelector {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem 0;
+}
+
+.modeContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.modeButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.modeButton:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.modeButton.active {
+  border-color: #007bff;
+  background: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.modeIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.modeContent {
+  flex: 1;
+}
+
+.modeTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #212529;
+  margin-bottom: 0.25rem;
+}
+
+.modeDescription {
+  font-size: 0.9rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .modeContainer {
+    flex-direction: column;
+  }
+  
+  .modeButton {
+    padding: 1rem;
+  }
+  
+  .modeIcon {
+    font-size: 1.5rem;
+  }
+  
+  .modeTitle {
+    font-size: 1rem;
+  }
+  
+  .modeDescription {
+    font-size: 0.85rem;
+  }
+} 

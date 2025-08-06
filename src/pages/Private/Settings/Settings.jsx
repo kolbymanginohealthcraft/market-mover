@@ -1,0 +1,119 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import styles from "./Settings.module.css";
+import SettingsTabs from "./SettingsTabs";
+import Banner from "../../../components/Banner";
+import { hasPlatformAccess, isTeamAdmin } from "../../../utils/roleHelpers";
+import { supabase } from "../../../app/supabaseClient";
+import {
+  ProfileTab,
+  UsersTab,
+  BrandingTab,
+  SubscriptionTab,
+  PlatformTab,
+  NetworkTab,
+  CompanyTab
+} from "./index";
+
+export default function Settings() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Extract the active tab from the current path
+  const pathSegments = location.pathname.split('/');
+  const activeTab = pathSegments[pathSegments.length - 1] || "profile";
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+          
+          setUserRole(profile?.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  const handleTabChange = (newTab) => {
+    navigate(`/app/settings/${newTab}`);
+  };
+
+  // Check if user can access restricted tabs
+  const canAccessPlatform = hasPlatformAccess(userRole);
+  const canAccessSubscription = isTeamAdmin(userRole);
+  const canAccessUsers = isTeamAdmin(userRole);
+  const canAccessTaggedProviders = userRole !== null;
+  const canAccessColors = userRole !== null;
+
+  // If user tries to access platform tab without permission, redirect to profile
+  if (!loading && activeTab === "platform" && !canAccessPlatform) {
+    return <Navigate to="/app/settings/profile" replace />;
+  }
+
+  // If user tries to access subscription tab without permission, redirect to profile
+  if (!loading && activeTab === "subscription" && !canAccessSubscription) {
+    return <Navigate to="/app/settings/profile" replace />;
+  }
+
+  // If user tries to access company tab without permission, redirect to profile
+  if (!loading && activeTab === "company" && !canAccessUsers) {
+    return <Navigate to="/app/settings/profile" replace />;
+  }
+
+  // If user tries to access users tab without permission, redirect to profile
+  if (!loading && activeTab === "users" && !canAccessUsers) {
+    return <Navigate to="/app/settings/profile" replace />;
+  }
+
+  // If user tries to access network tab without permission, redirect to profile
+  if (!loading && activeTab === "network" && !canAccessTaggedProviders) {
+    return <Navigate to="/app/settings/profile" replace />;
+  }
+
+  // If user tries to access branding tab without permission, redirect to profile
+  if (!loading && activeTab === "branding" && !canAccessColors) {
+    return <Navigate to="/app/settings/profile" replace />;
+  }
+
+  return (
+    <div className={styles.container}>
+      <Banner
+        title="Settings"
+        subtitle="Manage your account, users, and platform preferences"
+        gradient="blue"
+      />
+
+      <div className={styles.tabContainer}>
+        <SettingsTabs activeTab={activeTab} setActiveTab={handleTabChange} />
+        
+        <div className={styles.tabContent}>
+          <Routes>
+            <Route index element={<Navigate to="profile" replace />} />
+            <Route path="profile" element={<ProfileTab />} />
+            <Route path="users" element={<UsersTab />} />
+            <Route path="company" element={<CompanyTab />} />
+            <Route path="branding" element={<BrandingTab />} />
+            <Route path="subscription" element={<SubscriptionTab />} />
+            <Route path="network" element={<NetworkTab />} />
+            <Route path="platform" element={<PlatformTab />} />
+            <Route path="*" element={<Navigate to="profile" replace />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
+  );
+} 

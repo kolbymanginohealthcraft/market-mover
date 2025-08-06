@@ -17,14 +17,35 @@ router.post("/getProvidersByDhc", async (req, res) => {
   }
   
   try {
+    // Convert string DHCs to integers for BigQuery
+    const numericDhcIds = dhc_ids.map(id => {
+      const num = parseInt(id);
+      if (isNaN(num)) {
+        console.warn(`⚠️ Invalid DHC ID: ${id}`);
+        return null;
+      }
+      return num;
+    }).filter(id => id !== null);
+    
+    if (numericDhcIds.length === 0) {
+      console.log("❌ No valid numeric DHC IDs found");
+      return res.status(400).json({ success: false, error: "No valid numeric DHC IDs provided" });
+    }
+    
+    console.log("🔍 Converted DHC IDs:", numericDhcIds);
+    
     const query = `
       SELECT dhc, name, street, city, state, zip, network, type
       FROM \`market-mover-464517.providers.org_dhc\`
       WHERE dhc IN UNNEST(@dhc_ids)
     `;
-    console.log("🔍 Executing BigQuery query with params:", { dhc_ids });
+    console.log("🔍 Executing BigQuery query with params:", { dhc_ids: numericDhcIds });
     
-    const [rows] = await myBigQuery.query({ query, location: "US", params: { dhc_ids } });
+    const [rows] = await myBigQuery.query({ 
+      query, 
+      location: "US", 
+      params: { dhc_ids: numericDhcIds } 
+    });
     console.log("✅ BigQuery returned", rows.length, "providers:", rows);
     
     res.status(200).json({ success: true, providers: rows });

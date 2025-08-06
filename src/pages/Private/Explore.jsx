@@ -1,6 +1,6 @@
-import styles from './Home.module.css'
+import styles from './Dashboard.module.css'
 
-export default function Home() {
+export default function Explore() {
   return (
     <div className={styles.container}>
       <h2>Explore the Industry</h2>

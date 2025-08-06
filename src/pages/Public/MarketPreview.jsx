@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './MarketPreview.module.css';
-import exampleImg from '../../assets/example.png'; // ✅ Adjusted import path
+import exampleImg from '../../assets/exampleRedacted.png'; // ✅ Adjusted import path
 
 export default function MarketPreview() {
   const sectionRef = useRef();

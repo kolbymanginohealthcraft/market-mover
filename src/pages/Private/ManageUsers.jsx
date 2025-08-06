@@ -3,6 +3,7 @@ import { supabase } from "../../app/supabaseClient";
 import styles from "./ManageUsers.module.css";
 import Button from "../../components/Buttons/Button";
 import { useNavigate } from "react-router-dom";
+import TeamColorManager from "../../components/TeamColorManager";
 
 export default function ManageUsers() {
   const navigate = useNavigate();
@@ -451,6 +452,12 @@ export default function ManageUsers() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section className={styles.sectionWide}>
+        <h2 className={styles.sectionTitle}>Team Color Palette</h2>
+        <p>Customize colors for your team's charts and visualizations.</p>
+        <TeamColorManager />
       </section>
 
       <section className={styles.sectionWide}>

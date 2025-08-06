@@ -6,6 +6,7 @@ import Button from "../../components/Buttons/Button";
 import styles from "./ProviderSearch.module.css";
 import { apiUrl } from '../../utils/api';
 import { trackProviderSearch } from '../../utils/activityTracker';
+import useTeamProviderTags from '../../hooks/useTeamProviderTags';
 
 export default function ProviderSearch() {
   const [searchParams] = useSearchParams();
@@ -36,6 +37,22 @@ export default function ProviderSearch() {
   const mapContainerRef = useRef(null);
   const lastTrackedSearch = useRef("");
   const dropdownRef = useRef(null);
+
+  // Selection and bulk actions
+  const [selectedProviders, setSelectedProviders] = useState(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  
+  // Tagging state
+  const [taggingProviderId, setTaggingProviderId] = useState(null);
+
+  // Team provider tags functionality
+  const { 
+    hasTeamProviderTag, 
+    getProviderTags, 
+    addTeamProviderTag, 
+    removeTeamProviderTag 
+  } = useTeamProviderTags();
 
   // Error boundary for the component
   if (componentError) {
@@ -361,8 +378,59 @@ export default function ProviderSearch() {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
+  // Selection handlers
   const handleProviderSelect = (provider) => {
     setSelectedProvider(provider);
+  };
+
+  const handleCheckboxChange = (providerDhc, checked) => {
+    const newSelected = new Set(selectedProviders);
+    if (checked) {
+      newSelected.add(providerDhc);
+    } else {
+      newSelected.delete(providerDhc);
+    }
+    setSelectedProviders(newSelected);
+    setShowBulkActions(newSelected.size > 0);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProviders.size === paginatedResults.length) {
+      setSelectedProviders(new Set());
+      setShowBulkActions(false);
+    } else {
+      const allDhcs = new Set(paginatedResults.map(p => p.dhc));
+      setSelectedProviders(allDhcs);
+      setShowBulkActions(true);
+    }
+  };
+
+  const handleSaveAsTeamProviders = async () => {
+    if (selectedProviders.size === 0) return;
+
+    setBulkActionLoading(true);
+    try {
+      const selectedProviderObjects = paginatedResults.filter(p => 
+        selectedProviders.has(p.dhc)
+      );
+      
+      // Add all selected providers as "me" tags
+      for (const provider of selectedProviderObjects) {
+        await addTeamProviderTag(provider.dhc, 'me');
+      }
+      
+      // Clear selection after successful save
+      setSelectedProviders(new Set());
+      setShowBulkActions(false);
+      
+      // Show success message (you could add a toast notification here)
+      alert(`${selectedProviderObjects.length} providers tagged as "Me"!`);
+    } catch (error) {
+      console.error('Error tagging providers:', error);
+      alert('Error tagging providers. Please try again.');
+    } finally {
+      setBulkActionLoading(false);
+    }
   };
 
   const hasActiveFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 || 
@@ -520,12 +588,40 @@ export default function ProviderSearch() {
           {/* Left Column - Results */}
           <div className={styles.resultsColumn}>
             <div className={styles.resultsHeader}>
-              <h3>
-                {filteredResults.length > 0 
-                  ? `Results (${startIndex + 1}-${Math.min(endIndex, filteredResults.length)} of ${filteredResults.length})`
-                  : 'Results'
-                }
-              </h3>
+              <div className={styles.resultsHeaderLeft}>
+                <h3>
+                  {filteredResults.length > 0 
+                    ? `Results (${startIndex + 1}-${Math.min(endIndex, filteredResults.length)} of ${filteredResults.length})`
+                    : 'Results'
+                  }
+                </h3>
+                {paginatedResults.length > 0 && (
+                  <div className={styles.selectionControls}>
+                    <label className={styles.selectAllLabel}>
+                      <input
+                        type="checkbox"
+                        checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
+                        onChange={handleSelectAll}
+                      />
+                      <span>Select All</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+              
+              {showBulkActions && (
+                <div className={styles.bulkActions}>
+                  <Button
+                    variant="green"
+                    size="sm"
+                    onClick={handleSaveAsTeamProviders}
+                    disabled={bulkActionLoading || addingProviders}
+                  >
+                    {bulkActionLoading || addingProviders ? 'Saving...' : `Save ${selectedProviders.size} as Team Providers`}
+                  </Button>
+                </div>
+              )}
+              
               {totalPages > 1 && (
                 <div className={styles.pagination}>
                   <Button
@@ -587,33 +683,138 @@ export default function ProviderSearch() {
                   >
                     <div className={styles.cardContent}>
                       <div className={styles.cardLeft}>
-                        <div className={styles.providerName}>{provider.name}</div>
-                        <div className={styles.providerDetails}>
-                          <span className={styles.providerType}>{provider.type || "Unknown"}</span>
-                          {provider.network && (
-                            <span className={styles.providerNetwork}>{provider.network}</span>
-                          )}
-                          {ccnProviderIds.has(provider.dhc) && (
-                            <span className={styles.ccnBadge}>Medicare</span>
-                          )}
+                        <div className={styles.checkboxContainer}>
+                          <input
+                            type="checkbox"
+                            checked={selectedProviders.has(provider.dhc)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleCheckboxChange(provider.dhc, e.target.checked);
+                            }}
+                            className={styles.providerCheckbox}
+                          />
                         </div>
-                        <div className={styles.providerAddress}>
-                          {provider.street}, {provider.city}, {provider.state} {provider.zip}
-                          {provider.phone && (
-                            <span className={styles.providerPhone}> • {provider.phone}</span>
-                          )}
+                        <div className={styles.cardInfo}>
+                          <div className={styles.providerName}>{provider.name}</div>
+                          <div className={styles.providerDetails}>
+                            <span className={styles.providerType}>{provider.type || "Unknown"}</span>
+                            {provider.network && (
+                              <span className={styles.providerNetwork}>{provider.network}</span>
+                            )}
+                            {ccnProviderIds.has(provider.dhc) && (
+                              <span className={styles.ccnBadge}>Medicare</span>
+                            )}
+                            {getProviderTags(provider.dhc).length > 0 && (
+                              <span className={styles.teamProviderBadge}>Tagged</span>
+                            )}
+                          </div>
+                          <div className={styles.providerAddress}>
+                            {provider.street}, {provider.city}, {provider.state} {provider.zip}
+                            {provider.phone && (
+                              <span className={styles.providerPhone}> • {provider.phone}</span>
+                            )}
+                          </div>
+                          {/* Provider Tags */}
+                          <div className={styles.providerTags}>
+                            {getProviderTags(provider.dhc).map(tagType => (
+                              <span
+                                key={tagType}
+                                className={styles.tag}
+                                style={{ 
+                                  backgroundColor: tagType === 'me' ? '#265947' : 
+                                               tagType === 'partner' ? '#3599b8' : 
+                                               tagType === 'competitor' ? '#d64550' : 
+                                               tagType === 'target' ? '#f1b62c' : '#5f6b6d'
+                                }}
+                              >
+                                {tagType === 'me' ? 'Me' : 
+                                 tagType === 'partner' ? 'Partner' : 
+                                 tagType === 'competitor' ? 'Competitor' : 
+                                 tagType === 'target' ? 'Target' : tagType}
+                                <button
+                                  className={styles.tagRemove}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeTeamProviderTag(provider.dhc, tagType);
+                                  }}
+                                  aria-label={`Remove ${tagType} tag`}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <div className={styles.cardRight}>
-                        <button
-                          className={styles.arrowButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/app/provider/${provider.dhc}/overview`);
-                          }}
-                        >
-                          →
-                        </button>
+                        <div className={styles.cardActions}>
+                          {/* Tag Dropdown */}
+                          <div className={styles.tagDropdown}>
+                            <button
+                              className={styles.tagButton}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Toggle tag dropdown for this provider
+                                setTaggingProviderId(taggingProviderId === provider.dhc ? null : provider.dhc);
+                              }}
+                            >
+                              Tag
+                            </button>
+                            {taggingProviderId === provider.dhc && (
+                              <div className={styles.tagDropdownMenu}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addTeamProviderTag(provider.dhc, 'me');
+                                    setTaggingProviderId(null);
+                                  }}
+                                  className={styles.tagOption}
+                                >
+                                  Me
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addTeamProviderTag(provider.dhc, 'partner');
+                                    setTaggingProviderId(null);
+                                  }}
+                                  className={styles.tagOption}
+                                >
+                                  Partner
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addTeamProviderTag(provider.dhc, 'competitor');
+                                    setTaggingProviderId(null);
+                                  }}
+                                  className={styles.tagOption}
+                                >
+                                  Competitor
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addTeamProviderTag(provider.dhc, 'target');
+                                    setTaggingProviderId(null);
+                                  }}
+                                  className={styles.tagOption}
+                                >
+                                  Target
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            className={styles.arrowButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/app/provider/${provider.dhc}/overview`);
+                            }}
+                          >
+                            →
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

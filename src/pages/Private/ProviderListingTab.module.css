@@ -195,16 +195,18 @@
 /* --- Tagging --- */
 .partnerBadge,
 .competitorBadge,
+.meBadge,
+.targetBadge,
 .tagDefault {
   padding: 0.2rem 0.5rem;
-  border-radius: 1rem;
+  border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
   display: inline-block;
 }
 
 .partnerBadge {
-  background-color: #1dadbe;
+  background-color: #3599b8;
   color: white;
 }
 
@@ -213,9 +215,19 @@
   color: white;
 }
 
+.meBadge {
+  background-color: #265947;
+  color: white;
+}
+
+.targetBadge {
+  background-color: #f1b62c;
+  color: white;
+}
+
 .tagDefault {
-  background-color: #ccc;
-  color: #333;
+  background-color: #5f6b6d;
+  color: white;
 }
 
 .tagContainer {
@@ -276,22 +288,40 @@
   border: 1px solid transparent;
 }
 
-.inlineTaggingMenu label:first-child {
+.inlineTaggingMenu label:nth-child(1) {
+  background-color: #10b981;
+  color: white;
+}
+
+.inlineTaggingMenu label:nth-child(1):hover {
+  background-color: #059669;
+}
+
+.inlineTaggingMenu label:nth-child(2) {
   background-color: #1dadbe;
   color: white;
 }
 
-.inlineTaggingMenu label:first-child:hover {
+.inlineTaggingMenu label:nth-child(2):hover {
   background-color: #1a9baa;
 }
 
-.inlineTaggingMenu label:last-of-type {
+.inlineTaggingMenu label:nth-child(3) {
   background-color: #d64550;
   color: white;
 }
 
-.inlineTaggingMenu label:last-of-type:hover {
+.inlineTaggingMenu label:nth-child(3):hover {
   background-color: #c13a44;
+}
+
+.inlineTaggingMenu label:nth-child(4) {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.inlineTaggingMenu label:nth-child(4):hover {
+  background-color: #d97706;
 }
 
 .inlineTaggingMenu input[type="radio"] {

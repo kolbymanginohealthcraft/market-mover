@@ -1,0 +1,187 @@
+.editorContainer {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.editorContent {
+  position: relative;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 400px;
+  padding: 16px;
+  border: none;
+  outline: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a202c;
+  background: white;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.textarea:focus {
+  background: #fafbfc;
+}
+
+.textarea:read-only {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.preview {
+  width: 100%;
+  min-height: 400px;
+  max-height: 600px;
+  padding: 16px;
+  background: white;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.previewContent {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a202c;
+  padding-bottom: 20px;
+}
+
+.previewContent h1,
+.previewContent h2,
+.previewContent h3,
+.previewContent h4,
+.previewContent h5,
+.previewContent h6 {
+  margin: 1.5em 0 0.5em 0;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.previewContent h1 {
+  font-size: 2em;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.3em;
+}
+
+.previewContent h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.3em;
+}
+
+.previewContent h3 {
+  font-size: 1.25em;
+}
+
+.previewContent p {
+  margin: 0 0 1em 0;
+}
+
+.previewContent ul,
+.previewContent ol {
+  margin: 0 0 1em 0;
+  padding-left: 2em;
+}
+
+.previewContent li {
+  margin: 0.25em 0;
+}
+
+.previewContent blockquote {
+  margin: 0 0 1em 0;
+  padding: 0 1em;
+  border-left: 4px solid #e2e8f0;
+  color: #64748b;
+}
+
+.previewContent code {
+  background: #f1f5f9;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+}
+
+.previewContent pre {
+  background: #f8fafc;
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0 0 1em 0;
+}
+
+.previewContent pre code {
+  background: none;
+  padding: 0;
+}
+
+.previewContent a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.previewContent a:hover {
+  text-decoration: underline;
+}
+
+.previewContent hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 2em 0;
+}
+
+.readOnlyNotice {
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.helpText {
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .toolbar {
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .toolbarGroup {
+    gap: 2px;
+  }
+  
+  .textarea {
+    min-height: 300px;
+    padding: 12px;
+    font-size: 16px; /* Better for mobile */
+  }
+} 

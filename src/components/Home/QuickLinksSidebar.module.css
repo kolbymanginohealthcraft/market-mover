@@ -1,45 +1,25 @@
-.sidebar {
-  flex: 0 0 280px;
-  padding-right: 16px;
-  position: sticky;
-  top: 24px;
-  height: fit-content;
-}
-
-.columnTitle {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #265947;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #3fb985;
-}
-
-.sidebarSection {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border: 2px solid #e2e8e7;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: relative;
-}
-
-.sidebarSection::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3fb985, #1dadbe);
-  border-radius: 12px 12px 0 0;
-}
-
 .toolGrid {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.currentLocation {
+  position: relative;
+}
+
+.currentBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #10b981;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .quickLinkButton {
@@ -53,16 +33,32 @@
   border-radius: 8px;
   transition: all 0.2s ease;
   background: white;
-  border: 1px solid #e2e8e7;
-  color: #265947 !important;
+  border: 1px solid #e5e7eb;
+  color: #374151 !important;
 }
 
 .quickLinkButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(63, 185, 133, 0.15);
-  border-color: #3fb985;
-  color: #265947 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+  color: #374151 !important;
   background: white;
+}
+
+.quickLinkButton:disabled {
+  opacity: 0.7;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.quickLinkButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #e5e7eb;
+  background: #f9fafb;
 }
 
 .emoji {
@@ -78,17 +74,12 @@
   color: inherit !important;
 }
 
-@media (max-width: 960px) {
-  .sidebar {
-    width: 100%;
-    border: none;
-    padding: 0;
-    position: static;
-  }
-}
-
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .toolGrid {
-    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .quickLinkButton {
+    padding: 10px 14px;
   }
 } 

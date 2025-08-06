@@ -1,87 +1,396 @@
 /* Banner.module.css */
 
 .banner {
-  --banner-text-color: #022c5c;
-  --banner-close-color: rgba(21, 101, 192, 0.8);
-  --banner-close-hover: rgba(21, 101, 192, 0.1);
-  
-  background: #e3f2fd;
-  color: var(--banner-text-color);
-  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.15);
-  border: 2px dashed rgb(21, 101, 192);
-  padding: 2rem;
+  margin-bottom: 24px;
   border-radius: 12px;
-  margin-bottom: 2rem;
+  padding: 16px 20px;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  position: relative;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.closeButton {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  color: var(--banner-close-color);
-  font-size: 1.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
+.bannerContent {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.textSection {
+  flex: 1;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: white;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  margin: 0;
+  line-height: 1.4;
+  color: white !important;
+}
+
+/* Gradient variants */
+.blueGradient {
+  background: linear-gradient(135deg, #1DADBE 0%, #265947 100%);
+}
+
+.greenGradient {
+  background: linear-gradient(90deg, #3fb985, #34a475);
+}
+
+.grayGradient {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+
+
+/* Cards section */
+.cardsSection {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
+  min-width: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.closeButton:hover {
-  background-color: var(--banner-close-hover);
-  color: var(--banner-text-color);
+.card:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
-.icon {
-  font-size: 2rem;
-  flex-shrink: 0;
-  margin-top: 0.25rem;
+.card.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
 }
 
-.content h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.4rem;
+.cardValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 2px;
+}
+
+.cardLabel {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* Buttons section */
+.buttonsSection {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Buttons Under Text */
+.buttonsUnderText {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.buttonUnderText {
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.buttonUnderText:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.buttonUnderText:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonUnderText.primary {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
   font-weight: 600;
-  color: var(--banner-text-color);
 }
 
-.content p {
+/* Search Under Text */
+.searchUnderText {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+}
+
+.searchInputUnderText {
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  min-width: 200px;
+  height: 28px;
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--banner-text-color);
-  font-weight: 400;
+  box-sizing: border-box;
 }
 
-/* Responsive banner styles */
+.searchInputUnderText::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.searchInputUnderText:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* Status Indicators */
+.statusSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusText {
+  font-size: 0.8rem;
+  color: white;
+  font-weight: 500;
+}
+
+/* Quick Stats */
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.quickStat {
+  text-align: right;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 80px;
+}
+
+.quickStat .statValue {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 2px;
+}
+
+.quickStat .statLabel {
+  display: block;
+  font-size: 0.7rem;
+  color: white;
+  opacity: 0.8;
+}
+
+/* Search Bar */
+.searchSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  min-width: 200px;
+}
+
+.searchInput {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+  width: 100%;
+  max-width: 250px;
+  /* margin: 0; */
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.filterChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.filterChip {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 0.7rem;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Progress Bar */
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  min-width: 150px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressText {
+  font-size: 0.8rem;
+  color: white;
+  text-align: right;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .bannerContent {
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .cardsSection {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .banner {
-    padding: 1.5rem;
-    flex-direction: column;
-    gap: 0.75rem;
+    padding: 14px 16px;
   }
   
-  .icon {
-    font-size: 1.5rem;
-    margin-top: 0;
+  .title {
+    font-size: 1.4rem;
+    margin: 0 0 3px 0;
   }
   
-  .content h3 {
-    font-size: 1.2rem;
-  }
-  
-  .content p {
+  .subtitle {
     font-size: 0.9rem;
+    line-height: 1.3;
+  }
+  
+  .cardsSection {
+    gap: 12px;
+  }
+  
+  .card {
+    min-width: 80px;
+    padding: 10px 12px;
+  }
+  
+  .cardValue {
+    font-size: 1.3rem;
+  }
+  
+  .buttonsSection {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .button {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .banner {
+    padding: 14px 16px;
+  }
+  
+  .title {
+    font-size: 1.3rem;
+    margin: 0 0 3px 0;
+  }
+  
+  .subtitle {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+  
+  .cardsSection {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .card {
+    min-width: auto;
   }
 } 

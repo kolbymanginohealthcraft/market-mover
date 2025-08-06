@@ -1,0 +1,282 @@
+/* Tagged Providers Tab Styling */
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a2e2a;
+  margin: 0 0 8px 0;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: #265947;
+  border-radius: 1px;
+}
+
+.sectionDescription {
+  color: #6b7280;
+  margin: 0 0 24px 0;
+  font-size: 1rem;
+}
+
+/* Controls Section */
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: nowrap;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #265947;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
+}
+
+.filterSelect {
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: white;
+  min-width: 120px;
+  max-width: 150px;
+  transition: border-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #265947;
+  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
+}
+
+/* Content Section */
+.content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* Table Styling */
+.tableContainer {
+  overflow-x: auto;
+}
+
+.providersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.providersTable th {
+  background: #f8fafc;
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.providersTable td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.providersTable tr:hover {
+  background: #f8fafc;
+}
+
+.providersTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* Sortable Headers */
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.sortableHeader:hover {
+  background: #f1f5f9;
+}
+
+.sortableHeader::after {
+  content: '↕';
+  position: absolute;
+  right: 8px;
+  opacity: 0.3;
+  font-size: 0.8rem;
+}
+
+/* Tags Styling */
+.tagsContainer {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Provider Name Column */
+.providerName {
+  font-weight: 600;
+  color: #1a2e2a;
+}
+
+/* Actions Column */
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.emptyState h3 {
+  font-size: 1.3rem;
+  margin: 0 0 8px 0;
+  color: #374151;
+}
+
+.emptyState p {
+  margin: 0 0 20px 0;
+  font-size: 0.95rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Error State */
+.error {
+  background: #fef2f2;
+  border: 1px solid #f87171;
+  color: #dc2626;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .searchInput {
+    min-width: auto;
+  }
+  
+  .filterSelect {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .providersTable {
+    font-size: 0.8rem;
+  }
+  
+  .providersTable th,
+  .providersTable td {
+    padding: 12px 16px;
+  }
+  
+  .sectionTitle {
+    font-size: 1.6rem;
+  }
+  
+  .tagsContainer {
+    gap: 4px;
+  }
+  
+  .tag {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+  
+  .actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .providersTable {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .sectionTitle {
+    font-size: 1.4rem;
+  }
+  
+  .emptyState {
+    padding: 40px 16px;
+  }
+} 

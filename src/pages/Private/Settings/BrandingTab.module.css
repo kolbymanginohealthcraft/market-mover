@@ -1,0 +1,496 @@
+/* Branding Tab Styling */
+.container {
+  margin-bottom: 32px;
+}
+
+.twoColumnLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.leftColumn {
+  /* Left column styling */
+}
+
+.rightColumn {
+  /* Right column styling */
+}
+
+/* Coming Soon Banner */
+.comingSoonBanner {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+}
+
+.comingSoonContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.comingSoonIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.comingSoonContent h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.comingSoonContent p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #a16207;
+  line-height: 1.4;
+}
+
+/* Disabled States */
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+}
+
+.fontField select:disabled,
+.footerField input:disabled,
+.footerField textarea:disabled,
+.socialField input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.section {
+  margin-bottom: 40px;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.sectionHeader {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.sectionHeader .headerContent {
+  flex: 1;
+}
+
+.sectionHeader h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a2e2a;
+  margin: 0 0 8px 0;
+}
+
+.sectionHeader p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.sectionContent {
+  /* Content styling */
+}
+
+/* Color Palette Section */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.headerContent h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1a2e2a;
+  margin: 0 0 4px 0;
+}
+
+.headerContent p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.addButton {
+  padding: 10px 20px;
+  background: #265947;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addButton:hover {
+  background: #1f4538;
+  transform: translateY(-1px);
+}
+
+.colorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.colorCard {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.colorCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.colorPreview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.colorSwatch {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  border: 2px solid #f3f4f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.colorInfo {
+  flex: 1;
+}
+
+.colorName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a2e2a;
+  margin: 0 0 2px 0;
+}
+
+.colorHex {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.colorActions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Logo Section */
+.logoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.logoUpload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.uploadLabel {
+  padding: 12px 20px;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+.uploadLabel:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.logoPreview {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.logoPreview h5 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a2e2a;
+}
+
+.previewImage {
+  max-width: 200px;
+  max-height: 100px;
+  object-fit: contain;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.uploadButton {
+  margin-top: 8px;
+}
+
+/* Font Preferences Section */
+.fontGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.fontField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fontField label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.fontField select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: white;
+  color: #374151;
+}
+
+.fontField select:focus {
+  outline: none;
+  border-color: #265947;
+  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
+}
+
+/* Footer Settings Section */
+.footerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.footerField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footerField label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.footerField input,
+.footerField textarea {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: white;
+  color: #374151;
+}
+
+.footerField input:focus,
+.footerField textarea:focus {
+  outline: none;
+  border-color: #265947;
+  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
+}
+
+.footerField textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.socialSection {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 20px;
+}
+
+.socialSection h5 {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a2e2a;
+}
+
+.socialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.socialField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.socialField label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.socialField input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: white;
+  color: #374151;
+}
+
+.socialField input:focus {
+  outline: none;
+  border-color: #265947;
+  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.emptyState h5 {
+  font-size: 1.1rem;
+  margin: 0 0 8px 0;
+  color: #374151;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Error State */
+.error {
+  background: #fef2f2;
+  border: 1px solid #f87171;
+  color: #dc2626;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .twoColumnLayout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .section {
+    padding: 20px;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .colorsGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .fontGrid,
+  .footerGrid,
+  .socialGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .logoUpload {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .sectionHeader h3 {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: 16px;
+  }
+  
+  .colorPreview {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .colorActions {
+    justify-content: stretch;
+  }
+  
+  .sectionHeader h3 {
+    font-size: 1.2rem;
+  }
+} 

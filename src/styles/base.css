@@ -49,10 +49,10 @@ select {
   padding: 10px 12px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease,
-    background-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
+  margin: 0;
 }
 
 input:focus,
@@ -137,6 +137,88 @@ form .form-row > div {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* ===== Standardized Form Field Layouts ===== */
+/* Stacked layout - label above input */
+.form-field-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field-stacked label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0;
+}
+
+.form-field-stacked input,
+.form-field-stacked textarea,
+.form-field-stacked select {
+  margin: 0;
+}
+
+/* Inline layout - label and input on same line */
+.form-field-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-field-inline label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 80px;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.form-field-inline input,
+.form-field-inline textarea,
+.form-field-inline select {
+  flex: 1;
+  margin: 0;
+}
+
+/* Compact inline for small forms */
+.form-field-inline-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-field-inline-compact label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 60px;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.form-field-inline-compact input,
+.form-field-inline-compact textarea,
+.form-field-inline-compact select {
+  flex: 1;
+  margin: 0;
+}
+
+/* Responsive behavior for inline layouts */
+@media (max-width: 768px) {
+  .form-field-inline,
+  .form-field-inline-compact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  
+  .form-field-inline label,
+  .form-field-inline-compact label {
+    min-width: auto;
+  }
 }
 
 /* ===== Button Reset (non-component buttons) ===== */

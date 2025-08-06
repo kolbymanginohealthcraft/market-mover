@@ -66,7 +66,7 @@ function SignUp() {
       return;
     }
 
-    navigate("/app/profile");
+    navigate("/app/settings/profile");
   };
 
   return (
@@ -75,7 +75,7 @@ function SignUp() {
         <h2 className={styles.title}>Create an Account</h2>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
+          <div className="form-field-stacked">
             <label className={styles.label}>Email</label>
             <input
               className={styles.input}
@@ -88,7 +88,7 @@ function SignUp() {
             />
           </div>
 
-          <div className={styles.formGroup}>
+          <div className="form-field-stacked">
             <label className={styles.label}>Password</label>
             <input
               className={styles.input}

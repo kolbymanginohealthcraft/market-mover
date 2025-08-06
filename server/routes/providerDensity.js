@@ -207,4 +207,104 @@ router.get("/provider-density-details", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/hco-density
+ *
+ * Query params:
+ *   - lat: Latitude (required)
+ *   - lon: Longitude (required)
+ *   - radius: Radius in miles (optional, default: 25)
+ *
+ * Returns: Array of healthcare organization counts by type within the specified radius.
+ */
+router.get("/hco-density", async (req, res) => {
+  const { lat, lon, radius = 25, refresh } = req.query;
+
+  if (!lat || !lon) {
+    return res.status(400).json({
+      success: false,
+      error: "lat and lon parameters are required",
+    });
+  }
+
+  const radiusMeters = Number(radius) * 1609.34; // Convert miles to meters
+
+  try {
+    // Check cache first (unless refresh is requested)
+    const cacheKey = `hco-density-${lat}-${lon}-${radius}`;
+    const cachedResult = !refresh ? cache.get(cacheKey) : null;
+    if (cachedResult) {
+      console.log(`Serving cached HCO density data for ${lat},${lon} (${radius}mi)`);
+      return res.json({
+        success: true,
+        data: cachedResult,
+        timestamp: new Date().toISOString(),
+        cached: true,
+      });
+    }
+
+          // Query the actual HCO table with hierarchical taxonomy structure
+      const query = `
+        SELECT 
+          COALESCE(primary_taxonomy_grouping, 'Unknown') as group_level,
+          COALESCE(primary_taxonomy_classification, 'Unknown') as classification_level,
+          COALESCE(primary_taxonomy_specialization, 'General') as specialization_level,
+          COUNT(*) as org_count
+        FROM \`aegis_access.hco_base_flat\`
+        WHERE primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
+          AND (primary_taxonomy_grouping IS NOT NULL OR primary_taxonomy_classification IS NOT NULL)
+          AND ST_DISTANCE(
+            ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+            ST_GEOGPOINT(@lon, @lat)
+          ) <= @radiusMeters
+        GROUP BY primary_taxonomy_grouping, primary_taxonomy_classification, primary_taxonomy_specialization
+        ORDER BY org_count DESC
+        LIMIT 30
+      `;
+
+      const [rows] = await vendorBigQueryClient.query({
+        query,
+        params: {
+          lat: Number(lat),
+          lon: Number(lon),
+          radiusMeters,
+        },
+      });
+
+      // Log the results for debugging
+      console.log(`HCO density query results for ${lat},${lon} (${radius}mi):`, {
+        totalTypes: rows.length,
+        totalOrganizations: rows.reduce((sum, row) => sum + row.org_count, 0),
+        sampleTypes: rows.slice(0, 5).map(row => ({ type: row.org_type, count: row.org_count })),
+        hasNullTypes: rows.some(row => !row.org_type)
+      });
+
+      // Cache the result for 5 minutes
+      cache.set(cacheKey, rows, 300);
+
+      res.status(200).json({
+        success: true,
+        data: rows,
+        count: rows.length,
+        radius_miles: Number(radius),
+        timestamp: new Date().toISOString(),
+      });
+  } catch (err) {
+    console.error("❌ BigQuery HCO density error:", err);
+    console.error("❌ Error details:", {
+      message: err.message,
+      code: err.code,
+      status: err.status,
+      details: err.details
+    });
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      details: err.details || 'Unknown error'
+    });
+  }
+});
+
 export default router; 

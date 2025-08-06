@@ -2,8 +2,7 @@ import styles from './AnnouncementsPanel.module.css';
 
 export default function AnnouncementsPanel({ announcements, announcementsLoading }) {
   return (
-    <div className={styles.panel}>
-      <h3 className={styles.sectionTitle}>📢 What's New</h3>
+    <div className={styles.content}>
       {announcementsLoading ? (
         <p>Loading announcements...</p>
       ) : announcements.length > 0 ? (

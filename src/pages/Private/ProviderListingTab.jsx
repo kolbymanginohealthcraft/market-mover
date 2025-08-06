@@ -8,6 +8,7 @@ import styles from "./ProviderListingTab.module.css";
 import { useDropdownClose } from "../../hooks/useDropdownClose";
 import { apiUrl } from '../../utils/api';
 import Banner from "../../components/Banner";
+import useTeamProviderTags from "../../hooks/useTeamProviderTags";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
@@ -28,9 +29,7 @@ export default function ProviderListingTab({
   const [showOnlyCCNs, setShowOnlyCCNs] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [ccnProviderIds, setCcnProviderIds] = useState(new Set());
-  const [tags, setTags] = useState({});
   const [taggingProviderId, setTaggingProviderId] = useState(null);
-  const [savingTagId, setSavingTagId] = useState(null);
   const [popup, setPopup] = useState(null);
   const [mapReady, setMapReady] = useState(false);
   const [containerReady, setContainerReady] = useState(false);
@@ -45,6 +44,17 @@ export default function ProviderListingTab({
   const navigate = useNavigate();
   const marketId = new URLSearchParams(window.location.search).get("marketId");
   const layersTimeoutRef = useRef(null);
+
+  // Team provider tags functionality
+  const {
+    teamProviderTags,
+    addingTag,
+    removingTag,
+    addTeamProviderTag,
+    removeTeamProviderTag,
+    hasTeamProviderTag,
+    getProviderTags
+  } = useTeamProviderTags();
 
   useDropdownClose(dropdownRef, () => {
     dropdownRef.current?.classList.remove(styles.dropdownOpen);
@@ -229,23 +239,8 @@ export default function ProviderListingTab({
   }, [provider]);
 
   useEffect(() => {
-    if (isInSavedMarket) fetchTags();
     fetchCCNs();
   }, [providers, showOnlyCCNs]);
-
-  const fetchTags = async () => {
-    if (!marketId) return;
-    const { data } = await supabase
-      .from("market_provider_tags")
-      .select("tagged_provider_id, tag_type")
-      .eq("market_id", marketId);
-
-    const tagMap = {};
-    data?.forEach((tag) => {
-      tagMap[tag.tagged_provider_id] = tag.tag_type; // tagged_provider_id now contains BigQuery dhc values
-    });
-    setTags(tagMap);
-  };
 
   const fetchCCNs = async () => {
     const dhcIds = providers.map((p) => p.dhc).filter(Boolean);
@@ -573,7 +568,7 @@ export default function ProviderListingTab({
             network: p.network,
             distance: p.distance,
             hasCCN: ccnProviderIds.has(p.dhc),
-            tag: tags[p.dhc]
+            tag: getProviderTags(p.dhc)[0] || null
           }
         }));
 
@@ -585,49 +580,20 @@ export default function ProviderListingTab({
       // Update the source data without removing the layer
       map.current.getSource('providers').setData(providerGeoJSON);
     }
-  }, [layersAdded, uniqueResults, ccnProviderIds, tags, provider]);
+  }, [layersAdded, uniqueResults, ccnProviderIds, teamProviderTags, provider]);
 
   const handleTag = async (providerDhc, tagType) => {
-    if (!isInSavedMarket || !marketId) return;
     try {
-      setSavingTagId(providerDhc);
-      const { error } = await supabase.from("market_provider_tags").upsert(
-        {
-          market_id: marketId,
-          tagged_provider_id: providerDhc, // Store BigQuery dhc value
-          tag_type: tagType,
-        },
-        { onConflict: ["market_id", "tagged_provider_id"] }
-      );
-
-      if (!error) {
-        setTags((prev) => ({ ...prev, [providerDhc]: tagType }));
-        setTaggingProviderId(null);
-        setTimeout(() => setSavingTagId(null), 500);
-      }
+      await addTeamProviderTag(providerDhc, tagType);
+      setTaggingProviderId(null);
     } catch (err) {
       console.error("Unexpected error tagging provider:", err);
     }
   };
 
-  const handleUntag = async (providerDhc) => {
-    if (!isInSavedMarket || !marketId) return;
+  const handleUntag = async (providerDhc, tagType) => {
     try {
-      setSavingTagId(providerDhc);
-      const { error } = await supabase
-        .from("market_provider_tags")
-        .delete()
-        .eq("market_id", marketId)
-        .eq("tagged_provider_id", providerDhc);
-
-      if (!error) {
-        setTags((prev) => {
-          const newTags = { ...prev };
-          delete newTags[providerDhc];
-          return newTags;
-        });
-        setTimeout(() => setSavingTagId(null), 500);
-      }
+      await removeTeamProviderTag(providerDhc, tagType);
     } catch (err) {
       console.error("Unexpected error untagging provider:", err);
     }
@@ -722,14 +688,14 @@ export default function ProviderListingTab({
             <div className={styles.tableScroll}>
               <table className={styles.table}>
                 <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Network</th>
-                    <th>Address</th>
-                    <th>Type</th>
-                    <th>Distance</th>
-                    {isInSavedMarket && <th>Tag</th>}
-                  </tr>
+                                      <tr>
+                      <th>Name</th>
+                      <th>Network</th>
+                      <th>Address</th>
+                      <th>Type</th>
+                      <th>Distance</th>
+                      <th>Tag</th>
+                    </tr>
                 </thead>
                 <tbody>
                   {uniqueResults.map((p) => (
@@ -745,64 +711,89 @@ export default function ProviderListingTab({
                       <td>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</td>
                       <td>{p.type || "Unknown"}</td>
                       <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
-                      {isInSavedMarket && (
-                        <td onClick={(e) => e.stopPropagation()}>
-                          {p.dhc === provider.dhc ? (
-                            "-"
-                          ) : taggingProviderId === p.dhc ? (
-                            <div className={styles.inlineTaggingMenu}>
-                              <label>
-                                <input
-                                  type="radio"
-                                  name={`tag-${p.dhc}`}
-                                  onClick={() => handleTag(p.dhc, "partner")}
-                                />
-                                Partner
-                              </label>
-                              <label>
-                                <input
-                                  type="radio"
-                                  name={`tag-${p.dhc}`}
-                                  onClick={() => handleTag(p.dhc, "competitor")}
-                                />
-                                Competitor
-                              </label>
-                              <button onClick={() => setTaggingProviderId(null)}>
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className={styles.tagContainer}>
-                              <span
-                                className={`${
-                                  tags[p.dhc] === "partner"
-                                    ? styles.partnerBadge
-                                    : tags[p.dhc] === "competitor"
-                                    ? styles.competitorBadge
-                                    : styles.tagDefault
-                                } ${
-                                  savingTagId === p.dhc ? styles.animatePulse : ""
-                                }`}
-                                onClick={() => setTaggingProviderId(p.dhc)}
-                              >
-                                {tags[p.dhc] || "Tag"}
-                              </span>
-                              {tags[p.dhc] && (
-                                <button
-                                  className={styles.untagButton}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUntag(p.dhc);
-                                  }}
-                                  title="Remove tag"
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      )}
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {taggingProviderId === p.dhc ? (
+                          <div className={styles.inlineTaggingMenu}>
+                            <label>
+                              <input
+                                type="radio"
+                                name={`tag-${p.dhc}`}
+                                onClick={() => handleTag(p.dhc, "me")}
+                              />
+                              Me
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name={`tag-${p.dhc}`}
+                                onClick={() => handleTag(p.dhc, "partner")}
+                              />
+                              Partner
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name={`tag-${p.dhc}`}
+                                onClick={() => handleTag(p.dhc, "competitor")}
+                              />
+                              Competitor
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name={`tag-${p.dhc}`}
+                                onClick={() => handleTag(p.dhc, "target")}
+                              />
+                              Target
+                            </label>
+                            <button onClick={() => setTaggingProviderId(null)}>
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={styles.tagContainer}>
+                            {(() => {
+                              const providerTags = getProviderTags(p.dhc);
+                              const primaryTag = providerTags[0]; // Show first tag if multiple
+                              return (
+                                <>
+                                  <span
+                                    className={`${
+                                      primaryTag === "me"
+                                        ? styles.meBadge
+                                        : primaryTag === "partner"
+                                        ? styles.partnerBadge
+                                        : primaryTag === "competitor"
+                                        ? styles.competitorBadge
+                                        : primaryTag === "target"
+                                        ? styles.targetBadge
+                                        : styles.tagDefault
+                                    } ${
+                                      addingTag === `${p.dhc}-${primaryTag}` || removingTag === `${p.dhc}-${primaryTag}` ? styles.animatePulse : ""
+                                    }`}
+                                    onClick={() => setTaggingProviderId(p.dhc)}
+                                  >
+                                    {primaryTag || "Tag"}
+                                    {providerTags.length > 1 && ` (+${providerTags.length - 1})`}
+                                  </span>
+                                  {primaryTag && (
+                                    <button
+                                      className={styles.untagButton}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleUntag(p.dhc, primaryTag);
+                                      }}
+                                      title="Remove tag"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

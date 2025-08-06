@@ -4,7 +4,6 @@ import styles from './ActivityPanel.module.css';
 export default function ActivityPanel({ 
   activities, 
   activitiesLoading, 
-  marketLinks, 
   onClearAll, 
   onClearActivity 
 }) {
@@ -25,27 +24,15 @@ export default function ActivityPanel({
     const links = {
       'search_providers': `/app/search?search=${encodeURIComponent(activity.target_name)}`,
       'view_provider': `/app/provider/${activity.target_id}`,
-      'save_market': marketLinks[activity.target_id] || `/app/markets`,
-      'view_market': marketLinks[activity.target_id] || `/app/markets`
+      'save_market': '#',
+      'view_market': '#'
     };
     
     return links[activity.activity_type] || '#';
   };
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.activityHeader}>
-        <h3 className={styles.sectionTitle}>🕒 Recent Activity</h3>
-        {activities.length > 0 && (
-          <button 
-            onClick={onClearAll}
-            className={styles.clearButton}
-            title="Clear all activity history"
-          >
-            🗑️ Clear All
-          </button>
-        )}
-      </div>
+    <div className={styles.content}>
       {activitiesLoading ? (
         <p>Loading activities...</p>
       ) : activities.length > 0 ? (

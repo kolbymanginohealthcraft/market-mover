@@ -20,6 +20,9 @@ import providerDensity from "./server/routes/providerDensity.js";
 import getProvidersByDhc from "./server/routes/getProvidersByDhc.js";
 import maEnrollment from "./server/routes/maEnrollment.js";
 import cmsEnrollment from "./server/routes/cmsEnrollment.js";
+import supplierSearch from "./server/routes/supplierSearch.js";
+// import admin from "./server/routes/admin.js";
+// import policyManagement from "./server/routes/policyManagement.js";
 
 
 dotenv.config();
@@ -33,6 +36,7 @@ const __dirname = path.dirname(__filename);
 app.use(cors({
   origin: [
     'http://localhost:5173',
+    'http://localhost:5174',
     'https://market-mover-rust.vercel.app',
     'https://market-mover.vercel.app',
     process.env.FRONTEND_URL
@@ -60,6 +64,9 @@ app.use("/api", providerDensity);
 app.use("/api", getProvidersByDhc);
 app.use("/api", maEnrollment);
 app.use("/api", cmsEnrollment);
+app.use("/api/supplier", supplierSearch);
+// app.use("/api/admin", admin);
+// app.use("/api/policies", policyManagement);
 
 
 // ✅ Invite User Route

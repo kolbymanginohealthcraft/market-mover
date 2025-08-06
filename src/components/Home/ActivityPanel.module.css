@@ -1,15 +1,5 @@
-.panel {
-  background: #fff;
-  border: 1px solid #e2e8e7;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.sectionTitle {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #265947;
-  margin-bottom: 12px;
+.content {
+  /* Content container - no background or border needed since parent handles it */
 }
 
 .activityList {
@@ -18,29 +8,6 @@
   font-size: 0.95rem;
   color: #5f6b6d;
   margin: 0;
-}
-
-.activityHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.clearButton {
-  background: none;
-  border: 1px solid #e2e8e7;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.8rem;
-  color: #5f6b6d;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.clearButton:hover {
-  background: #f9fbfa;
-  border-color: #cbd5d3;
 }
 
 .activityItem {

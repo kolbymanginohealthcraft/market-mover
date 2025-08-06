@@ -56,7 +56,7 @@ const Login = () => {
         </h2>
 
         <form onSubmit={handleAuth} className={styles.form}>
-          <div className={styles.formGroup}>
+          <div className="form-field-stacked">
             <label className={styles.label} htmlFor="email">
               Email
             </label>
@@ -72,7 +72,7 @@ const Login = () => {
           </div>
 
           {mode !== "reset" && (
-            <div className={styles.formGroup}>
+            <div className="form-field-stacked">
               <label className={styles.label} htmlFor="password">
                 Password
               </label>

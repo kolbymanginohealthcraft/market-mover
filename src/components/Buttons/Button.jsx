@@ -12,6 +12,9 @@ import '../../styles/buttons.css';
  * - isActive: boolean (applies to active filter buttons)
  * - outline: boolean (outline button)
  * - ghost: boolean (ghost button)
+ * - darkBg: boolean (dark background variant)
+ * - banner: boolean (banner button style)
+ * - bannerVariant: "default" | "active" | "primary" (for banner buttons)
  * - className: additional custom class names
  * - ...rest: other native button props
  */
@@ -22,6 +25,9 @@ export default function Button({
   isActive = false,
   outline = false,
   ghost = false,
+  darkBg = false,
+  banner = false,
+  bannerVariant = 'default',
   className = '',
   children,
   ...rest
@@ -29,14 +35,23 @@ export default function Button({
   const classList = [];
 
   // Base button style
-  classList.push(isFilter ? 'filter-button' : 'button');
+  if (banner) {
+    classList.push('banner-button', bannerVariant);
+  } else if (isFilter) {
+    classList.push('filter-button');
+  } else {
+    classList.push('button');
+  }
 
-  // Style modifiers
-  if (!isFilter && outline) {
+  // Dark background modifier
+  if (darkBg) classList.push('dark-bg');
+
+  // Style modifiers (only for non-banner buttons)
+  if (!banner && !isFilter && outline) {
     classList.push('button-outline', variant);
-  } else if (!isFilter && ghost) {
+  } else if (!banner && !isFilter && ghost) {
     classList.push('button-ghost', variant);
-  } else if (!isFilter) {
+  } else if (!banner && !isFilter) {
     classList.push(variant);
   }
 
@@ -66,6 +81,9 @@ Button.propTypes = {
   isActive: PropTypes.bool,
   outline: PropTypes.bool,
   ghost: PropTypes.bool,
+  darkBg: PropTypes.bool,
+  banner: PropTypes.bool,
+  bannerVariant: PropTypes.oneOf(['default', 'active', 'primary']),
   className: PropTypes.string,
   children: PropTypes.node.isRequired,
 };

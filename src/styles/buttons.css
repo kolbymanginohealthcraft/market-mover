@@ -85,6 +85,39 @@ button:focus-visible {
   --color-gray: #5f6b6d;
   --color-gray-light: #4a5456;
   --color-gray-dark: #3e4648;
+
+  /* Dark background variants */
+  --color-green-dark-bg: #4f846e;
+  --color-green-light-bg: #6ba08a;
+  --color-green-hover-dark-bg: #5a9a7e;
+
+  --color-gold-dark-bg: #ffd85e;
+  --color-gold-light-bg: #ffe08a;
+  --color-gold-hover-dark-bg: #ffe08a;
+
+  --color-accent-dark-bg: #4ac5bb;
+  --color-accent-light-bg: #6ed5ce;
+  --color-accent-hover-dark-bg: #5dd1c7;
+
+  --color-red-dark-bg: #e85a65;
+  --color-red-light-bg: #f0757f;
+  --color-red-hover-dark-bg: #ed6b75;
+
+  --color-teal-dark-bg: #4ee7e5;
+  --color-teal-light-bg: #6ef0ee;
+  --color-teal-hover-dark-bg: #5deeea;
+
+  --color-blue-dark-bg: #4aa8c7;
+  --color-blue-light-bg: #6bb8d1;
+  --color-blue-hover-dark-bg: #5ab0cc;
+
+  --color-aqua-dark-bg: #6ed5ce;
+  --color-aqua-light-bg: #8eddd7;
+  --color-aqua-hover-dark-bg: #7dd8d1;
+
+  --color-gray-dark-bg: #7a8587;
+  --color-gray-light-bg: #8f999b;
+  --color-gray-hover-dark-bg: #859092;
 }
 
 /* ===== Filled Variants ===== */
@@ -120,6 +153,31 @@ button:focus-visible {
 .gray:hover    { background-color: var(--color-gray-light); }
 .gray:active   { background-color: var(--color-gray-dark); }
 
+/* ===== Dark Background Filled Variants ===== */
+.dark-bg.green   { background-color: var(--color-green-dark-bg); color: var(--color-green); --focus-color: var(--color-green-dark-bg); }
+.dark-bg.green:hover   { background-color: var(--color-green-hover-dark-bg); }
+
+.dark-bg.gold    { background-color: var(--color-gold-dark-bg); color: var(--color-green); --focus-color: var(--color-gold-dark-bg); }
+.dark-bg.gold:hover    { background-color: var(--color-gold-hover-dark-bg); }
+
+.dark-bg.accent  { background-color: var(--color-accent-dark-bg); color: var(--color-green); --focus-color: var(--color-accent-dark-bg); }
+.dark-bg.accent:hover  { background-color: var(--color-accent-hover-dark-bg); }
+
+.dark-bg.red     { background-color: var(--color-red-dark-bg); color: white; --focus-color: var(--color-red-dark-bg); }
+.dark-bg.red:hover     { background-color: var(--color-red-hover-dark-bg); }
+
+.dark-bg.teal    { background-color: var(--color-teal-dark-bg); color: var(--color-green); --focus-color: var(--color-teal-dark-bg); }
+.dark-bg.teal:hover    { background-color: var(--color-teal-hover-dark-bg); }
+
+.dark-bg.blue    { background-color: var(--color-blue-dark-bg); color: white; --focus-color: var(--color-blue-dark-bg); }
+.dark-bg.blue:hover    { background-color: var(--color-blue-hover-dark-bg); }
+
+.dark-bg.aqua    { background-color: var(--color-aqua-dark-bg); color: var(--color-green); --focus-color: var(--color-aqua-dark-bg); }
+.dark-bg.aqua:hover    { background-color: var(--color-aqua-hover-dark-bg); }
+
+.dark-bg.gray    { background-color: var(--color-gray-dark-bg); color: white; --focus-color: var(--color-gray-dark-bg); }
+.dark-bg.gray:hover    { background-color: var(--color-gray-hover-dark-bg); }
+
 /* ===== Outline Buttons ===== */
 .button-outline {
   background: transparent;
@@ -143,6 +201,25 @@ button:focus-visible {
 .button-outline.blue:hover   { background-color: #cce8f5; }
 .button-outline.aqua:hover   { background-color: #c5f0ec; }
 .button-outline.gray:hover   { background-color: #dcdcdc; }
+
+/* ===== Dark Background Outline Buttons ===== */
+.dark-bg.button-outline.green  { color: var(--color-green-light-bg); border-color: var(--color-green-light-bg); --focus-color: var(--color-green-light-bg); }
+.dark-bg.button-outline.gold   { color: var(--color-gold-dark-bg); border-color: var(--color-gold-dark-bg); --focus-color: var(--color-gold-dark-bg); }
+.dark-bg.button-outline.accent { color: var(--color-accent-light-bg); border-color: var(--color-accent-light-bg); --focus-color: var(--color-accent-light-bg); }
+.dark-bg.button-outline.red    { color: var(--color-red-light-bg); border-color: var(--color-red-light-bg); --focus-color: var(--color-red-light-bg); }
+.dark-bg.button-outline.teal   { color: var(--color-teal-light-bg); border-color: var(--color-teal-light-bg); --focus-color: var(--color-teal-light-bg); }
+.dark-bg.button-outline.blue   { color: var(--color-blue-light-bg); border-color: var(--color-blue-light-bg); --focus-color: var(--color-blue-light-bg); }
+.dark-bg.button-outline.aqua   { color: var(--color-aqua-light-bg); border-color: var(--color-aqua-light-bg); --focus-color: var(--color-aqua-light-bg); }
+.dark-bg.button-outline.gray   { color: var(--color-gray-light-bg); border-color: var(--color-gray-light-bg); --focus-color: var(--color-gray-light-bg); }
+
+.dark-bg.button-outline.green:hover  { background-color: rgba(79, 132, 110, 0.2); }
+.dark-bg.button-outline.gold:hover   { background-color: rgba(255, 216, 94, 0.2); }
+.dark-bg.button-outline.accent:hover { background-color: rgba(110, 213, 206, 0.2); }
+.dark-bg.button-outline.red:hover    { background-color: rgba(240, 117, 127, 0.2); }
+.dark-bg.button-outline.teal:hover   { background-color: rgba(110, 240, 238, 0.2); }
+.dark-bg.button-outline.blue:hover   { background-color: rgba(107, 184, 209, 0.2); }
+.dark-bg.button-outline.aqua:hover   { background-color: rgba(142, 221, 215, 0.2); }
+.dark-bg.button-outline.gray:hover   { background-color: rgba(143, 153, 155, 0.2); }
 
 /* ===== Ghost Buttons ===== */
 .button-ghost {
@@ -168,6 +245,25 @@ button:focus-visible {
 .button-ghost.aqua:hover   { background-color: #c5f0ec; }
 .button-ghost.gray:hover   { background-color: #dcdcdc; }
 
+/* ===== Dark Background Ghost Buttons ===== */
+.dark-bg.button-ghost.green  { color: var(--color-green-light-bg); --focus-color: var(--color-green-light-bg); }
+.dark-bg.button-ghost.gold   { color: var(--color-gold-dark-bg); --focus-color: var(--color-gold-dark-bg); }
+.dark-bg.button-ghost.accent { color: var(--color-accent-light-bg); --focus-color: var(--color-accent-light-bg); }
+.dark-bg.button-ghost.red    { color: var(--color-red-light-bg); --focus-color: var(--color-red-light-bg); }
+.dark-bg.button-ghost.teal   { color: var(--color-teal-light-bg); --focus-color: var(--color-teal-light-bg); }
+.dark-bg.button-ghost.blue   { color: var(--color-blue-light-bg); --focus-color: var(--color-blue-light-bg); }
+.dark-bg.button-ghost.aqua   { color: var(--color-aqua-light-bg); --focus-color: var(--color-aqua-light-bg); }
+.dark-bg.button-ghost.gray   { color: var(--color-gray-light-bg); --focus-color: var(--color-gray-light-bg); }
+
+.dark-bg.button-ghost.green:hover  { background-color: rgba(79, 132, 110, 0.2); }
+.dark-bg.button-ghost.gold:hover   { background-color: rgba(255, 216, 94, 0.2); }
+.dark-bg.button-ghost.accent:hover { background-color: rgba(110, 213, 206, 0.2); }
+.dark-bg.button-ghost.red:hover    { background-color: rgba(240, 117, 127, 0.2); }
+.dark-bg.button-ghost.teal:hover   { background-color: rgba(110, 240, 238, 0.2); }
+.dark-bg.button-ghost.blue:hover   { background-color: rgba(107, 184, 209, 0.2); }
+.dark-bg.button-ghost.aqua:hover   { background-color: rgba(142, 221, 215, 0.2); }
+.dark-bg.button-ghost.gray:hover   { background-color: rgba(143, 153, 155, 0.2); }
+
 /* ===== Filter Buttons ===== */
 .filter-button {
   padding: 0.5rem 1rem;
@@ -184,6 +280,23 @@ button:focus-visible {
 }
 .filter-button.active:hover {
   background-color: #dca518;
+}
+
+/* ===== Dark Background Filter Buttons ===== */
+.dark-bg.filter-button {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #e0e0e0;
+}
+.dark-bg.filter-button:hover {
+  background-color: #3a3a3a;
+}
+.dark-bg.filter-button.active {
+  background-color: var(--color-gold-dark-bg);
+  color: var(--color-green);
+}
+.dark-bg.filter-button.active:hover {
+  background-color: var(--color-gold-hover-dark-bg);
 }
 
 /* ===== Navbar Button (No Animation) ===== */
@@ -216,6 +329,17 @@ button:focus-visible {
 }
 .button-nav:active {
   opacity: 0.85;
+}
+
+/* ===== Dark Background Navbar Button ===== */
+.dark-bg.button-nav {
+  color: var(--color-gold-dark-bg);
+  border-color: var(--color-gold-dark-bg);
+}
+.dark-bg.button-nav:hover {
+  background-color: var(--color-gold-dark-bg);
+  color: var(--color-green);
+  border-color: var(--color-green);
 }
 
 /* ===== Click Feedback ===== */
@@ -251,4 +375,71 @@ button:focus-visible {
   background-color: var(--color-blue);
   color: white;
   border-color: var(--color-blue);
+}
+
+/* ===== Dark Background ButtonGroup ===== */
+.dark-bg.button-group-outline .button-outline {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.dark-bg.button-group-outline .button-outline.active {
+  background-color: var(--color-blue-dark-bg);
+  color: white;
+  border-color: var(--color-blue-dark-bg);
+}
+
+/* ===== Banner Buttons ===== */
+.banner-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Work Sans", sans-serif;
+}
+
+.banner-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.banner-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.banner-button.default {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.banner-button.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+}
+
+.banner-button.primary {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+/* ===== Banner Button Sizes ===== */
+.banner-button.button-sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.banner-button.button-lg {
+  padding: 10px 20px;
+  font-size: 1rem;
 }

@@ -9,6 +9,7 @@ ALTER TABLE user_activities
 ADD CONSTRAINT user_activities_activity_type_check 
 CHECK (activity_type = ANY (ARRAY[
   'login'::text,
+  'daily_activity'::text,
   'search_providers'::text,
   'view_provider'::text, 
   'save_market'::text

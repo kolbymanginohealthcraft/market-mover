@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../app/supabaseClient';
 import Button from '../../components/Buttons/Button';
 import styles from './AdminSettings.module.css';
+import { isPlatformAdmin, hasPlatformAccess } from '../../utils/roleHelpers';
 
 export default function AdminSettings() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -15,10 +17,10 @@ export default function AdminSettings() {
       
       if (!user) return;
 
-      // Check if user has system admin access from profiles table
-      const { data: profile, error } = await supabase
+      // Check if user has platform admin access from profiles table
+      const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('is_system_admin')
+        .select('role')
         .eq('id', user.id)
         .single();
 
@@ -27,7 +29,8 @@ export default function AdminSettings() {
         return;
       }
 
-      setIsAdmin(profile?.is_system_admin || false);
+      setProfile(profileData);
+      setIsAdmin(hasPlatformAccess(profileData?.role));
     };
 
     checkUser();
@@ -47,6 +50,8 @@ export default function AdminSettings() {
       <div className={styles.container}>
         <h1>Access Denied</h1>
         <p>You don't have permission to access admin settings.</p>
+        <p>Your current role: {profile?.role || 'Unknown'}</p>
+        <p>Required role: Platform Admin or Platform Support</p>
         <p>Contact your administrator if you believe this is an error.</p>
       </div>
     );

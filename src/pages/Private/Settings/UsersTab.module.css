@@ -1,0 +1,412 @@
+/* Team Tab Styling */
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a2e2a;
+  margin: 0 0 24px 0;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: #265947;
+  border-radius: 1px;
+}
+
+
+
+/* Team Name Section */
+.teamNameSection {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.subsectionTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a2e2a;
+  margin: 0 0 16px 0;
+}
+
+.teamNameDisplay {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.teamName {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1a2e2a;
+}
+
+.teamNameEdit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.teamNameInput {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.teamNameInput:focus {
+  outline: none;
+  border-color: #265947;
+  box-shadow: 0 0 0 2px rgba(38, 89, 71, 0.1);
+}
+
+.teamNameActions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelButton {
+  margin-left: 8px;
+}
+
+/* Message Styling */
+.message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.message.success {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  color: #065f46;
+}
+
+.message.error {
+  background: #fef2f2;
+  border: 1px solid #f87171;
+  color: #dc2626;
+}
+
+/* Info Cards */
+.infoCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.infoCard {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.infoCard:hover {
+  background: #f1f5f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.infoLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.infoValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a2e2a;
+}
+
+/* Invite Section */
+.inviteSection {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.inviteForm {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.emailInput {
+  flex: 1;
+  min-width: 250px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.emailInput:focus {
+  outline: none;
+  border-color: #265947;
+  box-shadow: 0 0 0 2px rgba(38, 89, 71, 0.1);
+}
+
+.emailInput:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.warning {
+  margin-top: 12px;
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+
+
+/* Members Section */
+.membersSection {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.membersHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.headerLeft {
+  flex: 1;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+}
+
+.teamNameDisplay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.teamName {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a2e2a;
+}
+
+.memberCount {
+  font-size: 0.9rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.membersTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.membersTable th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.membersTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.membersTable tr:hover {
+  background: #f8fafc;
+}
+
+.membersTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* No Team State */
+.noTeam {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.noTeam p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .membersHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .headerLeft {
+    width: 100%;
+  }
+  
+  .headerRight {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .titleGroup {
+    gap: 12px;
+  }
+  
+  .teamNameDisplay {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .teamName {
+    font-size: 1.2rem;
+  }
+  
+  .actionButtons {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  
+  .teamNameDisplay {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .teamNameEdit {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .teamNameInput {
+    min-width: auto;
+  }
+  
+  .teamNameActions {
+    justify-content: flex-start;
+  }
+  
+  .inviteForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .emailInput {
+    min-width: auto;
+  }
+  
+  .infoCards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .membersTable {
+    font-size: 0.8rem;
+  }
+  
+  .membersTable th,
+  .membersTable td {
+    padding: 8px 12px;
+  }
+  
+  .sectionTitle {
+    font-size: 1.6rem;
+  }
+  
+  .subsectionTitle {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .teamNameSection,
+  .inviteSection,
+  .membersSection {
+    padding: 20px;
+  }
+  
+  .membersTable {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .sectionTitle {
+    font-size: 1.4rem;
+  }
+} 

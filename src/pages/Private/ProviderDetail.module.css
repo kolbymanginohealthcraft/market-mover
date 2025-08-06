@@ -40,12 +40,12 @@
 }
 
 .typeBadge {
-  background-color: #1dadbe;
+  background-color: #3599b8;
   color: white;
   padding: 0.2rem 0.6rem;
   font-size: 0.8rem;
   font-weight: 500;
-  border-radius: 1rem;
+  border-radius: 6px;
   text-transform: capitalize;
 }
 
@@ -71,12 +71,12 @@
 }
 
 .savedBadge {
-  background-color: #1dadbe;
+  background-color: #3599b8;
   color: white;
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.2rem 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: 6px;
   text-transform: uppercase;
 }
 

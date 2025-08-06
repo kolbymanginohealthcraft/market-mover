@@ -9,7 +9,6 @@ export default function UserProfile() {
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
-    company: "",
     title: "",
     role: null,
     team_id: null,
@@ -38,7 +37,7 @@ export default function UserProfile() {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("first_name, last_name, company, title, role, team_id")
+        .select("first_name, last_name, title, role, team_id")
         .eq("id", user.id)
         .single();
 
@@ -87,7 +86,7 @@ export default function UserProfile() {
       .update({
         first_name: profile.first_name,
         last_name: profile.last_name,
-        company: profile.company,
+
         title: profile.title,
         updated_at: new Date().toISOString(),
       })
@@ -147,7 +146,7 @@ export default function UserProfile() {
 
 
   const hasTeam = !!profile.team_id;
-  const isAdmin = profile.role === "admin";
+  const isTeamAdmin = profile.role === "Team Admin" || profile.role === "Platform Admin" || profile.role === "Platform Support";
 
   if (loading) return <div className={styles.page}>Loading...</div>;
 
@@ -176,14 +175,7 @@ export default function UserProfile() {
                 onChange={handleChange}
               />
             </div>
-            <div>
-              <label>Company</label>
-              <input
-                name="company"
-                value={profile.company}
-                onChange={handleChange}
-              />
-            </div>
+
             <div>
               <label>Job Title</label>
               <input
@@ -205,11 +197,18 @@ export default function UserProfile() {
         <div className={styles.subscriptionBox}>
           <div className={styles.subHeader}>
             <h3>Subscription Details</h3>
-            {hasTeam && isAdmin && (
+            <Button
+              variant="blue"
+              size="sm"
+              onClick={() => navigate("/app/user-settings")}
+            >
+              User Settings
+            </Button>
+            {hasTeam && isTeamAdmin && (
               <Button
                 variant="green"
                 size="sm"
-                onClick={() => navigate("/app/manage-users")}
+                onClick={() => navigate("/app/admin")}
               >
                 Admin Dashboard
               </Button>

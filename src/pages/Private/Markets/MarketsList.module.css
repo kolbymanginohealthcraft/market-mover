@@ -1,0 +1,185 @@
+.container {
+  padding: 24px;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* List View Styles */
+.listView {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  height: 100%;
+}
+
+.marketsTable {
+  width: 100%;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f1f3f4;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.tableRow:hover {
+  background-color: #f8f9fa;
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tableCell {
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.marketName {
+  font-weight: 600;
+  color: #212529;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Map View Styles */
+.mapView {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  height: 100%;
+}
+
+.mapContainer {
+  height: 100%;
+  position: relative;
+}
+
+.mapLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.emptyState h3 {
+  font-size: 1.5rem;
+  color: #212529;
+  margin: 0 0 1rem 0;
+}
+
+.emptyState p {
+  color: #6c757d;
+  margin: 0 0 2rem 0;
+  font-size: 1.1rem;
+}
+
+/* Loading and Error States */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.error {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.error h2 {
+  color: #dc3545;
+  margin: 0 0 1rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .tableHeader {
+    display: none;
+  }
+
+  .tableRow {
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+  }
+
+  .tableCell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tableCell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .actions {
+    justify-content: center;
+  }
+
+  .mapContainer {
+    height: 400px;
+  }
+} 

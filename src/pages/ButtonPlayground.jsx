@@ -34,6 +34,22 @@ export default function ButtonPlayground() {
         </button>
       )}
 
+      <h2 className={styles.section}>Close Buttons</h2>
+      <div className={styles.closeButtonDemo}>
+        <div className={styles.sidebarHeader}>
+          <h3>Sidebar Title</h3>
+          <Button 
+            variant="gray" 
+            size="sm" 
+            outline 
+            className={styles.closeButton}
+          >
+            ×
+          </Button>
+        </div>
+        <p>This demonstrates the close button styling used in sidebars.</p>
+      </div>
+
       <h2 className={styles.section}>Standard (Filled) Buttons</h2>
       {variants.map((variant) => (
         <Button key={variant} variant={variant} className={styles.button}>
@@ -84,6 +100,101 @@ export default function ButtonPlayground() {
       <Button variant="gold" ghost size="sm">
         Gold Ghost Small
       </Button>
+
+      {/* Dark Background Sections */}
+      <div className={styles.darkSection}>
+        <h2 className={styles.section}>Dark Background - Filled Buttons</h2>
+        {variants.map((variant) => (
+          <Button key={variant} variant={variant} darkBg className={styles.button}>
+            {variant.charAt(0).toUpperCase() + variant.slice(1)} Dark
+          </Button>
+        ))}
+
+        <h2 className={styles.section}>Dark Background - Outline Buttons</h2>
+        {variants.map((variant) => (
+          <Button key={variant} variant={variant} outline darkBg className={styles.button}>
+            {variant.charAt(0).toUpperCase() + variant.slice(1)} Outline Dark
+          </Button>
+        ))}
+
+        <h2 className={styles.section}>Dark Background - Ghost Buttons</h2>
+        {variants.map((variant) => (
+          <Button key={variant} variant={variant} ghost darkBg className={styles.button}>
+            {variant.charAt(0).toUpperCase() + variant.slice(1)} Ghost Dark
+          </Button>
+        ))}
+
+        <h2 className={styles.section}>Dark Background - Filter Buttons</h2>
+        <Button isFilter isActive darkBg>Active Filter Dark</Button>
+        <Button isFilter darkBg className={styles.filterButton}>Inactive Filter Dark</Button>
+        <Button isFilter size="sm" darkBg className={styles.filterButton}>Small Filter Dark</Button>
+
+        <h2 className={styles.section}>Dark Background - Navbar Buttons</h2>
+        {user ? (
+          <button className={`button-nav dark-bg ${styles.navButton}`} onClick={handleLogout}>
+            Logout Dark
+          </button>
+        ) : (
+          <button className={`button-nav dark-bg ${styles.navButton}`} onClick={handleLogin}>
+            Login Dark
+          </button>
+        )}
+
+        <h2 className={styles.section}>Dark Background - Mixed Props</h2>
+        <Button variant="green" size="lg" outline darkBg className={styles.mixedButton}>
+          Green Large Outline Dark
+        </Button>
+        <Button variant="gold" ghost size="sm" darkBg>
+          Gold Ghost Small Dark
+        </Button>
+      </div>
+
+      <h2 className={styles.section}>Banner Buttons</h2>
+      <div className={styles.bannerDemo}>
+        <div className={styles.bannerBackground}>
+          <Button banner bannerVariant="default" className={styles.bannerButton}>
+            Default Banner
+          </Button>
+          <Button banner bannerVariant="active" className={styles.bannerButton}>
+            Active Banner
+          </Button>
+          <Button banner bannerVariant="primary" className={styles.bannerButton}>
+            Primary Banner
+          </Button>
+        </div>
+        <p>Banner buttons are designed for use on gradient backgrounds.</p>
+      </div>
+
+      <h2 className={styles.section}>Banner Button Sizes</h2>
+      <div className={styles.bannerDemo}>
+        <div className={styles.bannerBackground}>
+          <Button banner bannerVariant="default" size="sm" className={styles.bannerButton}>
+            Small Banner
+          </Button>
+          <Button banner bannerVariant="default" className={styles.bannerButton}>
+            Default Size
+          </Button>
+          <Button banner bannerVariant="default" size="lg" className={styles.bannerButton}>
+            Large Banner
+          </Button>
+        </div>
+      </div>
+
+      <h2 className={styles.section}>Banner Button Variants</h2>
+      <div className={styles.bannerDemo}>
+        <div className={styles.bannerBackground}>
+          <Button banner bannerVariant="default" className={styles.bannerButton}>
+            Default
+          </Button>
+          <Button banner bannerVariant="active" className={styles.bannerButton}>
+            Active
+          </Button>
+          <Button banner bannerVariant="primary" className={styles.bannerButton}>
+            Primary
+          </Button>
+        </div>
+        <p>Use these variants to indicate different button states in banner contexts.</p>
+      </div>
     </div>
   );
 }

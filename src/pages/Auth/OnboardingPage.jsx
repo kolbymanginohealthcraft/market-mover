@@ -76,7 +76,7 @@ function JoinTeamForm() {
 
       const data = await res.json();
       if (res.ok) {
-        window.location.href = '/app/home';
+        window.location.href = '/app/dashboard';
       } else {
         setError(data.error || 'Invalid access code.');
       }

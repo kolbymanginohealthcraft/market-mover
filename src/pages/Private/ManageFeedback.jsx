@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../app/supabaseClient';
 import Button from '../../components/Buttons/Button';
 import styles from './ManageFeedback.module.css';
+import { hasPlatformAccess } from '../../utils/roleHelpers';
 
 export default function ManageFeedback() {
   const [user, setUser] = useState(null);
@@ -24,7 +25,7 @@ export default function ManageFeedback() {
 
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('is_system_admin')
+        .select('role')
         .eq('id', user.id)
         .single();
 
@@ -33,8 +34,8 @@ export default function ManageFeedback() {
         return;
       }
 
-      setIsAdmin(profile?.is_system_admin || false);
-      console.log('Admin status:', profile?.is_system_admin);
+      setIsAdmin(hasPlatformAccess(profile?.role));
+      console.log('Admin status:', hasPlatformAccess(profile?.role), 'Role:', profile?.role);
     };
 
     checkUser();
