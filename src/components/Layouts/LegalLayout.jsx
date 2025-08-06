@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import styles from '../../pages/Public/TermsAndConditions.module.css';
+import styles from '../../pages/Public/Legal/TermsAndConditions.module.css';
 import LegalNavbar from '../Navigation/LegalNavbar';
 
 function LegalLayout() {

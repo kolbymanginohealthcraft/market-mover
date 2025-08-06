@@ -16,7 +16,7 @@ import LegalLayout from "../components/Layouts/LegalLayout";
 import ButtonPlayground from "../pages/ButtonPlayground";
 
 // Pages
-import MarketingPage from "../pages/Public/MarketingPage";
+import MarketingPage from "../pages/Public/Marketing/MarketingPage";
 import Login from "../pages/Auth/Login";
 import Signup from "../pages/Auth/Signup";
 import PricingPage from "../pages/Public/PricingPage";
@@ -25,34 +25,34 @@ import OverviewPage from "../pages/Public/OverviewPage";
 import UseCasesPage from "../pages/Public/UseCasesPage";
 import SelectPlan from "../pages/Public/SelectPlan";
 import ProfileSetup from "../pages/Auth/ProfileSetup";
-import AdminDashboard from "../pages/Private/AdminDashboard";
-import UserSettings from "../pages/Private/UserSettings";
-import Settings from "../pages/Private/Settings";
-import ManageAnnouncements from "../pages/Private/ManageAnnouncements";
-import ManageFeedback from "../pages/Private/ManageFeedback";
-import AdminSettings from "../pages/Private/AdminSettings";
-import AnalyticsDashboard from "../pages/Private/AnalyticsDashboard";
-import CompleteProfile from "../pages/Private/CompleteProfile";
-import LegalContentEditor from "../pages/Private/LegalContentEditor";
-import PolicyManagement from "../pages/Private/PolicyManagement";
+import AdminDashboard from "../pages/Private/Settings/AdminDashboard";
+import UserSettings from "../pages/Private/Settings/UserSettings";
+import Settings from "../pages/Private/Settings/Settings";
+import ManageAnnouncements from "../pages/Private/Settings/ManageAnnouncements";
+import ManageFeedback from "../pages/Private/Settings/ManageFeedback";
+import AdminSettings from "../pages/Private/Settings/AdminSettings";
+import AnalyticsDashboard from "../pages/Private/Settings/AnalyticsDashboard";
+import CompleteProfile from "../pages/Private/Settings/CompleteProfile";
+import LegalContentEditor from "../pages/Private/Settings/LegalContentEditor";
+import PolicyManagement from "../pages/Private/Settings/PolicyManagement";
 
-import TermsAndConditions from "../pages/Public/TermsAndConditions";
-import PrivacyPolicy from "../pages/Public/PrivacyPolicy";
-import BillingHistory from "../pages/Private/BillingHistory";
-import Dashboard from "../pages/Private/Dashboard";
-import Explore from "../pages/Private/Explore";
-import ProviderSearch from "../pages/Private/ProviderSearch";
-import ProviderDetail from "../pages/Private/ProviderDetail";
-import UserProfile from "../pages/Private/UserProfile";
+import TermsAndConditions from "../pages/Public/Legal/TermsAndConditions";
+import PrivacyPolicy from "../pages/Public/Legal/PrivacyPolicy";
+import BillingHistory from "../pages/Private/Settings/BillingHistory";
+import Dashboard from "../pages/Private/Dashboard/Dashboard";
+import Explore from "../pages/Private/Markets/Explore";
+import ProviderSearch from "../pages/Private/Search/ProviderSearch";
+import ProviderDetail from "../pages/Private/Search/ProviderDetail";
+import UserProfile from "../pages/Private/Settings/UserProfile";
 
-import Feedback from "../pages/Private/Feedback";
+import Feedback from "../pages/Private/Settings/Feedback";
 import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";
 
 import MarketOverview from "../pages/Private/Markets/MarketOverview";
 import MarketsList from "../pages/Private/Markets/MarketsList";
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
-import BannerTest from "../pages/Private/BannerTest";
-import SpinnerDemo from "../pages/Private/SpinnerDemo";
+import BannerTest from "../pages/Private/Settings/BannerTest";
+import SpinnerDemo from "../pages/Private/Settings/SpinnerDemo";
 // Team-related pages
 import OnboardingPage from "../pages/Auth/OnboardingPage";
 import PaymentTest from "../pages/Auth/PaymentTest";

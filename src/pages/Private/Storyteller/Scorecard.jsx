@@ -1,5 +1,5 @@
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
-import ProviderComparisonMatrix from "../ProviderComparisonMatrix";
+import ProviderComparisonMatrix from "../Search/ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
 
 console.log("Scorecard component mounted");
