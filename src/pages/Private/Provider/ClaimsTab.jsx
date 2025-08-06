@@ -4,7 +4,7 @@ import Spinner from "../../../components/Buttons/Spinner";
 import ClaimsByMonth from "./ClaimsByMonth";
 import ClaimsByProvider from "./ClaimsByProvider";
 import ClaimsByServiceLine from "./ClaimsByServiceLine";
-import Banner from "../../../components/Banner";
+import Banner from "../../../components/Buttons/Banner";
 
 export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) {
   const [showBanner, setShowBanner] = useState(true);

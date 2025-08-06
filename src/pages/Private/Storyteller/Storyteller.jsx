@@ -5,7 +5,7 @@ import Benchmarks from "./Benchmarks";
 import Button from "../../../components/Buttons/Button";
 import ButtonGroup from "../../../components/Buttons/ButtonGroup";
 import styles from "./Storyteller.module.css";
-import Banner from "../../../components/Banner";
+import Banner from "../../../components/Buttons/Banner";
 
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
   const location = useLocation();

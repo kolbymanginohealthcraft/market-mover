@@ -1,7 +1,7 @@
 // src/components/MarketingLayout.jsx
 import React, { useState } from "react";
 import MarketingSidebar from "../Navigation/MarketingSidebar";
-import styles from "../../styles/MarketingLayout.module.css";
+import styles from "./MarketingLayout.module.css";
 
 function MarketingLayout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);

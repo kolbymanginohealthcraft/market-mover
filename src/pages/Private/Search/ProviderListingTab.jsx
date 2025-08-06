@@ -7,7 +7,7 @@ import Button from "../../../components/Buttons/Button";
 import styles from "./ProviderListingTab.module.css";
 import { useDropdownClose } from "../../../hooks/useDropdownClose";
 import { apiUrl } from '../../../utils/api';
-import Banner from "../../../components/Banner";
+import Banner from "../../../components/Buttons/Banner";
 import useTeamProviderTags from "../../../hooks/useTeamProviderTags";
 
 // MapLibre GL JS is completely free - no API token required!

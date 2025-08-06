@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Dashboard.module.css';
-import Banner from '../../../components/Banner';
-import DashboardLayout from '../../../components/Home/DashboardLayout';
+import Banner from '../../../components/Buttons/Banner';
+import DashboardLayout from './DashboardLayout';
 import { supabase } from '../../../app/supabaseClient';
 import useUserActivity from '../../../hooks/useUserActivity';
 import useUserProgress from '../../../hooks/useUserProgress';

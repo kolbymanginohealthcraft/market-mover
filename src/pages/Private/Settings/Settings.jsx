@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import styles from "./Settings.module.css";
-import SettingsTabs from "./SettingsTabs";
-import Banner from "../../../components/Banner";
+import SettingsNavbar from "./SettingsNavbar";
+import Banner from "../../../components/Buttons/Banner";
 import { hasPlatformAccess, isTeamAdmin } from "../../../utils/roleHelpers";
 import { supabase } from "../../../app/supabaseClient";
 import {
@@ -98,7 +98,7 @@ export default function Settings() {
       />
 
       <div className={styles.tabContainer}>
-        <SettingsTabs activeTab={activeTab} setActiveTab={handleTabChange} />
+        <SettingsNavbar activeTab={activeTab} setActiveTab={handleTabChange} />
         
         <div className={styles.tabContent}>
           <Routes>

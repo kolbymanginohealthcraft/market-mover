@@ -13,46 +13,43 @@ import ScrollToTop from "../components/Navigation/ScrollToTop";
 import Layout from "../components/Layouts/Layout";
 import PublicLayout from "../components/Layouts/PublicLayout";
 import LegalLayout from "../components/Layouts/LegalLayout";
-import ButtonPlayground from "../pages/ButtonPlayground";
+import ButtonPlayground from "../pages/Temp/ButtonPlayground";
 
 // Pages
 import MarketingPage from "../pages/Public/Marketing/MarketingPage";
 import Login from "../pages/Auth/Login";
 import Signup from "../pages/Auth/Signup";
 import PricingPage from "../pages/Public/PricingPage";
-import FAQPage from "../pages/Public/FAQPage";
+import FAQPage from "../pages/Public/FAQ/FAQPage";
 import OverviewPage from "../pages/Public/OverviewPage";
-import UseCasesPage from "../pages/Public/UseCasesPage";
+
 import SelectPlan from "../pages/Public/SelectPlan";
 import ProfileSetup from "../pages/Auth/ProfileSetup";
-import AdminDashboard from "../pages/Private/Settings/AdminDashboard";
-import UserSettings from "../pages/Private/Settings/UserSettings";
+
 import Settings from "../pages/Private/Settings/Settings";
-import ManageAnnouncements from "../pages/Private/Settings/ManageAnnouncements";
-import ManageFeedback from "../pages/Private/Settings/ManageFeedback";
-import AdminSettings from "../pages/Private/Settings/AdminSettings";
-import AnalyticsDashboard from "../pages/Private/Settings/AnalyticsDashboard";
-import CompleteProfile from "../pages/Private/Settings/CompleteProfile";
-import LegalContentEditor from "../pages/Private/Settings/LegalContentEditor";
-import PolicyManagement from "../pages/Private/Settings/PolicyManagement";
+import ManageAnnouncements from "../pages/Private/Settings/Platform/ManageAnnouncements";
+import ManageFeedback from "../pages/Private/Settings/Platform/ManageFeedback";
+import AnalyticsDashboard from "../pages/Private/Settings/Platform/AnalyticsDashboard";
+// import CompleteProfile from "../pages/Private/Settings/CompleteProfile";
+import LegalContentEditor from "../pages/Private/Settings/Platform/LegalContentEditor";
+import PolicyManagement from "../pages/Private/Settings/Platform/PolicyManagement";
 
 import TermsAndConditions from "../pages/Public/Legal/TermsAndConditions";
 import PrivacyPolicy from "../pages/Public/Legal/PrivacyPolicy";
-import BillingHistory from "../pages/Private/Settings/BillingHistory";
+import BillingHistory from "../pages/Private/Settings/Subscription/BillingHistory";
 import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
 import ProviderDetail from "../pages/Private/Search/ProviderDetail";
-import UserProfile from "../pages/Private/Settings/UserProfile";
 
-import Feedback from "../pages/Private/Settings/Feedback";
+import Feedback from "../pages/Private/Dashboard/Feedback";
 import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";
 
 import MarketOverview from "../pages/Private/Markets/MarketOverview";
 import MarketsList from "../pages/Private/Markets/MarketsList";
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
-import BannerTest from "../pages/Private/Settings/BannerTest";
-import SpinnerDemo from "../pages/Private/Settings/SpinnerDemo";
+import BannerTest from "../pages/Temp/BannerTest";
+import SpinnerDemo from "../pages/Temp/SpinnerDemo";
 // Team-related pages
 import OnboardingPage from "../pages/Auth/OnboardingPage";
 import PaymentTest from "../pages/Auth/PaymentTest";
@@ -110,10 +107,10 @@ function App() {
           <Route path="pricing" element={<PricingPage />} />
           <Route path="faq" element={<FAQPage />} />
           <Route path="overview" element={<OverviewPage />} />
-          <Route path="use-cases" element={<UseCasesPage />} />
+
           <Route path="select-plan" element={<SelectPlan />} />
           <Route path="profile-setup" element={<ProfileSetup />} />
-          <Route path="/complete-profile" element={<CompleteProfile />} />
+          {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
           <Route path="/playground" element={<ButtonPlayground />} />
           <Route path="/auth/paymenttest" element={<PaymentTest />} />
           <Route path="/payment-flow" element={<PaymentFlow />} />
@@ -133,7 +130,6 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="search" element={<ProviderSearch />} />
           <Route path="explore" element={<Explore />} />
-          <Route path="profile" element={<UserProfile />} />
           <Route path="feedback" element={<Feedback />} />
           <Route path="provider/:dhc/*" element={<ProviderDetail />} />
           <Route path="supplier/search" element={<ServiceLineSearch />} />
@@ -143,13 +139,10 @@ function App() {
           <Route path="banner-test" element={<BannerTest />} />
           <Route path="spinner-demo" element={<SpinnerDemo />} />
           <Route path="billing" element={<BillingHistory />} />
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="user-settings" element={<UserSettings />} />
+
           <Route path="settings/*" element={<Settings />} />
           <Route path="manage-announcements" element={<ManageAnnouncements />} />
           <Route path="manage-feedback" element={<ManageFeedback />} />
-          <Route path="admin-settings" element={<AdminSettings />} />
-          <Route path="admin" element={<AdminDashboard />} />
           <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
           <Route path="billing-history" element={<BillingHistory />} />
           <Route path="legal-content-editor" element={<LegalContentEditor />} />

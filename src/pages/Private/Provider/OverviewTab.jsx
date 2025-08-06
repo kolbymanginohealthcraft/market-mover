@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './OverviewTab.module.css';
-import Banner from '../../../components/Banner';
+import Banner from '../../../components/Buttons/Banner';
 
 export default function OverviewTab({ provider }) {
   const [showBanner, setShowBanner] = useState(true);

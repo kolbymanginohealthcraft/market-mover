@@ -4,7 +4,7 @@ import { supabase } from '../../../app/supabaseClient';
 import styles from './MarketOverview.module.css';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
-import Banner from '../../../components/Banner';
+import Banner from '../../../components//Buttons/Banner';
 import SidePanel from '../../../components/Overlays/SidePanel';
 import { apiUrl } from '../../../utils/api';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';

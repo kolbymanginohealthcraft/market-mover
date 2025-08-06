@@ -2,12 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import styles from "./MarketingPage.module.css";
 import Button from "../../../components/Buttons/Button";
-import Hero from "../Hero";
-import About from "../About";
-import HowItWorks from "../HowItWorks";
-import WhosItFor from "../WhosItFor";
-import TestimonialCarousel from "../TestimonialCarousel";
-import MarketPreview from "../MarketPreview";
+import Hero from "./Hero";
+import About from "./About";
+import HowItWorks from "./HowItWorks";
+import WhosItFor from "./WhosItFor";
+import TestimonialCarousel from "./TestimonialCarousel";
+import MarketPreview from "./MarketPreview";
 
 const MarketingPage = () => {
   return (

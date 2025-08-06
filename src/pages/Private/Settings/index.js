@@ -1,8 +1,8 @@
 export { default } from './Settings';
-export { default as ProfileTab } from './ProfileTab';
-export { default as UsersTab } from './UsersTab';
-export { default as BrandingTab } from './BrandingTab';
-export { default as SubscriptionTab } from './SubscriptionTab';
-export { default as PlatformTab } from './PlatformTab';
-export { default as NetworkTab } from './NetworkTab';
-export { default as CompanyTab } from './CompanyTab'; 
+export { default as ProfileTab } from './Profile/ProfileTab';
+export { default as UsersTab } from './Users/UsersTab';
+export { default as BrandingTab } from './Branding/BrandingTab';
+export { default as SubscriptionTab } from './Subscription/SubscriptionTab';
+export { default as PlatformTab } from './Platform/PlatformTab';
+export { default as NetworkTab } from './Network/NetworkTab';
+export { default as CompanyTab } from './Company/CompanyTab'; 

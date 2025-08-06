@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './MarketsList.module.css';
-import Banner from '../../../components/Banner';
+import Banner from '../../../components/Buttons/Banner';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 

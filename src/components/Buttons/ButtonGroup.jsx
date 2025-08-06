@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import '../../styles/buttons.css';
+import './buttons.css';
 
 export default function ButtonGroup({ options = [], selected, onSelect, size = 'md', variant = 'blue' }) {
   return (

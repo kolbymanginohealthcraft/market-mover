@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import Banner from '../../../../components/Banner';
+import Banner from '../../../../components/Buttons/Banner';
 import styles from '../InteractiveMarketCreation.module.css';
 
 export default function LocationSearch({

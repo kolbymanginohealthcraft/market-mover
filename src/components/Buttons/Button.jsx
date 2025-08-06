@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import '../../styles/buttons.css';
+import './buttons.css';
 
 /**
  * Flexible Button component with color, size, and style modifiers.
