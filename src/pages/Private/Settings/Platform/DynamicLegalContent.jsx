@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getLegalContent } from '../utils/legalContent';
-import LegalContent from './LegalContent';
+import { getLegalContent } from '../../../../utils/legalContent';
+import LegalContent from '../../../Public/Legal/LegalContent';
 
 const DynamicLegalContent = ({ policySlug }) => {
   const [content, setContent] = useState('');

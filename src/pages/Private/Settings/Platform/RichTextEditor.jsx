@@ -5,7 +5,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import { marked } from 'marked';
-import Button from './Buttons/Button';
+import Button from '../../../../components/Buttons/Button';
 import styles from './RichTextEditor.module.css';
 
 // Use standard StarterKit

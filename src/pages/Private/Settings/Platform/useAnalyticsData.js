@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../app/supabaseClient';
+import { supabase } from '../../../../app/supabaseClient';
 
 export const useAnalyticsData = () => {
   const [loading, setLoading] = useState(true);

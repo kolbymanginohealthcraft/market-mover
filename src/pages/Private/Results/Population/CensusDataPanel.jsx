@@ -1,8 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import useCensusData, { useAvailableCensusYears } from "../hooks/useCensusData";
+import useCensusData, { useAvailableCensusYears } from "../../../../hooks/useCensusData";
 import styles from "./CensusDataPanel.module.css";
 import React from 'react';
-import Spinner from "./Buttons/Spinner";
+import Spinner from "../../../../components/Buttons/Spinner";
 
 // Memoized formatting functions to prevent unnecessary recalculations
 const formatNumber = (num) => {

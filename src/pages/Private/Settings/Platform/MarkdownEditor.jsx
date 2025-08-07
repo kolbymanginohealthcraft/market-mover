@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
-import Button from './Buttons/Button';
+import Button from '../../../../components/Buttons/Button';
 import styles from './MarkdownEditor.module.css';
 
 const MarkdownEditor = ({ 

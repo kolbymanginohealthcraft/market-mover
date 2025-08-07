@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '../../../components/Buttons/Button';
+import Button from '../../../../components/Buttons/Button';
 import styles from './AnalyticsHeader.module.css';
 
 export const AnalyticsHeader = ({ onRefresh }) => {

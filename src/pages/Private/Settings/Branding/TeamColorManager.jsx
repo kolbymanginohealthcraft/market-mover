@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import useTeamCustomColors from '../hooks/useTeamCustomColors';
-import Button from './Buttons/Button';
+import useTeamCustomColors from '../../../../hooks/useTeamCustomColors';
+import Button from '../../../../components/Buttons/Button';
 import styles from './TeamColorManager.module.css';
 
 export default function TeamColorManager() {

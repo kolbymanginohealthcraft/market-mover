@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../app/supabaseClient';
+import { usePlans } from '../../../hooks/usePlans';
 import Spinner from '../../Buttons/Spinner';
 import styles from './PaymentFlow.module.css';
 
@@ -10,34 +10,14 @@ export default function PlanSelection({
   setBillingCycle, 
   onNext 
 }) {
-  const [plans, setPlans] = useState([]);
-  const [loadingPlans, setLoadingPlans] = useState(true);
+  const { plans, loading: loadingPlans, error } = usePlans();
 
   useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
-    try {
-      const { data: plansData, error } = await supabase
-        .from('plans')
-        .select('*')
-        .order('price_monthly', { ascending: true });
-
-      if (error) throw error;
-      
-      setPlans(plansData || []);
-      
-      // Set default plan if none selected
-      if (!selectedPlan && plansData?.length > 0) {
-        setSelectedPlan(plansData[0].name.toLowerCase());
-      }
-    } catch (error) {
-      console.error('Error fetching plans:', error);
-    } finally {
-      setLoadingPlans(false);
+    // Set default plan if none selected
+    if (!selectedPlan && plans?.length > 0) {
+      setSelectedPlan(plans[0].name.toLowerCase());
     }
-  };
+  }, [plans, selectedPlan, setSelectedPlan]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -69,6 +49,11 @@ export default function PlanSelection({
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <Spinner />
           <p>Loading plans...</p>
+        </div>
+      ) : error ? (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <h3>Error Loading Plans</h3>
+          <p>{error}</p>
         </div>
       ) : (
         <div className={styles.plansGrid}>

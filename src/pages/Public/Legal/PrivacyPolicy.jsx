@@ -1,6 +1,6 @@
 // src/pages/public/PrivacyPolicy.jsx
 import React, { useState, useEffect } from 'react';
-import LegalContent from '../../../components/LegalContent';
+import LegalContent from './LegalContent';
 import { getLegalContent } from '../../../utils/legalContent';
 
 const PrivacyPolicy = () => {

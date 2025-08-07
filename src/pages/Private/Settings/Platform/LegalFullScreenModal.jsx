@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
-import Button from "../Buttons/Button";
-import ButtonGroup from "../Buttons/ButtonGroup";
-import DynamicLegalContent from "../DynamicLegalContent";
-import { getAllApprovedPolicies } from "../../utils/legalContent";
+import Button from "../../../../components/Buttons/Button";
+import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
+import DynamicLegalContent from "./DynamicLegalContent";
+import { getAllApprovedPolicies } from "../../../../utils/legalContent";
 import { jsPDF } from "jspdf";
 import styles from "./LegalFullScreenModal.module.css";
 

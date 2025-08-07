@@ -1,7 +1,7 @@
 // src/components/Overlays/LegalPanel.jsx
 
 import React, { useEffect, useState } from "react";
-import LegalFullScreenModal from "./LegalFullScreenModal";
+import LegalFullScreenModal from "../../pages/Private/Settings/Platform/LegalFullScreenModal";
 
 const LegalPanel = ({ isOpen, onClose, initialTab = "terms" }) => {
   const [tab, setTab] = useState(initialTab);

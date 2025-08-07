@@ -24,7 +24,6 @@ import FAQPage from "../pages/Public/FAQ/FAQPage";
 import OverviewPage from "../pages/Public/OverviewPage";
 
 import SelectPlan from "../pages/Public/SelectPlan";
-import ProfileSetup from "../pages/Auth/ProfileSetup";
 
 import Settings from "../pages/Private/Settings/Settings";
 import ManageAnnouncements from "../pages/Private/Settings/Platform/ManageAnnouncements";
@@ -51,7 +50,6 @@ import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarke
 import BannerTest from "../pages/Temp/BannerTest";
 import SpinnerDemo from "../pages/Temp/SpinnerDemo";
 // Team-related pages
-import OnboardingPage from "../pages/Auth/OnboardingPage";
 import PaymentTest from "../pages/Auth/PaymentTest";
 import PaymentFlow from "../pages/Auth/PaymentFlow";
 import Success from "../pages/Auth/Success";
@@ -109,12 +107,10 @@ function App() {
           <Route path="overview" element={<OverviewPage />} />
 
           <Route path="select-plan" element={<SelectPlan />} />
-          <Route path="profile-setup" element={<ProfileSetup />} />
           {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
           <Route path="/playground" element={<ButtonPlayground />} />
           <Route path="/auth/paymenttest" element={<PaymentTest />} />
           <Route path="/payment-flow" element={<PaymentFlow />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/success" element={<Success />} />
         </Route>
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from "./MAEnrollmentTab.module.css";
-import MAEnrollmentPanel from "../../../../components/MAEnrollmentPanel";
-import MAEnrollmentTrendChart from "../../../../components/MAEnrollmentTrendChart";
+import MAEnrollmentPanel from "./MAEnrollmentPanel";
+import MAEnrollmentTrendChart from "./MAEnrollmentTrendChart";
 import useMAEnrollmentData, { useMAEnrollmentTrendData } from "../../../../hooks/useMAEnrollmentData";
 import { apiUrl } from "../../../../utils/api";
 import ButtonGroup from "../../../../components/Buttons/ButtonGroup";

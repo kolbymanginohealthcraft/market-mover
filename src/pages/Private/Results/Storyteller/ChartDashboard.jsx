@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
 import { useParams } from "react-router-dom"; // ✅ Add this line
-import ProviderBarChart from "../../components/Charts/ProviderBarChart";
-import TrendLineChart from "../../components/Charts/TrendLineChart";
-import MarketingLayout from "../../components/Layouts/MarketingLayout";
+import ProviderBarChart from "./ProviderBarChart";
+import TrendLineChart from "./TrendLineChart";
+import MarketingLayout from "../../../../components/Layouts/MarketingLayout";
 import styles from "./ChartDashboard.module.css";
 
 const metrics = {

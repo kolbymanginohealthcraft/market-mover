@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styles from "./CMSEnrollmentTab.module.css";
-import CMSEnrollmentPanel from "../../../../components/CMSEnrollmentPanel";
-import CMSEnrollmentTrendChart from "../../../../components/CMSEnrollmentTrendChart";
+import CMSEnrollmentPanel from "./CMSEnrollmentPanel";
+import CMSEnrollmentTrendChart from "./CMSEnrollmentTrendChart";
 import useCMSEnrollmentData from "../../../../hooks/useCMSEnrollmentData";
 import { useCMSEnrollmentDataByLevel, useCMSEnrollmentYears } from "../../../../hooks/useCMSEnrollmentData";
 import ButtonGroup from "../../../../components/Buttons/ButtonGroup";

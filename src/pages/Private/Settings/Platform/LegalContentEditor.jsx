@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/Buttons/Button';
 import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
-import MarkdownEditor from '../../../../components/MarkdownEditor';
+import MarkdownEditor from './MarkdownEditor';
 import styles from './LegalContentEditor.module.css';
 
 const LegalContentEditor = () => {

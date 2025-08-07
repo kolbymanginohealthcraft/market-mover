@@ -20,7 +20,7 @@ import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
 import OverviewTab from "./Overview/OverviewTab";
 import ProviderListingTab from "./Providers/ProviderListingTab";
-import ChartsTab from "../../Temp/ChartDashboard";
+import ChartsTab from "./Storyteller/ChartDashboard";
 import DiagnosesTab from "./Claims/DiagnosesTab";
 import ProceduresTab from "./Claims/ProceduresTab";
 import ClaimsTab from "./Claims/ClaimsTab";
