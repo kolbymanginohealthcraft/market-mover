@@ -7,74 +7,86 @@ import LegalPanel from '../../../components/Overlays/LegalPanel';
 import faqSections from './faqData';
 
 const FAQPage = () => {
-  const [openIndex, setOpenIndex] = useState(null);
+  const [openItems, setOpenItems] = useState({});
   const [showLegalPanel, setShowLegalPanel] = useState(false);
 
-  const toggleFAQ = (index) => {
-    setOpenIndex(openIndex === index ? null : index);
+  const toggleItem = (sectionIndex, itemIndex) => {
+    const key = `${sectionIndex}-${itemIndex}`;
+    setOpenItems(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
-
-  let globalIndex = 0;
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Frequently Asked Questions</h1>
-
-      {faqSections.map((section, sIdx) => (
-        <div key={sIdx}>
-          <h2 style={{ color: '#3599b8', marginTop: '32px', fontSize: '1.25rem' }}>
-            {section.title}
-          </h2>
-          <div className={styles.faqList}>
-            {section.items.map((faq, i) => {
-              const currentIndex = globalIndex++;
-              const isOpen = openIndex === currentIndex;
-              return (
-                <div
-                  key={currentIndex}
-                  className={classNames(styles.faqItem, {
-                    [styles.faqItemOpen]: isOpen,
-                  })}
-                  onClick={() => toggleFAQ(currentIndex)}
-                >
-                  <h3 className={styles.question}>
-                    {faq.question}
-                    <span className={styles.icon}>
-                      {isOpen ? <FaChevronUp /> : <FaChevronDown />}
-                    </span>
-                  </h3>
-                  <div className={styles.answerWrapper}>
-                    <p className={styles.answer}>{faq.answer}</p>
-                  </div>
-                </div>
-              );
-            })}
+      {/* Hero Banner Section */}
+      <div className={styles.heroBanner}>
+        <div className={styles.heroContent}>
+          <div className={styles.heroText}>
+            <h1 className={styles.heroTitle}>Frequently Asked Questions</h1>
+            <p className={styles.heroSubtitle}>
+              Find answers to common questions about Market Mover<sup>®</sup> and how we help healthcare organizations make smarter decisions.
+            </p>
+          </div>
+          <div className={styles.heroActions}>
+            <Button
+              variant="blue"
+              size="md"
+              banner={true}
+              bannerVariant="default"
+              onClick={() => setShowLegalPanel(true)}
+            >
+              Legal Info
+            </Button>
+            <Button
+              variant="blue"
+              size="md"
+              banner={true}
+              bannerVariant="default"
+              onClick={() => (window.location.href = 'mailto:info@healthcraftcreative.com')}
+            >
+              Contact Us
+            </Button>
           </div>
         </div>
-      ))}
+      </div>
 
-      <div className={styles.ctaBox}>
-  <p className={styles.ctaText}>Still have questions?</p>
-  <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px' }}>
-    <Button
-      variant="blue"
-      size="sm"
-      outline
-      onClick={() => (window.location.href = 'mailto:info@healthcraftcreative.com')}
-    >
-      Contact Us
-    </Button>
-    <Button
-      variant="blue"
-      size="sm"
-      outline
-      onClick={() => setShowLegalPanel(true)}
-    >
-      Legal Info
-    </Button>
-  </div>
-</div>
-
+      {/* FAQ Content - 3 Column Layout */}
+      <div className={styles.faqContent}>
+        <div className={styles.faqGrid}>
+          {faqSections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className={styles.section}>
+              <h2 className={styles.sectionTitle}>{section.title}</h2>
+              <div className={styles.faqList}>
+                {section.items.map((faq, itemIndex) => {
+                  const key = `${sectionIndex}-${itemIndex}`;
+                  const isOpen = openItems[key];
+                  
+                  return (
+                    <div key={itemIndex} className={styles.faqItem}>
+                      <button
+                        className={styles.faqQuestion}
+                        onClick={() => toggleItem(sectionIndex, itemIndex)}
+                      >
+                        <span className={styles.questionText}>{faq.question}</span>
+                        <span className={styles.chevron}>
+                          {isOpen ? <FaChevronUp /> : <FaChevronDown />}
+                        </span>
+                      </button>
+                      <div className={classNames(styles.faqAnswer, {
+                        [styles.open]: isOpen
+                      })}>
+                        <p>{faq.answer}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <LegalPanel isOpen={showLegalPanel} onClose={() => setShowLegalPanel(false)} />
     </div>

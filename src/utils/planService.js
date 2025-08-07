@@ -3,10 +3,10 @@ import { supabase } from '../app/supabaseClient';
 // Get all plans with current pricing and features
 export async function getPlans(priceBookName = 'standard') {
   try {
-    // Get the price book ID
+    // Get the price book ID and additional license price
     const { data: priceBook, error: priceBookError } = await supabase
       .from('price_books')
-      .select('id')
+      .select('id, additional_license_price')
       .eq('name', priceBookName)
       .eq('is_active', true)
       .single();
@@ -22,7 +22,6 @@ export async function getPlans(priceBookName = 'standard') {
         *,
         plan_pricing!inner(
           price_monthly,
-          license_block_price,
           effective_date
         ),
         plan_features(
@@ -45,8 +44,9 @@ export async function getPlans(priceBookName = 'standard') {
         name: plan.name,
         description: plan.description,
         max_users: plan.max_users,
+        saved_markets: plan.saved_markets,
         price_monthly: plan.plan_pricing[0]?.price_monthly,
-        license_block_price: plan.plan_pricing[0]?.license_block_price || 250,
+        license_block_price: priceBook.additional_license_price || 250,
         features: plan.plan_features.map(pf => pf.features.name),
         badge: plan.name === 'Advanced' ? 'Most Popular' : null
       }))
@@ -62,7 +62,7 @@ export async function getPlanById(planId, priceBookName = 'standard') {
   try {
     const { data: priceBook } = await supabase
       .from('price_books')
-      .select('id')
+      .select('id, additional_license_price')
       .eq('name', priceBookName)
       .eq('is_active', true)
       .single();
@@ -73,7 +73,6 @@ export async function getPlanById(planId, priceBookName = 'standard') {
         *,
         plan_pricing!inner(
           price_monthly,
-          license_block_price,
           effective_date
         ),
         plan_features(
@@ -96,8 +95,9 @@ export async function getPlanById(planId, priceBookName = 'standard') {
       name: plan.name,
       description: plan.description,
       max_users: plan.max_users,
+      saved_markets: plan.saved_markets,
       price_monthly: plan.plan_pricing[0]?.price_monthly,
-      license_block_price: plan.plan_pricing[0]?.license_block_price || 250,
+      license_block_price: priceBook.additional_license_price || 250,
       features: plan.plan_features.map(pf => pf.features.name)
     };
   } catch (error) {
@@ -154,7 +154,6 @@ export async function updatePlanPricing(planId, priceBookName, newPricing) {
         plan_id: planId,
         price_book_id: priceBook.id,
         price_monthly: newPricing.price_monthly,
-        license_block_price: newPricing.license_block_price || 250,
         effective_date: new Date().toISOString()
       })
       .select()

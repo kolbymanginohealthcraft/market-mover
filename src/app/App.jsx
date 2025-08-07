@@ -19,7 +19,7 @@ import ButtonPlayground from "../pages/Temp/ButtonPlayground";
 import MarketingPage from "../pages/Public/Marketing/MarketingPage";
 import Login from "../pages/Auth/Login";
 import Signup from "../pages/Auth/Signup";
-import PricingPage from "../pages/Public/PricingPage";
+import PricingPage from "../pages/Public/Pricing/PricingPage";
 import FAQPage from "../pages/Public/FAQ/FAQPage";
 import OverviewPage from "../pages/Public/OverviewPage";
 
