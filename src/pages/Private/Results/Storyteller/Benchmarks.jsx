@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import useQualityMeasures from "../../../hooks/useQualityMeasures";
-import ProviderBarChart from "../../../components/Charts/ProviderBarChart";
-import TrendLineChart from "../../../components/Charts/TrendLineChart";
-import styles from "../../Temp/ChartDashboard.module.css";
-import { apiUrl } from '../../../utils/api';
+import useQualityMeasures from "../../../../hooks/useQualityMeasures";
+import ProviderBarChart from "../../../../components/Charts/ProviderBarChart";
+import TrendLineChart from "../../../../components/Charts/TrendLineChart";
+import styles from "../../../Temp/ChartDashboard.module.css";
+import { apiUrl } from '../../../../utils/api';
 
 export default function Benchmarks({ 
   provider, 

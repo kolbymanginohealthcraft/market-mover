@@ -1,5 +1,5 @@
 import React from 'react';
-import CensusDataPanel from "../../../components/CensusDataPanel";
+import CensusDataPanel from "../../../../components/CensusDataPanel";
 import styles from "./PopulationTab.module.css";
 
 export default function PopulationTab({ provider, radiusInMiles }) {

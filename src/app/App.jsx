@@ -40,7 +40,7 @@ import BillingHistory from "../pages/Private/Settings/Subscription/BillingHistor
 import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
-import ProviderDetail from "../pages/Private/Search/ProviderDetail";
+import ProviderDetail from "../pages/Private/Results/ProviderDetail";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";

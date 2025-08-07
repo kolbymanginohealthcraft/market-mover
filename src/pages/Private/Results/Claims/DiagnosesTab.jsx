@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
+import Spinner from "../../../../components/Buttons/Spinner";
 import DiagnosesByMonth from "./DiagnosesByMonth";
 import DiagnosesByProvider from "./DiagnosesByProvider";
 import DiagnosesByServiceLine from "./DiagnosesByServiceLine";

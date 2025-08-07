@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
-import { useProviderDensity, useProviderDensityDetails } from '../../../hooks/useProviderDensity';
-import useProviderInfo from '../../../hooks/useProviderInfo';
+import { useProviderDensity, useProviderDensityDetails } from '../../../../hooks/useProviderDensity';
+import useProviderInfo from '../../../../hooks/useProviderInfo';
 import styles from './ProviderDensityPage.module.css';
-import Banner from '../../../components/Buttons/Banner';
-import ButtonGroup from '../../../components/Buttons/ButtonGroup';
-import Button from '../../../components/Buttons/Button';
+import Banner from '../../../../components/Buttons/Banner';
+import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
+import Button from '../../../../components/Buttons/Button';
 
 export default function ProviderDensityPage({ radius }) {
   const { dhc } = useParams();

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
-import { apiUrl } from '../../../utils/api';
+import Spinner from "../../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../../utils/api';
 
-export default function ProceduresByServiceLine({ provider, radiusInMiles, nearbyProviders }) {
+export default function ClaimsByServiceLine({ provider, radiusInMiles, nearbyProviders, claimType, dataType }) {
   const [serviceLineData, setServiceLineData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +12,7 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
     if (provider?.dhc && nearbyProviders) {
       fetchServiceLineData();
     }
-  }, [provider?.dhc, nearbyProviders]);
+  }, [provider?.dhc, nearbyProviders, claimType, dataType]);
 
   const fetchServiceLineData = async () => {
     try {
@@ -22,10 +22,10 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
       // Get all provider DHCs in the market (main provider + nearby providers)
       const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
       
-      // Get all provider DHCs in the market (main provider + nearby providers)
+      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch(apiUrl('/api/related-npis'), {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,14 +48,16 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
         return;
       }
       
-      // Now fetch procedure data by service line
-      const response = await fetch(apiUrl('/api/procedures-by-service-line'), {
+      // Now fetch claims data by service line
+      const response = await fetch(apiUrl("/api/claims-by-service-line"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          npis: npis
+          npis: npis,
+          claimType: claimType,
+          dataType: dataType
         }),
       });
       
@@ -64,18 +66,19 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
       if (result.success) {
         setServiceLineData(result.data);
       } else {
-        setError(result.message || "Failed to fetch service line procedure data");
+        console.error("❌ Backend error:", result);
+        setError(result.message || "Failed to fetch service line claims data");
       }
     } catch (err) {
-      console.error("Error fetching service line procedure data:", err);
-      setError("Failed to fetch service line procedure data");
+      console.error("❌ Error fetching service line claims data:", err);
+      setError(`Failed to fetch service line claims data: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <Spinner message="Loading service line procedure data..." />;
+    return <Spinner message={`Loading service line ${dataType} data for ${claimType} claims...`} />;
   }
 
   if (error) {
@@ -93,37 +96,37 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
   if (!serviceLineData || serviceLineData.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <h3>No Service Line Procedure Data Available</h3>
-        <p>No procedure data found by service line for the last 12 months.</p>
+        <h3>No Service Line Claims Data Available</h3>
+        <p>No {dataType} data found for {claimType} claims by service line for the last 12 months.</p>
       </div>
     );
   }
 
-  const totalCount = serviceLineData.reduce((sum, row) => sum + parseInt(row.total_count), 0);
+  const totalCount = serviceLineData.reduce((sum, row) => sum + parseInt(row.total_count || row.inbound_count || 0), 0);
   const averageCount = Math.round(totalCount / serviceLineData.length);
 
   return (
     <div className={styles.componentContainer}>
       <div className={styles.componentHeader}>
-        <h3>Procedures by Service Line</h3>
-        <p>Breakdown of procedure volume by service line in {radiusInMiles}mi radius market</p>
+        <h3>{dataType.charAt(0).toUpperCase() + dataType.slice(1)} by Service Line - {claimType.charAt(0).toUpperCase() + claimType.slice(1)} Claims</h3>
+        <p>Breakdown of {dataType} volume by service line for {claimType} claims in {radiusInMiles}mi radius market</p>
       </div>
 
       <div className={styles.summaryCards}>
         <div className={styles.summaryCard}>
           <h4>Total Service Lines</h4>
           <p className={styles.summaryValue}>{serviceLineData.length.toLocaleString()}</p>
-          <p className={styles.summaryLabel}>With procedure data</p>
+          <p className={styles.summaryLabel}>With {dataType} data</p>
         </div>
         <div className={styles.summaryCard}>
-          <h4>Total Procedures</h4>
+          <h4>Total {dataType.charAt(0).toUpperCase() + dataType.slice(1)}</h4>
           <p className={styles.summaryValue}>{totalCount.toLocaleString()}</p>
           <p className={styles.summaryLabel}>Across all service lines</p>
         </div>
         <div className={styles.summaryCard}>
           <h4>Average per Service Line</h4>
           <p className={styles.summaryValue}>{averageCount.toLocaleString()}</p>
-          <p className={styles.summaryLabel}>Procedure count</p>
+          <p className={styles.summaryLabel}>{dataType} count</p>
         </div>
       </div>
 
@@ -133,16 +136,16 @@ export default function ProceduresByServiceLine({ provider, radiusInMiles, nearb
             <thead>
               <tr>
                 <th>Service Line</th>
-                <th>Procedure Count</th>
+                <th>{dataType.charAt(0).toUpperCase() + dataType.slice(1)} Count</th>
                 <th>Percentage of Total</th>
                 <th>Average per Month</th>
               </tr>
             </thead>
             <tbody>
               {serviceLineData.map((row, index) => {
-                const count = parseInt(row.total_count);
-                const percentage = ((count / totalCount) * 100).toFixed(1);
-                const avgPerMonth = Math.round(count / 24);
+                const count = parseInt(row.total_count || row.inbound_count || 0);
+                const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : '0.0';
+                const avgPerMonth = Math.round(count / 12);
                 
                 return (
                   <tr key={index}>

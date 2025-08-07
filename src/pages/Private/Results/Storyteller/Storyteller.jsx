@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Routes, Route, NavLink, useLocation, Navigate } from "react-router-dom";
 import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
-import Button from "../../../components/Buttons/Button";
-import ButtonGroup from "../../../components/Buttons/ButtonGroup";
+import Button from "../../../../components/Buttons/Button";
+import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
 import styles from "./Storyteller.module.css";
-import Banner from "../../../components/Buttons/Banner";
+import Banner from "../../../../components/Buttons/Banner";
 
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
   const location = useLocation();

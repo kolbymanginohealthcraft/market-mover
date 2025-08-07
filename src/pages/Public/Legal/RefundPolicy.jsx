@@ -1,7 +1,7 @@
 // src/pages/public/RefundPolicy.jsx
 import React, { useState, useEffect } from 'react';
-import LegalContent from '../../components/LegalContent';
-import { getLegalContent } from '../../utils/legalContent';
+import LegalContent from '../../../components/LegalContent';
+import { getLegalContent } from '../../../utils/legalContent';
 
 const RefundPolicy = () => {
   const [content, setContent] = useState('');

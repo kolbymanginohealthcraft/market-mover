@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import maplibregl from "maplibre-gl";
-import { supabase } from "../../../app/supabaseClient";
-import Spinner from "../../../components/Buttons/Spinner";
-import Button from "../../../components/Buttons/Button";
+import { supabase } from "../../../../app/supabaseClient";
+import Spinner from "../../../../components/Buttons/Spinner";
+import Button from "../../../../components/Buttons/Button";
 import styles from "./ProviderListingTab.module.css";
-import { useDropdownClose } from "../../../hooks/useDropdownClose";
-import { apiUrl } from '../../../utils/api';
-import Banner from "../../../components/Buttons/Banner";
-import useTeamProviderTags from "../../../hooks/useTeamProviderTags";
+import { useDropdownClose } from "../../../../hooks/useDropdownClose";
+import { apiUrl } from '../../../../utils/api';
+import Banner from "../../../../components/Buttons/Banner";
+import useTeamProviderTags from "../../../../hooks/useTeamProviderTags";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source

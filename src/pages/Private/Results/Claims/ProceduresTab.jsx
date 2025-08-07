@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
+import Spinner from "../../../../components/Buttons/Spinner";
 import ProceduresByMonth from "./ProceduresByMonth";
 import ProceduresByProvider from "./ProceduresByProvider";
 import ProceduresByServiceLine from "./ProceduresByServiceLine";

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
-import { apiUrl } from '../../../utils/api';
+import Spinner from "../../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../../utils/api';
 
-export default function ProceduresByProvider({ provider, radiusInMiles, nearbyProviders }) {
+export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyProviders }) {
   const [providerData, setProviderData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,10 +22,10 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
       // Get all provider DHCs in the market (main provider + nearby providers)
       const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
       
-      // Get all provider DHCs in the market (main provider + nearby providers)
+      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch(apiUrl('/api/related-npis'), {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,8 +48,8 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
         return;
       }
       
-      // Now fetch procedure data by provider
-      const response = await fetch(apiUrl('/api/procedures-by-provider'), {
+      // Now fetch diagnosis data by provider
+      const response = await fetch(apiUrl("/api/diagnoses-by-provider"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,21 +64,62 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
       if (result.success) {
         setProviderData(result.data);
       } else {
-        setError(result.message || "Failed to fetch provider procedure data");
+        console.error("❌ Backend error:", result);
+        setError(result.message || "Failed to fetch provider diagnosis data");
       }
     } catch (err) {
-      console.error("Error fetching provider procedure data:", err);
-      setError("Failed to fetch provider procedure data");
+      console.error("❌ Error fetching provider diagnosis data:", err);
+      setError(`Failed to fetch provider diagnosis data: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const debugOrgDhcJoin = async () => {
+    try {
+      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
+      
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dhc_ids: allProviderDhcs }),
+      });
+      
+      const npisResult = await npisResponse.json();
+      const npis = npisResult.data.map(row => row.npi);
+      
+      const debugResponse = await fetch(apiUrl("/api/diagnoses-debug-org-dhc"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ npis }),
+      });
+      
+      const debugResult = await debugResponse.json();
+      console.log("🔍 org_dhc Debug Data:", debugResult);
+      alert(`Debug info logged to console. Check browser console for details.`);
+    } catch (err) {
+      console.error("Debug error:", err);
+      alert("Debug failed - check console for details");
+    }
+  };
+
+  const debugTables = async () => {
+    try {
+      const response = await fetch(apiUrl("/api/diagnoses-debug-tables"));
+      const result = await response.json();
+      console.log("🔍 Table Debug Data:", result);
+      alert(`Debug info logged to console. Check browser console for table structure details.`);
+    } catch (err) {
+      console.error("Debug error:", err);
+      alert("Debug failed - check console for details");
+    }
+  };
+
   const testClients = async () => {
     try {
-      const response = await fetch(apiUrl('/api/procedures-test-clients'));
+      const response = await fetch(apiUrl("/api/diagnoses-test-clients"));
       const result = await response.json();
-      console.log("🔍 BigQuery Clients Test (Procedures):", result);
+      console.log("🔍 BigQuery Clients Test:", result);
       alert(`Test results logged to console. Check browser console for details.`);
     } catch (err) {
       console.error("Test error:", err);
@@ -87,7 +128,7 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
   };
 
   if (loading) {
-    return <Spinner message="Loading provider procedure data..." />;
+    return <Spinner message="Loading provider diagnosis data..." />;
   }
 
   if (error) {
@@ -105,8 +146,8 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
   if (!providerData || providerData.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <h3>No Provider Procedure Data Available</h3>
-        <p>No procedure data found by provider for the last 12 months.</p>
+        <h3>No Provider Diagnosis Data Available</h3>
+        <p>No diagnosis data found by provider for the last 12 months.</p>
       </div>
     );
   }
@@ -117,8 +158,8 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
   return (
     <div className={styles.componentContainer}>
       <div className={styles.componentHeader}>
-        <h3>Procedures by Provider</h3>
-        <p>Breakdown of procedure volume by individual providers in {radiusInMiles}mi radius market</p>
+        <h3>Diagnoses by Provider</h3>
+        <p>Breakdown of diagnosis volume by individual providers in {radiusInMiles}mi radius market</p>
         <button 
           onClick={testClients} 
           style={{ 
@@ -133,23 +174,51 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
         >
           Test BigQuery Clients
         </button>
+        <button 
+          onClick={debugOrgDhcJoin} 
+          style={{ 
+            marginTop: '10px', 
+            padding: '5px 10px', 
+            fontSize: '12px', 
+            background: '#f0f0f0', 
+            border: '1px solid #ccc', 
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Debug org_dhc JOIN
+        </button>
+        <button 
+          onClick={debugTables} 
+          style={{ 
+            marginTop: '10px', 
+            padding: '5px 10px', 
+            fontSize: '12px', 
+            background: '#f0f0f0', 
+            border: '1px solid #ccc', 
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Debug Tables
+        </button>
       </div>
 
       <div className={styles.summaryCards}>
         <div className={styles.summaryCard}>
           <h4>Total Providers</h4>
           <p className={styles.summaryValue}>{providerData.length.toLocaleString()}</p>
-          <p className={styles.summaryLabel}>With procedure data</p>
+          <p className={styles.summaryLabel}>With diagnosis data</p>
         </div>
         <div className={styles.summaryCard}>
-          <h4>Total Procedures</h4>
+          <h4>Total Diagnoses</h4>
           <p className={styles.summaryValue}>{totalCount.toLocaleString()}</p>
           <p className={styles.summaryLabel}>Across all providers</p>
         </div>
         <div className={styles.summaryCard}>
           <h4>Average per Provider</h4>
           <p className={styles.summaryValue}>{averageCount.toLocaleString()}</p>
-          <p className={styles.summaryLabel}>Procedure count</p>
+          <p className={styles.summaryLabel}>Diagnosis count</p>
         </div>
       </div>
 
@@ -159,7 +228,7 @@ export default function ProceduresByProvider({ provider, radiusInMiles, nearbyPr
             <thead>
               <tr>
                 <th>Provider NPI</th>
-                <th>Procedure Count</th>
+                <th>Diagnosis Count</th>
                 <th>Percentage of Total</th>
                 <th>Average per Month</th>
               </tr>

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
+import Spinner from "../../../../components/Buttons/Spinner";
 import ClaimsByMonth from "./ClaimsByMonth";
 import ClaimsByProvider from "./ClaimsByProvider";
 import ClaimsByServiceLine from "./ClaimsByServiceLine";
-import Banner from "../../../components/Buttons/Banner";
+import Banner from "../../../../components/Buttons/Banner";
 
 export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) {
   const [showBanner, setShowBanner] = useState(true);

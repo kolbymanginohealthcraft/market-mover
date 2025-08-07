@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
-import { apiUrl } from '../../../utils/api';
+import Spinner from "../../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../../utils/api';
 
-export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProviders }) {
+export default function ClaimsByMonth({ provider, radiusInMiles, nearbyProviders, claimType, dataType }) {
   const [monthlyData, setMonthlyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +12,7 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
     if (provider?.dhc && nearbyProviders) {
       fetchMonthlyData();
     }
-  }, [provider?.dhc, nearbyProviders]);
+  }, [provider?.dhc, nearbyProviders, claimType, dataType]);
 
   const fetchMonthlyData = async () => {
     try {
@@ -22,10 +22,10 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
       // Get all provider DHCs in the market (main provider + nearby providers)
       const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
       
-      // Get all provider DHCs in the market (main provider + nearby providers)
+      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
       
       // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch(apiUrl('/api/related-npis'), {
+      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,14 +48,16 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
         return;
       }
       
-      // Now fetch procedure data by month
-      const response = await fetch(apiUrl('/api/procedures-volume'), {
+      // Now fetch claims data by month
+      const response = await fetch(apiUrl("/api/claims-volume"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          npis: npis
+          npis: npis,
+          claimType: claimType,
+          dataType: dataType
         }),
       });
       
@@ -65,21 +67,22 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
         if (result.data && result.data.length > 0) {
           setMonthlyData(result.data);
         } else {
-          setError("No monthly procedure data found for the specified NPIs in the last 12 months");
+          setError(`No monthly ${dataType} data found for ${claimType} claims in the last 12 months`);
         }
       } else {
-        setError(result.message || "Failed to fetch monthly procedure data");
+        console.error("❌ Backend error:", result);
+        setError(result.message || "Failed to fetch monthly claims data");
       }
     } catch (err) {
-      console.error("Error fetching monthly procedure data:", err);
-      setError("Failed to fetch monthly procedure data");
+      console.error("❌ Error fetching monthly claims data:", err);
+      setError(`Failed to fetch monthly claims data: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <Spinner message="Loading monthly procedure data..." />;
+    return <Spinner message={`Loading monthly ${dataType} data for ${claimType} claims...`} />;
   }
 
   if (error) {
@@ -97,8 +100,8 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
   if (!monthlyData || monthlyData.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <h3>No Monthly Procedure Data Available</h3>
-        <p>No procedure data found by month for the last 12 months.</p>
+        <h3>No Monthly Claims Data Available</h3>
+        <p>No {dataType} data found for {claimType} claims by month for the last 12 months.</p>
       </div>
     );
   }
@@ -127,8 +130,8 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
     
     return {
       month: monthDisplay,
-      count: parseInt(row.total_count).toLocaleString(),
-      rawCount: parseInt(row.total_count)
+      count: parseInt(row.total_count || row.inbound_count || 0).toLocaleString(),
+      rawCount: parseInt(row.total_count || row.inbound_count || 0)
     };
   });
 
@@ -138,13 +141,13 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
   return (
     <div className={styles.componentContainer}>
       <div className={styles.componentHeader}>
-        <h3>Procedures by Month</h3>
-        <p>Monthly breakdown of procedure volume for the last 12 months in {radiusInMiles}mi radius market</p>
+        <h3>{dataType.charAt(0).toUpperCase() + dataType.slice(1)} by Month - {claimType.charAt(0).toUpperCase() + claimType.slice(1)} Claims</h3>
+        <p>Monthly breakdown of {dataType} volume for {claimType} claims in {radiusInMiles}mi radius market</p>
       </div>
 
       <div className={styles.summaryCards}>
         <div className={styles.summaryCard}>
-          <h4>Total Procedures</h4>
+          <h4>Total {dataType.charAt(0).toUpperCase() + dataType.slice(1)}</h4>
           <p className={styles.summaryValue}>{totalCount.toLocaleString()}</p>
           <p className={styles.summaryLabel}>Last 12 months</p>
         </div>
@@ -166,28 +169,26 @@ export default function ProceduresByMonth({ provider, radiusInMiles, nearbyProvi
             <thead>
               <tr>
                 <th>Month</th>
-                <th>Procedure Count</th>
+                <th>{dataType.charAt(0).toUpperCase() + dataType.slice(1)} Count</th>
                 <th>Percentage of Total</th>
                 <th>Trend</th>
               </tr>
             </thead>
             <tbody>
               {formattedData.map((row, index) => {
-                const percentage = ((row.rawCount / totalCount) * 100).toFixed(1);
-                const previousCount = index < formattedData.length - 1 ? formattedData[index + 1].rawCount : null;
-                const trend = previousCount ? ((row.rawCount - previousCount) / previousCount * 100).toFixed(1) : null;
+                const percentage = totalCount > 0 ? ((row.rawCount / totalCount) * 100).toFixed(1) : '0.0';
+                const previousCount = index < formattedData.length - 1 ? formattedData[index + 1].rawCount : 0;
+                const trend = previousCount > 0 ? ((row.rawCount - previousCount) / previousCount * 100).toFixed(1) : '0.0';
+                const trendIcon = row.rawCount > previousCount ? '↗' : row.rawCount < previousCount ? '↘' : '→';
+                const trendColor = row.rawCount > previousCount ? '#22c55e' : row.rawCount < previousCount ? '#ef4444' : '#6b7280';
                 
                 return (
                   <tr key={index}>
                     <td>{row.month}</td>
                     <td>{row.count}</td>
                     <td>{percentage}%</td>
-                    <td>
-                      {trend ? (
-                        <span className={trend > 0 ? styles.trendUp : styles.trendDown}>
-                          {trend > 0 ? '+' : ''}{trend}%
-                        </span>
-                      ) : 'N/A'}
+                    <td style={{ color: trendColor }}>
+                      {trendIcon} {trend}%
                     </td>
                   </tr>
                 );

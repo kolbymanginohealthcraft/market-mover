@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "./DiagnosesTab.module.css";
-import Spinner from "../../../components/Buttons/Spinner";
-import { apiUrl } from '../../../utils/api';
+import Spinner from "../../../../components/Buttons/Spinner";
+import { apiUrl } from '../../../../utils/api';
 
 export default function ClaimsByProvider({ provider, radiusInMiles, nearbyProviders, claimType, dataType }) {
   const [providerData, setProviderData] = useState(null);

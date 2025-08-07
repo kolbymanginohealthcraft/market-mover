@@ -18,20 +18,20 @@ import useNearbyProviders from "../../../hooks/useNearbyProviders";
 import useMarketData from "../../../hooks/useMarketData";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
-import OverviewTab from "../Provider/OverviewTab";
-import ProviderListingTab from "./ProviderListingTab";
+import OverviewTab from "./Overview/OverviewTab";
+import ProviderListingTab from "./Providers/ProviderListingTab";
 import ChartsTab from "../../Temp/ChartDashboard";
-import DiagnosesTab from "../Provider/DiagnosesTab";
-import ProceduresTab from "../Provider/ProceduresTab";
-import ClaimsTab from "../Provider/ClaimsTab";
-import PopulationTab from "../Provider/PopulationTab";
-import ReferralsTab from "../Provider/ReferralsTab";
-import MAEnrollmentTab from "../Provider/MAEnrollmentTab";
-import CMSEnrollmentTab from "../Provider/CMSEnrollmentTab";
-import ProviderDensityPage from "../Provider/ProviderDensityPage";
+import DiagnosesTab from "./Claims/DiagnosesTab";
+import ProceduresTab from "./Claims/ProceduresTab";
+import ClaimsTab from "./Claims/ClaimsTab";
+import PopulationTab from "./Population/PopulationTab";
+import ReferralsTab from "./Claims/ReferralsTab";
+import MAEnrollmentTab from "./Enrollment/MAEnrollmentTab";
+import CMSEnrollmentTab from "./Enrollment/CMSEnrollmentTab";
+import ProviderDensityPage from "./Providers/ProviderDensityPage";
 import SubNavbar from "../../../components/Navigation/SubNavbar";
 import Spinner from "../../../components/Buttons/Spinner";
-import Storyteller from "../Storyteller/Storyteller";
+import Storyteller from "./Storyteller/Storyteller";
 
 export default function ProviderDetail() {
   const { dhc } = useParams();
