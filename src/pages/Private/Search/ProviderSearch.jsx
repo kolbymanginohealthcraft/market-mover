@@ -7,6 +7,7 @@ import styles from "./ProviderSearch.module.css";
 import { apiUrl } from '../../../utils/api';
 import { trackProviderSearch } from '../../../utils/activityTracker';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
+import { useDropdownClose } from '../../../hooks/useDropdownClose';
 
 export default function ProviderSearch() {
   const [searchParams] = useSearchParams();
@@ -23,7 +24,7 @@ export default function ProviderSearch() {
   const [mapReady, setMapReady] = useState(false);
   const [componentError, setComponentError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
-  
+
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -33,25 +34,26 @@ export default function ProviderSearch() {
   const [showOnlyCCNs, setShowOnlyCCNs] = useState(false);
   const [ccnProviderIds, setCcnProviderIds] = useState(new Set());
 
-  const searchInputRef = useRef(null);
-  const mapContainerRef = useRef(null);
-  const lastTrackedSearch = useRef("");
-  const dropdownRef = useRef(null);
+     const searchInputRef = useRef(null);
+   const mapContainerRef = useRef(null);
+   const lastTrackedSearch = useRef("");
+   const bulkDropdownRef = useRef(null);
+   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   // Selection and bulk actions
   const [selectedProviders, setSelectedProviders] = useState(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
-  
+
   // Tagging state
   const [taggingProviderId, setTaggingProviderId] = useState(null);
 
   // Team provider tags functionality
-  const { 
-    hasTeamProviderTag, 
-    getProviderTags, 
-    addTeamProviderTag, 
-    removeTeamProviderTag 
+  const {
+    hasTeamProviderTag,
+    getProviderTags,
+    addTeamProviderTag,
+    removeTeamProviderTag
   } = useTeamProviderTags();
 
   // Error boundary for the component
@@ -82,6 +84,49 @@ export default function ProviderSearch() {
     }
   }, [searchParams]);
 
+  // Enhanced dropdown close hook that includes button toggle behavior
+  const handleDropdownClose = () => {
+    setTaggingProviderId(null);
+  };
+
+     // Use enhanced dropdown close hook for bulk actions dropdown
+   const { buttonRef: bulkButtonRef } = useDropdownClose({
+     ref: bulkDropdownRef,
+     closeCallback: handleDropdownClose,
+     isOpen: taggingProviderId === 'bulk'
+   });
+
+  // Handle button toggle behavior for bulk actions
+  const handleBulkButtonClick = () => {
+    if (taggingProviderId === 'bulk') {
+      setTaggingProviderId(null);
+    } else {
+      setTaggingProviderId('bulk');
+    }
+  };
+
+     // Handle button toggle behavior for individual tag buttons
+   const handleTagButtonClick = (providerId, event) => {
+     if (taggingProviderId === providerId) {
+       setTaggingProviderId(null);
+     } else {
+       const rect = event.currentTarget.getBoundingClientRect();
+       setDropdownPosition({
+         top: rect.bottom + 5,
+         left: rect.left
+       });
+       setTaggingProviderId(providerId);
+     }
+   };
+
+   // Use enhanced dropdown close hook for individual tag dropdowns
+   useDropdownClose({
+     dropdownSelector: `.${styles.dropdown}`,
+     buttonSelector: `.${styles.tagButton}`,
+     closeCallback: () => setTaggingProviderId(null),
+     isOpen: taggingProviderId && taggingProviderId !== 'bulk'
+   });
+
   // Initialize map when selected provider changes and has valid coordinates
   useEffect(() => {
     try {
@@ -89,7 +134,7 @@ export default function ProviderSearch() {
       console.log("Selected provider:", selectedProvider);
       console.log("Map container:", mapContainerRef.current);
       console.log("Map ready:", mapReady);
-      
+
       // Clean up existing map if it exists
       if (map && typeof map.remove === 'function') {
         try {
@@ -101,14 +146,14 @@ export default function ProviderSearch() {
         setMap(null);
         setMapReady(false);
       }
-      
+
       // Check if we have a provider with valid coordinates
-      if (!selectedProvider?.latitude || !selectedProvider?.longitude || 
-          isNaN(selectedProvider.latitude) || isNaN(selectedProvider.longitude)) {
+      if (!selectedProvider?.latitude || !selectedProvider?.longitude ||
+        isNaN(selectedProvider.latitude) || isNaN(selectedProvider.longitude)) {
         console.log("No valid provider coordinates, skipping map init");
         return;
       }
-      
+
       // Check if container is available
       if (!mapContainerRef.current) {
         console.log("Map container not available yet, skipping map init");
@@ -118,7 +163,7 @@ export default function ProviderSearch() {
       // Add a small delay to ensure container is fully rendered
       const initTimeout = setTimeout(() => {
         console.log("🗺️ Creating MapLibre map...");
-        
+
         try {
           // MapLibre GL JS - completely free, no API token needed!
           const newMap = new maplibregl.Map({
@@ -146,7 +191,7 @@ export default function ProviderSearch() {
             center: [selectedProvider.longitude, selectedProvider.latitude],
             zoom: 12
           });
-          
+
           console.log("🗺️ Map created successfully");
 
           // Add navigation controls
@@ -213,20 +258,20 @@ export default function ProviderSearch() {
   useEffect(() => {
     const fetchCCNs = async () => {
       if (!results.length) return;
-      
+
       const dhcIds = results.map(p => p.dhc).filter(Boolean);
       if (!dhcIds.length) return;
-      
+
       try {
         const response = await fetch(apiUrl('/api/related-ccns'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ dhc_ids: dhcIds }),
         });
-        
+
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const result = await response.json();
-        
+
         if (result.success) {
           const ccnSet = new Set(result.data.map(row => row.dhc));
           setCcnProviderIds(ccnSet);
@@ -248,22 +293,22 @@ export default function ProviderSearch() {
     setCurrentPage(1);
     setSelectedProvider(null);
     setHasSearched(true);
-    
+
     const q = searchTerm || queryText.trim();
     if (!q) return;
-    
+
     if (!fromUrl) {
       navigate(`/app/search?search=${encodeURIComponent(q)}`, { replace: true });
     }
-    
+
     setLastSearchTerm(q);
     try {
       const response = await fetch(apiUrl(`/api/search-providers?search=${encodeURIComponent(q)}`));
-      
+
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
+
       const result = await response.json();
-      
+
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
         if (result.data.length > 0) {
@@ -306,27 +351,27 @@ export default function ProviderSearch() {
     if (selectedTypes.length > 0 && !selectedTypes.includes(provider.type || "Unknown")) {
       return false;
     }
-    
+
     // Network filter
     if (selectedNetworks.length > 0 && !selectedNetworks.includes(provider.network)) {
       return false;
     }
-    
+
     // City filter
     if (selectedCities.length > 0 && !selectedCities.includes(provider.city)) {
       return false;
     }
-    
+
     // State filter
     if (selectedStates.length > 0 && !selectedStates.includes(provider.state)) {
       return false;
     }
-    
+
     // CCN filter
     if (showOnlyCCNs && !ccnProviderIds.has(provider.dhc)) {
       return false;
     }
-    
+
     return true;
   });
 
@@ -338,25 +383,25 @@ export default function ProviderSearch() {
 
   // Filter functions
   const toggleType = (type) => {
-    setSelectedTypes(prev => 
+    setSelectedTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
 
   const toggleNetwork = (network) => {
-    setSelectedNetworks(prev => 
+    setSelectedNetworks(prev =>
       prev.includes(network) ? prev.filter(n => n !== network) : [...prev, network]
     );
   };
 
   const toggleCity = (city) => {
-    setSelectedCities(prev => 
+    setSelectedCities(prev =>
       prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
     );
   };
 
   const toggleState = (state) => {
-    setSelectedStates(prev => 
+    setSelectedStates(prev =>
       prev.includes(state) ? prev.filter(s => s !== state) : [...prev, state]
     );
   };
@@ -405,26 +450,31 @@ export default function ProviderSearch() {
     }
   };
 
-  const handleSaveAsTeamProviders = async () => {
+  const handleBulkTag = async (tagType) => {
     if (selectedProviders.size === 0) return;
 
     setBulkActionLoading(true);
     try {
-      const selectedProviderObjects = paginatedResults.filter(p => 
+      const selectedProviderObjects = paginatedResults.filter(p =>
         selectedProviders.has(p.dhc)
       );
-      
-      // Add all selected providers as "me" tags
+
+      // Add all selected providers with the specified tag
       for (const provider of selectedProviderObjects) {
-        await addTeamProviderTag(provider.dhc, 'me');
+        await addTeamProviderTag(provider.dhc, tagType);
       }
-      
+
       // Clear selection after successful save
       setSelectedProviders(new Set());
       setShowBulkActions(false);
-      
-      // Show success message (you could add a toast notification here)
-      alert(`${selectedProviderObjects.length} providers tagged as "Me"!`);
+      setTaggingProviderId(null);
+
+      // Show success message
+      const tagLabel = tagType === 'me' ? 'Me' :
+        tagType === 'partner' ? 'Partner' :
+          tagType === 'competitor' ? 'Competitor' :
+            tagType === 'target' ? 'Target' : tagType;
+      alert(`${selectedProviderObjects.length} providers tagged as "${tagLabel}"!`);
     } catch (error) {
       console.error('Error tagging providers:', error);
       alert('Error tagging providers. Please try again.');
@@ -433,8 +483,8 @@ export default function ProviderSearch() {
     }
   };
 
-  const hasActiveFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 || 
-                          selectedCities.length > 0 || selectedStates.length > 0 || showOnlyCCNs;
+  const hasActiveFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
+    selectedCities.length > 0 || selectedStates.length > 0 || showOnlyCCNs;
 
   try {
     return (
@@ -464,7 +514,7 @@ export default function ProviderSearch() {
               )}
             </div>
           </div>
-          
+
           <form
             className={styles.searchForm}
             onSubmit={(e) => {
@@ -496,73 +546,73 @@ export default function ProviderSearch() {
           {showFilters && (
             <div className={styles.filtersPanel}>
               <div className={styles.filtersGrid}>
-                                 {/* Provider Type Filter */}
-                 <div className={styles.filterGroup}>
-                   <label className={styles.filterLabel}>Provider Type</label>
-                   <div className={styles.filterOptions}>
-                     {availableTypes.map(type => (
-                       <label key={type} className={styles.filterOption}>
-                         <input
-                           type="checkbox"
-                           checked={selectedTypes.includes(type)}
-                           onChange={() => toggleType(type)}
-                         />
-                         <span>{type}</span>
-                       </label>
-                     ))}
-                   </div>
-                 </div>
+                {/* Provider Type Filter */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterLabel}>Provider Type</label>
+                  <div className={styles.filterOptions}>
+                    {availableTypes.map(type => (
+                      <label key={type} className={styles.filterOption}>
+                        <input
+                          type="checkbox"
+                          checked={selectedTypes.includes(type)}
+                          onChange={() => toggleType(type)}
+                        />
+                        <span>{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-                 {/* Network Filter */}
-                 <div className={styles.filterGroup}>
-                   <label className={styles.filterLabel}>Network</label>
-                   <div className={styles.filterOptions}>
-                     {availableNetworks.map(network => (
-                       <label key={network} className={styles.filterOption}>
-                         <input
-                           type="checkbox"
-                           checked={selectedNetworks.includes(network)}
-                           onChange={() => toggleNetwork(network)}
-                         />
-                         <span>{network}</span>
-                       </label>
-                     ))}
-                   </div>
-                 </div>
+                {/* Network Filter */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterLabel}>Network</label>
+                  <div className={styles.filterOptions}>
+                    {availableNetworks.map(network => (
+                      <label key={network} className={styles.filterOption}>
+                        <input
+                          type="checkbox"
+                          checked={selectedNetworks.includes(network)}
+                          onChange={() => toggleNetwork(network)}
+                        />
+                        <span>{network}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-                 {/* City Filter */}
-                 <div className={styles.filterGroup}>
-                   <label className={styles.filterLabel}>City</label>
-                   <div className={styles.filterOptions}>
-                     {availableCities.map(city => (
-                       <label key={city} className={styles.filterOption}>
-                         <input
-                           type="checkbox"
-                           checked={selectedCities.includes(city)}
-                           onChange={() => toggleCity(city)}
-                         />
-                         <span>{city}</span>
-                       </label>
-                     ))}
-                   </div>
-                 </div>
+                {/* City Filter */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterLabel}>City</label>
+                  <div className={styles.filterOptions}>
+                    {availableCities.map(city => (
+                      <label key={city} className={styles.filterOption}>
+                        <input
+                          type="checkbox"
+                          checked={selectedCities.includes(city)}
+                          onChange={() => toggleCity(city)}
+                        />
+                        <span>{city}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-                 {/* State Filter */}
-                 <div className={styles.filterGroup}>
-                   <label className={styles.filterLabel}>State</label>
-                   <div className={styles.filterOptions}>
-                     {availableStates.map(state => (
-                       <label key={state} className={styles.filterOption}>
-                         <input
-                           type="checkbox"
-                           checked={selectedStates.includes(state)}
-                           onChange={() => toggleState(state)}
-                         />
-                         <span>{state}</span>
-                       </label>
-                     ))}
-                   </div>
-                 </div>
+                {/* State Filter */}
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterLabel}>State</label>
+                  <div className={styles.filterOptions}>
+                    {availableStates.map(state => (
+                      <label key={state} className={styles.filterOption}>
+                        <input
+                          type="checkbox"
+                          checked={selectedStates.includes(state)}
+                          onChange={() => toggleState(state)}
+                        />
+                        <span>{state}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 {/* CCN Filter */}
                 <div className={styles.filterGroup}>
@@ -578,8 +628,8 @@ export default function ProviderSearch() {
                     </label>
                   </div>
                 </div>
-                             </div>
-             </div>
+              </div>
+            </div>
           )}
         </div>
 
@@ -590,38 +640,78 @@ export default function ProviderSearch() {
             <div className={styles.resultsHeader}>
               <div className={styles.resultsHeaderLeft}>
                 <h3>
-                  {filteredResults.length > 0 
+                  {filteredResults.length > 0
                     ? `Results (${startIndex + 1}-${Math.min(endIndex, filteredResults.length)} of ${filteredResults.length})`
                     : 'Results'
                   }
                 </h3>
                 {paginatedResults.length > 0 && (
-                  <div className={styles.selectionControls}>
-                    <label className={styles.selectAllLabel}>
-                      <input
-                        type="checkbox"
-                        checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
-                        onChange={handleSelectAll}
-                      />
-                      <span>Select All</span>
-                    </label>
+                  <div className={styles.selectionGroup}>
+                    <div className={styles.selectionControls}>
+                      <label className={styles.selectAllLabel}>
+                        <input
+                          type="checkbox"
+                          checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
+                          onChange={handleSelectAll}
+                        />
+                        <span>Select All</span>
+                      </label>
+                    </div>
+
+                    {showBulkActions && (
+                      <div className={styles.bulkActions}>
+                        <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
+                          <Button
+                            ref={bulkButtonRef}
+                            size="sm"
+                            outline
+                            onClick={handleBulkButtonClick}
+                          >
+                            Tag
+                          </Button>
+                          {taggingProviderId === 'bulk' && (
+                            <div className={styles.dropdown}>
+                              <Button
+                                size="sm"
+                                variant="green"
+                                onClick={() => handleBulkTag('me')}
+                                disabled={bulkActionLoading}
+                              >
+                                {bulkActionLoading ? 'Tagging...' : 'Me'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="blue"
+                                onClick={() => handleBulkTag('partner')}
+                                disabled={bulkActionLoading}
+                              >
+                                {bulkActionLoading ? 'Tagging...' : 'Partner'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="red"
+                                onClick={() => handleBulkTag('competitor')}
+                                disabled={bulkActionLoading}
+                              >
+                                {bulkActionLoading ? 'Tagging...' : 'Competitor'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="gold"
+                                onClick={() => handleBulkTag('target')}
+                                disabled={bulkActionLoading}
+                              >
+                                {bulkActionLoading ? 'Tagging...' : 'Target'}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              
-              {showBulkActions && (
-                <div className={styles.bulkActions}>
-                  <Button
-                    variant="green"
-                    size="sm"
-                    onClick={handleSaveAsTeamProviders}
-                    disabled={bulkActionLoading || addingProviders}
-                  >
-                    {bulkActionLoading || addingProviders ? 'Saving...' : `Save ${selectedProviders.size} as Team Providers`}
-                  </Button>
-                </div>
-              )}
-              
+
               {totalPages > 1 && (
                 <div className={styles.pagination}>
                   <Button
@@ -674,13 +764,17 @@ export default function ProviderSearch() {
             {paginatedResults.length > 0 && (
               <div className={styles.resultsList}>
                 {paginatedResults.map((provider) => (
-                  <div
-                    key={provider.dhc}
-                    className={`${styles.resultCard} ${
-                      selectedProvider?.dhc === provider.dhc ? styles.selectedCard : ""
-                    }`}
-                    onClick={() => handleProviderSelect(provider)}
-                  >
+                                     <div
+                     key={provider.dhc}
+                     className={`${styles.resultCard} ${selectedProvider?.dhc === provider.dhc ? styles.selectedCard : ""
+                       }`}
+                     onClick={(e) => {
+                       // Don't select the provider if clicking on the provider name (which handles navigation)
+                       if (!e.target.closest(`.${styles.providerName}`)) {
+                         handleProviderSelect(provider);
+                       }
+                     }}
+                   >
                     <div className={styles.cardContent}>
                       <div className={styles.cardLeft}>
                         <div className={styles.checkboxContainer}>
@@ -694,8 +788,17 @@ export default function ProviderSearch() {
                             className={styles.providerCheckbox}
                           />
                         </div>
-                        <div className={styles.cardInfo}>
-                          <div className={styles.providerName}>{provider.name}</div>
+                                                 <div className={styles.cardInfo}>
+                           <div
+                             className={styles.providerName}
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               navigate(`/app/provider/${provider.dhc}/overview`);
+                             }}
+                             style={{ cursor: 'pointer' }}
+                           >
+                             {provider.name}
+                           </div>
                           <div className={styles.providerDetails}>
                             <span className={styles.providerType}>{provider.type || "Unknown"}</span>
                             {provider.network && (
@@ -704,9 +807,6 @@ export default function ProviderSearch() {
                             {ccnProviderIds.has(provider.dhc) && (
                               <span className={styles.ccnBadge}>Medicare</span>
                             )}
-                            {getProviderTags(provider.dhc).length > 0 && (
-                              <span className={styles.teamProviderBadge}>Tagged</span>
-                            )}
                           </div>
                           <div className={styles.providerAddress}>
                             {provider.street}, {provider.city}, {provider.state} {provider.zip}
@@ -714,23 +814,28 @@ export default function ProviderSearch() {
                               <span className={styles.providerPhone}> • {provider.phone}</span>
                             )}
                           </div>
-                          {/* Provider Tags */}
-                          <div className={styles.providerTags}>
-                            {getProviderTags(provider.dhc).map(tagType => (
+                        </div>
+                      </div>
+                      <div className={styles.cardRight}>
+                        <div className={styles.cardActions}>
+                          {/* Consolidated Tag Display */}
+                          {getProviderTags(provider.dhc).length > 0 ? (
+                            // Show existing tags
+                            getProviderTags(provider.dhc).map(tagType => (
                               <span
                                 key={tagType}
                                 className={styles.tag}
-                                style={{ 
-                                  backgroundColor: tagType === 'me' ? '#265947' : 
-                                               tagType === 'partner' ? '#3599b8' : 
-                                               tagType === 'competitor' ? '#d64550' : 
-                                               tagType === 'target' ? '#f1b62c' : '#5f6b6d'
+                                style={{
+                                  backgroundColor: tagType === 'me' ? '#265947' :
+                                    tagType === 'partner' ? '#3599b8' :
+                                      tagType === 'competitor' ? '#d64550' :
+                                        tagType === 'target' ? '#f1b62c' : '#5f6b6d'
                                 }}
                               >
-                                {tagType === 'me' ? 'Me' : 
-                                 tagType === 'partner' ? 'Partner' : 
-                                 tagType === 'competitor' ? 'Competitor' : 
-                                 tagType === 'target' ? 'Target' : tagType}
+                                {tagType === 'me' ? 'Me' :
+                                  tagType === 'partner' ? 'Partner' :
+                                    tagType === 'competitor' ? 'Competitor' :
+                                      tagType === 'target' ? 'Target' : tagType}
                                 <button
                                   className={styles.tagRemove}
                                   onClick={(e) => {
@@ -742,78 +847,75 @@ export default function ProviderSearch() {
                                   ×
                                 </button>
                               </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.cardRight}>
-                        <div className={styles.cardActions}>
-                          {/* Tag Dropdown */}
-                          <div className={styles.tagDropdown}>
-                            <button
-                              className={styles.tagButton}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Toggle tag dropdown for this provider
-                                setTaggingProviderId(taggingProviderId === provider.dhc ? null : provider.dhc);
-                              }}
-                            >
-                              Tag
-                            </button>
-                            {taggingProviderId === provider.dhc && (
-                              <div className={styles.tagDropdownMenu}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addTeamProviderTag(provider.dhc, 'me');
-                                    setTaggingProviderId(null);
-                                  }}
-                                  className={styles.tagOption}
-                                >
-                                  Me
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addTeamProviderTag(provider.dhc, 'partner');
-                                    setTaggingProviderId(null);
-                                  }}
-                                  className={styles.tagOption}
-                                >
-                                  Partner
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addTeamProviderTag(provider.dhc, 'competitor');
-                                    setTaggingProviderId(null);
-                                  }}
-                                  className={styles.tagOption}
-                                >
-                                  Competitor
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addTeamProviderTag(provider.dhc, 'target');
-                                    setTaggingProviderId(null);
-                                  }}
-                                  className={styles.tagOption}
-                                >
-                                  Target
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            className={styles.arrowButton}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/app/provider/${provider.dhc}/overview`);
-                            }}
-                          >
-                            →
-                          </button>
+                            ))
+                          ) : (
+                            // Show tag button if no tags
+                                                         <div className={styles.tagDropdown}>
+                               <button
+                                 className={styles.tagButton}
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleTagButtonClick(provider.dhc, e);
+                                 }}
+                               >
+                                 Tag
+                               </button>
+                                                               {taggingProviderId === provider.dhc && (
+                                   <div 
+                                     className={styles.dropdown}
+                                     style={{
+                                       top: `${dropdownPosition.top}px`,
+                                       left: `${dropdownPosition.left}px`
+                                     }}
+                                   >
+                                  <Button
+                                    size="sm"
+                                    variant="green"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addTeamProviderTag(provider.dhc, 'me');
+                                      setTaggingProviderId(null);
+                                    }}
+                                  >
+                                    Me
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="blue"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addTeamProviderTag(provider.dhc, 'partner');
+                                      setTaggingProviderId(null);
+                                    }}
+                                  >
+                                    Partner
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="red"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addTeamProviderTag(provider.dhc, 'competitor');
+                                      setTaggingProviderId(null);
+                                    }}
+                                  >
+                                    Competitor
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="gold"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addTeamProviderTag(provider.dhc, 'target');
+                                      setTaggingProviderId(null);
+                                    }}
+                                  >
+                                    Target
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -829,22 +931,22 @@ export default function ProviderSearch() {
           <div className={styles.detailColumn}>
             {selectedProvider ? (
               <div className={styles.mapContainer}>
-                <div 
+                <div
                   ref={mapContainerRef}
                   className={styles.map}
                 />
-                {(!selectedProvider.latitude || !selectedProvider.longitude || 
+                {(!selectedProvider.latitude || !selectedProvider.longitude ||
                   isNaN(selectedProvider.latitude) || isNaN(selectedProvider.longitude)) && (
-                  <div className={styles.mapPlaceholder}>
-                    <p>Map location not available for this provider</p>
-                  </div>
-                )}
-                {!mapReady && selectedProvider?.latitude && selectedProvider?.longitude && 
-                 !isNaN(selectedProvider.latitude) && !isNaN(selectedProvider.longitude) && (
-                  <div className={styles.mapLoading}>
-                    <p>Loading map...</p>
-                  </div>
-                )}
+                    <div className={styles.mapPlaceholder}>
+                      <p>Map location not available for this provider</p>
+                    </div>
+                  )}
+                {!mapReady && selectedProvider?.latitude && selectedProvider?.longitude &&
+                  !isNaN(selectedProvider.latitude) && !isNaN(selectedProvider.longitude) && (
+                    <div className={styles.mapLoading}>
+                      <p>Loading map...</p>
+                    </div>
+                  )}
               </div>
             ) : (
               <div className={styles.noSelection}>

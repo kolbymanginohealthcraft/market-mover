@@ -7,7 +7,7 @@ export default function PlatformTab() {
 
   return (
     <div className={styles.section}>
-      
+
       <div className={styles.platformTools}>
         <div className={`${styles.toolCard} ${styles.announcements}`}>
           <h3>System Announcements</h3>
@@ -72,6 +72,63 @@ export default function PlatformTab() {
           >
             Manage Policies
           </Button>
+        </div>
+
+        {/* Temp Section */}
+        <div className={`${styles.toolCard} ${styles.temp}`}>
+          <h3>Development Tools</h3>
+          <p>Testing and development utilities</p>
+          <div className={styles.tempButtons}>
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => navigate("/app/banner-test")}
+              className={styles.tempButton}
+            >
+              Banner Test
+            </Button>
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => navigate("/playground")}
+              className={styles.tempButton}
+            >
+              Button Playground
+            </Button>
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => navigate("/app/spinner-demo")}
+              className={styles.tempButton}
+            >
+              Spinner Demo
+            </Button>
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => navigate("/payment-flow")}
+              className={styles.tempButton}
+            >
+              Payment Flow
+            </Button>
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => navigate("/app/billing")}
+              className={styles.tempButton}
+            >
+              Billing History
+            </Button>
+            
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => navigate("/auth/paymenttest")}
+              className={styles.tempButton}
+            >
+              Payment Test
+            </Button>
+          </div>
         </div>
       </div>
     </div>

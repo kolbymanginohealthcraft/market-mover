@@ -26,9 +26,10 @@
 /* Platform Tools Grid */
 .platformTools {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 24px;
   margin-top: 24px;
+  align-items: start;
 }
 
 .toolCard {
@@ -42,7 +43,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 200px;
 }
 
 .toolCard::before {
@@ -113,6 +114,14 @@
   content: '👥';
 }
 
+.toolCard:nth-child(5) h3::before {
+  content: '📋';
+}
+
+.toolCard:nth-child(6) h3::before {
+  content: '🧪';
+}
+
 /* Card variations for different tools */
 .toolCard.announcements {
   border-left: 4px solid #3b82f6;
@@ -130,7 +139,41 @@
   border-left: 4px solid #8b5cf6;
 }
 
+.toolCard.legal {
+  border-left: 4px solid #ef4444;
+}
 
+.toolCard.temp {
+  border-left: 4px solid #8b5cf6;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.toolCard.temp h3 {
+  color: #475569;
+}
+
+.toolCard.temp p {
+  color: #64748b;
+}
+
+.tempButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.tempButton {
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.tempButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
 
 /* Responsive Design */
 @media (max-width: 1024px) {
@@ -141,6 +184,7 @@
   
   .toolCard {
     padding: 24px;
+    min-height: 180px;
   }
 }
 
@@ -152,6 +196,7 @@
   
   .toolCard {
     padding: 20px;
+    min-height: 160px;
   }
   
   .toolCard h3 {

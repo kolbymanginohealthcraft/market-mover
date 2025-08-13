@@ -108,7 +108,7 @@
   }
 }
 
-/* Legacy styles for backward compatibility */
+/* Legacy styles for backwards compatibility */
 .sidebar {
   flex: 0 0 280px;
   position: sticky;

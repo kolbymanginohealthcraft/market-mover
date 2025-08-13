@@ -1,15 +1,68 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-export function useDropdownClose(ref, closeCallback) {
+/**
+ * Enhanced dropdown close hook that supports both bulk and individual dropdown patterns
+ * 
+ * @param {Object} options - Configuration options
+ * @param {React.RefObject} options.ref - Ref for bulk dropdowns (optional)
+ * @param {string} options.dropdownSelector - CSS selector for individual dropdowns (optional)
+ * @param {string} options.buttonSelector - CSS selector for individual buttons (optional)
+ * @param {Function} options.closeCallback - Function to call when closing dropdown
+ * @param {boolean} options.isOpen - Whether dropdown is currently open
+ * @param {boolean} options.enableButtonToggle - Whether clicking the button should toggle the dropdown
+ * @returns {Object} - Returns buttonRef for bulk dropdowns
+ */
+export function useDropdownClose({
+  ref = null,
+  dropdownSelector = null,
+  buttonSelector = null,
+  closeCallback,
+  isOpen = true,
+  enableButtonToggle = false
+}) {
+  const buttonRef = useRef(null);
+
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+      let clickedInside = false;
+
+      // Check if click is inside bulk dropdown (using ref)
+      if (ref && ref.current && ref.current.contains(e.target)) {
+        clickedInside = true;
+      }
+
+      // Check if click is inside any individual dropdowns (using selector)
+      if (dropdownSelector) {
+        const dropdowns = document.querySelectorAll(dropdownSelector);
+        dropdowns.forEach(dropdown => {
+          if (dropdown.contains(e.target)) {
+            clickedInside = true;
+          }
+        });
+      }
+
+      // Check if click is on any individual buttons (using selector)
+      if (buttonSelector) {
+        const buttons = document.querySelectorAll(buttonSelector);
+        buttons.forEach(button => {
+          if (button.contains(e.target)) {
+            clickedInside = true;
+          }
+        });
+      }
+
+      // Close if clicking outside
+      if (!clickedInside) {
         closeCallback();
       }
     };
 
     const handleEscape = (e) => {
-      if (e.key === "Escape") closeCallback();
+      if (e.key === "Escape") {
+        closeCallback();
+      }
     };
 
     document.addEventListener("mousedown", handleClick);
@@ -19,5 +72,7 @@ export function useDropdownClose(ref, closeCallback) {
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [ref, closeCallback]);
+  }, [ref, dropdownSelector, buttonSelector, closeCallback, isOpen]);
+
+  return { buttonRef };
 }
