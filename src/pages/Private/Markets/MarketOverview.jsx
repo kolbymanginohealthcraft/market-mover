@@ -6,6 +6,7 @@ import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 import Banner from '../../../components//Buttons/Banner';
 import SidePanel from '../../../components/Overlays/SidePanel';
+import Dropdown from '../../../components/Buttons/Dropdown';
 import { apiUrl } from '../../../utils/api';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
 
@@ -57,7 +58,7 @@ export default function MarketOverview() {
 
   // Force re-render when team provider tags change
   useEffect(() => {
-    console.log('🔄 Team provider tags updated:', teamProviderTags.length);
+    console.log('🔄 Team provider tags updated:', teamProviderTags.length, teamProviderTags);
     setTagUpdateTrigger(prev => prev + 1);
   }, [teamProviderTags]);
 
@@ -106,17 +107,7 @@ export default function MarketOverview() {
     }
   };
 
-  const handleTag = async (providerDhc, tagType) => {
-    try {
-      await addTeamProviderTag(providerDhc, tagType);
-      setTaggingProviderId(null);
-      // Force re-render after tag is added
-      setTimeout(() => setTagUpdateTrigger(prev => prev + 1), 100);
-    } catch (err) {
-      console.error('Error tagging provider:', err);
-      setError(err.message);
-    }
-  };
+
 
   const handleUntag = async (providerDhc, tagType) => {
     try {
@@ -378,6 +369,7 @@ export default function MarketOverview() {
             <tbody key={`providers-${tagUpdateTrigger}`}>
               {getFilteredProviders().map((provider) => {
                 const providerTags = getProviderTags(provider.dhc);
+                console.log('Provider tags for', provider.dhc, ':', providerTags);
                 return (
                   <tr key={`${provider.dhc}-${tagUpdateTrigger}`}>
                     <td className={styles.providerName}>{provider.name}</td>
@@ -408,47 +400,57 @@ export default function MarketOverview() {
                             ))}
                           </div>
                         ) : (
-                          <div className={styles.dropdownContainer}>
-                            <Button
-                              size="sm"
-                              outline
-                              onClick={() => setTaggingProviderId(taggingProviderId === provider.dhc ? null : provider.dhc)}
+                          <Dropdown
+                            trigger={
+                              <button className={styles.newTagButton}>
+                                Tag
+                              </button>
+                            }
+                            isOpen={taggingProviderId === provider.dhc}
+                            onToggle={(isOpen) => setTaggingProviderId(isOpen ? provider.dhc : null)}
+                            className={styles.tagDropdown}
+                          >
+                            <button
+                              className={styles.dropdownItem}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addTeamProviderTag(provider.dhc, 'me');
+                                setTaggingProviderId(null);
+                              }}
                             >
-                              Tag
-                            </Button>
-                            {taggingProviderId === provider.dhc && (
-                              <div className={styles.dropdown}>
-                                <Button
-                                  size="sm"
-                                  variant="green"
-                                  onClick={() => handleTag(provider.dhc, 'me')}
-                                >
-                                  Me
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="blue"
-                                  onClick={() => handleTag(provider.dhc, 'partner')}
-                                >
-                                  Partner
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="red"
-                                  onClick={() => handleTag(provider.dhc, 'competitor')}
-                                >
-                                  Competitor
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="gold"
-                                  onClick={() => handleTag(provider.dhc, 'target')}
-                                >
-                                  Target
-                                </Button>
-                              </div>
-                            )}
-                          </div>
+                              Me
+                            </button>
+                            <button
+                              className={styles.dropdownItem}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addTeamProviderTag(provider.dhc, 'partner');
+                                setTaggingProviderId(null);
+                              }}
+                            >
+                              Partner
+                            </button>
+                            <button
+                              className={styles.dropdownItem}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addTeamProviderTag(provider.dhc, 'competitor');
+                                setTaggingProviderId(null);
+                              }}
+                            >
+                              Competitor
+                            </button>
+                            <button
+                              className={styles.dropdownItem}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addTeamProviderTag(provider.dhc, 'target');
+                                setTaggingProviderId(null);
+                              }}
+                            >
+                              Target
+                            </button>
+                          </Dropdown>
                         )}
                       </div>
                     </td>

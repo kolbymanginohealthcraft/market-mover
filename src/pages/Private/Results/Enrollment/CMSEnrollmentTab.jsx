@@ -2,8 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styles from "./CMSEnrollmentTab.module.css";
 import CMSEnrollmentPanel from "./CMSEnrollmentPanel";
 import CMSEnrollmentTrendChart from "./CMSEnrollmentTrendChart";
+import MAEnrollmentPanel from "./MAEnrollmentPanel";
+import MAEnrollmentTrendChart from "./MAEnrollmentTrendChart";
 import useCMSEnrollmentData from "../../../../hooks/useCMSEnrollmentData";
 import { useCMSEnrollmentDataByLevel, useCMSEnrollmentYears } from "../../../../hooks/useCMSEnrollmentData";
+import useMAEnrollmentData, { useMAEnrollmentTrendData } from "../../../../hooks/useMAEnrollmentData";
+import { apiUrl } from "../../../../utils/api";
 import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
 import Button from "../../../../components/Buttons/Button";
 
@@ -14,6 +18,12 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
   const [selectedBenchmark, setSelectedBenchmark] = useState('national'); // 'national', 'state-XX', 'county-XXXXX'
   const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   
+  // MA Enrollment state
+  const [publishDates, setPublishDates] = useState([]);
+  const [loadingDates, setLoadingDates] = useState(true);
+  const [errorDates, setErrorDates] = useState(null);
+  const [selectedType, setSelectedType] = useState("MA");
+  
   // Fetch CMS enrollment data
   const { data, loading, error, latestMonth, months } = useCMSEnrollmentData(provider, radiusInMiles);
   
@@ -22,6 +32,34 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
   
   // Get the latest year for benchmarks
   const latestYear = availableYears && availableYears.length > 0 ? availableYears[0] : '2023';
+
+  // Fetch MA enrollment dates
+  useEffect(() => {
+    async function fetchDates() {
+      setLoadingDates(true);
+      setErrorDates(null);
+      try {
+        const resp = await fetch(apiUrl('/api/ma-enrollment-dates'));
+        if (!resp.ok) throw new Error('Failed to fetch publish dates');
+        const result = await resp.json();
+        if (!result.success) throw new Error(result.error || 'Failed to fetch publish dates');
+        setPublishDates(result.data || []);
+      } catch (err) {
+        setErrorDates(err.message);
+        setPublishDates([]);
+      } finally {
+        setLoadingDates(false);
+      }
+    }
+    fetchDates();
+  }, []);
+
+  // MA Enrollment data
+  const publishDate = publishDates[publishDates.length - 1];
+  const startDate = publishDates[0];
+  const endDate = publishDate;
+  const { data: maData, loading: maLoading, error: maError } = useMAEnrollmentData(provider, radiusInMiles, publishDate, selectedType);
+  const { data: maTrendData, loading: maTrendLoading, error: maTrendError } = useMAEnrollmentTrendData(provider, radiusInMiles, startDate, endDate, selectedType);
   
   // Helper functions for benchmark data
   const getBenchmarkLevel = () => {
@@ -204,6 +242,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
       pdpPercentage: benchmark.pdpPercentage,
       mapdPercentage: benchmark.mapdPercentage
     });
+    
     return benchmark;
   };
 
@@ -237,51 +276,54 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
     return value;
   };
 
-  // Calculate summary statistics
+  // Calculate summary statistics for the main data
   const summaryStats = useMemo(() => {
     if (!data || !latestMonth) return null;
     
     const latestData = data.filter(r => r.month === latestMonth);
+    if (latestData.length === 0) return null;
+    
     const totalBenes = latestData.reduce((sum, r) => sum + (r.total_benes || 0), 0);
     const maOther = latestData.reduce((sum, r) => sum + (r.ma_and_other || 0), 0);
     const originalMedicare = latestData.reduce((sum, r) => sum + (r.original_medicare || 0), 0);
     const dualEligible = latestData.reduce((sum, r) => sum + (r.dual_total || 0), 0);
+    const agedTotal = latestData.reduce((sum, r) => sum + (r.aged_total || 0), 0);
+    const disabledTotal = latestData.reduce((sum, r) => sum + (r.disabled_total || 0), 0);
+    const drugTotal = latestData.reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0);
+    const drugPdp = latestData.reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0);
+    const drugMapd = latestData.reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0);
+    
+    const benchmark = getCurrentBenchmark();
     
     return {
       totalBenes,
       maOther,
       originalMedicare,
       dualEligible,
-      maPercentage: totalBenes > 0 ? ((maOther / totalBenes) * 100).toFixed(1) : 0,
-      dualPercentage: totalBenes > 0 ? ((dualEligible / totalBenes) * 100).toFixed(1) : 0
+      agedTotal,
+      disabledTotal,
+      drugTotal,
+      drugPdp,
+      drugMapd,
+      maPercentage: totalBenes > 0 ? ((maOther / totalBenes) * 100).toFixed(1) : '0.0',
+      originalMedicarePercentage: totalBenes > 0 ? ((originalMedicare / totalBenes) * 100).toFixed(1) : '0.0',
+      dualPercentage: totalBenes > 0 ? ((dualEligible / totalBenes) * 100).toFixed(1) : '0.0',
+      agedPercentage: totalBenes > 0 ? ((agedTotal / totalBenes) * 100).toFixed(1) : '0.0',
+      disabledPercentage: totalBenes > 0 ? ((disabledTotal / totalBenes) * 100).toFixed(1) : '0.0',
+      drugPercentage: totalBenes > 0 ? ((drugTotal / totalBenes) * 100).toFixed(1) : '0.0',
+      pdpPercentage: totalBenes > 0 ? ((drugPdp / totalBenes) * 100).toFixed(1) : '0.0',
+      mapdPercentage: totalBenes > 0 ? ((drugMapd / totalBenes) * 100).toFixed(1) : '0.0',
+      benchmark
     };
-  }, [data, latestMonth]);
+  }, [data, latestMonth, selectedBenchmark, benchmarkData]);
 
-  // Get trend data for selected metric
-  const trendData = useMemo(() => {
-    if (!data) return [];
-    
-    const byMonth = {};
-    data.forEach(row => {
-      if (!row.month) return;
-      if (!byMonth[row.month]) {
-        byMonth[row.month] = { month: row.month };
-      }
-      byMonth[row.month][selectedMetric] = (byMonth[row.month][selectedMetric] || 0) + (row[selectedMetric] || 0);
-    });
-    
-    return Object.values(byMonth).sort((a, b) => {
-      const [ay, am] = a.month.split('-').map(Number);
-      const [by, bm] = b.month.split('-').map(Number);
-      return ay !== by ? ay - by : am - bm;
-    });
-  }, [data, selectedMetric]);
-
-  // Get demographic breakdown for latest month
+  // Calculate demographic data
   const demographicData = useMemo(() => {
     if (!data || !latestMonth) return null;
     
     const latestData = data.filter(r => r.month === latestMonth);
+    if (latestData.length === 0) return null;
+    
     const total = latestData.reduce((sum, r) => sum + (r.total_benes || 0), 0);
     
     if (total === 0) return null;
@@ -339,7 +381,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
       <div className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.titleSection}>
-            <h1>CMS Medicare Enrollment</h1>
+            <h1>Enrollment</h1>
             <p>Comprehensive Medicare enrollment data from the Centers for Medicare & Medicaid Services</p>
           </div>
           <div className={styles.headerStats}>
@@ -415,34 +457,18 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
         </div>
         
         {selectedView === 'trends' && (
-          <div className={styles.trendControls}>
-            <div className={styles.controlGroup}>
-              <label>Metric:</label>
-              <select 
-                value={selectedMetric} 
-                onChange={(e) => setSelectedMetric(e.target.value)}
-                className={styles.select}
-              >
-                <option value="ma_and_other">Medicare Advantage & Other</option>
-                <option value="original_medicare">Original Medicare</option>
-                <option value="dual_total">Dual Eligible</option>
-                <option value="aged_total">Aged (65+)</option>
-                <option value="disabled_total">Disabled</option>
-                <option value="prescription_drug_total">With Drug Coverage</option>
-              </select>
-            </div>
-            <div className={styles.controlGroup}>
-              <label>Timeframe:</label>
-              <select 
-                value={selectedTimeframe} 
-                onChange={(e) => setSelectedTimeframe(e.target.value)}
-                className={styles.select}
-              >
-                <option value="latest">Latest Month</option>
-                <option value="monthly">Monthly Trends</option>
-                <option value="yearly">Yearly Trends</option>
-              </select>
-            </div>
+          <div className={styles.timeframeControls}>
+            <ButtonGroup
+              options={[
+                { label: 'Latest', value: 'latest' },
+                { label: 'Monthly', value: 'monthly' },
+                { label: 'Yearly', value: 'yearly' }
+              ]}
+              selected={selectedTimeframe}
+              onSelect={setSelectedTimeframe}
+              size="sm"
+              variant="blue"
+            />
           </div>
         )}
       </div>
@@ -450,148 +476,40 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
       <div className={styles.content}>
         {selectedView === 'overview' && (
           <div className={styles.overviewSection}>
-            <div className={styles.metricsGrid}>
-              <div className={styles.metricCard}>
-                <h3>Coverage Type</h3>
-                <div className={styles.metricGroup}>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>Medicare Advantage & Other</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('maPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{summaryStats?.maOther.toLocaleString()}</span>
-                    <span className={styles.percentage}>({summaryStats?.maPercentage}%)</span>
-                  </div>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>Original Medicare</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('originalMedicarePercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{summaryStats?.originalMedicare.toLocaleString()}</span>
-                    <span className={styles.percentage}>({summaryStats?.originalMedicare > 0 && summaryStats?.totalBenes > 0 ? ((summaryStats.originalMedicare / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.metricCard}>
-                <h3>Eligibility</h3>
-                <div className={styles.metricGroup}>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>Aged (65+)</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('agedPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{demographicData ? Object.values(demographicData.ageGroups).reduce((sum, count) => sum + count, 0).toLocaleString() : '0'}</span>
-                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>Disabled</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('disabledPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{summaryStats?.totalBenes > 0 ? (summaryStats.totalBenes - Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0)).toLocaleString() : '0'}</span>
-                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((summaryStats.totalBenes - Object.values(demographicData?.ageGroups || {}).reduce((sum, count) => sum + count, 0)) / summaryStats.totalBenes * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>Dual Eligible</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('dualPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{summaryStats?.dualEligible.toLocaleString()}</span>
-                    <span className={styles.percentage}>({summaryStats?.dualPercentage}%)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.metricCard}>
-                <h3>Prescription Drug Coverage</h3>
-                <div className={styles.metricGroup}>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>With Drug Coverage</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('drugPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0).toLocaleString()}</span>
-                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>PDP Only</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('pdpPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0).toLocaleString()}</span>
-                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                  <div className={styles.metricItem}>
-                    <div className={styles.metricHeader}>
-                      <span className={styles.metricLabel}>MAPD</span>
-                      {getCurrentBenchmark() && (
-                        <span className={styles.benchmarkAverage}>
-                          {renderBenchmarkAverage(getBenchmarkValue('mapdPercentage'))}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.value}>{data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0).toLocaleString()}</span>
-                    <span className={styles.percentage}>({summaryStats?.totalBenes > 0 ? ((data?.filter(r => r.month === latestMonth).reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0) / summaryStats.totalBenes) * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <CMSEnrollmentPanel 
+              data={data} 
+              loading={loading} 
+              error={error}
+              latestMonth={latestMonth}
+            />
           </div>
         )}
 
         {selectedView === 'trends' && (
           <div className={styles.trendsSection}>
-            <div className={styles.trendChart}>
-              <h3>{selectedMetric.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Trends</h3>
-              <CMSEnrollmentTrendChart
-                data={trendData}
-                metric={selectedMetric}
-              />
-            </div>
+            <CMSEnrollmentTrendChart
+              data={data}
+              loading={loading}
+              error={error}
+              timeframe={selectedTimeframe}
+              metric={selectedMetric}
+              months={months}
+            />
           </div>
         )}
 
-        {selectedView === 'demographics' && demographicData && (
+        {selectedView === 'demographics' && (
           <div className={styles.demographicsSection}>
-            <div className={styles.demographicsGrid}>
+            <div className={styles.demographicGrid}>
               <div className={styles.demographicCard}>
                 <h3>Age Distribution</h3>
                 <div className={styles.ageChart}>
-                  {Object.entries(demographicData.ageGroups).map(([age, count]) => {
-                    const percentage = summaryStats.totalBenes > 0 ? ((count / summaryStats.totalBenes) * 100).toFixed(1) : 0;
+                  {Object.entries(demographicData?.ageGroups || {}).map(([age, count]) => {
+                    const percentage = summaryStats?.totalBenes > 0 ? ((count / summaryStats.totalBenes) * 100).toFixed(1) : 0;
                     return (
-                      <div key={age} className={styles.ageBar}>
+                      <div key={age} className={styles.ageItem}>
                         <div className={styles.ageLabel}>{age}</div>
-                        <div className={styles.ageBarContainer}>
+                        <div className={styles.ageBar}>
                           <div 
                             className={styles.ageBarFill} 
                             style={{ width: `${percentage}%` }}
@@ -615,12 +533,12 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
                       <div 
                         className={styles.genderBarFill} 
                         style={{ 
-                          width: `${summaryStats.totalBenes > 0 ? (demographicData.gender.male / summaryStats.totalBenes * 100) : 0}%` 
+                          width: `${summaryStats?.totalBenes > 0 ? (demographicData?.gender.male / summaryStats.totalBenes * 100) : 0}%` 
                         }}
                       ></div>
                     </div>
                     <div className={styles.genderValue}>
-                      {demographicData.gender.male.toLocaleString()}
+                      {demographicData?.gender.male.toLocaleString()}
                     </div>
                   </div>
                   <div className={styles.genderItem}>
@@ -629,12 +547,12 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
                       <div 
                         className={styles.genderBarFill} 
                         style={{ 
-                          width: `${summaryStats.totalBenes > 0 ? (demographicData.gender.female / summaryStats.totalBenes * 100) : 0}%` 
+                          width: `${summaryStats?.totalBenes > 0 ? (demographicData?.gender.female / summaryStats.totalBenes * 100) : 0}%` 
                         }}
                       ></div>
                     </div>
                     <div className={styles.genderValue}>
-                      {demographicData.gender.female.toLocaleString()}
+                      {demographicData?.gender.female.toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -643,8 +561,8 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
               <div className={styles.demographicCard}>
                 <h3>Race & Ethnicity</h3>
                 <div className={styles.raceChart}>
-                  {Object.entries(demographicData.race).map(([race, count]) => {
-                    const percentage = summaryStats.totalBenes > 0 ? ((count / summaryStats.totalBenes) * 100).toFixed(1) : 0;
+                  {Object.entries(demographicData?.race || {}).map(([race, count]) => {
+                    const percentage = summaryStats?.totalBenes > 0 ? ((count / summaryStats.totalBenes) * 100).toFixed(1) : 0;
                     return (
                       <div key={race} className={styles.raceItem}>
                         <div className={styles.raceLabel}>
@@ -670,13 +588,55 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
 
         {selectedView === 'payers' && (
           <div className={styles.payersSection}>
-            <div className={styles.emptyState}>
-              <h3>Payer Enrollment Data</h3>
-              <p>Detailed enrollment breakdowns by payer will be available soon.</p>
-              <div className={styles.comingSoon}>
-                <span>🚧 Coming Soon</span>
+            {loadingDates ? (
+              <div>Loading available dates...</div>
+            ) : errorDates ? (
+              <div>Error loading dates: {errorDates}</div>
+            ) : !publishDates.length ? (
+              <div>No enrollment dates available.</div>
+            ) : (
+              <div>
+                <div className={styles.payersHeader}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3>Medicare Advantage Enrollment</h3>
+                    <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                      Medicare enrollment data for {publishDate}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                        Plan Type:
+                      </span>
+                      <ButtonGroup
+                        options={[
+                          { label: "Medicare Advantage", value: "MA" },
+                          { label: "Prescription Drug Plans", value: "PDP" }
+                        ]}
+                        selected={selectedType}
+                        onSelect={setSelectedType}
+                        size="sm"
+                        variant="blue"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <MAEnrollmentPanel 
+                  data={maData} 
+                  loading={maLoading} 
+                  error={maError}
+                  type={selectedType}
+                />
+                
+                <MAEnrollmentTrendChart
+                  data={maTrendData}
+                  loading={maTrendLoading}
+                  error={maTrendError}
+                  startDate={startDate}
+                  endDate={endDate}
+                  type={selectedType}
+                />
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

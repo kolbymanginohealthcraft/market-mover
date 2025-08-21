@@ -443,6 +443,12 @@
   padding: 24px;
 }
 
+.payersHeader {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .emptyState {
   display: flex;
   flex-direction: column;

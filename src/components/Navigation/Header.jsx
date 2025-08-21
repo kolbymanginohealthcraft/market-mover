@@ -203,7 +203,7 @@ const Header = ({ currentView, selectedMarket }) => {
     
     if (currentPath.includes('/dashboard')) {
       return [
-        { text: 'Real-time performance analytics and market insights', type: 'description' }
+        { text: 'Performance analytics and market insights', type: 'description' }
       ];
     } else if (currentPath.includes('/search')) {
       return [

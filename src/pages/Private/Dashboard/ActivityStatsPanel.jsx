@@ -199,7 +199,7 @@ export default function ActivityStatsPanel() {
         </div>
         <div className={styles.statContent}>
           <div className={styles.statValue}>{activityStreak.current}</div>
-          <div className={styles.statLabel}>Activity Streak</div>
+          <div className={styles.statLabel}>Daily Streak</div>
           <div className={styles.statSubtext}>Longest: {activityStreak.longest} days</div>
         </div>
       </div>
@@ -232,7 +232,7 @@ export default function ActivityStatsPanel() {
         </div>
         <div className={styles.statContent}>
           <div className={styles.statValue}>{dashboardStats.taggedProviders}</div>
-          <div className={styles.statLabel}>Network</div>
+          <div className={styles.statLabel}>My Network</div>
           <div className={styles.statSubtext}>Tagged providers</div>
         </div>
       </div>

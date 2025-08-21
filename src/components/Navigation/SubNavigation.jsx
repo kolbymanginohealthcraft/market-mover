@@ -128,10 +128,8 @@ const SubNavigation = () => {
       currentActiveTab = 'population';
     } else if (location.pathname.includes('/claims')) {
       currentActiveTab = 'claims';
-    } else if (location.pathname.includes('/enrollment')) {
+    } else if (location.pathname.includes('/enrollment') || location.pathname.includes('/cms-enrollment')) {
       currentActiveTab = 'enrollment';
-    } else if (location.pathname.includes('/cms-enrollment')) {
-      currentActiveTab = 'cms-enrollment';
     } else if (location.pathname.includes('/storyteller')) {
       currentActiveTab = 'storyteller';
     } else if (location.pathname.includes('/overview') || location.pathname.endsWith(`/provider/${pathSegments[dhcIndex]}`)) {
@@ -144,8 +142,7 @@ const SubNavigation = () => {
       { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density` },
       { id: "population", label: "Population", icon: Users, path: `${basePath}/population` },
       { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims` },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/enrollment` },
-      { id: "cms-enrollment", label: "CMS Enrollment", icon: FileText, path: `${basePath}/cms-enrollment` },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment` },
       { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller` }
     ];
 
