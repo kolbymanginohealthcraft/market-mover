@@ -455,24 +455,6 @@ export default function MarketMap({
   return (
     <div className={styles.mapSection}>
       <div className={styles.mapContainer} ref={mapContainerRef} />
-      <div className={styles.mapControls}>
-        <div className={styles.radiusControl}>
-          <label htmlFor="radius">Radius: {radius} miles</label>
-          <input
-            id="radius"
-            type="range"
-            min="1"
-            max="100"
-            value={radius}
-            onChange={(e) => {
-              const newRadius = parseInt(e.target.value);
-              onRadiusChange(newRadius);
-              updateCircle(center.lat, center.lng, newRadius);
-            }}
-            className={styles.slider}
-          />
-        </div>
-      </div>
     </div>
   );
 } 

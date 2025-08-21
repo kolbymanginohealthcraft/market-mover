@@ -3,6 +3,15 @@
   margin-bottom: 32px;
 }
 
+.content {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--gray-200);
+  border-top: none;
+  overflow: visible;
+  padding: 24px;
+}
+
 .twoColumnLayout {
   display: grid;
   grid-template-columns: 1fr 1fr;

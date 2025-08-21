@@ -1,0 +1,371 @@
+.header {
+  background: linear-gradient(90deg, var(--gray-50) 0%, var(--white) 100%);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* height: 80px; */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.moduleIcon {
+  width: 40px;
+  height: 40px;
+  background: var(--primary-teal);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(0, 192, 139, 0.2);
+}
+
+.moduleIcon svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.titleContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pageTitle {
+  font-size: 2.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.breadcrumbItem {
+  transition: all 0.2s ease;
+}
+
+.breadcrumbSeparator {
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+/* Default breadcrumb item types */
+.primary {
+  color: var(--primary-teal-dark);
+  font-weight: 600;
+}
+
+.secondary {
+  color: var(--gray-600);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.tertiary {
+  color: var(--gray-500);
+  font-weight: 400;
+}
+
+/* Provider-specific breadcrumb item types */
+.provider {
+  color: var(--primary-teal-dark);
+  font-weight: 600;
+}
+
+.location {
+  color: var(--gray-600);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.category {
+  color: var(--gray-500);
+  font-weight: 400;
+}
+
+/* Market-specific breadcrumb item types */
+.market {
+  color: var(--primary-teal-dark);
+  font-weight: 600;
+}
+
+.radius {
+  color: var(--gray-600);
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* Description breadcrumb item type */
+.description {
+  color: var(--gray-600);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.analysis {
+  color: var(--gray-600);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--white);
+  border-radius: 8px;
+  color: var(--gray-600);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: 1px solid var(--gray-200);
+}
+
+.iconButton:hover {
+  background: var(--gray-50);
+  color: var(--primary-teal-dark);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.iconButton svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.userProfileContainer {
+  position: relative;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.userProfile:hover {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-teal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.chevron {
+  color: var(--gray-500);
+  transition: transform 0.2s ease;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 240px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--gray-50);
+}
+
+.dropdownAvatar {
+  width: 40px;
+  height: 40px;
+  background: var(--primary-teal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.dropdownUserInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.dropdownName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.dropdownEmail {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  line-height: 1.2;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--gray-200);
+  margin: 0;
+}
+
+.dropdownLogout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdownLogout svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.dropdownLogout:hover {
+  background: var(--gray-50);
+  color: var(--error-red);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .header {
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+    flex-direction: column;
+    height: auto;
+    gap: 1rem;
+  }
+  
+  .headerLeft,
+  .headerRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .userSection {
+    gap: 0.5rem;
+  }
+  
+  .userName {
+    display: none;
+  }
+  
+  .userProfile {
+    padding: 0.5rem;
+  }
+  
+  .dropdown {
+    min-width: 200px;
+    right: 0;
+  }
+  
+  .dropdownHeader {
+    padding: 0.75rem;
+  }
+  
+  .dropdownAvatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+  }
+  
+  .dropdownName {
+    font-size: 0.8rem;
+  }
+  
+  .dropdownEmail {
+    font-size: 0.7rem;
+  }
+}

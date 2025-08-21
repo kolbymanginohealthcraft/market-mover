@@ -339,7 +339,7 @@ export default function MarketOverview() {
               id="searchTerm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search provider names..."
+              placeholder="Search providers in this list..."
               className={styles.searchInput}
             />
           </div>

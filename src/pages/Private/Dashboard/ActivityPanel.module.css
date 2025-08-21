@@ -31,11 +31,22 @@
   padding: 4px 8px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  border: 1px solid transparent;
+  gap: 8px;
 }
 
 .activityLink:hover {
-  background: #f8fafc;
-  transform: translateX(2px);
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.activityIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
 }
 
 .activityText {
@@ -58,6 +69,6 @@
 }
 
 .clearSingleButton:hover {
-  background: #f0f0f0;
-  color: #666;
+  background: var(--gray-50);
+  color: var(--primary-teal-dark);
 } 

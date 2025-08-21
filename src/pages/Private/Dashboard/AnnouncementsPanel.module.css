@@ -5,34 +5,56 @@
 .updateList {
   list-style: none;
   padding-left: 0;
-  font-size: 0.95rem;
-  color: #5f6b6d;
   margin: 0;
 }
 
 .updateItem {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  border-radius: 8px;
+  border: 1px solid var(--gray-200);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.updateItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-teal);
 }
 
 .updateItem:last-child {
-  border-bottom: none;
   margin-bottom: 0;
-  padding-bottom: 0;
 }
 
 .updateTitle {
-  font-weight: 600;
-  color: #1dadbe;
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  line-height: 1.4;
 }
 
 .updateDescription {
   font-size: 0.9rem;
-  color: #5f6b6d;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 12px;
 }
 
 .updateDate {
   font-size: 0.8rem;
-  color: #999;
+  color: #94a3b8;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendarIcon {
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  flex-shrink: 0;
 } 

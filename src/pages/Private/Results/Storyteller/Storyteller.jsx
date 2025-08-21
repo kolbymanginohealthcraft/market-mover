@@ -5,11 +5,9 @@ import Benchmarks from "./Benchmarks";
 import Button from "../../../../components/Buttons/Button";
 import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
 import styles from "./Storyteller.module.css";
-import Banner from "../../../../components/Buttons/Banner";
 
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
   const location = useLocation();
-  const base = location.pathname.replace(/\/storyteller.*/, "/storyteller");
   
   // Set body attribute for CSS overrides
   useEffect(() => {
@@ -20,7 +18,6 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   }, []);
   
   // Move state management to this level so it can be shared between tabs
-  const [showBanner, setShowBanner] = useState(true);
   const [providerTypeFilter, setProviderTypeFilter] = useState(null);
   const [selectedPublishDate, setSelectedPublishDate] = useState('');
   const [chartMode, setChartMode] = useState('snapshot');
@@ -107,22 +104,18 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
     );
   }
 
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-  };
-
   return (
     <div className={styles.container}>
       <nav className={styles.nav}>
         <div className={styles.navLeft}>
           <NavLink 
-            to={`${base}/scorecard`} 
+            to="scorecard" 
             className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
           >
             Scorecard
           </NavLink>
           <NavLink 
-            to={`${base}/benchmarks`} 
+            to="benchmarks" 
             className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
           >
             Benchmarks
@@ -215,12 +208,7 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
       </nav>
       
       {/* Enhanced Banner - Early Adopter Excitement */}
-      <Banner
-        title="Quality Analysis & Market Insights"
-        message="This section brings together quality measures and benchmarks to help you identify marketable wins and address clinical areas of weakness. You'll see where your competitors may be lacking and gain the foresight to position your services strategically. As we continue developing, you'll access enhanced comparative analytics and predictive insights that will transform your market approach."
-        icon="📈"
-        onClose={handleCloseBanner}
-      />
+      {/* Removed Banner component */}
 
       <div className={styles.content}>
         <Routes>

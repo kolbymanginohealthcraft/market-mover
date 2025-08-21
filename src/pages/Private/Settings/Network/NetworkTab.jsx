@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Network } from 'lucide-react';
 import Button from '../../../../components/Buttons/Button';
 import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Spinner from '../../../../components/Buttons/Spinner';
+import SectionHeader from '../../../../components/Layouts/SectionHeader';
+import Dropdown from '../../../../components/Buttons/Dropdown';
 import useTaggedProviders from '../../../../hooks/useTaggedProviders';
 import styles from './NetworkTab.module.css';
+import dropdownStyles from '../../../../components/Buttons/Dropdown.module.css';
 
 export default function NetworkTab() {
   const navigate = useNavigate();
@@ -29,28 +33,7 @@ export default function NetworkTab() {
     changeProviderTag,
   } = useTaggedProviders();
 
-  // Close menu when clicking outside or pressing escape
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (editingTag && !event.target.closest(`.${styles.tagWrapper}`)) {
-        setEditingTag(null);
-      }
-    };
 
-    const handleEscapeKey = (event) => {
-      if (event.key === 'Escape' && editingTag) {
-        setEditingTag(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscapeKey);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [editingTag]);
 
   // Handle footer visibility with animation
   useEffect(() => {
@@ -90,18 +73,10 @@ export default function NetworkTab() {
     navigate(`/app/provider/${providerDhc}/overview`);
   };
 
-  const handleTagClick = (providerDhc, tag, event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const dropdownHeight = 150; // Approximate dropdown height
-    
-    // Check if dropdown would go below viewport
-    const shouldGoUp = rect.bottom + dropdownHeight > viewportHeight;
-    
+  const handleTagClick = (providerDhc, tag) => {
     setEditingTag({ 
       providerDhc, 
-      currentTag: tag, 
-      shouldGoUp 
+      currentTag: tag
     });
   };
 
@@ -210,6 +185,11 @@ export default function NetworkTab() {
     }
   };
 
+  const handleEditNetwork = () => {
+    // For now, just show a message. This could open a modal or navigate to an edit page
+    alert('Edit network functionality coming soon!');
+  };
+
   // Filter and sort providers
   const filteredAndSortedProviders = taggedProviders
     .filter(provider => {
@@ -282,8 +262,13 @@ export default function NetworkTab() {
 
   return (
     <div className={styles.section}>
-      <div className={styles.headerRow}>
-        <h3 className={styles.subsectionTitle}>Network Management</h3>
+      <SectionHeader 
+        title="Network Management" 
+        icon={Network} 
+        showEditButton={false}
+      />
+      
+      <div className={styles.content}>
         <div className={styles.controls}>
           <input
             type="text"
@@ -293,28 +278,24 @@ export default function NetworkTab() {
             className={styles.searchInput}
           />
         
-        <select value={filterType} onChange={handleFilterChange} className={styles.filterSelect}>
-          <option value="all">All Types</option>
-          {getUniqueTypes().map(type => (
-            <option key={type} value={type}>{type}</option>
-          ))}
-        </select>
-        
-        <select value={filterTag} onChange={(e) => handleTagFilterChange(e.target.value)} className={styles.filterSelect}>
-          <option value="all">All Tags</option>
-          <option value="me">Me</option>
-          <option value="partner">Partner</option>
-          <option value="competitor">Competitor</option>
-          <option value="target">Target</option>
-        </select>
-      </div>
-    </div>
+          <select value={filterType} onChange={handleFilterChange} className={styles.filterSelect}>
+            <option value="all">All Types</option>
+            {getUniqueTypes().map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+          
+          <select value={filterTag} onChange={(e) => handleTagFilterChange(e.target.value)} className={styles.filterSelect}>
+            <option value="all">All Tags</option>
+            <option value="me">Me</option>
+            <option value="partner">Partner</option>
+            <option value="competitor">Competitor</option>
+            <option value="target">Target</option>
+          </select>
+        </div>
 
-    {error && <div className={styles.error}>{error}</div>}
+        {error && <div className={styles.error}>{error}</div>}
 
-
-
-    <div className={styles.content}>
         {filteredAndSortedProviders.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>🏥</div>
@@ -403,48 +384,57 @@ export default function NetworkTab() {
                         <div className={styles.tagsContainer}>
                           {provider.tags.map(tag => (
                             <div key={tag} className={styles.tagWrapper}>
-                              <>
-                                <span 
-                                  className={styles.tag} 
-                                  style={{ backgroundColor: getTagColor(tag) }}
-                                  onClick={(e) => handleTagClick(provider.provider_dhc, tag, e)}
+                              <Dropdown
+                                trigger={
+                                  <span 
+                                    className={styles.tag} 
+                                    style={{ backgroundColor: getTagColor(tag) }}
+                                  >
+                                    {getTagLabel(tag)}
+                                  </span>
+                                }
+                                isOpen={editingTag?.providerDhc === provider.provider_dhc && editingTag?.currentTag === tag}
+                                onToggle={(isOpen) => {
+                                  if (isOpen) {
+                                    handleTagClick(provider.provider_dhc, tag);
+                                  } else {
+                                    setEditingTag(null);
+                                  }
+                                }}
+                                className={dropdownStyles.dropdown}
+                              >
+                                <button 
+                                  className={dropdownStyles.dropdownItem}
+                                  onClick={() => handleTagChange(provider.provider_dhc, 'me')}
                                 >
-                                  {getTagLabel(tag)}
-                                </span>
-
-                                {editingTag?.providerDhc === provider.provider_dhc && editingTag?.currentTag === tag && (
-                                  <div className={`${styles.taggingMenu} ${editingTag.shouldGoUp ? styles.dropdownUp : ''}`}>
-                                    <div 
-                                      className={styles.tagOption}
-                                      style={{ backgroundColor: getTagColor('me') }}
-                                      onClick={() => handleTagChange(provider.provider_dhc, 'me')}
-                                    >
-                                      {getTagLabel('me')}
-                                    </div>
-                                    <div 
-                                      className={styles.tagOption}
-                                      style={{ backgroundColor: getTagColor('partner') }}
-                                      onClick={() => handleTagChange(provider.provider_dhc, 'partner')}
-                                    >
-                                      {getTagLabel('partner')}
-                                    </div>
-                                    <div 
-                                      className={styles.tagOption}
-                                      style={{ backgroundColor: getTagColor('competitor') }}
-                                      onClick={() => handleTagChange(provider.provider_dhc, 'competitor')}
-                                    >
-                                      {getTagLabel('competitor')}
-                                    </div>
-                                    <div 
-                                      className={styles.tagOption}
-                                      style={{ backgroundColor: getTagColor('target') }}
-                                      onClick={() => handleTagChange(provider.provider_dhc, 'target')}
-                                    >
-                                      {getTagLabel('target')}
-                                    </div>
-                                  </div>
-                                )}
-                              </>
+                                  Me
+                                </button>
+                                <button 
+                                  className={dropdownStyles.dropdownItem}
+                                  onClick={() => handleTagChange(provider.provider_dhc, 'partner')}
+                                >
+                                  Partner
+                                </button>
+                                <button 
+                                  className={dropdownStyles.dropdownItem}
+                                  onClick={() => handleTagChange(provider.provider_dhc, 'competitor')}
+                                >
+                                  Competitor
+                                </button>
+                                <button 
+                                  className={dropdownStyles.dropdownItem}
+                                  onClick={() => handleTagChange(provider.provider_dhc, 'target')}
+                                >
+                                  Target
+                                </button>
+                                <div className={dropdownStyles.dropdownDivider}></div>
+                                <button 
+                                  className={dropdownStyles.dropdownItem}
+                                  onClick={() => handleTagChange(provider.provider_dhc, 'remove')}
+                                >
+                                  Remove
+                                </button>
+                              </Dropdown>
                             </div>
                           ))}
                         </div>

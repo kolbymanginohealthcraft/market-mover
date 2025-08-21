@@ -1,5 +1,5 @@
 .container {
-  padding: 1rem;
+  /* Removed padding since PageLayout already provides proper spacing */
 }
 
 /* Header Section */

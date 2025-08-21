@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import styles from "./Settings.module.css";
-import SettingsNavbar from "./SettingsNavbar";
-import Banner from "../../../components/Buttons/Banner";
 import { hasPlatformAccess, isTeamAdmin } from "../../../utils/roleHelpers";
 import { supabase } from "../../../app/supabaseClient";
 import {
@@ -11,7 +9,6 @@ import {
   BrandingTab,
   SubscriptionTab,
   PlatformTab,
-  NetworkTab,
   CompanyTab
 } from "./index";
 
@@ -79,11 +76,6 @@ export default function Settings() {
     return <Navigate to="/app/settings/profile" replace />;
   }
 
-  // If user tries to access network tab without permission, redirect to profile
-  if (!loading && activeTab === "network" && !canAccessTaggedProviders) {
-    return <Navigate to="/app/settings/profile" replace />;
-  }
-
   // If user tries to access branding tab without permission, redirect to profile
   if (!loading && activeTab === "branding" && !canAccessColors) {
     return <Navigate to="/app/settings/profile" replace />;
@@ -91,28 +83,17 @@ export default function Settings() {
 
   return (
     <div className={styles.container}>
-      <Banner
-        title="Settings"
-        subtitle="Manage your account, users, and platform preferences"
-        gradient="blue"
-      />
-
-      <div className={styles.tabContainer}>
-        <SettingsNavbar activeTab={activeTab} setActiveTab={handleTabChange} />
-        
-        <div className={styles.tabContent}>
-          <Routes>
-            <Route index element={<Navigate to="profile" replace />} />
-            <Route path="profile" element={<ProfileTab />} />
-            <Route path="users" element={<UsersTab />} />
-            <Route path="company" element={<CompanyTab />} />
-            <Route path="branding" element={<BrandingTab />} />
-            <Route path="subscription" element={<SubscriptionTab />} />
-            <Route path="network" element={<NetworkTab />} />
-            <Route path="platform" element={<PlatformTab />} />
-            <Route path="*" element={<Navigate to="profile" replace />} />
-          </Routes>
-        </div>
+      <div className={styles.tabContent}>
+        <Routes>
+          <Route index element={<Navigate to="profile" replace />} />
+          <Route path="profile" element={<ProfileTab />} />
+          <Route path="users" element={<UsersTab />} />
+          <Route path="company" element={<CompanyTab />} />
+          <Route path="branding" element={<BrandingTab />} />
+          <Route path="subscription" element={<SubscriptionTab />} />
+          <Route path="platform" element={<PlatformTab />} />
+          <Route path="*" element={<Navigate to="profile" replace />} />
+        </Routes>
       </div>
     </div>
   );

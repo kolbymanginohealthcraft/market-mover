@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Palette } from "lucide-react";
 import useTeamCustomColors from "../../../../hooks/useTeamCustomColors";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
 import SidePanel from "../../../../components/Overlays/SidePanel";
+import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import styles from "./BrandingTab.module.css";
 
 export default function BrandingTab() {
@@ -167,23 +169,30 @@ export default function BrandingTab() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.twoColumnLayout}>
-        {/* Left Column - Color Palette */}
-        <div className={styles.leftColumn}>
-          <div className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.headerContent}>
-                <h3>Color Palette</h3>
-                <p>Manage your brand colors for charts and visualizations</p>
+      <SectionHeader 
+        title="Branding Management" 
+        icon={Palette} 
+        showEditButton={false}
+      />
+      
+      <div className={styles.content}>
+        <div className={styles.twoColumnLayout}>
+          {/* Left Column - Color Palette */}
+          <div className={styles.leftColumn}>
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.headerContent}>
+                  <h3>Color Palette</h3>
+                  <p>Manage your brand colors for charts and visualizations</p>
+                </div>
+                <Button
+                  variant="green"
+                  size="sm"
+                  onClick={openAddPanel}
+                >
+                  + Add Color
+                </Button>
               </div>
-              <Button
-                variant="green"
-                size="sm"
-                onClick={openAddPanel}
-              >
-                + Add Color
-              </Button>
-            </div>
             
             <div className={styles.sectionContent}>
 
@@ -474,6 +483,7 @@ export default function BrandingTab() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Add/Edit Color Sidebar */}

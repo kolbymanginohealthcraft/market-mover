@@ -27,8 +27,9 @@
 }
 
 .modeButton:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
 }
 
 .modeButton.active {

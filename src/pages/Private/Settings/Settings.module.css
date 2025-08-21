@@ -2,19 +2,14 @@
 .container {
   padding: 24px;
   margin: 0;
-  background: #f8fdfb;
-}
-
-/* Tab Container */
-.tabContainer {
-  background: #f8fdfb;
-  border-radius: 12px;
-  box-shadow: 0 3px 14px rgb(0 0 0 / 0.08);
-  overflow: hidden;
+  background: var(--gray-50);
 }
 
 .tabContent {
-  padding: 32px;
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  margin-top: 24px;
 }
 
 /* Responsive Design */

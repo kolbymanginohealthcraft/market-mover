@@ -4,10 +4,8 @@ import Spinner from "../../../../components/Buttons/Spinner";
 import ClaimsByMonth from "./ClaimsByMonth";
 import ClaimsByProvider from "./ClaimsByProvider";
 import ClaimsByServiceLine from "./ClaimsByServiceLine";
-import Banner from "../../../../components/Buttons/Banner";
 
 export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) {
-  const [showBanner, setShowBanner] = useState(true);
   const [activeTab, setActiveTab] = useState("month");
   const [claimType, setClaimType] = useState("rendered"); // "rendered" or "referred"
   const [dataType, setDataType] = useState("diagnosis"); // "diagnosis" or "procedure"
@@ -26,20 +24,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
     }
   }, [claimType, dataType, availableDataTypes]);
 
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-  };
-
   return (
     <div className={styles.container}>
-      {/* Enhanced Banner - Early Adopter Excitement */}
-      <Banner
-        title="Enhanced Claims Analysis Coming Soon"
-        message="We're building comprehensive claims analysis powered by a robust multi-year all-payer database. Soon you'll have access to claim volume trends, cost analysis, and service line breakdowns. This tool will help you identify market opportunities and make data-driven strategic decisions with unprecedented granularity."
-        icon="🚀"
-        onClose={handleCloseBanner}
-      />
-
       {/* Claim Type Selection */}
       <div className={styles.claimTypeSelection}>
         <div className={styles.selectionGroup}>

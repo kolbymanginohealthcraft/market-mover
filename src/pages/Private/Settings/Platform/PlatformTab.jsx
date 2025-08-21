@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { Settings } from "lucide-react";
 import Button from "../../../../components/Buttons/Button";
+import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import styles from "./PlatformTab.module.css";
 
 export default function PlatformTab() {
@@ -7,8 +9,14 @@ export default function PlatformTab() {
 
   return (
     <div className={styles.section}>
-
-      <div className={styles.platformTools}>
+      <SectionHeader 
+        title="Platform Administration" 
+        icon={Settings} 
+        showEditButton={false}
+      />
+      
+      <div className={styles.content}>
+        <div className={styles.platformTools}>
         <div className={`${styles.toolCard} ${styles.announcements}`}>
           <h3>System Announcements</h3>
           <p>Manage system-wide announcements that appear on user home pages</p>
@@ -130,6 +138,7 @@ export default function PlatformTab() {
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

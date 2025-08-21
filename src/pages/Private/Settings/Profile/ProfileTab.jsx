@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { User } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
+import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import { trackActivity } from "../../../../utils/activityTracker";
 import { getRoleDisplayName } from "../../../../utils/roleHelpers";
 import styles from "./ProfileTab.module.css";
@@ -234,11 +236,18 @@ export default function ProfileTab() {
   return (
     <div className={`${styles.section} ${hasChanges ? styles.hasStickyFooter : ''}`}>
       
-      <div className={styles.twoColumnLayout}>
-        {/* Left Column - Personal Information */}
-        <div className={styles.leftColumn}>
-          <div className={styles.personalInfo}>
-            <h3 className={styles.subsectionTitle}>Personal Information</h3>
+      <SectionHeader 
+        title="Profile Management" 
+        icon={User} 
+        showEditButton={false}
+      />
+      
+      <div className={styles.content}>
+        <div className={styles.twoColumnLayout}>
+          {/* Left Column - Personal Information */}
+          <div className={styles.leftColumn}>
+            <div className={styles.personalInfo}>
+              <h3 className={styles.subsectionTitle}>Personal Information</h3>
             <div className={styles.formGroup}>
               <label>First Name</label>
               <input
@@ -365,6 +374,7 @@ export default function ProfileTab() {
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Sticky Footer */}

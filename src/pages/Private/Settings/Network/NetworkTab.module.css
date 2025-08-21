@@ -16,54 +16,30 @@
   font-size: 1rem;
 }
 
-/* Header Row */
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  gap: 32px;
-}
-
-.headerRow .subsectionTitle {
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.headerRow .controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: nowrap;
-  margin-bottom: 0;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
+/* Header styles removed - now using SectionHeader component */
 
 .searchInput {
-  width: 80px;
-  min-width: 200px;
+  width: 500px;
   padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 14px;
   transition: all 0.2s ease;
-  background: #fafafa;
+  background: var(--white);
 }
 
-/* .searchInput:focus {
+.searchInput:focus {
   outline: none;
-  border-color: #265947;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
-} */
+  border-color: var(--primary-teal);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
 
 .filterSelect {
   padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  background: var(--white);
   min-width: 120px;
   max-width: 200px;
   transition: border-color 0.2s ease;
@@ -72,17 +48,26 @@
 
 .filterSelect:focus {
   outline: none;
-  border-color: #265947;
-  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.1);
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
 }
 
 /* Content Section */
 .content {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e5e7eb;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--gray-200);
+  border-top: none;
   overflow: visible;
+  padding: 24px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 
 /* Table Styling */
@@ -98,28 +83,28 @@
 }
 
 .providersTable th {
-  background: #f8fafc;
+  background: var(--gray-50);
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 0.85rem;
+  color: var(--gray-700);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 14px;
 }
 
 .providersTable td {
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gray-100);
   vertical-align: top;
 }
 
 .providersTable tr:hover {
-  background: #f8fafc;
+  background: var(--gray-50);
 }
 
 .providersTable tr.activeRow {
-  background: #f0f9ff;
-  border-left: 3px solid #3b82f6;
+  background: var(--blue-50);
+  border-left: 3px solid var(--primary-teal);
 }
 
 .providersTable tr:last-child td {
@@ -205,81 +190,7 @@
   background-color: rgba(239, 68, 68, 0.1);
 }
 
-.taggingMenu {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  position: absolute;
-  z-index: 1000;
-  top: 100%;
-  left: 0;
-  min-width: 120px;
-  opacity: 0;
-  transform: translateY(-10px);
-  animation: dropdownFadeIn 0.2s ease-out forwards;
-}
 
-.dropdownUp {
-  top: auto;
-  bottom: 100%;
-  transform: translateY(10px);
-  animation: dropdownFadeInUp 0.2s ease-out forwards;
-}
-
-.tagOption {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-  text-align: center;
-  min-width: 80px;
-  display: block;
-}
-
-.tagOption:hover {
-  opacity: 0.8;
-}
-
-.removeOption {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-
-.removeOption:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
-}
-
-@keyframes dropdownFadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes dropdownFadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 .noTags {
   color: #9ca3af;

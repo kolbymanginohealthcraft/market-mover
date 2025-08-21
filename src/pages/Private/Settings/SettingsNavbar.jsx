@@ -87,15 +87,6 @@ export default function SettingsTabs({ activeTab, setActiveTab }) {
         </button>
       )}
 
-      {canAccessTaggedProviders && (
-        <button
-          className={`${styles.tab} ${activeTab === "network" ? styles.active : ""}`}
-          onClick={() => handleTabClick("network")}
-        >
-          🏥 Network
-        </button>
-      )}
-
       {canAccessPlatform && (
         <button
           className={`${styles.tab} ${activeTab === "platform" ? styles.active : ""}`}

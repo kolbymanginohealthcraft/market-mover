@@ -27,22 +27,26 @@ export default function InteractiveMarketCreation() {
 
   return (
     <div className={styles.container}>
-      <LocationSearch
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        loading={loading}
-        error={error}
-        onSearch={handleSearch}
-        onSaveMarket={handleSaveMarketClick}
-      />
+      <div className={styles.content}>
+        <LocationSearch
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          loading={loading}
+          error={error}
+          radius={radius}
+          setRadius={setRadius}
+          onSearch={handleSearch}
+          onSaveMarket={handleSaveMarketClick}
+        />
 
-      <MarketMap
-        center={center}
-        radius={radius}
-        onCenterChange={setCenter}
-        onRadiusChange={setRadius}
-        mapContainerRef={mapContainerRef}
-      />
+        <MarketMap
+          center={center}
+          radius={radius}
+          onCenterChange={setCenter}
+          onRadiusChange={setRadius}
+          mapContainerRef={mapContainerRef}
+        />
+      </div>
 
       <SaveMarketSidebar
         showSaveSidebar={showSaveSidebar}

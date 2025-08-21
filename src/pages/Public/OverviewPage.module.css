@@ -1,38 +1,24 @@
+/* Only custom styles that can't be achieved with utilities */
+
+/* Custom font family override */
 .page {
-    padding: 80px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-    font-family: 'Work Sans', sans-serif;
-  }
-  
-  .title {
-    font-size: 2rem;
-    color: #265947;
-    text-align: center;
-    margin-bottom: 32px;
-  }
-  
-  .intro {
-    font-size: 1.1rem;
-    color: #5f6b6d;
-    text-align: center;
-    max-width: 700px;
-    margin: 0 auto 48px auto;
-  }
-  
-  .features {
-    display: grid;
-    gap: 32px;
-  }
-  
-  .features h3 {
-    font-size: 1.2rem;
-    color: #265947;
-    margin-bottom: 8px;
-  }
-  
-  .features p {
-    color: #5f6b6d;
-    font-size: 1rem;
-  }
+  font-family: 'Work Sans', sans-serif;
+}
+
+/* Custom color that's not in the design system */
+.title {
+  color: #265947;
+}
+
+.intro {
+  color: #5f6b6d;
+}
+
+.featureHeading {
+  color: #265947;
+}
+
+.featureText {
+  color: #5f6b6d;
+}
   

@@ -4,10 +4,11 @@ import maplibregl from "maplibre-gl";
 import { supabase } from "../../../../app/supabaseClient";
 import Spinner from "../../../../components/Buttons/Spinner";
 import Button from "../../../../components/Buttons/Button";
+import ControlsRow from "../../../../components/Layouts/ControlsRow";
 import styles from "./ProviderListingTab.module.css";
+import controlsStyles from "../../../../components/Layouts/ControlsRow.module.css";
 import { useDropdownClose } from "../../../../hooks/useDropdownClose";
 import { apiUrl } from '../../../../utils/api';
-import Banner from "../../../../components/Buttons/Banner";
 import useTeamProviderTags from "../../../../hooks/useTeamProviderTags";
 
 // MapLibre GL JS is completely free - no API token required!
@@ -36,7 +37,6 @@ export default function ProviderListingTab({
   const [layersReady, setLayersReady] = useState(false);
   const [layersAdded, setLayersAdded] = useState(false);
   const [dataReady, setDataReady] = useState(false);
-  const [showBanner, setShowBanner] = useState(true);
 
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -411,7 +411,7 @@ export default function ProviderListingTab({
               network: p.network,
               distance: p.distance,
               hasCCN: ccnProviderIds.has(p.dhc),
-              tag: tags[p.dhc]
+              tag: getProviderTags(p.dhc)[0] || null
             }
           }));
 
@@ -599,103 +599,90 @@ export default function ProviderListingTab({
     }
   };
 
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-  };
-
   try {
     return (
-      <div className={styles.container}>
-        {/* Enhanced Banner - Early Adopter Excitement */}
-        <Banner
-          title="Provider Listing & Network Analysis"
-          message="This section gives you a complete view of all providers in your market area, helping you identify potential partners, assess competitive landscapes, and build strategic network intelligence. As we continue developing, you'll see enhanced filtering, advanced analytics, and deeper insights that will revolutionize how you understand provider networks. Your feedback helps us refine these tools!"
-          icon="🔍"
-          onClose={handleCloseBanner}
-        />
+      <>
+        <ControlsRow
+          leftContent={
+            <>
+              <div className={styles.dropdownContainer} ref={dropdownRef}>
+                <Button
+                  isFilter
+                  isActive={selectedTypes.length > 0}
+                  className="button-sm"
+                  onClick={() =>
+                    dropdownRef.current.classList.toggle(styles.dropdownOpen)
+                  }
+                >
+                  <span className={styles.buttonLabel}>
+                    Filter Provider Types
+                    {selectedTypes.length > 0 && (
+                      <span
+                        className={styles.clearButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearFilters();
+                        }}
+                      >
+                        ✕
+                      </span>
+                    )}
+                  </span>
+                </Button>
 
-        <div className={styles.controlsRow}>
-          <div className={`${styles.controlsGroup} ${styles.buttonsGroup}`}>
-            <div className={styles.dropdownContainer} ref={dropdownRef}>
+                <div className={styles.dropdownMenu}>
+                  {allTypes.map((type) => (
+                    <label key={type} className={styles.dropdownItem}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTypes.includes(type)}
+                        onChange={() => toggleType(type)}
+                      />
+                      {type}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <Button
                 isFilter
-                isActive={selectedTypes.length > 0}
+                isActive={showOnlyCCNs}
                 className="button-sm"
-                onClick={() =>
-                  dropdownRef.current.classList.toggle(styles.dropdownOpen)
-                }
+                onClick={() => setShowOnlyCCNs((prev) => !prev)}
               >
-                <span className={styles.buttonLabel}>
-                  Filter Provider Types
-                  {selectedTypes.length > 0 && (
-                    <span
-                      className={styles.clearButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearFilters();
-                      }}
-                    >
-                      ✕
-                    </span>
-                  )}
-                </span>
+                Only show Medicare-certified providers
               </Button>
-
-              <div className={styles.dropdownMenu}>
-                {allTypes.map((type) => (
-                  <label key={type} className={styles.dropdownItem}>
-                    <input
-                      type="checkbox"
-                      checked={selectedTypes.includes(type)}
-                      onChange={() => toggleType(type)}
-                    />
-                    {type}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <Button
-              isFilter
-              isActive={showOnlyCCNs}
-              className="button-sm"
-              onClick={() => setShowOnlyCCNs((prev) => !prev)}
-            >
-              Only show Medicare-certified providers
-            </Button>
-          </div>
-
-          <div className={`${styles.controlsGroup} ${styles.searchGroup}`}>
-            <input
-              type="text"
-              placeholder="Search providers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-            />
-          </div>
-
-          <div className={`${styles.controlsGroup} ${styles.resultCount}`}>
-            <div className={styles.providerCount}>
+            </>
+          }
+          rightContent={
+            <span className={controlsStyles.summaryText}>
               Showing {providerCount} provider
               {filteredResults.length !== 1 ? "s" : ""}
-            </div>
-          </div>
-        </div>
+            </span>
+          }
+        >
+          <input
+            type="text"
+            placeholder="Search providers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={controlsStyles.searchInput}
+          />
+        </ControlsRow>
 
         <div className={styles.splitView}>
           <div className={styles.tablePanel}>
             <div className={styles.tableScroll}>
               <table className={styles.table}>
                 <thead>
-                                      <tr>
-                      <th>Name</th>
-                      <th>Network</th>
-                      <th>Address</th>
-                      <th>Type</th>
-                      <th>Distance</th>
-                      <th>Tag</th>
-                    </tr>
+                  <tr>
+                    <th>Name</th>
+                    <th>Network</th>
+                    <th>Address</th>
+                    <th>Type</th>
+                    <th>Distance</th>
+                    <th>Tag</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {uniqueResults.map((p) => (
@@ -805,17 +792,15 @@ export default function ProviderListingTab({
             <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
           </div>
         </div>
-      </div>
+      </>
     );
   } catch (error) {
     console.error("❌ Error in ProviderListingTab:", error);
     return (
-      <div className={styles.container}>
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <h3>Error loading map</h3>
-          <p>There was an error loading the ProviderListingTab component.</p>
-          <p>Error: {error.message}</p>
-        </div>
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h3>Error loading map</h3>
+        <p>There was an error loading the ProviderListingTab component.</p>
+        <p>Error: {error.message}</p>
       </div>
     );
   }

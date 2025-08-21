@@ -94,7 +94,9 @@ export default function useTaggedProviders() {
                 city: providerDetailsMap[provider.provider_dhc]?.city || '—',
                 state: providerDetailsMap[provider.provider_dhc]?.state || '—',
                 street: providerDetailsMap[provider.provider_dhc]?.street || '—',
-                zip: providerDetailsMap[provider.provider_dhc]?.zip || '—'
+                zip: providerDetailsMap[provider.provider_dhc]?.zip || '—',
+                latitude: providerDetailsMap[provider.provider_dhc]?.latitude || null,
+                longitude: providerDetailsMap[provider.provider_dhc]?.longitude || null
               }));
               
               console.log('🔍 Providers with details:', providersWithDetails);

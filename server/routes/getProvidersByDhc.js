@@ -35,7 +35,7 @@ router.post("/getProvidersByDhc", async (req, res) => {
     console.log("🔍 Converted DHC IDs:", numericDhcIds);
     
     const query = `
-      SELECT dhc, name, street, city, state, zip, network, type
+      SELECT dhc, name, street, city, state, zip, network, type, latitude, longitude
       FROM \`market-mover-464517.providers.org_dhc\`
       WHERE dhc IN UNNEST(@dhc_ids)
     `;

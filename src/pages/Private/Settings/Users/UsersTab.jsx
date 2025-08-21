@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Users } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
 import SidePanel from "../../../../components/Overlays/SidePanel";
+import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import { isTeamAdmin, getRoleDisplayName } from "../../../../utils/roleHelpers";
 import styles from "./UsersTab.module.css";
 
@@ -281,23 +283,27 @@ export default function UsersTab() {
 
   return (
     <div className={styles.section}>
+      <SectionHeader 
+        title="Team Management" 
+        icon={Users} 
+        showEditButton={false}
+      />
+      
+      <div className={styles.content}>
+        {message && (
+          <div className={`${styles.message} ${styles[messageType]}`}>
+            {messageType === "success" && "✅"}
+            {messageType === "error" && "❌"}
+            {message}
+          </div>
+        )}
 
-      {message && (
-        <div className={`${styles.message} ${styles[messageType]}`}>
-          {messageType === "success" && "✅"}
-          {messageType === "error" && "❌"}
-          {message}
-        </div>
-      )}
-
-
-
-      {/* Team Members Table */}
-      <div className={styles.membersSection}>
-        <div className={styles.membersHeader}>
-          <div className={styles.headerLeft}>
-            <div className={styles.titleGroup}>
-              <div className={styles.teamNameDisplay}>
+        {/* Team Members Table */}
+        <div className={styles.membersSection}>
+          <div className={styles.membersHeader}>
+            <div className={styles.headerLeft}>
+              <div className={styles.titleGroup}>
+                <div className={styles.teamNameDisplay}>
                 <span className={styles.teamName}>User Management</span>
                 <span className={styles.memberCount}>
                   {teamMembers.length} / {teamInfo?.max_users} licenses used
@@ -357,6 +363,7 @@ export default function UsersTab() {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* Invite Team Members Sidebar */}

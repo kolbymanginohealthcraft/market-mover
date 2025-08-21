@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { CreditCard } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
+import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import styles from "./SubscriptionTab.module.css";
 
 export default function SubscriptionTab() {
@@ -198,9 +200,14 @@ export default function SubscriptionTab() {
 
   return (
     <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Subscription Management</h2>
+      <SectionHeader 
+        title="Subscription Management" 
+        icon={CreditCard} 
+        showEditButton={false}
+      />
       
-      {hasTeam ? (
+      <div className={styles.content}>
+        {hasTeam ? (
         <div className={styles.subscriptionDetails}>
           {/* Current Plan Overview */}
           <div className={styles.planInfo}>
@@ -286,6 +293,7 @@ export default function SubscriptionTab() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 } 

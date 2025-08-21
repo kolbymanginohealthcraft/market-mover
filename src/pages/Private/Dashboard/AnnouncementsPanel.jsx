@@ -1,4 +1,5 @@
 import styles from './AnnouncementsPanel.module.css';
+import { Calendar } from 'lucide-react';
 
 export default function AnnouncementsPanel({ announcements, announcementsLoading }) {
   return (
@@ -12,6 +13,7 @@ export default function AnnouncementsPanel({ announcements, announcementsLoading
               <div className={styles.updateTitle}>{announcement.title}</div>
               <div className={styles.updateDescription}>{announcement.description}</div>
               <div className={styles.updateDate}>
+                <Calendar className={styles.calendarIcon} />
                 {new Date(announcement.announcement_date).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric'

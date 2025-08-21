@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import Banner from '../../../components/Buttons/Banner';
 import DashboardLayout from './DashboardLayout';
+import PageLayout from '../../../components/Layouts/PageLayout';
 import { supabase } from '../../../app/supabaseClient';
 import useUserActivity from '../../../hooks/useUserActivity';
 import useUserProgress from '../../../hooks/useUserProgress';
@@ -13,7 +14,7 @@ export default function Home() {
   const [quote, setQuote] = useState('');
   const [showBanner, setShowBanner] = useState(true);
   const [error, setError] = useState(null);
-  const [greetingText, setGreetingText] = useState('Hello, welcome to Market Mover 👋');
+  const [greetingText, setGreetingText] = useState('Hello, Welcome to Market Mover 👋');
 
   // Custom hooks for data
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
@@ -55,8 +56,8 @@ export default function Home() {
     fetchUserProfile();
 
     const newGreetingText = userFirstName 
-      ? `Hello ${userFirstName}, welcome to Market Mover`
-      : 'Hello, welcome to Market Mover';
+      ? `Hello ${userFirstName}, Welcome to Market Mover`
+      : 'Hello, Welcome to Market Mover';
     
     setGreetingText(newGreetingText);
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -99,18 +100,18 @@ export default function Home() {
   // If there's an error, show a fallback
   if (error) {
     return (
-      <div className={styles.page}>
+      <PageLayout>
         <div style={{ padding: '20px', textAlign: 'center' }}>
           <h2>Something went wrong</h2>
           <p>{error}</p>
           <button onClick={() => window.location.reload()}>Refresh Page</button>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <PageLayout>
       <DashboardLayout
         activities={activities}
         activitiesLoading={activitiesLoading}
@@ -124,6 +125,6 @@ export default function Home() {
         quote={quote}
         greetingText={greetingText}
       />
-    </div>
+    </PageLayout>
   );
 }

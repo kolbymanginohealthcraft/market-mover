@@ -1,8 +1,10 @@
 import styles from './DashboardLayout.module.css';
-import QuickLinksSidebar from './QuickActions';
+import { Trash2, Activity, Clock, Bell } from 'lucide-react';
+import ActivityStatsPanel from './ActivityStatsPanel';
 import ActivityPanel from './ActivityPanel';
 import AnnouncementsPanel from './AnnouncementsPanel';
 import WelcomePanel from './WelcomePanel';
+import SectionHeader from '../../../components/Layouts/SectionHeader';
 
 export default function DashboardLayout({
   activities,
@@ -18,7 +20,7 @@ export default function DashboardLayout({
   greetingText
 }) {
   return (
-    <div className={styles.wrapper}>
+    <>
       {/* Welcome Section - Full Width */}
       <section className={styles.welcomeSection}>
         <WelcomePanel 
@@ -32,52 +34,55 @@ export default function DashboardLayout({
 
       {/* Main Dashboard Grid */}
       <div className={styles.dashboardGrid}>
-        {/* Quick Actions Section */}
-        <section className={styles.quickActionsSection}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Quick Actions</h2>
-            <p className={styles.sectionSubtitle}>Access your most used tools</p>
+        {/* Activity Stats Section */}
+        <div className={styles.section}>
+          <SectionHeader 
+            title="Your Usage" 
+            icon={Activity}
+            showActionButton={false}
+          />
+          <div className={styles.content}>
+            <ActivityStatsPanel />
           </div>
-          <QuickLinksSidebar />
-        </section>
+        </div>
 
         {/* Activity Section */}
-        <section className={styles.activitySection}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Recent Activity</h2>
-              {activities.length > 0 && (
-                <button 
-                  onClick={onClearAllActivities}
-                  className={styles.clearButton}
-                  title="Clear all activity history"
-                >
-                  🗑️ Clear All
-                </button>
-              )}
-            </div>
-            <p className={styles.sectionSubtitle}>Your latest actions and searches</p>
-          </div>
-          <ActivityPanel
-            activities={activities}
-            activitiesLoading={activitiesLoading}
-            onClearAll={onClearAllActivities}
-            onClearActivity={onClearActivity}
+        <div className={styles.section}>
+          <SectionHeader 
+            title="Recent Activity" 
+            icon={Clock}
+            showActionButton={activities.length > 0}
+            actionButton={activities.length > 0 ? {
+              type: 'clear',
+              text: 'Clear All',
+              onClick: onClearAllActivities
+            } : undefined}
           />
-        </section>
+          <div className={styles.content}>
+            <ActivityPanel
+              activities={activities}
+              activitiesLoading={activitiesLoading}
+              onClearAll={onClearAllActivities}
+              onClearActivity={onClearActivity}
+            />
+          </div>
+        </div>
 
         {/* Announcements Section */}
-        <section className={styles.announcementsSection}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>What's New</h2>
-            <p className={styles.sectionSubtitle}>Latest updates and announcements</p>
-          </div>
-          <AnnouncementsPanel
-            announcements={announcements}
-            announcementsLoading={announcementsLoading}
+        <div className={styles.section}>
+          <SectionHeader 
+            title="What's New" 
+            icon={Bell}
+            showActionButton={false}
           />
-        </section>
+          <div className={styles.content}>
+            <AnnouncementsPanel
+              announcements={announcements}
+              announcementsLoading={announcementsLoading}
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 } 

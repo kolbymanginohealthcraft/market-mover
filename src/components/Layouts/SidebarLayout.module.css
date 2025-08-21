@@ -1,0 +1,39 @@
+.page {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+
+.contentArea {
+  flex: 1;
+  margin-left: 280px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  background: var(--white);
+  width: calc(100vw - 280px);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  min-width: 0;
+  background: var(--white);
+  margin-top: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .contentArea {
+    margin-left: 0;
+    width: 100vw;
+  }
+}

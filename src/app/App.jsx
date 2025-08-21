@@ -11,9 +11,11 @@ import { supabase } from "./supabaseClient";
 // Components
 import ScrollToTop from "../components/Navigation/ScrollToTop";
 import Layout from "../components/Layouts/Layout";
+import SidebarLayout from "../components/Layouts/SidebarLayout";
 import PublicLayout from "../components/Layouts/PublicLayout";
 import LegalLayout from "../components/Layouts/LegalLayout";
 import ButtonPlayground from "../pages/Temp/ButtonPlayground";
+import { ProviderContextProvider } from "../components/Context/ProviderContext";
 
 // Pages
 import MarketingPage from "../pages/Public/Marketing/MarketingPage";
@@ -53,6 +55,7 @@ import SpinnerDemo from "../pages/Temp/SpinnerDemo";
 import PaymentTest from "../pages/Auth/PaymentTest";
 import PaymentFlow from "../pages/Auth/PaymentFlow";
 import Success from "../pages/Auth/Success";
+import Network from "../pages/Private/Network/Network";
 
 function App() {
   const [session, setSession] = useState(null);
@@ -79,6 +82,8 @@ function App() {
 
 
 
+
+
   useEffect(() => {
     if (session && (location.pathname === "/" || location.pathname === "/login")) {
       navigate("/app/dashboard");
@@ -90,65 +95,68 @@ function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<PublicLayout />}>
-          <Route
-            index
-            element={session ? <Navigate to="/app/dashboard" /> : <MarketingPage />}
-          />
-          <Route
-            path="login"
-            element={session ? <Navigate to="/app/dashboard" /> : <Login />}
-          />
-          <Route path="signup" element={<Signup />} />
-          <Route path="pricing" element={<PricingPage />} />
-          <Route path="faq" element={<FAQPage />} />
-          <Route path="overview" element={<OverviewPage />} />
+      <ProviderContextProvider>
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<PublicLayout />}>
+              <Route
+                index
+                element={session ? <Navigate to="/app/dashboard" /> : <MarketingPage />}
+              />
+              <Route
+                path="login"
+                element={session ? <Navigate to="/app/dashboard" /> : <Login />}
+              />
+              <Route path="signup" element={<Signup />} />
+              <Route path="pricing" element={<PricingPage />} />
+              <Route path="faq" element={<FAQPage />} />
+              <Route path="overview" element={<OverviewPage />} />
 
-          <Route path="select-plan" element={<SelectPlan />} />
-          {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
-          <Route path="/playground" element={<ButtonPlayground />} />
-          <Route path="/auth/paymenttest" element={<PaymentTest />} />
-          <Route path="/payment-flow" element={<PaymentFlow />} />
-          <Route path="/success" element={<Success />} />
-        </Route>
+              <Route path="select-plan" element={<SelectPlan />} />
+              {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
+              <Route path="/playground" element={<ButtonPlayground />} />
+              <Route path="/auth/paymenttest" element={<PaymentTest />} />
+              <Route path="/payment-flow" element={<PaymentFlow />} />
+              <Route path="/success" element={<Success />} />
+            </Route>
 
-        {/* Legal */}
-        <Route path="/legal" element={<LegalLayout />}>
-          <Route path="terms" element={<TermsAndConditions />} />
-          <Route path="privacy" element={<PrivacyPolicy />} />
-        </Route>
+            {/* Legal */}
+            <Route path="/legal" element={<LegalLayout />}>
+              <Route path="terms" element={<TermsAndConditions />} />
+              <Route path="privacy" element={<PrivacyPolicy />} />
+            </Route>
 
-        {/* Private */}
-        <Route path="/app" element={session ? <Layout /> : <Navigate to="/" />}>
-          <Route index element={<Navigate to="dashboard" />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="search" element={<ProviderSearch />} />
-          <Route path="explore" element={<Explore />} />
-          <Route path="feedback" element={<Feedback />} />
-          <Route path="provider/:dhc/*" element={<ProviderDetail />} />
-          <Route path="supplier/search" element={<ServiceLineSearch />} />
-          <Route path="markets" element={<MarketsList />} />
-          <Route path="market/create" element={<InteractiveMarketCreation />} />
-          <Route path="market/:marketId/overview" element={<MarketOverview />} />
-          <Route path="banner-test" element={<BannerTest />} />
-          <Route path="spinner-demo" element={<SpinnerDemo />} />
-          <Route path="billing" element={<BillingHistory />} />
+            {/* Private */}
+            <Route path="/app" element={session ? <SidebarLayout /> : <Navigate to="/" />}>
+              <Route index element={<Navigate to="dashboard" />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="search" element={<ProviderSearch />} />
+              <Route path="explore" element={<Explore />} />
+              <Route path="feedback" element={<Feedback />} />
+              <Route path="provider/:dhc/*" element={<ProviderDetail />} />
+              <Route path="supplier/search" element={<ServiceLineSearch />} />
+              <Route path="markets/*" element={<MarketsList />} />
+              <Route path="market/:marketId/overview" element={<MarketOverview />} />
+              <Route path="market/create" element={<InteractiveMarketCreation />} />
+              <Route path="banner-test" element={<BannerTest />} />
+              <Route path="spinner-demo" element={<SpinnerDemo />} />
+              <Route path="billing" element={<BillingHistory />} />
 
-          <Route path="settings/*" element={<Settings />} />
-          <Route path="manage-announcements" element={<ManageAnnouncements />} />
-          <Route path="manage-feedback" element={<ManageFeedback />} />
-          <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
-          <Route path="billing-history" element={<BillingHistory />} />
-          <Route path="legal-content-editor" element={<LegalContentEditor />} />
-          <Route path="policy-management" element={<PolicyManagement />} />
+              <Route path="settings/*" element={<Settings />} />
+              <Route path="manage-announcements" element={<ManageAnnouncements />} />
+              <Route path="manage-feedback" element={<ManageFeedback />} />
+              <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
+              <Route path="billing-history" element={<BillingHistory />} />
+              <Route path="legal-content-editor" element={<LegalContentEditor />} />
+              <Route path="policy-management" element={<PolicyManagement />} />
+              <Route path="network/*" element={<Network />} />
 
-        </Route>
+            </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to={session ? "/app/dashboard" : "/"} />} />
-      </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to={session ? "/app/dashboard" : "/"} />} />
+          </Routes>
+        </ProviderContextProvider>
     </>
   );
 }

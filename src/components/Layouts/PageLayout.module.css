@@ -1,0 +1,28 @@
+.pageLayout {
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--white);
+}
+
+.fullWidth {
+  padding: 0;
+}
+
+/* Ensure content doesn't overflow */
+.pageLayout > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .pageLayout {
+    padding: 16px;
+  }
+  
+  .fullWidth {
+    padding: 0;
+  }
+}

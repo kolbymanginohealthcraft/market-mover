@@ -1,0 +1,100 @@
+.sectionHeader {
+  background: linear-gradient(90deg, var(--gray-50) 0%, #e6f7f0 100%);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+  border-bottom: none;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: linear-gradient(90deg, var(--gray-50) 0%, #e6f7f0 100%);
+  height: 48px;
+  box-sizing: border-box;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerIcon {
+  color: var(--gray-700);
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.headerTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* Generalized section header button style */
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+}
+
+.actionButton:hover {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.actionButton svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.separator {
+  height: 1px;
+  background: var(--gray-200);
+  width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .headerContent {
+    padding: 10px 16px;
+    height: 44px;
+  }
+  
+  .headerTitle {
+    font-size: 13px;
+  }
+  
+  .actionButton {
+    padding: 5px 10px;
+    font-size: 11px;
+    height: 26px;
+  }
+  
+  .actionButton svg {
+    width: 11px;
+    height: 11px;
+  }
+}

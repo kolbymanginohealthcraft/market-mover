@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { Building2 } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
+import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import { trackActivity } from "../../../../utils/activityTracker";
 import styles from "./CompanyTab.module.css";
 
@@ -281,13 +283,19 @@ export default function CompanyTab() {
 
   return (
     <div className={`${styles.container} ${hasChanges ? styles.hasStickyFooter : ''}`}>
-      <div className={styles.sections}>
-        {/* Company Attributes Section */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Company Profile</h2>
-          <p className={styles.sectionDescription}>
-            Define your company's attributes to help potential partners understand your business.
-          </p>
+      <SectionHeader 
+        title="Company Profile" 
+        icon={Building2} 
+        showEditButton={false}
+      />
+      
+      <div className={styles.content}>
+        <div className={styles.sections}>
+          {/* Company Attributes Section */}
+          <div className={styles.section}>
+            <p className={styles.sectionDescription}>
+              Define your company's attributes to help potential partners understand your business.
+            </p>
 
           <div className={styles.formGrid}>
             <div className={styles.formGroup}>
@@ -402,6 +410,7 @@ export default function CompanyTab() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Sticky Footer */}

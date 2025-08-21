@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './Feedback.module.css';
 import SidePanel from '../../../components/Overlays/SidePanel';
 
 export default function Feedback() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [featureRequests, setFeatureRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [newRequest, setNewRequest] = useState('');
@@ -16,12 +19,18 @@ export default function Feedback() {
   const [consent, setConsent] = useState(false);
   const [testimonialSubmitted, setTestimonialSubmitted] = useState(false);
   const [testimonialLoading, setTestimonialLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('feature-requests');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [userSubmissions, setUserSubmissions] = useState({ featureRequests: [], testimonials: [] });
   const [userSubmissionsLoading, setUserSubmissionsLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'votes', direction: 'desc' });
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Get active tab from URL params
+  const activeTab = new URLSearchParams(location.search).get('tab') || 'feature-requests';
+
+  const setActiveTab = (tab) => {
+    navigate(`/app/feedback?tab=${tab}`);
+  };
 
   useEffect(() => {
     fetchFeatureRequests();
@@ -308,84 +317,47 @@ export default function Feedback() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <h1>Feedback & Feature Requests</h1>
-          <p>Help us improve Market Mover by suggesting features, voting on ideas, and sharing your experience.</p>
-        </div>
+      {/* Main Content */}
+      <div className={styles.content}>
+        {activeTab === 'feature-requests' && (
+          <div className={styles.tabContent}>
+            {/* Success message */}
+            {submitSuccess && (
+              <div className={styles.successMessage}>
+                <p>✅ Feature request submitted successfully! It will be reviewed by our team.</p>
+              </div>
+            )}
 
-        <div className={styles.content}>
-          {/* Left Sidebar */}
-          <aside className={styles.sidebar}>
-            <div className={styles.buttonGroup}>
-              <button
-                className={`${styles.tabButton} ${activeTab === 'feature-requests' ? styles.active : ''}`}
-                onClick={() => setActiveTab('feature-requests')}
-              >
-                <span className={styles.buttonIcon}>💡</span>
-                <span className={styles.buttonText}>Feature Requests</span>
-              </button>
-              <button
-                className={`${styles.tabButton} ${activeTab === 'testimonials' ? styles.active : ''}`}
-                onClick={() => setActiveTab('testimonials')}
-              >
-                <span className={styles.buttonIcon}>💬</span>
-                <span className={styles.buttonText}>Share Experience</span>
-              </button>
-              <button
-                className={`${styles.tabButton} ${activeTab === 'my-submissions' ? styles.active : ''}`}
-                onClick={() => setActiveTab('my-submissions')}
-              >
-                <span className={styles.buttonIcon}>📋</span>
-                <span className={styles.buttonText}>My Submissions</span>
-              </button>
-            </div>
-          </aside>
-
-          {/* Main Content Area */}
-          <main className={styles.mainContent}>
-            {activeTab === 'feature-requests' && (
-              <div className={styles.tabContent}>
-
-
-
-                {/* Success message */}
-                {submitSuccess && (
-                  <div className={styles.successMessage}>
-                    <p>✅ Feature request submitted successfully! It will be reviewed by our team.</p>
-                  </div>
-                )}
-
-                {/* Feature requests list */}
-                <div className={styles.requestsSection}>
-                  <div className={styles.requestsHeader}>
-                    <h2>Feature Requests ({filteredRequests.length})</h2>
-                    <div className={styles.requestsControls}>
-                      <div className={styles.searchSection}>
-                        <input
-                          type="text"
-                          placeholder="Search feature requests..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className={styles.searchInput}
-                        />
-                        {searchTerm && (
-                          <button 
-                            onClick={() => setSearchTerm('')}
-                            className={styles.clearSearch}
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        className={styles.submitNewButton}
-                        onClick={() => setShowSidePanel(true)}
+            {/* Feature requests list */}
+            <div className={styles.requestsSection}>
+              <div className={styles.requestsHeader}>
+                <h2>Feature Requests ({filteredRequests.length})</h2>
+                <div className={styles.requestsControls}>
+                  <div className={styles.searchSection}>
+                    <input
+                      type="text"
+                      placeholder="Search feature requests..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className={styles.searchInput}
+                    />
+                    {searchTerm && (
+                      <button 
+                        onClick={() => setSearchTerm('')}
+                        className={styles.clearSearch}
                       >
-                        + Submit New Request
+                        Clear
                       </button>
-                    </div>
+                    )}
                   </div>
+                  <button
+                    className={styles.submitNewButton}
+                    onClick={() => setShowSidePanel(true)}
+                  >
+                    + Submit New Request
+                  </button>
+                </div>
+              </div>
                   
                   {loading ? (
                     <div className={styles.loading}>Loading feature requests...</div>
@@ -641,10 +613,7 @@ export default function Feedback() {
                 </div>
               </div>
             )}
-          </main>
-        </div>
-      </div>
-
+          </div>
       {/* Side Panel for submitting new feature requests */}
       <SidePanel
         isOpen={showSidePanel}

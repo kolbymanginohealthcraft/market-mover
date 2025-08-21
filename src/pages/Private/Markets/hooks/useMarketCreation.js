@@ -38,8 +38,6 @@ export const useMarketCreation = () => {
   };
 
   const handleSaveMarketClick = async () => {
-    if (!searchQuery.trim()) return;
-    
     // Start reverse geocoding immediately when user clicks "Save Market"
     try {
       setLoading(true);
@@ -55,7 +53,7 @@ export const useMarketCreation = () => {
     } catch (error) {
       console.error('Error pre-geocoding:', error);
       // Still show sidebar with fallback data
-      const locationParts = searchQuery.split(',').map(part => part.trim());
+      const locationParts = searchQuery.trim() ? searchQuery.split(',').map(part => part.trim()) : [];
       const fallbackLocation = {
         city: locationParts[0] || 'Unknown',
         state: locationParts[1] || 'Unknown'
@@ -76,11 +74,6 @@ export const useMarketCreation = () => {
   const handleSaveMarket = async () => {
     if (!marketName.trim()) {
       setError('Please enter a market name');
-      return;
-    }
-
-    if (!searchQuery.trim()) {
-      setError('Please search for a location first');
       return;
     }
 

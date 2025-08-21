@@ -1,0 +1,127 @@
+.subNavigation {
+  background: linear-gradient(90deg, var(--gray-25) 0%, var(--gray-50) 100%);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0;
+  position: sticky;
+  top: 80px;
+  z-index: 90;
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 48px;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 48px;
+  padding-right: 16px;
+}
+
+.tabContainer {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 48px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: var(--gray-600);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  outline: none;
+}
+
+.tab:hover {
+  color: var(--primary-teal-dark);
+  background: var(--white);
+  transform: translateY(-1px);
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tab:focus {
+  outline: none;
+  text-decoration: none;
+}
+
+.tab.active {
+  color: var(--primary-teal-dark);
+  border-bottom: 2px solid var(--primary-teal);
+  background: var(--white);
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.createButton {
+  background: var(--primary-teal) !important;
+  color: white !important;
+  border-radius: 6px;
+  margin-left: 8px;
+  height: 36px !important;
+  padding: 0 16px !important;
+}
+
+.createButton:hover {
+  background: var(--primary-teal-dark) !important;
+  color: white !important;
+  transform: translateY(-1px);
+}
+
+.tab svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.tab span {
+  white-space: nowrap;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .subNavigation {
+    padding: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .subNavigation {
+    padding: 0;
+  }
+  
+  .tabContainer {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .tabContainer::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tab {
+    padding: 0 12px;
+    min-width: fit-content;
+  }
+}

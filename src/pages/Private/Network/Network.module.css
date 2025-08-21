@@ -1,0 +1,428 @@
+/* Network Page Styling */
+.container {
+  padding: 24px;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.subsectionTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a2e2a;
+  margin: 0 0 20px 0;
+}
+
+.sectionDescription {
+  color: #6b7280;
+  margin: 0 0 24px 0;
+  font-size: 1rem;
+}
+
+
+
+/* Content Section */
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  padding: 24px;
+}
+
+
+
+/* Table Styling */
+.tableContainer {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.providersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.providersTable th {
+  background: #f9fafb;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.providersTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+
+.providersTable tr:hover {
+  background: #f9fafb;
+}
+
+.providersTable tr.activeRow {
+  background: #eff6ff;
+}
+
+.checkboxHeader {
+  width: 40px;
+}
+
+.checkboxCell {
+  width: 40px;
+}
+
+.selectAllCheckbox,
+.rowCheckbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sortableHeader:hover {
+  background: #f3f4f6;
+}
+
+.providerName {
+  color: #006d5b;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.providerName:hover {
+  color: #00c08b;
+  text-decoration: underline;
+}
+
+/* Tags Styling */
+.tagsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tagWrapper {
+  position: relative;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+
+
+.noTags {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6b7280;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.emptyState h3 {
+  margin: 0 0 8px 0;
+  color: #374151;
+  font-size: 1.2rem;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Error State */
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+/* Footer Styling */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 280px;
+  right: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px 24px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.footerVisible {
+  transform: translateY(0);
+}
+
+.footerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.selectionCount {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bulkMessage {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.bulkMessage.success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.bulkMessage.error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bulkEditSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: white;
+  min-width: 140px;
+}
+
+.bulkEditSelect:focus {
+  outline: none;
+  border-color: #00c08b;
+  box-shadow: 0 0 0 2px rgba(0, 192, 139, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .footer {
+    left: 0;
+    padding: 12px 16px;
+  }
+  
+  .footerContent {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .footerRight {
+    justify-content: center;
+  }
+  
+  .bulkActions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .searchInput,
+  .filterSelect {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* Network Page Layouts */
+.networkListPage,
+.networkMapPage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Map View Styles */
+.mapView {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  flex: 1;
+  min-height: 500px;
+}
+
+/* Legend Items (used in both list and map views) */
+.legendItems {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-direction: row;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.legendItem:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.legendItem.active {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.legendItem.inactive {
+  opacity: 0.5;
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.legendItem.inactive .legendMarker {
+  opacity: 0.3;
+}
+
+.legendMarker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.legendCount {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.mapContainer {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.mapLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+
+
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .networkListPage,
+  .networkMapPage {
+  }
+
+  .mapView {
+    min-height: 400px;
+  }
+
+  .legendItems {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .legendItem {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+
+}
