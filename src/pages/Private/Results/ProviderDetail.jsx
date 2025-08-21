@@ -6,6 +6,7 @@ import {
   Route,
   Navigate,
   useSearchParams,
+  useLocation,
 } from "react-router-dom";
 import styles from "./ProviderDetail.module.css";
 import { Pencil, Check, X } from "lucide-react";
@@ -38,7 +39,11 @@ export default function ProviderDetail() {
   const { dhc } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { setCurrentProvider } = useProviderContext();
+  
+  // Check if we're on a storyteller route
+  const isStorytellerRoute = location.pathname.includes('/storyteller');
 
   const radiusFromUrl = Number(searchParams.get("radius"));
   const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
@@ -115,44 +120,51 @@ export default function ProviderDetail() {
     return <Spinner message="Loading provider details..." />;
   }
 
+  // If we're on a storyteller route, render the navigation outside PageLayout
+  if (isStorytellerRoute) {
+    return (
+      <>
+        <Storyteller
+          provider={provider}
+          radiusInMiles={radiusInMiles}
+          nearbyProviders={nearbyProviders}
+          nearbyDhcCcns={nearbyDhcCcns}
+          mainProviderCcns={mainProviderCcns}
+          prefetchedData={{
+            loading: storytellerLoading,
+            measures: storytellerMeasures,
+            data: storytellerData,
+            marketAverages: storytellerMarketAverages,
+            nationalAverages: storytellerNationalAverages,
+            error: storytellerError,
+            allProviders: storytellerAllProviders,
+            providerTypes: storytellerProviderTypes,
+            publishDates: storytellerPublishDates,
+            currentDate: storytellerCurrentDate
+          }}
+        />
+      </>
+    );
+  }
+
+  // For all other routes, render normally inside PageLayout
   return (
     <PageLayout>
       <div className={styles.container}>
-      <Routes>
-        <Route path="overview" element={<OverviewTab provider={provider} />} />
-        <Route path="provider-listing" element={<ProviderListingTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} />} />
-        <Route path="storyteller/*" element={
-          <Storyteller
-            provider={provider}
-            radiusInMiles={radiusInMiles}
-            nearbyProviders={nearbyProviders}
-            nearbyDhcCcns={nearbyDhcCcns}
-            mainProviderCcns={mainProviderCcns}
-            prefetchedData={{
-              loading: storytellerLoading,
-              measures: storytellerMeasures,
-              data: storytellerData,
-              marketAverages: storytellerMarketAverages,
-              nationalAverages: storytellerNationalAverages,
-              error: storytellerError,
-              allProviders: storytellerAllProviders,
-              providerTypes: storytellerProviderTypes,
-              publishDates: storytellerPublishDates,
-              currentDate: storytellerCurrentDate
-            }}
-          />
-        } />
-        <Route path="charts" element={<ChartsTab provider={provider} />} />
-        <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-        <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-        <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-        <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
-        <Route path="referrals" element={<ReferralsTab provider={provider} />} />
-        <Route path="cms-enrollment" element={<CMSEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
-                 <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
-         <Route path="*" element={<Navigate to="overview" replace />} />
-       </Routes>
-       </div>
-     </PageLayout>
-   );
- }
+        <Routes>
+          <Route path="overview" element={<OverviewTab provider={provider} />} />
+          <Route path="provider-listing" element={<ProviderListingTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} />} />
+          <Route path="charts" element={<ChartsTab provider={provider} />} />
+          <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+          <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+          <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+          <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
+          <Route path="referrals" element={<ReferralsTab provider={provider} />} />
+          <Route path="cms-enrollment" element={<CMSEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
+          <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
+          <Route path="*" element={<Navigate to="overview" replace />} />
+        </Routes>
+      </div>
+    </PageLayout>
+  );
+}

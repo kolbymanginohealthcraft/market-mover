@@ -2,7 +2,6 @@
 .section {
   margin-bottom: 32px;
   position: relative;
-  min-height: calc(100vh - 200px);
 }
 
 .content {

@@ -12,13 +12,14 @@ import { supabase } from "./supabaseClient";
 import ScrollToTop from "../components/Navigation/ScrollToTop";
 import Layout from "../components/Layouts/Layout";
 import SidebarLayout from "../components/Layouts/SidebarLayout";
-import PublicLayout from "../components/Layouts/PublicLayout";
+import PublicSidebarLayout from "../components/Layouts/PublicSidebarLayout";
 import LegalLayout from "../components/Layouts/LegalLayout";
 import ButtonPlayground from "../pages/Temp/ButtonPlayground";
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
 
 // Pages
 import MarketingPage from "../pages/Public/Marketing/MarketingPage";
+import NewLandingPage from "../pages/Public/Marketing/NewLandingPage";
 import Login from "../pages/Auth/Login";
 import Signup from "../pages/Auth/Signup";
 import PricingPage from "../pages/Public/Pricing/PricingPage";
@@ -42,28 +43,23 @@ import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
 import ProviderDetail from "../pages/Private/Results/ProviderDetail";
-
-import Feedback from "../pages/Private/Dashboard/Feedback";
-import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";
-
-import MarketOverview from "../pages/Private/Markets/MarketOverview";
 import MarketsList from "../pages/Private/Markets/MarketsList";
+import MarketOverview from "../pages/Private/Markets/MarketOverview";
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
 import BannerTest from "../pages/Temp/BannerTest";
 import SpinnerDemo from "../pages/Temp/SpinnerDemo";
-// Team-related pages
+import Network from "../pages/Private/Network/Network";
+import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";
+import Feedback from "../pages/Private/Dashboard/Feedback";
 import PaymentTest from "../pages/Auth/PaymentTest";
 import PaymentFlow from "../pages/Auth/PaymentFlow";
 import Success from "../pages/Auth/Success";
-import Network from "../pages/Private/Network/Network";
 
-function App() {
+export default function App() {
   const [session, setSession] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-
-
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -80,10 +76,6 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-
-
-
-
   useEffect(() => {
     if (session && (location.pathname === "/" || location.pathname === "/login")) {
       navigate("/app/dashboard");
@@ -98,10 +90,10 @@ function App() {
       <ProviderContextProvider>
           <Routes>
             {/* Public */}
-            <Route path="/" element={<PublicLayout />}>
+            <Route path="/" element={<PublicSidebarLayout />}>
               <Route
                 index
-                element={session ? <Navigate to="/app/dashboard" /> : <MarketingPage />}
+                element={session ? <Navigate to="/app/dashboard" /> : <NewLandingPage />}
               />
               <Route
                 path="login"
@@ -111,6 +103,7 @@ function App() {
               <Route path="pricing" element={<PricingPage />} />
               <Route path="faq" element={<FAQPage />} />
               <Route path="overview" element={<OverviewPage />} />
+
 
               <Route path="select-plan" element={<SelectPlan />} />
               {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
@@ -160,5 +153,3 @@ function App() {
     </>
   );
 }
-
-export default App;

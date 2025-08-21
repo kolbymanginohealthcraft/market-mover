@@ -248,36 +248,35 @@ export default function ProfileTab() {
           <div className={styles.leftColumn}>
             <div className={styles.personalInfo}>
               <h3 className={styles.subsectionTitle}>Personal Information</h3>
-            <div className={styles.formGroup}>
-              <label>First Name</label>
-              <input
-                name="first_name"
-                value={profile.first_name}
-                onChange={handleProfileChange}
-                placeholder="Enter your first name"
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label>Last Name</label>
-              <input
-                name="last_name"
-                value={profile.last_name}
-                onChange={handleProfileChange}
-                placeholder="Enter your last name"
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Job Title</label>
-              <input
-                name="title"
-                value={profile.title}
-                onChange={handleProfileChange}
-                placeholder="Enter your job title"
-              />
+              <div className={styles.formGroup}>
+                <label>First Name</label>
+                <input
+                  name="first_name"
+                  value={profile.first_name}
+                  onChange={handleProfileChange}
+                  placeholder="Enter your first name"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Last Name</label>
+                <input
+                  name="last_name"
+                  value={profile.last_name}
+                  onChange={handleProfileChange}
+                  placeholder="Enter your last name"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Job Title</label>
+                <input
+                  name="title"
+                  value={profile.title}
+                  onChange={handleProfileChange}
+                  placeholder="Enter your job title"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Right Column - Subscription Section */}
         <div className={styles.rightColumn}>

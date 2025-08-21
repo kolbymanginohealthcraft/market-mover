@@ -15,7 +15,8 @@ import {
   Shield,
   Network,
   Users,
-  Bookmark
+  Bookmark,
+  Info
 } from 'lucide-react'
 
 const Header = ({ currentModule, currentView, selectedClient, selectedMarket }) => {
@@ -82,6 +83,9 @@ const Header = ({ currentModule, currentView, selectedClient, selectedMarket }) 
   }
 
   const getModuleIcon = () => {
+    if (currentView === 'about-platform') {
+      return <Info size={20} />
+    }
     return currentModule === 'insights' ? <Eye size={20} /> : <Megaphone size={20} />
   }
 

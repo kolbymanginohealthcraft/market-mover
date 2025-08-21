@@ -2,24 +2,28 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 24px;
+  margin: 0;
 }
 
-.nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f8f8;
-  padding: 0.5rem 1rem;
+.subNavigation {
+  background: linear-gradient(90deg, var(--gray-25) 0%, var(--gray-50) 100%);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0;
   position: sticky;
   top: 0;
   z-index: 40;
-  gap: 1rem;
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .navLeft {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 0;
+  height: 48px;
 }
 
 .navRight {
@@ -29,26 +33,44 @@
   flex-wrap: wrap;
 }
 
-.navLink {
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: var(--gray-600);
+  font-size: 14px;
   font-weight: 500;
-  color: #666;
-  text-decoration: none;
-  padding: 0.3rem 0.7rem;
-  border-radius: 6px;
+  cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  outline: none;
 }
 
-.navLink:hover {
-  background: #e8f0ed;
-  color: #265947;
+.tab:hover {
+  color: var(--primary-teal-dark);
+  background: var(--white);
+  transform: translateY(-1px);
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.navLink.active {
-  font-weight: 600;
-  color: #265947;
-  background: #e8f0ed;
-  border-bottom: 3px solid #265947;
+.tab:focus {
+  outline: none;
+  text-decoration: none;
+}
+
+.tab.active {
+  color: var(--primary-teal-dark);
+  border-bottom: 2px solid var(--primary-teal);
+  background: var(--white);
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .filterGroup {
@@ -211,4 +233,27 @@
   overflow: hidden;
 }
 
- 
+.benchmarksPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+}
+
+.placeholderContent {
+  text-align: center;
+  color: var(--gray-600);
+}
+
+.placeholderContent h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--gray-700);
+}
+
+.placeholderContent p {
+  font-size: 1rem;
+  color: var(--gray-500);
+}

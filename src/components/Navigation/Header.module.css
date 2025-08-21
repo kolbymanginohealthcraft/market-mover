@@ -40,6 +40,7 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  color: white;
 }
 
 .titleContent {
@@ -127,16 +128,10 @@
   font-style: italic;
 }
 
-.analysis {
-  color: var(--gray-600);
-  font-weight: 500;
-  font-style: italic;
-}
-
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .userSection {
@@ -145,32 +140,10 @@
   gap: 1rem;
 }
 
-.iconButton {
-  width: 40px;
-  height: 40px;
-  border: none;
-  background: var(--white);
-  border-radius: 8px;
-  color: var(--gray-600);
-  cursor: pointer;
+.ctaButtons {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  border: 1px solid var(--gray-200);
-}
-
-.iconButton:hover {
-  background: var(--gray-50);
-  color: var(--primary-teal-dark);
-  border-color: var(--primary-teal);
-  transform: translateY(-1px);
-}
-
-.iconButton svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+  gap: 0.75rem;
 }
 
 .userProfileContainer {
@@ -181,19 +154,16 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: none;
   border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .userProfile:hover {
-  background: var(--gray-50);
-  border-color: var(--primary-teal);
-  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .userAvatar {
@@ -204,23 +174,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--white);
-  font-size: 0.875rem;
+  color: white;
   font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .userName {
-  font-size: 0.875rem;
   font-weight: 500;
-  color: var(--gray-700);
+  color: var(--gray-900);
 }
 
 .chevron {
-  color: var(--gray-500);
   transition: transform 0.2s ease;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+  color: var(--gray-600);
 }
 
 .chevron.rotated {
@@ -232,21 +201,20 @@
   top: 100%;
   right: 0;
   margin-top: 0.5rem;
-  background: var(--white);
+  background: white;
   border: 1px solid var(--gray-200);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 240px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
   z-index: 1000;
-  overflow: hidden;
 }
 
 .dropdownHeader {
+  padding: 1rem;
+  border-bottom: 1px solid var(--gray-200);
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
-  background: var(--gray-50);
 }
 
 .dropdownAvatar {
@@ -257,29 +225,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--white);
-  font-size: 1rem;
+  color: white;
   font-weight: 600;
-  flex-shrink: 0;
+  font-size: 1rem;
 }
 
 .dropdownUserInfo {
   flex: 1;
-  min-width: 0;
 }
 
 .dropdownName {
-  font-size: 0.875rem;
   font-weight: 600;
   color: var(--gray-900);
-  line-height: 1.2;
-  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
 }
 
 .dropdownEmail {
-  font-size: 0.75rem;
   color: var(--gray-600);
-  line-height: 1.2;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .dropdownDivider {
@@ -289,17 +253,22 @@
 }
 
 .dropdownLogout {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   width: 100%;
   padding: 0.75rem 1rem;
   background: none;
   border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--gray-700);
   font-size: 0.875rem;
-  cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.dropdownLogout:hover {
+  background: var(--gray-50);
+  color: var(--red-500);
 }
 
 .dropdownLogout svg {
@@ -308,64 +277,71 @@
   flex-shrink: 0;
 }
 
-.dropdownLogout:hover {
+/* Modern CTA Button Styles */
+.ctaButtons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.loginButton {
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  color: #666;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loginButton:hover {
   background: var(--gray-50);
-  color: var(--error-red);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .header {
-    padding: 1rem 1.5rem;
-  }
+.signupButton {
+  background: #3fb985;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.signupButton:hover {
+  background: #34a475;
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .header {
     padding: 1rem;
-    flex-direction: column;
-    height: auto;
-    gap: 1rem;
   }
   
-  .headerLeft,
-  .headerRight {
-    width: 100%;
-    justify-content: space-between;
+  .pageTitle {
+    font-size: 1.5rem;
   }
   
-  .userSection {
+  .ctaButtons {
     gap: 0.5rem;
-  }
-  
-  .userName {
-    display: none;
-  }
-  
-  .userProfile {
-    padding: 0.5rem;
-  }
-  
-  .dropdown {
-    min-width: 200px;
-    right: 0;
-  }
-  
-  .dropdownHeader {
-    padding: 0.75rem;
-  }
-  
-  .dropdownAvatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.875rem;
-  }
-  
-  .dropdownName {
-    font-size: 0.8rem;
-  }
-  
-  .dropdownEmail {
-    font-size: 0.7rem;
   }
 }

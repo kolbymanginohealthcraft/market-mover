@@ -126,6 +126,11 @@ const Sidebar = ({ currentModule, setCurrentModule, currentView, setCurrentView,
   }
 
   const getModuleStats = () => {
+    // Don't show stats when viewing About This Platform
+    if (currentView === 'about-platform') {
+      return null
+    }
+    
     if (currentModule === 'insights') {
       return {
         title: 'Market Intelligence',
@@ -179,45 +184,7 @@ const Sidebar = ({ currentModule, setCurrentModule, currentView, setCurrentView,
           </div>
         </div>
         
-        {/* About Platform Link */}
-        <div style={{ marginTop: '1rem' }}>
-          <button
-            onClick={() => {
-              setCurrentModule('campaigns')
-              setCurrentView('about-platform')
-            }}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 0.75rem',
-              border: '1px solid var(--gray-200)',
-              borderRadius: '0.375rem',
-              background: currentView === 'about-platform' ? 'var(--primary-teal)' : 'var(--white)',
-              color: currentView === 'about-platform' ? 'white' : 'var(--gray-700)',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (currentView !== 'about-platform') {
-                e.target.style.background = 'var(--gray-50)'
-                e.target.style.borderColor = 'var(--gray-300)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentView !== 'about-platform') {
-                e.target.style.background = 'var(--white)'
-                e.target.style.borderColor = 'var(--gray-200)'
-              }
-            }}
-          >
-            <Info size={16} />
-            About Platform
-          </button>
-        </div>
+
       </div>
 
       {/* View As Selector (Dev purposes) */}
@@ -266,12 +233,42 @@ const Sidebar = ({ currentModule, setCurrentModule, currentView, setCurrentView,
         <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Module
         </div>
+        
+        {/* About This Platform Button */}
+        <button
+          onClick={() => {
+            setCurrentModule('campaigns')
+            setCurrentView('about-platform')
+          }}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem',
+            border: 'none',
+            borderRadius: '0.375rem',
+            background: currentView === 'about-platform' ? 'var(--primary-teal)' : 'var(--gray-100)',
+            color: currentView === 'about-platform' ? 'white' : 'var(--gray-700)',
+            cursor: 'pointer',
+            fontSize: '0.75rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            marginBottom: '0.5rem'
+          }}
+        >
+          <Info size={14} />
+          About This Platform
+        </button>
+        
+        {/* Execution and Intelligence Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                     <button
-             onClick={() => {
-               setCurrentModule('campaigns')
-               setCurrentView('campaigns')
-             }}
+          <button
+            onClick={() => {
+              setCurrentModule('campaigns')
+              setCurrentView('campaigns')
+            }}
             style={{
               flex: 1,
               display: 'flex',
@@ -321,106 +318,110 @@ const Sidebar = ({ currentModule, setCurrentModule, currentView, setCurrentView,
       </div>
 
       {/* Navigation */}
-      <div style={{ padding: '1rem 0' }}>
-        {currentModule === 'insights' ? (
-          <>
-            {insightsSections.map((section, sectionIndex) => (
-              <div key={section.title}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.5rem', padding: '0 1.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {section.title}
+      {currentView !== 'about-platform' && (
+        <div style={{ padding: '1rem 0' }}>
+          {currentModule === 'insights' ? (
+            <>
+              {insightsSections.map((section, sectionIndex) => (
+                <div key={section.title}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.5rem', padding: '0 1.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {section.title}
+                  </div>
+                  {section.items.map(item => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setCurrentView(item.id)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          padding: '0.75rem 1.5rem',
+                          border: 'none',
+                          background: currentView === item.id ? 'var(--primary-teal)' : 'transparent',
+                          color: currentView === item.id ? 'white' : 'var(--gray-700)',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === item.id ? '500' : '400',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Icon size={18} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                  {sectionIndex < insightsSections.length - 1 && (
+                    <div style={{ height: '1px', backgroundColor: 'var(--gray-200)', margin: '0.5rem 1.5rem' }} />
+                  )}
                 </div>
-                {section.items.map(item => {
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setCurrentView(item.id)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.75rem 1.5rem',
-                        border: 'none',
-                        background: currentView === item.id ? 'var(--primary-teal)' : 'transparent',
-                        color: currentView === item.id ? 'white' : 'var(--gray-700)',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: currentView === item.id ? '500' : '400',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <Icon size={18} />
-                      {item.label}
-                    </button>
-                  )
-                })}
-                {sectionIndex < insightsSections.length - 1 && (
-                  <div style={{ height: '1px', backgroundColor: 'var(--gray-200)', margin: '0.5rem 1.5rem' }} />
-                )}
-              </div>
-            ))}
-          </>
-        ) : (
-          <>
-            {campaignSections.map((section, sectionIndex) => (
-              <div key={section.title}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.5rem', padding: '0 1.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {section.title}
+              ))}
+            </>
+          ) : (
+            <>
+              {campaignSections.map((section, sectionIndex) => (
+                <div key={section.title}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.5rem', padding: '0 1.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {section.title}
+                  </div>
+                  {section.items.map(item => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setCurrentView(item.id)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          padding: '0.75rem 1.5rem',
+                          border: 'none',
+                          background: currentView === item.id ? 'var(--primary-teal)' : 'transparent',
+                          color: currentView === item.id ? 'white' : 'var(--gray-700)',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === item.id ? '500' : '400',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Icon size={18} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                  {sectionIndex < campaignSections.length - 1 && (
+                    <div style={{ height: '1px', backgroundColor: 'var(--gray-200)', margin: '0.5rem 1.5rem' }} />
+                  )}
                 </div>
-                {section.items.map(item => {
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setCurrentView(item.id)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.75rem 1.5rem',
-                        border: 'none',
-                        background: currentView === item.id ? 'var(--primary-teal)' : 'transparent',
-                        color: currentView === item.id ? 'white' : 'var(--gray-700)',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: currentView === item.id ? '500' : '400',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <Icon size={18} />
-                      {item.label}
-                    </button>
-                  )
-                })}
-                {sectionIndex < campaignSections.length - 1 && (
-                  <div style={{ height: '1px', backgroundColor: 'var(--gray-200)', margin: '0.5rem 1.5rem' }} />
-                )}
-              </div>
-            ))}
-          </>
-        )}
-      </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Quick Stats */}
-      <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--gray-200)', marginTop: 'auto' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {moduleStats.title}
-        </div>
-        {moduleStats.stats.map((stat, index) => (
-          <div key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: index < moduleStats.stats.length - 1 ? '0.5rem' : 0 }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{stat.label}</span>
-            <span style={{ 
-              fontSize: '0.75rem', 
-              fontWeight: '600', 
-              color: stat.label === 'This Month' ? 'var(--primary-teal)' : 'var(--gray-900)' 
-            }}>
-              {stat.value}
-            </span>
+      {moduleStats && (
+        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--gray-200)', marginTop: 'auto' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {moduleStats.title}
           </div>
-        ))}
-      </div>
+          {moduleStats.stats.map((stat, index) => (
+            <div key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: index < moduleStats.stats.length - 1 ? '0.5rem' : 0 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{stat.label}</span>
+              <span style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: '600', 
+                color: stat.label === 'This Month' ? 'var(--primary-teal)' : 'var(--gray-900)' 
+              }}>
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

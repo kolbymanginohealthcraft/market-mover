@@ -13,7 +13,10 @@ import {
   User,
   LayoutDashboard,
   Network,
-  Settings
+  Settings,
+  Home,
+  DollarSign,
+  Mail
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { supabase } from '../../app/supabaseClient';
@@ -30,6 +33,9 @@ const Header = ({ currentView, selectedMarket }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentProvider } = useProviderContext();
+
+  // Check if we're on a public page
+  const isPublicPage = !location.pathname.startsWith('/app');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -147,6 +153,24 @@ const Header = ({ currentView, selectedMarket }) => {
   };
 
   const getViewTitle = () => {
+    // Public pages
+    if (isPublicPage) {
+      if (location.pathname === '/') {
+        return 'Welcome to Market Mover';
+      } else if (location.pathname === '/pricing') {
+        return 'Pricing Options';
+      } else if (location.pathname === '/faq') {
+        return 'Frequently Asked Questions';
+      } else if (location.pathname === '/login') {
+        return 'Log In';
+      } else if (location.pathname === '/signup') {
+        return 'Create Account';
+      } else {
+        return 'Market Mover';
+      }
+    }
+    
+    // Private pages
     if (location.pathname.includes('/dashboard')) {
       return 'Dashboard';
     } else if (location.pathname.includes('/search')) {
@@ -169,6 +193,35 @@ const Header = ({ currentView, selectedMarket }) => {
   };
 
   const getBreadcrumbItems = () => {
+    // Public pages
+    if (isPublicPage) {
+      if (location.pathname === '/') {
+        return [
+          { text: 'Find your next healthcare partnership', type: 'description' }
+        ];
+      } else if (location.pathname === '/pricing') {
+        return [
+          { text: 'Flexible plans for teams of all sizes', type: 'description' }
+        ];
+      } else if (location.pathname === '/faq') {
+        return [
+          { text: 'Find answers to common questions about Market Mover', type: 'description' }
+        ];
+      } else if (location.pathname === '/login') {
+        return [
+          { text: 'Access your Market Mover account', type: 'description' }
+        ];
+      } else if (location.pathname === '/signup') {
+        return [
+          { text: 'Create your Market Mover account', type: 'description' }
+        ];
+      } else {
+        return [
+          { text: 'Healthcare intelligence and growth analytics platform', type: 'description' }
+        ];
+      }
+    }
+    
     // Provider Analysis Mode
     if (location.pathname.includes('/provider/') && currentProvider) {
       return [
@@ -234,6 +287,24 @@ const Header = ({ currentView, selectedMarket }) => {
   };
 
   const getModuleIcon = () => {
+    // Public pages
+    if (isPublicPage) {
+      if (location.pathname === '/') {
+        return <Home size={18} />;
+      } else if (location.pathname === '/pricing') {
+        return <DollarSign size={18} />;
+      } else if (location.pathname === '/faq') {
+        return <HelpCircle size={18} />;
+      } else if (location.pathname === '/login') {
+        return <Mail size={18} />;
+      } else if (location.pathname === '/signup') {
+        return <User size={18} />;
+      } else {
+        return <Home size={18} />;
+      }
+    }
+    
+    // Private pages
     if (location.pathname.includes('/dashboard')) {
       return <LayoutDashboard size={18} />;
     } else if (location.pathname.includes('/search')) {
@@ -280,7 +351,8 @@ const Header = ({ currentView, selectedMarket }) => {
 
       <div className={styles.headerRight}>
         <div className={styles.userSection}>
-          {user && (
+          {user ? (
+            // Logged in user - show profile dropdown
             <div className={styles.userProfileContainer} ref={dropdownRef}>
               <button 
                 className={styles.userProfile} 
@@ -315,6 +387,22 @@ const Header = ({ currentView, selectedMarket }) => {
                   </button>
                 </div>
               )}
+            </div>
+          ) : (
+            // Not logged in - show CTA buttons
+            <div className={styles.ctaButtons}>
+              <button 
+                onClick={() => navigate('/login')} 
+                className={styles.loginButton}
+              >
+                Log In
+              </button>
+              <button 
+                onClick={() => navigate('/signup')} 
+                className={styles.signupButton}
+              >
+                Sign Up
+              </button>
             </div>
           )}
         </div>

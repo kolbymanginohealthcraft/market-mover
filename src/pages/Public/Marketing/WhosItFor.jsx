@@ -1,34 +1,35 @@
 import React, { useEffect, useRef } from 'react';
+import { Megaphone, TrendingUp, Building2, Handshake, BarChart3, Compass } from 'lucide-react';
 import styles from './WhosItFor.module.css';
 
 const personas = [
   {
-    icon: '📣',
+    icon: Megaphone,
     title: 'Healthcare Marketers',
     description: 'Identify high-potential markets and tailor outreach based on geography, service type, and facility profile.',
   },
   {
-    icon: '📈',
+    icon: TrendingUp,
     title: 'Referral Coordinators',
     description: 'Visualize referral paths, spot new connection opportunities, and strengthen existing provider relationships.',
   },
   {
-    icon: '🏥',
+    icon: Building2,
     title: 'Clinical Program Leaders',
     description: 'Plan strategic care programs by aligning clinical services with the needs and outcomes of local populations.',
   },
   {
-    icon: '🤝',
+    icon: Handshake,
     title: 'Partnership & Network Teams',
     description: 'Find ideal partners based on capacity, quality metrics, and alignment with your organization\'s priorities.',
   },
   {
-    icon: '📊',
+    icon: BarChart3,
     title: 'Data & Ops Analysts',
     description: 'Turn market insights into compelling visuals and reports that drive executive decisions and team actions.',
   },
   {
-    icon: '🧭',
+    icon: Compass,
     title: 'Strategic Planners',
     description: 'Explore emerging markets, monitor competitors, and support growth initiatives with data-driven clarity.',
   },
@@ -72,7 +73,9 @@ export default function WhosItFor() {
               key={idx}
               ref={el => cardRefs.current[idx] = el}
             >
-              <div className={styles.icon}>{p.icon}</div>
+              <div className={styles.icon}>
+                <p.icon size={24} />
+              </div>
               <h3 className={styles.cardTitle}>{p.title}</h3>
               <p className={styles.cardDescription}>{p.description}</p>
             </div>

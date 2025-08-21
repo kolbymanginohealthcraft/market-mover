@@ -302,18 +302,15 @@ export default function UsersTab() {
         <div className={styles.membersSection}>
           <div className={styles.membersHeader}>
             <div className={styles.headerLeft}>
-              <div className={styles.titleGroup}>
-                <div className={styles.teamNameDisplay}>
+              <div className={styles.teamNameDisplay}>
                 <span className={styles.teamName}>User Management</span>
                 <span className={styles.memberCount}>
                   {teamMembers.length} / {teamInfo?.max_users} licenses used
                 </span>
               </div>
             </div>
-          </div>
-          <div className={styles.headerRight}>
-            {userIsTeamAdmin && (
-              <div className={styles.actionButtons}>
+            <div className={styles.headerRight}>
+              {userIsTeamAdmin && (
                 <Button
                   variant="green"
                   size="sm"
@@ -322,10 +319,9 @@ export default function UsersTab() {
                 >
                   + Invite Users
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
         <table className={styles.membersTable}>
           <thead>
             <tr>

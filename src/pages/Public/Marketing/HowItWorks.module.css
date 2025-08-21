@@ -75,9 +75,18 @@
   }
   
   .icon {
-    font-size: 2rem;
-    margin-bottom: 16px;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: #265947;
+}
+
+.icon svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
   
   .stepTitle {
     font-size: 1.2rem;

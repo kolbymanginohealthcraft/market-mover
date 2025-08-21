@@ -91,6 +91,16 @@
   color: #265947;
   opacity: 0.9;
   margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.credIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #265947;
 }
 
 /* Brand & Tooltip Styles */

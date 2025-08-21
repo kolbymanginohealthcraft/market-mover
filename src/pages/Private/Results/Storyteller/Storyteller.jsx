@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { Routes, Route, NavLink, useLocation, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import Scorecard from "./Scorecard";
-import Benchmarks from "./Benchmarks";
-import Button from "../../../../components/Buttons/Button";
-import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
 import styles from "./Storyteller.module.css";
 
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
   const location = useLocation();
+  
+  // Check if we're on the benchmarks route
+  const isBenchmarksRoute = location.pathname.includes('/benchmarks');
   
   // Set body attribute for CSS overrides
   useEffect(() => {
@@ -21,8 +21,6 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   const [providerTypeFilter, setProviderTypeFilter] = useState(null);
   const [selectedPublishDate, setSelectedPublishDate] = useState('');
   const [chartMode, setChartMode] = useState('snapshot');
-  const [showSnapshotDropdown, setShowSnapshotDropdown] = useState(false);
-  const dropdownRef = useRef(null);
 
   // Extract available options from prefetched data
   const availableProviderTypes = prefetchedData?.providerTypes || [];
@@ -40,7 +38,7 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
       setProviderTypeFilter(defaultType);
       console.log('🎯 Setting default provider type filter to:', defaultType);
     }
-  }, [availableProviderTypes, providerTypeFilter]);
+  }, [availableProviderTypes]);
 
   // Set default publish date when available dates change
   useEffect(() => {
@@ -50,32 +48,9 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
       const defaultDate = availablePublishDates.includes(april2025) ? april2025 : availablePublishDates[0];
       setSelectedPublishDate(defaultDate);
     }
-  }, [availablePublishDates, selectedPublishDate]);
+  }, [availablePublishDates]);
 
-  // Handle click outside dropdown and escape key
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowSnapshotDropdown(false);
-      }
-    };
 
-    const handleEscapeKey = (event) => {
-      if (event.key === 'Escape') {
-        setShowSnapshotDropdown(false);
-      }
-    };
-
-    if (showSnapshotDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [showSnapshotDropdown]);
 
   // Helper function to format publish date
   const formatPublishDate = (dateStr) => {
@@ -104,19 +79,33 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
     );
   }
 
+  // Helper function to get proper navigation paths
+  function getNavigationPaths() {
+    const pathSegments = location.pathname.split('/');
+    const storytellerIndex = pathSegments.findIndex(segment => segment === 'storyteller');
+    const basePath = pathSegments.slice(0, storytellerIndex + 1).join('/');
+    
+    return {
+      scorecard: `${basePath}/scorecard`,
+      benchmarks: `${basePath}/benchmarks`
+    };
+  }
+
+    const paths = getNavigationPaths();
+
   return (
-    <div className={styles.container}>
-      <nav className={styles.nav}>
+    <>
+      <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>
           <NavLink 
-            to="scorecard" 
-            className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+            to={paths.scorecard}
+            className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
           >
             Scorecard
           </NavLink>
           <NavLink 
-            to="benchmarks" 
-            className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+            to={paths.benchmarks}
+            className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
           >
             Benchmarks
           </NavLink>
@@ -136,117 +125,34 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
               />
             </div>
           )}
-          
-          {/* Snapshot/Trend Toggle with Dropdown */}
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>View:</label>
-            <div className={styles.viewToggleContainer}>
-              <div className={styles.toggleButton}>
-                <Button
-                  variant={chartMode === "snapshot" ? "accent" : "gray"}
-                  size="sm"
-                  outline={chartMode !== "snapshot"}
-                  onClick={() => {
-                    setChartMode("snapshot");
-                  }}
-                  className={styles.snapshotButton}
-                >
-                  Snapshot
-                  {selectedPublishDate && (
-                    <span className={styles.selectedDate}>
-                      ({formatPublishDate(selectedPublishDate)})
-                    </span>
-                  )}
-                  {availablePublishDates.length > 1 && (
-                    <button
-                      className={styles.dropdownArrow}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChartMode("snapshot");
-                        setShowSnapshotDropdown(!showSnapshotDropdown);
-                      }}
-                    >
-                      ▼
-                    </button>
-                  )}
-                </Button>
-                {chartMode === "snapshot" && showSnapshotDropdown && availablePublishDates.length > 1 && (
-                  <div className={styles.snapshotDropdown} ref={dropdownRef}>
-                    <div className={styles.dropdownHeader}>Select Publish Date:</div>
-                    {availablePublishDates.map(date => (
-                      <Button
-                        key={date}
-                        variant={selectedPublishDate === date ? "accent" : "gray"}
-                        size="sm"
-                        ghost={selectedPublishDate !== date}
-                        onClick={() => {
-                          setSelectedPublishDate(date);
-                          setShowSnapshotDropdown(false);
-                        }}
-                        className={styles.dropdownItem}
-                      >
-                        {formatPublishDate(date)}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Button
-                variant={chartMode === "trend" ? "accent" : "gray"}
-                size="sm"
-                outline={chartMode !== "trend"}
-                onClick={() => {
-                  setChartMode("trend");
-                  setShowSnapshotDropdown(false);
-                }}
-              >
-                Trend
-              </Button>
-            </div>
-          </div>
         </div>
       </nav>
       
-      {/* Enhanced Banner - Early Adopter Excitement */}
-      {/* Removed Banner component */}
-
-      <div className={styles.content}>
-        <Routes>
-          <Route path="scorecard" element={
-            <Scorecard 
-              provider={provider} 
-              radiusInMiles={radiusInMiles} 
-              nearbyProviders={nearbyProviders} 
-              nearbyDhcCcns={nearbyDhcCcns} 
-              mainProviderCcns={mainProviderCcns}
-              prefetchedData={prefetchedData}
-              providerTypeFilter={providerTypeFilter}
-              setProviderTypeFilter={setProviderTypeFilter}
-              selectedPublishDate={selectedPublishDate}
-              setSelectedPublishDate={setSelectedPublishDate}
-              chartMode={chartMode}
-              setChartMode={setChartMode}
-            />
-          } />
-          <Route path="benchmarks" element={
-            <Benchmarks 
-              provider={provider} 
-              radiusInMiles={radiusInMiles} 
-              nearbyProviders={nearbyProviders} 
-              nearbyDhcCcns={nearbyDhcCcns} 
-              mainProviderCcns={mainProviderCcns}
-              prefetchedData={prefetchedData}
-              providerTypeFilter={providerTypeFilter}
-              setProviderTypeFilter={setProviderTypeFilter}
-              selectedPublishDate={selectedPublishDate}
-              setSelectedPublishDate={setSelectedPublishDate}
-              chartMode={chartMode}
-              setChartMode={setChartMode}
-            />
-          } />
-          <Route path="*" element={<Navigate to="scorecard" replace />} />
-        </Routes>
+      <div className={styles.container}>
+        {isBenchmarksRoute ? (
+          <div className={styles.benchmarksPlaceholder}>
+            <div className={styles.placeholderContent}>
+              <h2>Benchmarks</h2>
+              <p>This section is being redesigned. Coming soon.</p>
+            </div>
+          </div>
+        ) : (
+          <Scorecard 
+            provider={provider} 
+            radiusInMiles={radiusInMiles} 
+            nearbyProviders={nearbyProviders} 
+            nearbyDhcCcns={nearbyDhcCcns} 
+            mainProviderCcns={mainProviderCcns}
+            prefetchedData={prefetchedData}
+            providerTypeFilter={providerTypeFilter}
+            setProviderTypeFilter={setProviderTypeFilter}
+            selectedPublishDate={selectedPublishDate}
+            setSelectedPublishDate={setSelectedPublishDate}
+            chartMode={chartMode}
+            setChartMode={setChartMode}
+          />
+        )}
       </div>
-    </div>
+    </>
   );
 }

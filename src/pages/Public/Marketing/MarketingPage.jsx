@@ -12,21 +12,31 @@ import MarketPreview from "./MarketPreview";
 const MarketingPage = () => {
   return (
     <div className={styles.page}>
-      {/* Sections */}
+      {/* Hero Section */}
       <Hero />
+      
+      {/* About Section */}
       <About />
+      
+      {/* How It Works Section */}
       <HowItWorks />
+      
+      {/* Who's It For Section */}
       <WhosItFor />
+      
+      {/* Testimonial Carousel (commented out) */}
       {/* <TestimonialCarousel /> */}
+      
+      {/* Market Preview Section */}
       <MarketPreview />
 
       {/* CTA Section */}
       <section className={styles.ctaSection}>
         <div className={styles.container}>
           <h2>Ready to Explore?</h2>
-          <Link to="/signup">
+          <Link to="/pricing">
             <Button variant="accent" size="lg">
-              Create an Account
+              Get Started
             </Button>
           </Link>
         </div>

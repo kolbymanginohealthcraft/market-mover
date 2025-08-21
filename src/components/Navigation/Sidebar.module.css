@@ -94,6 +94,7 @@
   font-weight: 500;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  position: relative;
 }
 
 .navItem svg {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { TrendingUp } from "lucide-react";
 import styles from "./Hero.module.css";
 import Button from "../../../components/Buttons/Button";
 import heroImage from "../../../assets/hero-illustration.jpg";
@@ -66,7 +67,10 @@ export default function Hero() {
           </p>
 
           <p className={styles.heroCred}>
-            <strong>📈 Know more. Grow more.</strong>
+            <strong>
+              <TrendingUp size={20} className={styles.credIcon} />
+              Know more. Grow more.
+            </strong>
           </p>
 
           <Link to="/signup">
