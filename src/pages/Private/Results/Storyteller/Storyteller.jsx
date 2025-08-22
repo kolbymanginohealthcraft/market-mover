@@ -27,32 +27,21 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   const availablePublishDates = prefetchedData?.publishDates || [];
   const currentPublishDate = prefetchedData?.currentDate || null;
 
-  // DEBUG: Log availableProviderTypes and providerTypeFilter
-  console.log('Storyteller data received:', {
-    availableProviderTypes,
-    providerTypeFilter,
-    prefetchedData,
-    allCcnsCount: allCcns?.length || 0,
-    allProviderDhcsCount: allProviderDhcs?.length || 0,
-    nearbyProvidersCount: nearbyProviders?.length || 0,
-    nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0
-  });
+
 
   // Set default provider type filter when available types change
   useEffect(() => {
     if (availableProviderTypes.length > 0 && !providerTypeFilter) {
       // Default to SNF
       setProviderTypeFilter('SNF');
-      console.log('🎯 Setting default provider type filter to: SNF');
     }
   }, [availableProviderTypes]);
 
   // Set default publish date when available dates change
   useEffect(() => {
     if (availablePublishDates.length > 0 && !selectedPublishDate) {
-      // Default to April 2025 if available, otherwise use the most recent date
-      const april2025 = '2025-04-01';
-      const defaultDate = availablePublishDates.includes(april2025) ? april2025 : availablePublishDates[0];
+      // Always use the most recent available date (availableDates is sorted chronologically)
+      const defaultDate = availablePublishDates[0];
       setSelectedPublishDate(defaultDate);
     }
   }, [availablePublishDates]);

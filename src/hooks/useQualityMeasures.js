@@ -7,7 +7,6 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Clear cache on module load to ensure fresh data
 apiCache.clear();
-console.log('🧹 Cache cleared on module load');
 
 // Function to clear the client-side cache
 export function clearClientCache() {
@@ -34,7 +33,7 @@ function setCachedData(key, data) {
   });
 }
 
-export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate = null) {
+export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate = null, qualityMeasuresDates = null, currentMeasureSetting = null) {
   const [matrixLoading, setMatrixLoading] = useState(true);
   const [matrixMeasures, setMatrixMeasures] = useState([]);
   const [matrixData, setMatrixData] = useState({});
@@ -50,6 +49,28 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   // Memoize dependencies to prevent infinite re-renders
   const memoizedNearbyProviders = useMemo(() => nearbyProviders, [JSON.stringify(nearbyProviders)]);
   const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns, [JSON.stringify(nearbyDhcCcns)]);
+
+     // Effect to update current publish date when measure setting changes
+   useEffect(() => {
+     console.log('📅 Quality measures dates effect triggered:', {
+       qualityMeasuresDates,
+       currentMeasureSetting,
+       hasQualityMeasuresDates: qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0
+     });
+     
+     if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0 && currentMeasureSetting) {
+       if (qualityMeasuresDates[currentMeasureSetting]) {
+         const settingSpecificDate = qualityMeasuresDates[currentMeasureSetting];
+         console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
+         setCurrentPublishDate(settingSpecificDate);
+       } else {
+         // Fallback to the most recent available date if the setting doesn't have a specific date
+         const allDates = Object.values(qualityMeasuresDates).sort().reverse();
+         console.log('📅 Setting not found in qualityMeasuresDates, using most recent date:', allDates[0]);
+         setCurrentPublishDate(allDates[0]);
+       }
+     }
+   }, [qualityMeasuresDates, currentMeasureSetting]);
 
   useEffect(() => {
     async function fetchMatrixData() {
@@ -70,7 +91,6 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
       
       // Clear cache to ensure fresh data
       apiCache.clear();
-      console.log('🧹 Cache cleared for fresh data fetch');
       
       setMatrixLoading(true);
       setMatrixError(null);
@@ -82,11 +102,6 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
         // 2. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
         const providerDhcToCcns = {};
-        console.log('🔍 Processing nearbyDhcCcns:', {
-          count: memoizedNearbyDhcCcns?.length || 0,
-          sample: memoizedNearbyDhcCcns?.slice(0, 3) || [],
-          types: memoizedNearbyDhcCcns?.slice(0, 3)?.map(row => ({ dhc: typeof row.dhc, ccn: typeof row.ccn })) || []
-        });
         
         (memoizedNearbyDhcCcns || []).forEach(row => {
           if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
@@ -111,30 +126,11 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           });
         }
 
-        // DEBUG: Log CCNs for main provider
-        console.log('🔍 Main provider CCNs:', {
-          dhc: provider?.dhc,
-          ccns: providerDhcToCcns[provider?.dhc] || [],
-          allProviderDhcToCcns: Object.keys(providerDhcToCcns).length,
-          // Debug CCN data types and values
-          nearbyDhcCcnsSample: memoizedNearbyDhcCcns?.slice(0, 3) || [],
-          allProvidersBeforeFilter: allProviders.length,
-          providerDhcToCcnsKeys: Object.keys(providerDhcToCcns),
-          providerDhcToCcnsSample: Object.entries(providerDhcToCcns).slice(0, 3)
-        });
+
 
         // 4. Only include providers with at least one CCN
         const providersBeforeFilter = allProviders.length;
         allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
-        
-        console.log('🔍 Provider filtering:', {
-          providersBeforeFilter,
-          providersAfterFilter: allProviders.length,
-          filteredOutCount: providersBeforeFilter - allProviders.length,
-          providersWithCcns: allProviders.map(p => ({ dhc: p.dhc, name: p.name, ccns: providerDhcToCcns[p.dhc]?.length || 0 })),
-          // Debug: Show which providers are being filtered out
-          filteredOutProviders: allProviders.filter(p => !providerDhcToCcns[p.dhc] || providerDhcToCcns[p.dhc].length === 0).map(p => ({ dhc: p.dhc, name: p.name }))
-        });
         
         // 4b. Get unique measure settings for dropdown (instead of provider types)
         // This will be populated after we fetch the measures data
@@ -150,20 +146,70 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           return;
         }
         
-        // 6. Check cache for combined data
-        const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date: selectedPublishDate || '2025-04-01' });
+        // 6. Use quality measures dates if provided, otherwise fetch them
+        let availableDates = [];
+        let publish_date;
+        
+        if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0) {
+          // Use the provided quality measures dates
+          console.log('📅 Using provided quality measures dates:', qualityMeasuresDates);
+          
+          // Get all available dates from the quality measures dates object
+          availableDates = Array.from(new Set(Object.values(qualityMeasuresDates))).sort().reverse();
+          
+          // Determine which publish date to use based on the current measure setting
+          if (currentMeasureSetting && qualityMeasuresDates[currentMeasureSetting]) {
+            publish_date = qualityMeasuresDates[currentMeasureSetting];
+            console.log('📅 Using setting-specific date for', currentMeasureSetting, ':', publish_date);
+          } else {
+            // Fallback to the most recent available date
+            publish_date = availableDates[0];
+            console.log('📅 Setting not found, using fallback date:', publish_date);
+          }
+        } else {
+          // Fallback: fetch available dates dynamically
+          const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              ccns: allCcns, 
+              publish_date: 'latest' 
+            })
+          });
+          
+          if (!datesResponse.ok) throw new Error('Failed to fetch available dates');
+          const datesResult = await datesResponse.json();
+          if (!datesResult.success) throw new Error(datesResult.error);
+          
+          availableDates = datesResult.data.availableDates || [];
+          if (availableDates.length === 0) {
+            setMatrixError("No quality measure data available for any publish date");
+            setMatrixLoading(false);
+            return;
+          }
+          
+          // Determine which publish date to use
+          if (selectedPublishDate && availableDates.includes(selectedPublishDate)) {
+            publish_date = selectedPublishDate;
+          } else {
+            // Always use the most recent available date (availableDates is sorted chronologically)
+            publish_date = availableDates[0];
+          }
+        }
+        
+        // 8. Check cache for combined data with the determined date
+        const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date });
         const cachedData = getCachedData(cacheKey);
         
         let combinedData;
         if (cachedData) {
-          console.log('📦 Using cached combined data');
           combinedData = cachedData;
         } else {
-          // 7. Fetch all data in a single API call
+          // 9. Fetch all data in a single API call with the determined date
           console.log('🔍 Fetching combined quality measure data:', {
             providerDhc: provider?.dhc,
             allCcnsCount: allCcns.length,
-            publish_date: selectedPublishDate || '2025-04-01'
+            publish_date
           });
           
           const combinedResponse = await fetch(apiUrl('/api/qm_combined'), {
@@ -171,7 +217,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               ccns: allCcns, 
-              publish_date: selectedPublishDate || '2025-04-01' 
+              publish_date 
             })
           });
           
@@ -184,38 +230,13 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           setCachedData(cacheKey, combinedData);
         }
 
-        const { measures, providerData, nationalAverages, availableDates } = combinedData;
+        const { measures, providerData, nationalAverages } = combinedData;
         
-        console.log('🔍 Combined data received:', {
-          measuresCount: measures?.length || 0,
-          providerDataCount: providerData?.length || 0,
-          nationalAveragesCount: Object.keys(nationalAverages || {}).length,
-          availableDatesCount: availableDates?.length || 0,
-          availableDates: availableDates || []
-        });
-        
-        // DEBUG: Log sample provider data to see what we're getting
-        if (providerData && providerData.length > 0) {
-          console.log('🔍 Sample provider data:', providerData.slice(0, 3));
-          console.log('🔍 Provider data CCNs:', [...new Set(providerData.map(d => d.ccn))].slice(0, 10));
-          console.log('🔍 Provider data codes:', [...new Set(providerData.map(d => d.code))].slice(0, 10));
-        } else {
-          console.log('⚠️ No provider data received');
-        }
-        
-        // 8. Set available publish dates
+        // 10. Set available publish dates and current publish date
         setAvailablePublishDates(availableDates);
+        setCurrentPublishDate(publish_date);
 
-        // 9. Check if we have valid data
-        if (availableDates.length === 0) {
-          console.log("⚠️ No available publish dates found");
-          // Clear the cache to prevent caching empty results
-          apiCache.delete(cacheKey);
-          setMatrixError("No quality measure data available for any publish date");
-          setMatrixLoading(false);
-          return;
-        }
-        
+        // 11. Check if we have valid data
         if (measures.length === 0) {
           console.log("⚠️ No quality measures found");
           // Clear the cache to prevent caching empty results
@@ -225,31 +246,13 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           return;
         }
         
-        // 10. Determine which publish date to use
-        let publish_date;
-        if (selectedPublishDate && availableDates.includes(selectedPublishDate)) {
-          publish_date = selectedPublishDate;
-        } else {
-          // Default to April 2025 if available, otherwise use the most recent date
-          const april2025 = '2025-04-01';
-          publish_date = availableDates.includes(april2025) ? april2025 : availableDates[0];
-        }
-        setCurrentPublishDate(publish_date);
-        
-        // DEBUG: Log publish date selection
-        console.log('📅 Publish date selection:', {
-          selectedPublishDate,
-          availableDates,
-          chosenDate: publish_date,
-          mainProviderCcns: providerDhcToCcns[provider?.dhc] || []
-        });
+
 
         // 10b. Get unique measure settings for dropdown
         const uniqueSettings = Array.from(new Set(measures.map(m => m.setting).filter(Boolean)));
         
-        // DEBUG: If no settings found, try to infer from measure codes or use defaults
+        // If no settings found, try to infer from measure codes or use defaults
         if (uniqueSettings.length === 0) {
-          console.log('⚠️ No settings found in measures data, trying to infer from measure codes...');
           // Try to infer settings from measure codes (common patterns)
           const inferredSettings = [];
           measures.forEach(m => {
@@ -264,26 +267,10 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             else inferredSettings.push('Other');
           });
           const uniqueInferred = Array.from(new Set(inferredSettings));
-          console.log('🔍 Inferred settings:', uniqueInferred);
-          console.log('🔍 Sample measure codes for inference:', measures.slice(0, 10).map(m => m.code));
           setAvailableProviderTypes(uniqueInferred);
         } else {
-          console.log('✅ Using settings from database:', uniqueSettings);
           setAvailableProviderTypes(uniqueSettings);
         }
-        
-        // DEBUG: Log measures data to see what fields are available
-        console.log('🔍 Measures data sample:', measures.slice(0, 3));
-        console.log('🔍 Unique settings found:', uniqueSettings);
-        console.log('🔍 Settings from first 5 measures:', measures.slice(0, 5).map(m => ({ code: m.code, setting: m.setting, name: m.name })));
-        
-        console.log('📅 Using publish date:', publish_date, 'from available dates:', availableDates);
-        console.log('📊 Combined data received:', {
-          measuresCount: measures.length,
-          providerDataCount: providerData.length,
-          nationalAveragesCount: Object.keys(nationalAverages).length,
-          availableDatesCount: availableDates.length
-        });
 
         // 11. Calculate market averages from the provider data
         let marketAverages = {};
@@ -333,12 +320,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           if (providerHasData) providersWithData++;
         });
         
-        console.log('🏥 Provider data summary:', {
-          totalProviders: allProviders.length,
-          providersWithData,
-          mainProviderDhc: provider?.dhc,
-          mainProviderHasData: Object.keys(dataByDhc[provider?.dhc] || {}).length > 0
-        });
+
 
         setMatrixMeasures(measures);
         setMatrixData(dataByDhc);
@@ -355,7 +337,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
       }
     }
     fetchMatrixData();
-  }, [provider, memoizedNearbyProviders, memoizedNearbyDhcCcns, selectedPublishDate]);
+  }, [provider, memoizedNearbyProviders, memoizedNearbyDhcCcns, selectedPublishDate, qualityMeasuresDates, currentMeasureSetting]);
 
   // Function to clear cache and force refresh
   const clearCache = useCallback(() => {

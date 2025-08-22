@@ -57,7 +57,7 @@ export const useQualityMeasuresMatrix = (provider, nearbyProviders, nearbyDhcCcn
       // 6. Check cache for combined data
       const cacheKey = getCachedData('qm_combined', { 
         ccns: allCcns, 
-        publish_date: selectedPublishDate || '2025-04-01' 
+        publish_date: selectedPublishDate || 'latest' 
       });
 
       if (cacheKey) {
@@ -75,7 +75,7 @@ export const useQualityMeasuresMatrix = (provider, nearbyProviders, nearbyDhcCcn
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ccns: allCcns,
-            publish_date: selectedPublishDate || '2025-04-01'
+            publish_date: selectedPublishDate || 'latest'
           })
         });
 

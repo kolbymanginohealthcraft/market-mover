@@ -2,7 +2,7 @@ import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
 
-console.log("Scorecard component mounted");
+
 
 export default function Scorecard({ 
   provider, 
@@ -34,7 +34,9 @@ export default function Scorecard({
     provider, 
     nearbyProviders, 
     nearbyDhcCcns, 
-    selectedPublishDate
+    selectedPublishDate,
+    prefetchedData?.qualityMeasuresDates,
+    providerTypeFilter
   );
 
   // Always use the hook data to ensure we get all providers
@@ -72,81 +74,17 @@ export default function Scorecard({
   // Use only the filtered measures for display
   const finalFilteredMeasures = filteredMeasures;
 
-  // Show all providers, regardless of whether they have data for the current measure setting
-  const filteredProviders = finalAllProviders;
-
-  // Main provider for the scorecard (always show the main provider)
-  const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc) || provider;
-
-  // DEBUG: Log filtering info
-  console.log('🔍 Scorecard filtering:', {
-    providerTypeFilter,
-    totalMeasures: finalMeasures.length,
-    filteredMeasuresCount: filteredMeasures.length,
-    finalFilteredMeasuresCount: finalFilteredMeasures.length,
-    totalProviders: finalAllProviders.length,
-    filteredProvidersCount: filteredProviders.length,
-    sampleMeasures: finalMeasures.slice(0, 3).map(m => ({ code: m.code, setting: m.setting, name: m.name })),
-    filteredMeasures: filteredMeasures.map(m => ({ code: m.code, name: m.name })),
-    finalFilteredMeasures: finalFilteredMeasures.map(m => ({ code: m.code, name: m.name })),
-    mainProviderHasData: mainProviderInMatrix ? 'YES' : 'NO',
-    competitorsCount: filteredProviders.filter(p => p.dhc !== provider?.dhc).length,
-    mainProviderDhc: provider?.dhc,
-    mainProviderInMatrixDhc: mainProviderInMatrix?.dhc,
-    // Debug CCN data
-    nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
-    nearbyDhcCcnsSample: nearbyDhcCcns?.slice(0, 5) || [],
-    allCcnsCount: allCcns?.length || 0,
-    allCcnsSample: allCcns?.slice(0, 10) || [],
-    allProviderDhcsCount: allProviderDhcs?.length || 0,
-    allProviderDhcsSample: allProviderDhcs?.slice(0, 5) || [],
-    // Show all providers and their data availability
-    allProviders: finalAllProviders.map(p => ({
-      dhc: p.dhc,
-      name: p.name,
-      hasData: Object.keys(finalData[p.dhc] || {}).length > 0,
-      measureCount: Object.keys(finalData[p.dhc] || {}).length,
-      isMainProvider: p.dhc === provider?.dhc
-    })),
-    // Debug: Show what measures are available for each setting
-    allMeasuresBySetting: finalMeasures.reduce((acc, m) => {
-      let setting = 'Other';
-      if (m.code && m.code.includes('HOSPITAL')) setting = 'Hospital';
-      else if (m.code && m.code.includes('SNF')) setting = 'SNF';
-      else if (m.code && m.code.includes('HH')) setting = 'HH';
-      else if (m.code && m.code.includes('HOSPICE')) setting = 'Hospice';
-      else if (m.code && m.code.includes('IRF')) setting = 'IRF';
-      else if (m.code && m.code.includes('LTCH')) setting = 'LTCH';
-      else if (m.code && m.code.includes('CAH')) setting = 'CAH';
-      else if (m.code && m.code.includes('OPPS')) setting = 'Outpatient';
-      else setting = 'Other';
-      
-      if (!acc[setting]) acc[setting] = [];
-      acc[setting].push(m.code);
-      return acc;
-    }, {}),
-    // Debug: Show provider data availability
-    providerDataDebug: finalAllProviders.slice(0, 5).map(provider => {
-      const providerData = finalData[provider.dhc] || {};
-      const hasFilteredData = finalFilteredMeasures.some(measure => providerData[measure.code]);
-      const measureCount = Object.keys(providerData).length;
-      return {
-        dhc: provider.dhc,
-        name: provider.name,
-        hasFilteredData,
-        measureCount,
-        sampleMeasures: Object.keys(providerData).slice(0, 3)
-      };
-    }),
-    // Debug: Show what data the main provider has
-    mainProviderData: provider ? {
-      dhc: provider.dhc,
-      name: provider.name,
-      allMeasures: Object.keys(finalData[provider.dhc] || {}),
-      filteredMeasures: finalFilteredMeasures.filter(m => finalData[provider.dhc]?.[m.code]),
-      hasFilteredData: finalFilteredMeasures.some(m => finalData[provider.dhc]?.[m.code])
-    } : null
+  // Filter providers to only show those that have data for at least one of the selected measures
+  const filteredProviders = finalAllProviders.filter(currentProvider => {
+    const providerData = finalData[currentProvider.dhc] || {};
+    // Check if provider has data for at least one of the filtered measures
+    return finalFilteredMeasures.some(measure => providerData[measure.code]);
   });
+
+  // Main provider for the scorecard (only if they have data for selected measures)
+  const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
+
+
 
   if (finalLoading) {
     return (
@@ -191,21 +129,47 @@ export default function Scorecard({
 
   return (
     <div className={styles.scorecardContainer}>
-             <ProviderComparisonMatrix
-         provider={mainProviderInMatrix}
-         competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
-         measures={finalFilteredMeasures}
-         data={finalData}
-         marketAverages={finalMarketAverages}
-         nationalAverages={finalNationalAverages}
-         publishDate={finalCurrentDate}
-         providerTypeFilter={providerTypeFilter}
-         setProviderTypeFilter={setProviderTypeFilter}
-         availableProviderTypes={finalProviderTypes}
-         availablePublishDates={finalPublishDates}
-         selectedPublishDate={selectedPublishDate}
-         setSelectedPublishDate={setSelectedPublishDate}
-       />
+      {/* Date Display Banner */}
+      <div style={{
+        background: '#f8f9fa',
+        border: '1px solid #e9ecef',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        marginBottom: '16px',
+        fontSize: '14px',
+        color: '#495057',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <strong>Current Data Period:</strong>
+        <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+          {finalCurrentDate || 'Not set'}
+        </span>
+        {providerTypeFilter && (
+          <>
+            <span>•</span>
+            <strong>Setting:</strong>
+            <span>{providerTypeFilter}</span>
+          </>
+        )}
+      </div>
+      
+      <ProviderComparisonMatrix
+        provider={mainProviderInMatrix}
+        competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
+        measures={finalFilteredMeasures}
+        data={finalData}
+        marketAverages={finalMarketAverages}
+        nationalAverages={finalNationalAverages}
+        publishDate={finalCurrentDate}
+        providerTypeFilter={providerTypeFilter}
+        setProviderTypeFilter={setProviderTypeFilter}
+        availableProviderTypes={finalProviderTypes}
+        availablePublishDates={finalPublishDates}
+        selectedPublishDate={selectedPublishDate}
+        setSelectedPublishDate={setSelectedPublishDate}
+      />
     </div>
   );
 } 

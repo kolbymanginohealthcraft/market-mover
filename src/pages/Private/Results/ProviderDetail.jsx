@@ -32,6 +32,7 @@ import CMSEnrollmentTab from "./Enrollment/CMSEnrollmentTab";
 import ProviderDensityPage from "./Providers/ProviderDensityPage";
 
 import Spinner from "../../../components/Buttons/Spinner";
+import DetailedLoadingSpinner from "../../../components/Buttons/DetailedLoadingSpinner";
 import Storyteller from "./Storyteller/Storyteller";
 import PageLayout from "../../../components/Layouts/PageLayout";
 
@@ -60,16 +61,19 @@ export default function ProviderDetail() {
     censusData,
     counties,
     censusTracts,
+    qualityMeasuresDates,
     loading: marketAnalysisLoading,
     providersLoading,
     ccnsLoading,
     npisLoading,
     censusLoading,
+    qualityMeasuresDatesLoading,
     error: marketAnalysisError,
     providersError,
     ccnsError,
     npisError,
     censusError,
+    qualityMeasuresDatesError,
     getAllProviderDhcs,
     getAllCcns,
     getAllNpis,
@@ -89,7 +93,7 @@ export default function ProviderDetail() {
     availableProviderTypes: storytellerProviderTypes,
     availablePublishDates: storytellerPublishDates,
     currentPublishDate: storytellerCurrentDate
-  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, null);
+  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, null, qualityMeasuresDates);
 
   const [debouncedRadius] = useDebounce(radiusInMiles, 400);
 
@@ -136,7 +140,22 @@ export default function ProviderDetail() {
   }, [provider, loading, setCurrentProvider]);
 
   if (loading || marketAnalysisLoading || !provider) {
-    return <Spinner message="Loading provider details..." />;
+    const loadingStates = {
+      provider: loading,
+      nearbyProviders: providersLoading,
+      ccns: ccnsLoading,
+      npis: npisLoading,
+      censusData: censusLoading,
+      qualityMeasures: storytellerLoading
+    };
+    
+    return (
+      <DetailedLoadingSpinner 
+        message="Loading provider analysis..." 
+        loadingStates={loadingStates}
+        showProgress={true}
+      />
+    );
   }
 
   // If we're on a storyteller route, render the navigation outside PageLayout
@@ -159,7 +178,8 @@ export default function ProviderDetail() {
             allProviders: storytellerAllProviders,
             providerTypes: storytellerProviderTypes,
             publishDates: storytellerPublishDates,
-            currentDate: storytellerCurrentDate
+            currentDate: storytellerCurrentDate,
+            qualityMeasuresDates
           }}
         />
       </>

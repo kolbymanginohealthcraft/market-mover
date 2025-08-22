@@ -331,7 +331,7 @@ router.post("/qm_provider/data", async (req, res) => {
 // Combined endpoint for all quality measure data
 router.post("/qm_combined", async (req, res) => {
   try {
-    const { ccns, publish_date } = req.body;
+    const { ccns, publish_date, measures } = req.body;
     
     console.log("🔍 qm_combined request:", { 
       ccnsCount: ccns?.length, 
@@ -381,9 +381,22 @@ router.post("/qm_combined", async (req, res) => {
     
     // Try to get dates from qm_post first
     if (existingTables.includes('qm_post')) {
+      let postDatesQuery = `SELECT DISTINCT publish_date FROM \`market-mover-464517.quality.qm_post\``;
+      let queryParams = {};
+      
+      // If specific measures are provided, filter by those measures
+      if (measures && Array.isArray(measures) && measures.length > 0) {
+        postDatesQuery += ` WHERE code IN UNNEST(@measures)`;
+        queryParams.measures = measures;
+        console.log("📅 Filtering qm_post dates by specific measures:", measures.slice(0, 3), '...');
+      }
+      
+      postDatesQuery += ` ORDER BY publish_date DESC`;
+      
       const [datesRows] = await myBigQuery.query({
-        query: `SELECT DISTINCT publish_date FROM \`market-mover-464517.quality.qm_post\` ORDER BY publish_date DESC`,
-        location: "US"
+        query: postDatesQuery,
+        location: "US",
+        params: queryParams
       });
       
       availableDates = datesRows.map(row => {
@@ -397,9 +410,23 @@ router.post("/qm_combined", async (req, res) => {
     // If no dates from qm_post, try qm_provider as fallback
     if (availableDates.length === 0 && existingTables.includes('qm_provider')) {
       console.log("📅 No dates found in qm_post, checking qm_provider...");
+      
+      let providerDatesQuery = `SELECT DISTINCT publish_date FROM \`market-mover-464517.quality.qm_provider\``;
+      let queryParams = {};
+      
+      // If specific measures are provided, filter by those measures
+      if (measures && Array.isArray(measures) && measures.length > 0) {
+        providerDatesQuery += ` WHERE code IN UNNEST(@measures)`;
+        queryParams.measures = measures;
+        console.log("📅 Filtering dates by specific measures:", measures.slice(0, 3), '...');
+      }
+      
+      providerDatesQuery += ` ORDER BY publish_date DESC`;
+      
       const [providerDatesRows] = await myBigQuery.query({
-        query: `SELECT DISTINCT publish_date FROM \`market-mover-464517.quality.qm_provider\` ORDER BY publish_date DESC`,
-        location: "US"
+        query: providerDatesQuery,
+        location: "US",
+        params: queryParams
       });
       
       availableDates = providerDatesRows.map(row => {
@@ -588,6 +615,121 @@ router.get("/qm_debug", async (req, res) => {
       error: err.message,
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+// Get all available dates from qm_post for given CCNs
+router.post("/qm_post_dates", async (req, res) => {
+  try {
+    const { ccns } = req.body;
+    
+    if (!Array.isArray(ccns) || ccns.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "ccns (array) is required" 
+      });
+    }
+
+    // Check if qm_post table exists
+    const checkTableQuery = `
+      SELECT table_name 
+      FROM \`market-mover-464517.quality.INFORMATION_SCHEMA.TABLES\`
+      WHERE table_name = 'qm_post'
+    `;
+    
+    const [checkRows] = await myBigQuery.query({ query: checkTableQuery, location: "US" });
+    
+    if (checkRows.length === 0) {
+      console.log("⚠️ qm_post table not found");
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Get all available dates from qm_post, ordered by most recent first
+    const query = `
+      SELECT DISTINCT publish_date 
+      FROM \`market-mover-464517.quality.qm_post\`
+      ORDER BY publish_date DESC
+    `;
+    
+    const [rows] = await myBigQuery.query({ query, location: "US" });
+    
+    const availableDates = rows.map(row => {
+      if (typeof row.publish_date === 'string') return row.publish_date;
+      if (row.publish_date && typeof row.publish_date === 'object' && row.publish_date.value) return row.publish_date.value;
+      if (row.publish_date) return String(row.publish_date);
+      return null;
+    }).filter(Boolean);
+
+    console.log(`📅 Found ${availableDates.length} available dates from qm_post`);
+    
+    res.status(200).json({ success: true, data: availableDates });
+  } catch (err) {
+    console.error("❌ BigQuery qm_post_dates query error:", err);
+    res.status(200).json({ success: true, data: [] });
+  }
+});
+
+// Get dates that have data for specific measures and CCNs
+router.post("/qm_setting_dates", async (req, res) => {
+  try {
+    const { ccns, measures } = req.body;
+    
+    if (!Array.isArray(ccns) || ccns.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "ccns (array) is required" 
+      });
+    }
+
+    if (!Array.isArray(measures) || measures.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "measures (array) is required" 
+      });
+    }
+
+    // Check if qm_provider table exists
+    const checkTableQuery = `
+      SELECT table_name 
+      FROM \`market-mover-464517.quality.INFORMATION_SCHEMA.TABLES\`
+      WHERE table_name = 'qm_provider'
+    `;
+    
+    const [checkRows] = await myBigQuery.query({ query: checkTableQuery, location: "US" });
+    
+    if (checkRows.length === 0) {
+      console.log("⚠️ qm_provider table not found");
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Get dates that have data for the specific measures and CCNs
+    const query = `
+      SELECT DISTINCT publish_date 
+      FROM \`market-mover-464517.quality.qm_provider\`
+      WHERE ccn IN UNNEST(@ccns) 
+      AND code IN UNNEST(@measures)
+      ORDER BY publish_date DESC
+    `;
+    
+    const [rows] = await myBigQuery.query({ 
+      query, 
+      location: "US",
+      params: { ccns, measures }
+    });
+    
+    const availableDates = rows.map(row => {
+      if (typeof row.publish_date === 'string') return row.publish_date;
+      if (row.publish_date && typeof row.publish_date === 'object' && row.publish_date.value) return row.publish_date.value;
+      if (row.publish_date) return String(row.publish_date);
+      return null;
+    }).filter(Boolean);
+
+    console.log(`📅 Found ${availableDates.length} dates with data for measures:`, measures.slice(0, 3), '...');
+    
+    res.status(200).json({ success: true, data: availableDates });
+  } catch (err) {
+    console.error("❌ BigQuery qm_setting_dates query error:", err);
+    res.status(200).json({ success: true, data: [] });
   }
 });
 

@@ -20,6 +20,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
   const [censusData, setCensusData] = useState(null);
   const [counties, setCounties] = useState([]);
   const [censusTracts, setCensusTracts] = useState([]);
+  const [qualityMeasuresDates, setQualityMeasuresDates] = useState({});
   
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
   const [ccnsLoading, setCcnsLoading] = useState(false);
   const [npisLoading, setNpisLoading] = useState(false);
   const [censusLoading, setCensusLoading] = useState(false);
+  const [qualityMeasuresDatesLoading, setQualityMeasuresDatesLoading] = useState(false);
   
   // Error states
   const [error, setError] = useState(null);
@@ -34,6 +36,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
   const [ccnsError, setCcnsError] = useState(null);
   const [npisError, setNpisError] = useState(null);
   const [censusError, setCensusError] = useState(null);
+  const [qualityMeasuresDatesError, setQualityMeasuresDatesError] = useState(null);
 
   // Refs for request management
   const abortControllerRef = useRef(null);
@@ -125,65 +128,68 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     }
   };
 
-  // Fetch CCNs for all providers
-  const fetchCcns = async () => {
-    // Get DHCs directly from the center point and the providers that were fetched
-    const dhcIds = [];
-    
-    // Add main provider DHC if it's numeric
-    if (centerPoint?.dhc && !isNaN(parseInt(centerPoint.dhc))) {
-      dhcIds.push(centerPoint.dhc);
-    }
-    
-    // Get DHCs from the providers that were fetched in fetchProviders
-    // We need to get this from the API response, not the state
-    try {
-      const response = await fetch(apiUrl(`/api/nearby-providers?lat=${centerPoint.latitude}&lon=${centerPoint.longitude}&radius=${radiusInMiles}`));
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
-      if (result.success) {
-        // Add all provider DHCs (including the main provider)
-        result.data.forEach(provider => {
-          if (provider.dhc && !isNaN(parseInt(provider.dhc)) && !dhcIds.includes(provider.dhc)) {
-            dhcIds.push(provider.dhc);
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Error getting provider DHCs for CCN fetch:', err);
-    }
-    
-    if (dhcIds.length === 0) {
-      setCcns([]);
-      return;
-    }
+     // Fetch CCNs for all providers
+   const fetchCcns = async () => {
+     // Get DHCs directly from the center point and the providers that were fetched
+     const dhcIds = [];
+     
+     // Add main provider DHC if it's numeric
+     if (centerPoint?.dhc && !isNaN(parseInt(centerPoint.dhc))) {
+       dhcIds.push(centerPoint.dhc);
+     }
+     
+     // Get DHCs from the providers that were fetched in fetchProviders
+     // We need to get this from the API response, not the state
+     try {
+       const response = await fetch(apiUrl(`/api/nearby-providers?lat=${centerPoint.latitude}&lon=${centerPoint.longitude}&radius=${radiusInMiles}`));
+       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+       const result = await response.json();
+       if (result.success) {
+         // Add all provider DHCs (including the main provider)
+         result.data.forEach(provider => {
+           if (provider.dhc && !isNaN(parseInt(provider.dhc)) && !dhcIds.includes(provider.dhc)) {
+             dhcIds.push(provider.dhc);
+           }
+         });
+       }
+     } catch (err) {
+       console.error('Error getting provider DHCs for CCN fetch:', err);
+     }
+     
+     if (dhcIds.length === 0) {
+       setCcns([]);
+       return [];
+     }
 
-    setCcnsLoading(true);
-    setCcnsError(null);
+     setCcnsLoading(true);
+     setCcnsError(null);
 
-    try {
-      console.log('🔍 Fetching CCNs for', dhcIds.length, 'providers');
-      const response = await fetch(apiUrl('/api/related-ccns'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dhc_ids: dhcIds })
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
-      if (result.success) {
-        setCcns(result.data || []);
-        console.log('✅ CCNs fetched:', result.data?.length || 0, 'CCNs');
-      } else {
-        setCcns([]);
-      }
-    } catch (err) {
-      console.error('Error fetching CCNs:', err);
-      setCcnsError(err.message);
-      setCcns([]);
-    } finally {
-      setCcnsLoading(false);
-    }
-  };
+     try {
+       console.log('🔍 Fetching CCNs for', dhcIds.length, 'providers');
+       const response = await fetch(apiUrl('/api/related-ccns'), {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ dhc_ids: dhcIds })
+       });
+       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+       const result = await response.json();
+       if (result.success) {
+         setCcns(result.data || []);
+         console.log('✅ CCNs fetched:', result.data?.length || 0, 'CCNs');
+         return result.data || [];
+       } else {
+         setCcns([]);
+         return [];
+       }
+     } catch (err) {
+       console.error('Error fetching CCNs:', err);
+       setCcnsError(err.message);
+       setCcns([]);
+       return [];
+     } finally {
+       setCcnsLoading(false);
+     }
+   };
 
   // Fetch NPIs for all providers
   const fetchNpis = async () => {
@@ -298,6 +304,123 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     }
   };
 
+           // Fetch quality measures dates for all measure settings
+    const fetchQualityMeasuresDates = async (ccnsToUse = null) => {
+      setQualityMeasuresDatesLoading(true);
+      setQualityMeasuresDatesError(null);
+
+      try {
+        // Get all CCNs to determine available dates
+        const allCcns = ccnsToUse || getAllCcns();
+        
+        console.log('🔍 fetchQualityMeasuresDates called with CCNs:', allCcns.length);
+        
+        if (allCcns.length === 0) {
+          console.log('⚠️ No CCNs available for quality measures dates fetch');
+          setQualityMeasuresDates({});
+          return;
+        }
+
+        // Step 1: Get all measure settings from qm_dictionary first
+        const settingsResponse = await fetch(apiUrl('/api/qm_dictionary'), {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!settingsResponse.ok) {
+          throw new Error('Failed to fetch quality measures settings');
+        }
+
+        const settingsResult = await settingsResponse.json();
+        if (!settingsResult.success) {
+          throw new Error(settingsResult.error || 'Failed to fetch quality measures settings');
+        }
+
+        const measures = settingsResult.data || [];
+        
+        // Step 2: Get unique settings from the dictionary
+        const uniqueSettings = Array.from(new Set(measures.map(m => m.setting).filter(Boolean)));
+        
+        console.log('✅ Found settings from qm_dictionary:', uniqueSettings);
+
+        let datesBySetting = {};
+
+        // Step 3: For each setting, find the latest date that has data for that setting's measures
+        for (const setting of uniqueSettings) {
+          // Find measures for this setting
+          const settingMeasures = measures.filter(m => m.setting === setting);
+          
+          if (settingMeasures.length > 0) {
+            const settingMeasureCodes = settingMeasures.map(m => m.code);
+            
+            // Use the existing qm_combined endpoint with specific measures to get setting-specific dates
+            const settingDatesResponse = await fetch(apiUrl('/api/qm_combined'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                ccns: allCcns,
+                publish_date: 'latest',
+                measures: settingMeasureCodes
+              })
+            });
+
+            if (settingDatesResponse.ok) {
+              const settingDatesResult = await settingDatesResponse.json();
+              if (settingDatesResult.success && settingDatesResult.data.availableDates && settingDatesResult.data.availableDates.length > 0) {
+                // Use the latest date that has data for this setting
+                datesBySetting[setting] = settingDatesResult.data.availableDates[0];
+                console.log(`✅ ${setting} latest date:`, settingDatesResult.data.availableDates[0]);
+              } else {
+                console.log(`⚠️ ${setting} no dates found, will use fallback`);
+              }
+            } else {
+              console.log(`❌ ${setting} API failed`);
+            }
+          }
+        }
+       
+        setQualityMeasuresDates(datesBySetting);
+
+        // Step 4: Add fallback for any settings that didn't get dates
+        if (Object.keys(datesBySetting).length === 0) {
+          console.log('⚠️ No setting-specific dates found, using overall latest date');
+          // Get overall latest date as fallback
+          const fallbackResponse = await fetch(apiUrl('/api/qm_combined'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              ccns: allCcns,
+              publish_date: 'latest'
+            })
+          });
+
+          if (fallbackResponse.ok) {
+            const fallbackResult = await fallbackResponse.json();
+            if (fallbackResult.success && fallbackResult.data.availableDates && fallbackResult.data.availableDates.length > 0) {
+              const fallbackDate = fallbackResult.data.availableDates[0];
+              // Assign fallback date to all settings
+              uniqueSettings.forEach(setting => {
+                datesBySetting[setting] = fallbackDate;
+              });
+              console.log(`📅 Using fallback date for all settings:`, fallbackDate);
+            }
+          }
+        }
+
+        console.log('✅ Quality measures dates fetched:', {
+          settings: Object.keys(datesBySetting),
+          datesBySetting: datesBySetting
+        });
+
+      } catch (err) {
+        console.error('Error fetching quality measures dates:', err);
+        setQualityMeasuresDatesError(err.message);
+        setQualityMeasuresDates({});
+      } finally {
+        setQualityMeasuresDatesLoading(false);
+      }
+    };
+
   // Main effect to fetch all data
   useEffect(() => {
     if (!centerPoint?.latitude || !centerPoint?.longitude || !radiusInMiles) {
@@ -307,6 +430,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
       setCensusData(null);
       setCounties([]);
       setCensusTracts([]);
+      setQualityMeasuresDates({});
       return;
     }
 
@@ -319,27 +443,37 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     setLoading(true);
     setError(null);
 
-    const fetchAllData = async () => {
-      try {
-        // Fetch all data in parallel
-        await Promise.all([
-          fetchProviders(),
-          fetchCensusData()
-        ]);
+         const fetchAllData = async () => {
+       try {
+         // Fetch all data in parallel
+         await Promise.all([
+           fetchProviders(),
+           fetchCensusData()
+         ]);
 
-        // Fetch CCNs and NPIs after providers are loaded
-        await Promise.all([
-          fetchCcns(),
-          fetchNpis()
-        ]);
+         // Fetch CCNs and NPIs after providers are loaded
+         const [ccnsResult, npisResult] = await Promise.all([
+           fetchCcns(),
+           fetchNpis()
+         ]);
 
-      } catch (err) {
-        console.error('Error in market analysis data fetch:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+                // Fetch quality measures dates after CCNs are loaded
+       // Use the CCNs returned from fetchCcns
+       if (ccnsResult && ccnsResult.length > 0) {
+         const ccnStrings = ccnsResult.map(row => row.ccn);
+         console.log('🔍 About to fetch quality measures dates with CCNs:', ccnStrings.length);
+         await fetchQualityMeasuresDates(ccnStrings);
+       } else {
+         console.log('⚠️ No CCNs available for quality measures dates fetch');
+       }
+
+       } catch (err) {
+         console.error('Error in market analysis data fetch:', err);
+         setError(err.message);
+       } finally {
+         setLoading(false);
+       }
+     };
 
     fetchAllData();
 
@@ -358,6 +492,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     censusData,
     counties,
     censusTracts,
+    qualityMeasuresDates,
     
     // Loading states
     loading,
@@ -365,6 +500,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     ccnsLoading,
     npisLoading,
     censusLoading,
+    qualityMeasuresDatesLoading,
     
     // Error states
     error,
@@ -372,6 +508,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     ccnsError,
     npisError,
     censusError,
+    qualityMeasuresDatesError,
     
     // Helper functions
     getAllProviderDhcs,

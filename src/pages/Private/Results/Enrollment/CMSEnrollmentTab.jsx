@@ -10,6 +10,7 @@ import useMAEnrollmentData, { useMAEnrollmentTrendData } from "../../../../hooks
 import { apiUrl } from "../../../../utils/api";
 import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
 import Button from "../../../../components/Buttons/Button";
+import Spinner from "../../../../components/Buttons/Spinner";
 
 export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
   const [selectedView, setSelectedView] = useState('overview'); // 'overview', 'trends', 'demographics', 'payers'
@@ -354,14 +355,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
   }, [data, latestMonth]);
 
   if (loading) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Loading CMS enrollment data...</p>
-        </div>
-      </div>
-    );
+    return <Spinner message="Loading CMS enrollment data..." />;
   }
 
   if (error) {

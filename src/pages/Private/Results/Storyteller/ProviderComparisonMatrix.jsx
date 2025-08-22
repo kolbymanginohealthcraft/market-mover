@@ -67,9 +67,9 @@ const ProviderComparisonMatrix = ({
     .map((code) => measures.find((m) => m.code === code))
     .filter(Boolean);
 
-  // Helper to get all rows (main provider, competitors)
+  // Helper to get all rows (main provider if exists, competitors)
   const rows = [
-    { key: provider?.dhc, label: provider?.name, type: 'provider', providerObj: provider },
+    ...(provider ? [{ key: provider.dhc, label: provider.name, type: 'provider', providerObj: provider }] : []),
     ...competitors.map((c) => ({ key: c.dhc, label: c.name, type: 'competitor', providerObj: c })),
   ];
 

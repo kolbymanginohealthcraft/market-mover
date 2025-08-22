@@ -61,9 +61,22 @@ export default function Home() {
       }
     };
 
+    // Set a random motivational quote
+    const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+    setQuote(randomQuote);
+
     fetchUserProfile();
     handleDashboardVisit();
   }, []);
+
+  // Update greeting text when userFirstName changes
+  useEffect(() => {
+    if (userFirstName) {
+      setGreetingText(`Hello ${userFirstName}, Welcome to Market Mover`);
+    } else {
+      setGreetingText('Hello, Welcome to Market Mover');
+    }
+  }, [userFirstName]);
 
 
 

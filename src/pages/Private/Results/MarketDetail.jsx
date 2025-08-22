@@ -30,6 +30,7 @@ import CMSEnrollmentTab from "./Enrollment/CMSEnrollmentTab";
 import ProviderDensityPage from "./Providers/ProviderDensityPage";
 
 import Spinner from "../../../components/Buttons/Spinner";
+import DetailedLoadingSpinner from "../../../components/Buttons/DetailedLoadingSpinner";
 import Storyteller from "./Storyteller/Storyteller";
 import PageLayout from "../../../components/Layouts/PageLayout";
 
@@ -117,16 +118,19 @@ export default function MarketDetail() {
     censusData,
     counties,
     censusTracts,
+    qualityMeasuresDates,
     loading: marketAnalysisLoading,
     providersLoading,
     ccnsLoading,
     npisLoading,
     censusLoading,
+    qualityMeasuresDatesLoading,
     error: marketAnalysisError,
     providersError,
     ccnsError,
     npisError,
     censusError,
+    qualityMeasuresDatesError,
     getAllProviderDhcs,
     getAllCcns,
     getAllNpis,
@@ -176,10 +180,23 @@ export default function MarketDetail() {
 
   // Loading state
   if (marketLoading || marketAnalysisLoading) {
+    const loadingStates = {
+      market: marketLoading,
+      nearbyProviders: providersLoading,
+      ccns: ccnsLoading,
+      npis: npisLoading,
+      censusData: censusLoading,
+      qualityMeasures: qualityLoading
+    };
+    
     return (
       <PageLayout>
         <div className={styles.loading}>
-          <Spinner message="Loading market data..." />
+          <DetailedLoadingSpinner 
+            message="Loading market analysis..." 
+            loadingStates={loadingStates}
+            showProgress={true}
+          />
         </div>
       </PageLayout>
     );
@@ -230,7 +247,8 @@ export default function MarketDetail() {
               allProviders: qualityProviders,
               providerTypes: qualityProviderTypes,
               publishDates: qualityPublishDates,
-              currentDate: qualityCurrentDate
+              currentDate: qualityCurrentDate,
+              qualityMeasuresDates
             }}
             // Pass CCNs data for storyteller functionality
             allCcns={getAllCcns()}

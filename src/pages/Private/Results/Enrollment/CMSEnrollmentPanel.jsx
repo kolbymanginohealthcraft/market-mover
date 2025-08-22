@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import styles from './CMSEnrollmentPanel.module.css';
 import CMSEnrollmentTrendChart from './CMSEnrollmentTrendChart';
+import Spinner from '../../../../components/Buttons/Spinner';
 
 const METRIC_GROUPS = [
   {
@@ -124,9 +125,9 @@ export default function CMSEnrollmentPanel({ data, loading, error, latestMonth }
     });
   }, [data]);
 
-  if (loading) return <div className={styles.panel}>Loading CMS enrollment data...</div>;
+  if (loading) return <div className={styles.panel}><Spinner message="Loading CMS enrollment data..." /></div>;
   if (error) return <div className={styles.panel}>Error: {error}</div>;
-  if (!data || !latestMonth) return <div className={styles.panel}>No CMS enrollment data available.</div>;
+  if (!data || !latestMonth) return <div className={styles.panel}><Spinner message="Loading CMS enrollment data..." /></div>;
 
   return (
     <div className={styles.panel}>
