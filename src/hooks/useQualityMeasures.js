@@ -58,18 +58,24 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
        hasQualityMeasuresDates: qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0
      });
      
-     if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0 && currentMeasureSetting) {
-       if (qualityMeasuresDates[currentMeasureSetting]) {
-         const settingSpecificDate = qualityMeasuresDates[currentMeasureSetting];
-         console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
-         setCurrentPublishDate(settingSpecificDate);
-       } else {
-         // Fallback to the most recent available date if the setting doesn't have a specific date
-         const allDates = Object.values(qualityMeasuresDates).sort().reverse();
-         console.log('📅 Setting not found in qualityMeasuresDates, using most recent date:', allDates[0]);
-         setCurrentPublishDate(allDates[0]);
-       }
-     }
+           if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0 && currentMeasureSetting) {
+        if (qualityMeasuresDates[currentMeasureSetting]) {
+          const settingSpecificDate = qualityMeasuresDates[currentMeasureSetting];
+          console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
+          setCurrentPublishDate(settingSpecificDate);
+          // Clear cache when measure setting changes to ensure fresh data
+          apiCache.clear();
+          console.log('🧹 Cache cleared due to measure setting change');
+        } else {
+          // Fallback to the most recent available date if the setting doesn't have a specific date
+          const allDates = Object.values(qualityMeasuresDates).sort().reverse();
+          console.log('📅 Setting not found in qualityMeasuresDates, using most recent date:', allDates[0]);
+          setCurrentPublishDate(allDates[0]);
+          // Clear cache when measure setting changes to ensure fresh data
+          apiCache.clear();
+          console.log('🧹 Cache cleared due to measure setting change');
+        }
+      }
    }, [qualityMeasuresDates, currentMeasureSetting]);
 
   useEffect(() => {
@@ -89,8 +95,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         return;
       }
       
-      // Clear cache to ensure fresh data
-      apiCache.clear();
+             // Cache is cleared when measure setting changes, so we don't need to clear it here
       
       setMatrixLoading(true);
       setMatrixError(null);
@@ -197,8 +202,12 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           }
         }
         
-        // 8. Check cache for combined data with the determined date
-        const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date });
+        // 8. Check cache for combined data with the determined date and measure setting
+        const cacheKey = getCacheKey('qm_combined', { 
+          ccns: allCcns, 
+          publish_date,
+          measureSetting: currentMeasureSetting 
+        });
         const cachedData = getCachedData(cacheKey);
         
         let combinedData;

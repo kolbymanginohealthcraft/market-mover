@@ -12,6 +12,6 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevent any overflow from this container */
   position: relative;
+  overflow: hidden;
 } 

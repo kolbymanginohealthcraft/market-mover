@@ -134,13 +134,14 @@ export default function Scorecard({
         background: '#f8f9fa',
         border: '1px solid #e9ecef',
         borderRadius: '8px',
-        padding: '12px 16px',
-        marginBottom: '16px',
-        fontSize: '14px',
+        padding: '8px 12px',
+        marginBottom: '12px',
+        fontSize: '13px',
         color: '#495057',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        gap: '8px',
+        flexShrink: 0
       }}>
         <strong>Current Data Period:</strong>
         <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
@@ -155,21 +156,23 @@ export default function Scorecard({
         )}
       </div>
       
-      <ProviderComparisonMatrix
-        provider={mainProviderInMatrix}
-        competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
-        measures={finalFilteredMeasures}
-        data={finalData}
-        marketAverages={finalMarketAverages}
-        nationalAverages={finalNationalAverages}
-        publishDate={finalCurrentDate}
-        providerTypeFilter={providerTypeFilter}
-        setProviderTypeFilter={setProviderTypeFilter}
-        availableProviderTypes={finalProviderTypes}
-        availablePublishDates={finalPublishDates}
-        selectedPublishDate={selectedPublishDate}
-        setSelectedPublishDate={setSelectedPublishDate}
-      />
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <ProviderComparisonMatrix
+          provider={mainProviderInMatrix}
+          competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
+          measures={finalFilteredMeasures}
+          data={finalData}
+          marketAverages={finalMarketAverages}
+          nationalAverages={finalNationalAverages}
+          publishDate={finalCurrentDate}
+          providerTypeFilter={providerTypeFilter}
+          setProviderTypeFilter={setProviderTypeFilter}
+          availableProviderTypes={finalProviderTypes}
+          availablePublishDates={finalPublishDates}
+          selectedPublishDate={selectedPublishDate}
+          setSelectedPublishDate={setSelectedPublishDate}
+        />
+      </div>
     </div>
   );
 } 

@@ -149,14 +149,12 @@
   display: flex;
   flex-direction: column;
   max-width: 100%;
-  min-width: 0;
-  min-height: 0;
   margin: 0;
   padding: 0;
   position: relative;
   background: #fff;
-  /* height: 100%; */
-  /* overflow: hidden; */
+  height: 100%;
+  overflow: hidden;
 }
 
 /* --- Matrix wrapper: scrollable area with fixed height --- */
@@ -165,7 +163,6 @@
   min-width: 0;
   min-height: 0;
   width: 100%;
-  height: 70vh;
   overflow: auto;
   background: #fff;
   position: relative;
@@ -206,12 +203,9 @@
   background: #fff;
   font-size: 0.78rem;
   margin: 0;
-  /* Layer 3: Table - content that can be larger than viewport */
   position: relative;
-  /* Ensure table can expand beyond viewport */
   table-layout: auto;
   white-space: nowrap;
-
 }
 
 .matrixTable th, .matrixTable td {
@@ -223,11 +217,11 @@
   color: #222;
   overflow-wrap: break-word;
   white-space: normal;
-  /* Ensure cells don't shrink below minimum width */
   min-width: 90px;
   max-width: none;
 }
 
+/* Header row cells */
 .matrixTable th, .stickyHeader {
   position: sticky !important;
   top: 0 !important;
@@ -243,12 +237,12 @@
   word-break: break-word;
 }
 
-/* --- First column: sticky, wide, ellipsis --- */
+/* First column cells (provider names) */
 .stickyCol {
   position: sticky !important;
   left: 0 !important;
   background: #e8f4fd !important;
-  z-index: 120 !important;
+  z-index: 50 !important;
   font-weight: 600;
   text-align: left !important;
   min-width: 200px;
@@ -263,19 +257,22 @@
   color: #1d8a68;
 }
 
-.matrixTable th.stickyCol {
-  left: 0 !important;
-  z-index: 120 !important;
-  text-align: left !important;
+/* Corner cell - MUST be highest z-index */
+.matrixTable th.stickyCol.stickyHeader {
   position: sticky !important;
   top: 0 !important;
-}
-
-/* Main provider row sticky column styling */
-.matrixTable tbody tr.mainProviderRow .stickyCol {
+  left: 0 !important;
+  z-index: 999 !important;
   background: #e8f4fd !important;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 4px double #265947 !important;
+  min-width: 200px;
+  max-width: 240px;
+  width: 210px;
   font-weight: 700;
   color: #1d8a68;
+  text-align: left !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
 }
 
 /* --- All other columns: allow expansion, allow wrapping --- */
@@ -466,46 +463,32 @@
   background: #f8f8f8;
 }
 
+/* Table body cells in first column */
 .matrixTable td.stickyCol {
   position: sticky !important;
   left: 0 !important;
-  z-index: 110 !important;
+  z-index: 50 !important;
   background: #e8f4fd !important;
   text-align: left !important;
+  min-width: 200px;
+  max-width: 240px;
+  width: 210px;
 }
 
-.matrixTable tbody tr.mainProviderRow {
-  background: var(--highlight-selected-provider) !important;
-  font-weight: 700;
-  border-left: 4px solid #265947;
-  box-shadow: 0 2px 4px rgba(37, 89, 71, 0.1);
-  border-top: 3px solid #222 !important;
-  border-bottom: 3px solid #222 !important;
-}
-
-.stickyCorner {
-  position: sticky !important;
-  top: 0 !important;
-  left: 0 !important;
-  z-index: 130 !important;
+/* Main provider row sticky column styling */
+.matrixTable tbody tr.mainProviderRow .stickyCol {
   background: #e8f4fd !important;
+  font-weight: 700;
+  color: #1d8a68;
 }
 
 .matrixTable th.stickyHeader {
   position: sticky !important;
   top: 0 !important;
-  z-index: 120 !important;
+  z-index: 100 !important;
   background: #e8f4fd !important;
   white-space: normal;
   word-break: break-word;
-}
-
-.matrixTable td.stickyCol {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 110 !important;
-  background: #e8f4fd !important;
-  text-align: left !important;
 }
 
 .matrixTable th, .stickyHeader {
