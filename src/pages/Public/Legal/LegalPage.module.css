@@ -1,0 +1,58 @@
+.contentContainer {
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 24px;
+}
+
+.content {
+  padding: 32px 24px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(5px);
+  flex: 1;
+}
+
+.content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: rgba(29, 173, 190, 0.1);
+  border-radius: 4px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: rgba(29, 173, 190, 0.3);
+  border-radius: 4px;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: rgba(29, 173, 190, 0.5);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contentContainer {
+    margin: 16px;
+  }
+  
+  .content {
+    padding: 24px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contentContainer {
+    margin: 12px;
+  }
+  
+  .content {
+    padding: 20px 12px;
+  }
+}

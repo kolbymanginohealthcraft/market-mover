@@ -3,50 +3,26 @@ import styles from "./DiagnosesTab.module.css";
 import Spinner from "../../../../components/Buttons/Spinner";
 import { apiUrl } from '../../../../utils/api';
 
-export default function ClaimsByServiceLine({ provider, radiusInMiles, nearbyProviders, claimType, dataType }) {
+export default function ClaimsByServiceLine({ provider, radiusInMiles, nearbyProviders, claimType, dataType, cachedNPIs, loading: parentLoading, error: parentError }) {
   const [serviceLineData, setServiceLineData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (provider?.dhc && nearbyProviders) {
+    if (cachedNPIs && !parentLoading && !parentError) {
       fetchServiceLineData();
     }
-  }, [provider?.dhc, nearbyProviders, claimType, dataType]);
+  }, [cachedNPIs, claimType, dataType, parentLoading, parentError]);
 
   const fetchServiceLineData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Get all provider DHCs in the market (main provider + nearby providers)
-      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
+      console.log(`🔍 Using cached NPIs for service line data: ${cachedNPIs.length} NPIs`);
       
-      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
-      
-      // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          dhc_ids: allProviderDhcs
-        }),
-      });
-      
-      const npisResult = await npisResponse.json();
-      
-      if (!npisResult.success) {
-        throw new Error(npisResult.error || "Failed to fetch related NPIs");
-      }
-      
-      const npis = npisResult.data.map(row => row.npi);
-      
-      if (npis.length === 0) {
-        setError("No NPIs found for providers in this market");
-        return;
-      }
+      // Use cached NPIs instead of fetching them again
+      const npis = cachedNPIs;
       
       // Now fetch claims data by service line
       const response = await fetch(apiUrl("/api/claims-by-service-line"), {

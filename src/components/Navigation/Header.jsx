@@ -16,7 +16,8 @@ import {
   Settings,
   Home,
   DollarSign,
-  Mail
+  Mail,
+  FileText
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { supabase } from '../../app/supabaseClient';
@@ -161,6 +162,8 @@ const Header = ({ currentView, selectedMarket }) => {
         return 'Pricing Options';
       } else if (location.pathname === '/faq') {
         return 'Frequently Asked Questions';
+      } else if (location.pathname === '/legal') {
+        return 'Legal Info';
       } else if (location.pathname === '/login') {
         return 'Log In';
       } else if (location.pathname === '/signup') {
@@ -206,6 +209,10 @@ const Header = ({ currentView, selectedMarket }) => {
       } else if (location.pathname === '/faq') {
         return [
           { text: 'Find answers to common questions about Market Mover', type: 'description' }
+        ];
+      } else if (location.pathname === '/legal') {
+        return [
+          { text: 'Terms, privacy, and refund policies', type: 'description' }
         ];
       } else if (location.pathname === '/login') {
         return [
@@ -295,6 +302,8 @@ const Header = ({ currentView, selectedMarket }) => {
         return <DollarSign size={18} />;
       } else if (location.pathname === '/faq') {
         return <HelpCircle size={18} />;
+      } else if (location.pathname === '/legal') {
+        return <FileText size={18} />;
       } else if (location.pathname === '/login') {
         return <Mail size={18} />;
       } else if (location.pathname === '/signup') {

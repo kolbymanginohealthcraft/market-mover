@@ -53,6 +53,12 @@ const PublicSidebar = () => {
           <UserPlus size={14} />
           Sign Up
         </Link>
+        <Link to="/legal" className={`${styles.navItem} ${isActive('/legal') ? styles.active : ''}`}>
+          <FileText size={14} />
+          Legal Info
+        </Link>
+        
+
       </div>
     </div>
   );

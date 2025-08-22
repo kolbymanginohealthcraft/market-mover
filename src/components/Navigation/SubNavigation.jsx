@@ -43,6 +43,37 @@ const SubNavigation = () => {
   // Determine if we're on the Network page
   const isNetworkPage = location.pathname.includes('/network') || location.pathname === '/app/network';
 
+  // Handle legal page navigation
+  if (location.pathname === '/legal') {
+    const currentTab = new URLSearchParams(location.search).get('tab') || 'terms';
+    
+    const tabs = [
+      { id: "terms", label: "Terms", icon: FileText, path: "/legal?tab=terms" },
+      { id: "privacy", label: "Privacy", icon: Shield, path: "/legal?tab=privacy" },
+      { id: "refund", label: "Refund", icon: CreditCard, path: "/legal?tab=refund" }
+    ];
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={`${styles.tab} ${currentTab === tab.id ? styles.active : ''}`}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
   // Handle Markets page navigation
   if (isMarketsPage) {
     // Determine the current view from the URL
@@ -133,6 +164,66 @@ const SubNavigation = () => {
     } else if (location.pathname.includes('/storyteller')) {
       currentActiveTab = 'storyteller';
     } else if (location.pathname.includes('/overview') || location.pathname.endsWith(`/provider/${pathSegments[dhcIndex]}`)) {
+      currentActiveTab = 'overview';
+    }
+
+    const tabs = [
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview` },
+      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing` },
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density` },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population` },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims` },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment` },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller` }
+    ];
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // Handle market pages
+  if (location.pathname.includes('/market/') && !location.pathname.includes('/market/create')) {
+    const pathSegments = location.pathname.split('/');
+    const marketIndex = pathSegments.findIndex(segment => segment === 'market');
+    const marketIdIndex = marketIndex + 1;
+
+    // Construct base path up to the market ID
+    const basePath = pathSegments.slice(0, marketIdIndex + 1).join('/');
+
+    // Determine the correct active tab
+    let currentActiveTab = "overview"; // Default to overview
+    
+    // Check for specific tab paths
+    if (location.pathname.includes('/provider-listing')) {
+      currentActiveTab = 'provider-listing';
+    } else if (location.pathname.includes('/provider-density')) {
+      currentActiveTab = 'provider-density';
+    } else if (location.pathname.includes('/population')) {
+      currentActiveTab = 'population';
+    } else if (location.pathname.includes('/claims')) {
+      currentActiveTab = 'claims';
+    } else if (location.pathname.includes('/enrollment') || location.pathname.includes('/cms-enrollment')) {
+      currentActiveTab = 'enrollment';
+    } else if (location.pathname.includes('/storyteller')) {
+      currentActiveTab = 'storyteller';
+    } else if (location.pathname.includes('/overview') || location.pathname.endsWith(`/market/${pathSegments[marketIdIndex]}`)) {
       currentActiveTab = 'overview';
     }
 

@@ -82,20 +82,20 @@ const NewLandingPage = () => {
     {
       icon: Database,
       title: 'Claims Intelligence',
-      description: 'Comprehensive claims data to understand provider behavior and service patterns.',
+      description: 'Comprehensive claims data to understand provider behavior and service utilization.',
       benefits: ['All payers and settings', 'Referral patterns', 'Diagnoses and procedures', 'Volume Trends']
     },
     {
       icon: BarChart3,
       title: 'Quality Performance',
       description: 'Compare provider performance against industry benchmarks to identify top performers.',
-      benefits: ['Benchmark comparisons', 'Quality scores', 'Performance metrics', 'Value-Based Care']
+      benefits: ['Quality Scores', 'Benchmark comparisons', 'Value-Based Care', 'Exportable Graphs']
     },
     {
       icon: Users,
       title: 'Population Insights',
       description: 'Understand the people that providers serve to align your strategy with market needs.',
-      benefits: ['Demographic data', 'Population health', 'Market demographics', 'Service area analysis']
+      benefits: ['Market demographics', 'Population health', 'Socioeconomic factors', 'Geographic access']
     },
     {
       icon: Shield,
@@ -261,7 +261,7 @@ const NewLandingPage = () => {
         <section className={styles.modules}>
           <div className={styles.sectionHeader}>
             <h2>Platform Modules</h2>
-            <p>Comprehensive tools designed specifically for healthcare market intelligence</p>
+            <p>Purpose-built tools that bring clarity and precision to healthcare market dynamics</p>
           </div>
           
           <div className={styles.modulesContainer}>
@@ -271,9 +271,10 @@ const NewLandingPage = () => {
                 <div className={styles.previewHeader}>
                   <h3>Real Market Data Insights</h3>
                                      <div className={styles.previewTabs}>
-                     <span className={styles.previewTab}>Claims</span>
-                     <span className={styles.previewTab}>Quality</span>
-                     <span className={styles.previewTab}>Population</span>
+                     <span className={styles.previewTab}>Me</span>
+                     <span className={styles.previewTab}>Partners</span>
+                     <span className={styles.previewTab}>Competitors</span>
+                     <span className={styles.previewTab}>Targets</span>
                    </div>
                 </div>
                 <div className={styles.previewContent}>
@@ -286,12 +287,12 @@ const NewLandingPage = () => {
                   </div>
                   <div className={styles.previewStats}>
                     <div className={styles.stat}>
-                      <span className={styles.statValue}>2.4M+</span>
-                      <span className={styles.statLabel}>Providers</span>
+                      <span className={styles.statValue}>1.8M+</span>
+                      <span className={styles.statLabel}>Organizations</span>
                     </div>
                     <div className={styles.stat}>
-                      <span className={styles.statValue}>45%</span>
-                      <span className={styles.statLabel}>ROI Improvement</span>
+                      <span className={styles.statValue}>5.2M+</span>
+                      <span className={styles.statLabel}>Licensed Professionals</span>
                     </div>
                   </div>
                 </div>
@@ -321,8 +322,8 @@ const NewLandingPage = () => {
              {/* Core Data Intelligence */}
        <section className={styles.features}>
                    <div className={styles.sectionHeader}>
-            <h2>Key Features</h2>
-            <p>Four fundamental pillars of healthcare market intelligence that power every decision</p>
+            <h2>Key Components</h2>
+            <p>Core areas that form the foundation for smarter strategic decisions</p>
           </div>
          <div className={styles.featuresGrid}>
            {features.map((feature, index) => {
@@ -354,7 +355,7 @@ const NewLandingPage = () => {
        <section className={styles.useCases}>
          <div className={styles.sectionHeader}>
            <h2>Who Benefits Most</h2>
-           <p>Healthcare professionals who need market intelligence to make strategic decisions</p>
+           <p>Healthcare leaders and professionals who rely on data-driven insights to guide strategy and growth</p>
          </div>
         <div className={styles.useCasesGrid}>
           {useCases.map((useCase, index) => {

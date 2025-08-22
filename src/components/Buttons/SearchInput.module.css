@@ -1,0 +1,63 @@
+/* Search Input Container */
+.searchContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Search Input Styles - Matching global ControlsRow styles */
+.searchInput {
+  padding: 6px 12px;
+  padding-right: 32px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background: var(--white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-width: 300px;
+  height: 28px;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary-teal);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
+
+/* Clear Button */
+.clearButton {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 2px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clearButton:hover {
+  color: var(--gray-700);
+  background: var(--gray-100);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .searchInput {
+    min-width: 100%;
+    max-width: none;
+  }
+}

@@ -28,13 +28,18 @@ router.post("/procedures-volume", async (req, res) => {
     if (npis && Array.isArray(npis) && npis.length > 0) {
       // Filter by specific NPIs
       query = `
+        WITH latest_date AS (
+          SELECT MAX(date__month_grain) as max_date
+          FROM \`aegis_access.volume_procedure\`
+          WHERE billing_provider_npi IN UNNEST(@npis)
+        )
         SELECT 
           date__month_grain,
           CAST(date__month_grain AS STRING) as date_string,
           SUM(count) as total_count
-        FROM \`aegis_access.volume_procedure\`
+        FROM \`aegis_access.volume_procedure\`, latest_date
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND date__month_grain >= DATE_SUB(latest_date.max_date, INTERVAL 11 MONTH)
         GROUP BY date__month_grain
         ORDER BY date__month_grain DESC
         LIMIT 12

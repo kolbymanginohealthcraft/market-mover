@@ -8,13 +8,14 @@ import { supabase } from '../../../app/supabaseClient';
 import useUserActivity from '../../../hooks/useUserActivity';
 import useUserProgress from '../../../hooks/useUserProgress';
 import useTestimonials from '../../../hooks/useTestimonials';
+import { trackActivity, ACTIVITY_TYPES, trackDashboardVisit } from '../../../utils/activityTracker';
 
 export default function Home() {
   const [userFirstName, setUserFirstName] = useState('');
   const [quote, setQuote] = useState('');
   const [showBanner, setShowBanner] = useState(true);
   const [error, setError] = useState(null);
-  const [greetingText, setGreetingText] = useState('Hello, Welcome to Market Mover 👋');
+  const [greetingText, setGreetingText] = useState('Hello, Welcome to Market Mover');
 
   // Custom hooks for data
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
@@ -49,19 +50,20 @@ export default function Home() {
         }
       } catch (err) {
         console.error('Error fetching user profile:', err);
-        setError('Failed to load user profile');
+      }
+    };
+
+    const handleDashboardVisit = async () => {
+      try {
+        await trackDashboardVisit();
+      } catch (err) {
+        console.error('Error tracking dashboard visit:', err);
       }
     };
 
     fetchUserProfile();
-
-    const newGreetingText = userFirstName 
-      ? `Hello ${userFirstName}, Welcome to Market Mover`
-      : 'Hello, Welcome to Market Mover';
-    
-    setGreetingText(newGreetingText);
-    setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
-  }, [userFirstName]);
+    handleDashboardVisit();
+  }, []);
 
 
 

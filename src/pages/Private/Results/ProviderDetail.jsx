@@ -16,7 +16,7 @@ import { trackProviderView } from '../../../utils/activityTracker';
 import { useProviderContext } from '../../../components/Context/ProviderContext';
 
 import useProviderInfo from "../../../hooks/useProviderInfo";
-import useNearbyProviders from "../../../hooks/useNearbyProviders";
+import useMarketAnalysis from "../../../hooks/useMarketAnalysis";
 import useMarketData from "../../../hooks/useMarketData";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
@@ -52,7 +52,30 @@ export default function ProviderDetail() {
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
-  const { providers: nearbyProviders, ccns: nearbyDhcCcns } = useNearbyProviders(provider, radiusInMiles);
+  // Market analysis hook - unified data source
+  const {
+    providers: nearbyProviders,
+    ccns: nearbyDhcCcns,
+    npis: nearbyNpis,
+    censusData,
+    counties,
+    censusTracts,
+    loading: marketAnalysisLoading,
+    providersLoading,
+    ccnsLoading,
+    npisLoading,
+    censusLoading,
+    error: marketAnalysisError,
+    providersError,
+    ccnsError,
+    npisError,
+    censusError,
+    getAllProviderDhcs,
+    getAllCcns,
+    getAllNpis,
+    getProviderDhcToCcns,
+    getProviderDhcToNpis
+  } = useMarketAnalysis(provider, radiusInMiles, 'provider');
 
   // Prefetch quality measures data for Storyteller tab
   const {
@@ -70,11 +93,7 @@ export default function ProviderDetail() {
 
   const [debouncedRadius] = useDebounce(radiusInMiles, 400);
 
-  // Helper to get all relevant provider DHCs (main + competitors)
-  const getAllProviderDhcs = useCallback(() => {
-    const dhcs = [provider?.dhc, ...nearbyProviders.slice(0, 3).map(p => p.dhc)].filter(Boolean);
-    return dhcs;
-  }, [provider, nearbyProviders]);
+
 
   useEffect(() => {
     async function fetchMainProviderCcns() {
@@ -116,7 +135,7 @@ export default function ProviderDetail() {
     };
   }, [provider, loading, setCurrentProvider]);
 
-  if (loading || !provider) {
+  if (loading || marketAnalysisLoading || !provider) {
     return <Spinner message="Loading provider details..." />;
   }
 
@@ -161,7 +180,7 @@ export default function ProviderDetail() {
           <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
           <Route path="referrals" element={<ReferralsTab provider={provider} />} />
           <Route path="cms-enrollment" element={<CMSEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
-          <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} />} />
+                     <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} provider={provider} />} />
           <Route path="*" element={<Navigate to="overview" replace />} />
         </Routes>
       </div>

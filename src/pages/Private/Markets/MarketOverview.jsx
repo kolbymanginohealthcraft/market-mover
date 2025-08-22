@@ -10,12 +10,12 @@ import Dropdown from '../../../components/Buttons/Dropdown';
 import { apiUrl } from '../../../utils/api';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
 
-export default function MarketOverview() {
+export default function MarketOverview({ market: marketProp, providers: providersProp }) {
   const { marketId } = useParams();
   const navigate = useNavigate();
-  const [market, setMarket] = useState(null);
-  const [providers, setProviders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [market, setMarket] = useState(marketProp || null);
+  const [providers, setProviders] = useState(providersProp || []);
+  const [loading, setLoading] = useState(!marketProp);
   const [error, setError] = useState(null);
   const [taggingProviderId, setTaggingProviderId] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -52,9 +52,29 @@ export default function MarketOverview() {
     };
   }, [taggingProviderId]);
 
+  // Update state when props change
   useEffect(() => {
-    fetchMarketData();
-  }, [marketId]);
+    if (marketProp) {
+      setMarket(marketProp);
+      setMarketName(marketProp.name);
+      setMarketRadius(marketProp.radius_miles);
+      setResolvedLocation({ city: marketProp.city, state: marketProp.state });
+      setLoading(false);
+    }
+  }, [marketProp]);
+
+  useEffect(() => {
+    if (providersProp) {
+      setProviders(providersProp);
+    }
+  }, [providersProp]);
+
+  useEffect(() => {
+    // Only fetch data if props are not provided
+    if (!marketProp) {
+      fetchMarketData();
+    }
+  }, [marketId, marketProp]);
 
   // Force re-render when team provider tags change
   useEffect(() => {
@@ -369,7 +389,6 @@ export default function MarketOverview() {
             <tbody key={`providers-${tagUpdateTrigger}`}>
               {getFilteredProviders().map((provider) => {
                 const providerTags = getProviderTags(provider.dhc);
-                console.log('Provider tags for', provider.dhc, ':', providerTags);
                 return (
                   <tr key={`${provider.dhc}-${tagUpdateTrigger}`}>
                     <td className={styles.providerName}>{provider.name}</td>

@@ -13,14 +13,11 @@ export default function Scorecard({
   providerTypeFilter,
   setProviderTypeFilter,
   selectedPublishDate,
-  setSelectedPublishDate
+  setSelectedPublishDate,
+  allCcns,
+  allProviderDhcs
 }) {
-  // Use prefetched data if available and the selected publish date matches the current date, otherwise use the hook
-  const usePrefetchedData = prefetchedData && 
-    !prefetchedData.loading && 
-    !prefetchedData.error && 
-    selectedPublishDate === prefetchedData.currentDate;
-  
+  // Always use the hook to ensure we get all providers, but use prefetched data if available
   const {
     matrixLoading,
     matrixMeasures,
@@ -34,23 +31,23 @@ export default function Scorecard({
     currentPublishDate,
     clearCache
   } = useQualityMeasures(
-    usePrefetchedData ? null : provider, 
-    usePrefetchedData ? null : nearbyProviders, 
-    usePrefetchedData ? null : nearbyDhcCcns, 
+    provider, 
+    nearbyProviders, 
+    nearbyDhcCcns, 
     selectedPublishDate
   );
 
-  // Use prefetched data when available
-  const finalLoading = usePrefetchedData ? false : matrixLoading;
-  const finalMeasures = usePrefetchedData ? prefetchedData.measures : matrixMeasures;
-  const finalData = usePrefetchedData ? prefetchedData.data : matrixData;
-  const finalMarketAverages = usePrefetchedData ? prefetchedData.marketAverages : matrixMarketAverages;
-  const finalNationalAverages = usePrefetchedData ? prefetchedData.nationalAverages : matrixNationalAverages;
-  const finalError = usePrefetchedData ? prefetchedData.error : matrixError;
-  const finalAllProviders = usePrefetchedData ? prefetchedData.allProviders : allMatrixProviders;
-  const finalProviderTypes = usePrefetchedData ? prefetchedData.providerTypes : availableProviderTypes;
-  const finalPublishDates = usePrefetchedData ? prefetchedData.publishDates : availablePublishDates;
-  const finalCurrentDate = usePrefetchedData ? prefetchedData.currentDate : currentPublishDate;
+  // Always use the hook data to ensure we get all providers
+  const finalLoading = matrixLoading;
+  const finalMeasures = matrixMeasures;
+  const finalData = matrixData;
+  const finalMarketAverages = matrixMarketAverages;
+  const finalNationalAverages = matrixNationalAverages;
+  const finalError = matrixError;
+  const finalAllProviders = allMatrixProviders;
+  const finalProviderTypes = availableProviderTypes;
+  const finalPublishDates = availablePublishDates;
+  const finalCurrentDate = currentPublishDate;
 
   // Filter measures by selected setting (if any) - this is the key change
   const filteredMeasures = finalMeasures.filter(m => {
@@ -72,18 +69,14 @@ export default function Scorecard({
     return inferredSetting === providerTypeFilter;
   });
 
-  // Fallback: if no measures found for selected setting, show all measures
-  const finalFilteredMeasures = filteredMeasures.length > 0 ? filteredMeasures : finalMeasures;
+  // Use only the filtered measures for display
+  const finalFilteredMeasures = filteredMeasures;
 
-  // Filter providers to ONLY show those that have data for the filtered measures
-  const filteredProviders = finalAllProviders.filter(provider => {
-    const providerData = finalData[provider.dhc] || {};
-    // Check if this provider has data for ANY of the filtered measures
-    return finalFilteredMeasures.some(measure => providerData[measure.code]);
-  });
+  // Show all providers, regardless of whether they have data for the current measure setting
+  const filteredProviders = finalAllProviders;
 
-  // Main provider for the scorecard (only show providers with data for selected setting)
-  const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
+  // Main provider for the scorecard (always show the main provider)
+  const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc) || provider;
 
   // DEBUG: Log filtering info
   console.log('🔍 Scorecard filtering:', {
@@ -98,6 +91,23 @@ export default function Scorecard({
     finalFilteredMeasures: finalFilteredMeasures.map(m => ({ code: m.code, name: m.name })),
     mainProviderHasData: mainProviderInMatrix ? 'YES' : 'NO',
     competitorsCount: filteredProviders.filter(p => p.dhc !== provider?.dhc).length,
+    mainProviderDhc: provider?.dhc,
+    mainProviderInMatrixDhc: mainProviderInMatrix?.dhc,
+    // Debug CCN data
+    nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
+    nearbyDhcCcnsSample: nearbyDhcCcns?.slice(0, 5) || [],
+    allCcnsCount: allCcns?.length || 0,
+    allCcnsSample: allCcns?.slice(0, 10) || [],
+    allProviderDhcsCount: allProviderDhcs?.length || 0,
+    allProviderDhcsSample: allProviderDhcs?.slice(0, 5) || [],
+    // Show all providers and their data availability
+    allProviders: finalAllProviders.map(p => ({
+      dhc: p.dhc,
+      name: p.name,
+      hasData: Object.keys(finalData[p.dhc] || {}).length > 0,
+      measureCount: Object.keys(finalData[p.dhc] || {}).length,
+      isMainProvider: p.dhc === provider?.dhc
+    })),
     // Debug: Show what measures are available for each setting
     allMeasuresBySetting: finalMeasures.reduce((acc, m) => {
       let setting = 'Other';
@@ -143,10 +153,10 @@ export default function Scorecard({
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
         <div className={styles.loadingTitle}>
-          {usePrefetchedData ? 'Loading Quality Measure Data...' : 'Loading Quality Measure Data...'}
+          Loading Quality Measure Data...
         </div>
         <div className={styles.loadingSubtitle}>
-          {usePrefetchedData ? 'Using prefetched data...' : 'Fetching provider comparisons, market averages, and national benchmarks'}
+          Fetching provider comparisons, market averages, and national benchmarks
         </div>
       </div>
     );
@@ -175,27 +185,27 @@ export default function Scorecard({
     );
   }
 
-  if (!mainProviderInMatrix || !finalMeasures.length) {
+  if (!finalMeasures.length) {
     return <div>No quality measure data available for this provider.</div>;
   }
 
   return (
     <div className={styles.scorecardContainer}>
-      <ProviderComparisonMatrix
-        provider={mainProviderInMatrix}
-        competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
-        measures={finalFilteredMeasures}
-        data={finalData}
-        marketAverages={finalMarketAverages}
-        nationalAverages={finalNationalAverages}
-        publishDate={finalCurrentDate}
-        providerTypeFilter={providerTypeFilter}
-        setProviderTypeFilter={setProviderTypeFilter}
-        availableProviderTypes={finalProviderTypes}
-        availablePublishDates={finalPublishDates}
-        selectedPublishDate={selectedPublishDate}
-        setSelectedPublishDate={setSelectedPublishDate}
-      />
+             <ProviderComparisonMatrix
+         provider={mainProviderInMatrix}
+         competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
+         measures={finalFilteredMeasures}
+         data={finalData}
+         marketAverages={finalMarketAverages}
+         nationalAverages={finalNationalAverages}
+         publishDate={finalCurrentDate}
+         providerTypeFilter={providerTypeFilter}
+         setProviderTypeFilter={setProviderTypeFilter}
+         availableProviderTypes={finalProviderTypes}
+         availablePublishDates={finalPublishDates}
+         selectedPublishDate={selectedPublishDate}
+         setSelectedPublishDate={setSelectedPublishDate}
+       />
     </div>
   );
 } 

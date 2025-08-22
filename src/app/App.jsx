@@ -13,17 +13,17 @@ import ScrollToTop from "../components/Navigation/ScrollToTop";
 import Layout from "../components/Layouts/Layout";
 import SidebarLayout from "../components/Layouts/SidebarLayout";
 import PublicSidebarLayout from "../components/Layouts/PublicSidebarLayout";
-import LegalLayout from "../components/Layouts/LegalLayout";
 import ButtonPlayground from "../pages/Temp/ButtonPlayground";
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
 
 // Pages
 import MarketingPage from "../pages/Public/Marketing/MarketingPage";
 import NewLandingPage from "../pages/Public/Marketing/NewLandingPage";
-import Login from "../pages/Auth/Login";
-import Signup from "../pages/Auth/Signup";
+import LoginTest from "../pages/Auth/LoginTest";
+import SignupTest from "../pages/Auth/SignupTest";
 import PricingPage from "../pages/Public/Pricing/PricingPage";
 import FAQPage from "../pages/Public/FAQ/FAQPage";
+import LegalPage from "../pages/Public/Legal/LegalPage";
 import OverviewPage from "../pages/Public/OverviewPage";
 
 import SelectPlan from "../pages/Public/SelectPlan";
@@ -43,6 +43,7 @@ import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
 import ProviderDetail from "../pages/Private/Results/ProviderDetail";
+import MarketDetail from "../pages/Private/Results/MarketDetail";
 import MarketsList from "../pages/Private/Markets/MarketsList";
 import MarketOverview from "../pages/Private/Markets/MarketOverview";
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
@@ -51,6 +52,7 @@ import SpinnerDemo from "../pages/Temp/SpinnerDemo";
 import Network from "../pages/Private/Network/Network";
 import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";
 import Feedback from "../pages/Private/Dashboard/Feedback";
+
 import PaymentTest from "../pages/Auth/PaymentTest";
 import PaymentFlow from "../pages/Auth/PaymentFlow";
 import Success from "../pages/Auth/Success";
@@ -97,11 +99,12 @@ export default function App() {
               />
               <Route
                 path="login"
-                element={session ? <Navigate to="/app/dashboard" /> : <Login />}
+                element={session ? <Navigate to="/app/dashboard" /> : <LoginTest />}
               />
-              <Route path="signup" element={<Signup />} />
+              <Route path="signup" element={<SignupTest />} />
               <Route path="pricing" element={<PricingPage />} />
               <Route path="faq" element={<FAQPage />} />
+              <Route path="legal" element={<LegalPage />} />
               <Route path="overview" element={<OverviewPage />} />
 
 
@@ -114,10 +117,7 @@ export default function App() {
             </Route>
 
             {/* Legal */}
-            <Route path="/legal" element={<LegalLayout />}>
-              <Route path="terms" element={<TermsAndConditions />} />
-              <Route path="privacy" element={<PrivacyPolicy />} />
-            </Route>
+            <Route path="/legal" element={<LegalPage />} />
 
             {/* Private */}
             <Route path="/app" element={session ? <SidebarLayout /> : <Navigate to="/" />}>
@@ -129,7 +129,7 @@ export default function App() {
               <Route path="provider/:dhc/*" element={<ProviderDetail />} />
               <Route path="supplier/search" element={<ServiceLineSearch />} />
               <Route path="markets/*" element={<MarketsList />} />
-              <Route path="market/:marketId/overview" element={<MarketOverview />} />
+              <Route path="market/:marketId/*" element={<MarketDetail />} />
               <Route path="market/create" element={<InteractiveMarketCreation />} />
               <Route path="banner-test" element={<BannerTest />} />
               <Route path="spinner-demo" element={<SpinnerDemo />} />
@@ -143,6 +143,7 @@ export default function App() {
               <Route path="legal-content-editor" element={<LegalContentEditor />} />
               <Route path="policy-management" element={<PolicyManagement />} />
               <Route path="network/*" element={<Network />} />
+              
 
             </Route>
 

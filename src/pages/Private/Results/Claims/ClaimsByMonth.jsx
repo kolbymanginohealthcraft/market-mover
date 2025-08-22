@@ -3,50 +3,26 @@ import styles from "./DiagnosesTab.module.css";
 import Spinner from "../../../../components/Buttons/Spinner";
 import { apiUrl } from '../../../../utils/api';
 
-export default function ClaimsByMonth({ provider, radiusInMiles, nearbyProviders, claimType, dataType }) {
+export default function ClaimsByMonth({ provider, radiusInMiles, nearbyProviders, claimType, dataType, cachedNPIs, loading: parentLoading, error: parentError }) {
   const [monthlyData, setMonthlyData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (provider?.dhc && nearbyProviders) {
+    if (cachedNPIs && !parentLoading && !parentError) {
       fetchMonthlyData();
     }
-  }, [provider?.dhc, nearbyProviders, claimType, dataType]);
+  }, [cachedNPIs, claimType, dataType, parentLoading, parentError]);
 
   const fetchMonthlyData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Get all provider DHCs in the market (main provider + nearby providers)
-      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
+      console.log(`🔍 Using cached NPIs for claims data: ${cachedNPIs.length} NPIs`);
       
-      console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
-      
-      // First, get the related NPIs for all providers in the market
-      const npisResponse = await fetch(apiUrl("/api/related-npis"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          dhc_ids: allProviderDhcs
-        }),
-      });
-      
-      const npisResult = await npisResponse.json();
-      
-      if (!npisResult.success) {
-        throw new Error(npisResult.error || "Failed to fetch related NPIs");
-      }
-      
-      const npis = npisResult.data.map(row => row.npi);
-      
-      if (npis.length === 0) {
-        setError("No NPIs found for providers in this market");
-        return;
-      }
+      // Use cached NPIs instead of fetching them again
+      const npis = cachedNPIs;
       
       // Now fetch claims data by month
       const response = await fetch(apiUrl("/api/claims-volume"), {
@@ -111,8 +87,12 @@ export default function ClaimsByMonth({ provider, radiusInMiles, nearbyProviders
     let monthDisplay = 'Unknown Month';
     try {
       if (row.date_string) {
-        const date = new Date(row.date_string);
-        if (!isNaN(date.getTime())) {
+        // Parse the date string and ensure it's treated as local time, not UTC
+        // BigQuery DATE fields are in YYYY-MM-DD format
+        const [year, month, day] = row.date_string.split('-').map(Number);
+        if (year && month && day) {
+          // Create date in local timezone to avoid UTC conversion issues
+          const date = new Date(year, month - 1, day); // month is 0-indexed in JS
           monthDisplay = date.toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'long' 
@@ -121,7 +101,16 @@ export default function ClaimsByMonth({ provider, radiusInMiles, nearbyProviders
           monthDisplay = row.date_string;
         }
       } else if (row.date__month_grain) {
-        monthDisplay = row.date__month_grain.toString();
+        // If we have the raw date field, parse it directly
+        const date = new Date(row.date__month_grain);
+        if (!isNaN(date.getTime())) {
+          monthDisplay = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long' 
+          });
+        } else {
+          monthDisplay = row.date__month_grain.toString();
+        }
       }
     } catch (error) {
       console.error("Error parsing date:", error);

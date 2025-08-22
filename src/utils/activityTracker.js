@@ -41,6 +41,7 @@ export const trackActivity = async (activityType, targetId = null, targetName = 
 // Predefined activity types
 export const ACTIVITY_TYPES = {
   LOGIN: 'login',
+  DASHBOARD_VISIT: 'dashboard_visit',
   SEARCH_PROVIDERS: 'search_providers',
   VIEW_PROVIDER: 'view_provider',
   SAVE_MARKET: 'save_market',
@@ -62,4 +63,8 @@ export const trackMarketSave = (marketId, marketName, radius) => {
 
 export const trackMarketView = (marketId, marketName, radius) => {
   return trackActivity(ACTIVITY_TYPES.VIEW_MARKET, marketId, marketName, { radius });
+};
+
+export const trackDashboardVisit = () => {
+  return trackActivity(ACTIVITY_TYPES.DASHBOARD_VISIT, null, 'Dashboard Visit');
 }; 

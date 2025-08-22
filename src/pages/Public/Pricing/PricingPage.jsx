@@ -196,37 +196,6 @@ export default function PricingPage() {
 
   return (
     <div className={styles.page}>
-      {/* Hero Banner Section */}
-      <div className={styles.heroBanner}>
-        <div className={styles.heroContent}>
-          <div className={styles.heroText}>
-            <h1 className={styles.heroTitle}>Pricing Options</h1>
-            <p className={styles.heroSubtitle}>
-              Flexible plans for teams of all sizes
-            </p>
-          </div>
-          <div className={styles.heroActions}>
-            <div className={styles.toggleWrapper}>
-              <span className={`${styles.toggleLabel} ${billingCycle === 'monthly' ? styles.active : ''}`}>
-                Monthly Billing
-              </span>
-              <button
-                className={`${styles.toggleSwitch} ${billingCycle === 'annual' ? styles.annual : ''}`}
-                onClick={() =>
-                  setBillingCycle((prev) => (prev === 'monthly' ? 'annual' : 'monthly'))
-                }
-                aria-label="Toggle billing cycle"
-              >
-                <div className={styles.toggleHandle} />
-              </button>
-              <span className={`${styles.toggleLabel} ${billingCycle === 'annual' ? styles.active : ''}`}>
-                Annual Billing <span className={styles.discountNote}>(Saves 20%)</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Two Column Layout */}
       <div className={styles.twoColumnLayout}>
         {/* Left Column - Pricing Matrix */}
@@ -353,6 +322,28 @@ export default function PricingPage() {
         <div className={styles.rightColumn}>
           <div className={styles.orderSummary}>
             <h3 className={styles.summaryTitle}>Order Summary</h3>
+            
+            {/* Billing Frequency Toggle */}
+            <div className={styles.lineItem}>
+              <span className={styles.itemLabel}>Billing Cycle</span>
+              <div className={styles.toggleWrapper}>
+                <span className={`${styles.toggleLabel} ${billingCycle === 'monthly' ? styles.active : ''}`}>
+                  Monthly
+                </span>
+                <button
+                  className={`${styles.toggleSwitch} ${billingCycle === 'annual' ? styles.annual : ''}`}
+                  onClick={() =>
+                    setBillingCycle((prev) => (prev === 'monthly' ? 'annual' : 'monthly'))
+                  }
+                  aria-label="Toggle billing cycle"
+                >
+                  <div className={styles.toggleHandle} />
+                </button>
+                <span className={`${styles.toggleLabel} ${billingCycle === 'annual' ? styles.active : ''}`}>
+                  Annual <span className={styles.discountNote}>(20% off)</span>
+                </span>
+              </div>
+            </div>
             
             {/* Plan Selection Line Item */}
             <div className={styles.lineItem}>

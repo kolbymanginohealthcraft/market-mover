@@ -49,21 +49,18 @@ export default function ActivityStatsPanel() {
         activitiesByDate[date].push(activity);
       });
 
-      // Calculate current streak
+      console.log('Activities by date:', activitiesByDate);
+
+      // Calculate current streak by checking consecutive days from today backwards
       const today = new Date().toISOString().split('T')[0];
-      const sortedDates = Object.keys(activitiesByDate).sort();
       let currentStreak = 0;
       let longestStreak = 0;
       let tempStreak = 0;
 
-      // Check if user was active today
-      if (activitiesByDate[today]) {
-        currentStreak = 1;
-        tempStreak = 1;
-      }
+      console.log('Today:', today);
 
-      // Calculate streaks by checking consecutive days
-      for (let i = 1; i <= 30; i++) {
+      // Check consecutive days starting from today
+      for (let i = 0; i <= 30; i++) {
         const checkDate = new Date();
         checkDate.setDate(checkDate.getDate() - i);
         const dateStr = checkDate.toISOString().split('T')[0];
@@ -73,11 +70,13 @@ export default function ActivityStatsPanel() {
           if (tempStreak > longestStreak) {
             longestStreak = tempStreak;
           }
+          console.log(`Day ${i}: ${dateStr} - Activity found, tempStreak: ${tempStreak}`);
         } else {
-          // Break in streak
-          if (currentStreak === 0 && tempStreak > 0) {
+          // Break in streak - if this is the first break, set current streak
+          if (currentStreak === 0) {
             currentStreak = tempStreak;
           }
+          console.log(`Day ${i}: ${dateStr} - No activity, break in streak. currentStreak: ${currentStreak}, tempStreak: ${tempStreak}`);
           tempStreak = 0;
         }
       }
@@ -87,6 +86,7 @@ export default function ActivityStatsPanel() {
         currentStreak = tempStreak;
       }
 
+      console.log('Final streak calculation:', { current: currentStreak, longest: longestStreak });
       setActivityStreak({ current: currentStreak, longest: longestStreak });
     } catch (err) {
       console.error('Error calculating activity streak:', err);

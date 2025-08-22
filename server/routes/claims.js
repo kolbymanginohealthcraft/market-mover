@@ -82,28 +82,38 @@ router.post("/claims-volume", async (req, res) => {
     let params = {};
     
     if (npis && Array.isArray(npis) && npis.length > 0) {
-      // Filter by specific NPIs
+      // Filter by specific NPIs - get the most recent 12 months from available data
       query = `
+        WITH latest_date AS (
+          SELECT MAX(${fields.dateField}) as max_date
+          FROM \`aegis_access.${tableName}\`
+          WHERE ${fields.billingProviderField} IN UNNEST(@npis)
+        )
         SELECT 
           ${fields.dateField},
           CAST(${fields.dateField} AS STRING) as date_string,
           SUM(${fields.countField}) as total_count
-        FROM \`aegis_access.${tableName}\`
+        FROM \`aegis_access.${tableName}\`, latest_date
         WHERE ${fields.billingProviderField} IN UNNEST(@npis)
-          AND ${fields.dateField} >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND ${fields.dateField} >= DATE_SUB(latest_date.max_date, INTERVAL 11 MONTH)
         GROUP BY ${fields.dateField}
         ORDER BY ${fields.dateField} DESC
         LIMIT 12
       `;
       params = { npis };
     } else {
-      // No NPIs provided, get all data (fallback)
+      // No NPIs provided, get all data (fallback) - get the most recent 12 months from available data
       query = `
+        WITH latest_date AS (
+          SELECT MAX(${fields.dateField}) as max_date
+          FROM \`aegis_access.${tableName}\`
+        )
         SELECT 
           ${fields.dateField},
           CAST(${fields.dateField} AS STRING) as date_string,
           SUM(${fields.countField}) as total_count
-        FROM \`aegis_access.${tableName}\`
+        FROM \`aegis_access.${tableName}\`, latest_date
+        WHERE ${fields.dateField} >= DATE_SUB(latest_date.max_date, INTERVAL 11 MONTH)
         GROUP BY ${fields.dateField}
         ORDER BY ${fields.dateField} DESC
         LIMIT 12

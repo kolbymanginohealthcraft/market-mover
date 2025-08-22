@@ -20,9 +20,18 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
       setError(null);
       
       // Get all provider DHCs in the market (main provider + nearby providers)
-      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
+      // Only include numeric DHCs (exclude market IDs like 'market-123')
+      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)]
+        .filter(Boolean)
+        .filter(dhc => !isNaN(parseInt(dhc)));
       
       console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
+      
+      // Check if we have any valid DHCs before making the API call
+      if (allProviderDhcs.length === 0) {
+        setError("No valid provider DHCs found in this market");
+        return;
+      }
       
       // First, get the related NPIs for all providers in the market
       const npisResponse = await fetch(apiUrl("/api/related-npis"), {
@@ -109,8 +118,12 @@ export default function DiagnosesByMonth({ provider, radiusInMiles, nearbyProvid
     let monthDisplay = 'Unknown Month';
     try {
       if (row.date_string) {
-        const date = new Date(row.date_string);
-        if (!isNaN(date.getTime())) {
+        // Parse the date string and ensure it's treated as local time, not UTC
+        // BigQuery DATE fields are in YYYY-MM-DD format
+        const [year, month, day] = row.date_string.split('-').map(Number);
+        if (year && month && day) {
+          // Create date in local timezone to avoid UTC conversion issues
+          const date = new Date(year, month - 1, day); // month is 0-indexed in JS
           monthDisplay = date.toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'long' 

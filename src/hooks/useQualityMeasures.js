@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { apiUrl } from '../utils/api';
 
 // Simple cache for API responses
 const apiCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Clear cache on module load to ensure fresh data
+apiCache.clear();
+console.log('🧹 Cache cleared on module load');
 
 // Function to clear the client-side cache
 export function clearClientCache() {
@@ -43,29 +47,56 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   const [availablePublishDates, setAvailablePublishDates] = useState([]);
   const [currentPublishDate, setCurrentPublishDate] = useState(null);
 
+  // Memoize dependencies to prevent infinite re-renders
+  const memoizedNearbyProviders = useMemo(() => nearbyProviders, [JSON.stringify(nearbyProviders)]);
+  const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns, [JSON.stringify(nearbyDhcCcns)]);
+
   useEffect(() => {
     async function fetchMatrixData() {
       if (!provider) {
         setMatrixLoading(false);
+        setMatrixMeasures([]);
+        setMatrixData({});
+        setMatrixMarketAverages({});
+        setMatrixNationalAverages({});
+        setMatrixError(null);
+        setAllMatrixProviders([]);
+        setMatrixProviderIdToCcns({});
+        setAvailableProviderTypes([]);
+        setAvailablePublishDates([]);
+        setCurrentPublishDate(null);
         return;
       }
+      
+      // Clear cache to ensure fresh data
+      apiCache.clear();
+      console.log('🧹 Cache cleared for fresh data fetch');
+      
       setMatrixLoading(true);
       setMatrixError(null);
       
       try {
         // 1. Build all unique providers: main + all unique nearby (by dhc)
-        let allProviders = [provider, ...nearbyProviders];
+        let allProviders = [provider, ...memoizedNearbyProviders];
         allProviders = allProviders.filter((p, idx, arr) => p && arr.findIndex(x => x.dhc === p.dhc) === idx);
 
         // 2. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
         const providerDhcToCcns = {};
-        (nearbyDhcCcns || []).forEach(row => {
-          if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
-          providerDhcToCcns[row.dhc].push(row.ccn);
+        console.log('🔍 Processing nearbyDhcCcns:', {
+          count: memoizedNearbyDhcCcns?.length || 0,
+          sample: memoizedNearbyDhcCcns?.slice(0, 3) || [],
+          types: memoizedNearbyDhcCcns?.slice(0, 3)?.map(row => ({ dhc: typeof row.dhc, ccn: typeof row.ccn })) || []
         });
         
-        // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs
-        if (!providerDhcToCcns[provider.dhc]) {
+        (memoizedNearbyDhcCcns || []).forEach(row => {
+          if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
+          // Ensure CCN is a string
+          const ccnString = String(row.ccn);
+          providerDhcToCcns[row.dhc].push(ccnString);
+        });
+        
+        // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs (only for numeric DHCs)
+        if (!providerDhcToCcns[provider.dhc] && !isNaN(parseInt(provider.dhc))) {
           const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -84,17 +115,40 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         console.log('🔍 Main provider CCNs:', {
           dhc: provider?.dhc,
           ccns: providerDhcToCcns[provider?.dhc] || [],
-          allProviderDhcToCcns: Object.keys(providerDhcToCcns).length
+          allProviderDhcToCcns: Object.keys(providerDhcToCcns).length,
+          // Debug CCN data types and values
+          nearbyDhcCcnsSample: memoizedNearbyDhcCcns?.slice(0, 3) || [],
+          allProvidersBeforeFilter: allProviders.length,
+          providerDhcToCcnsKeys: Object.keys(providerDhcToCcns),
+          providerDhcToCcnsSample: Object.entries(providerDhcToCcns).slice(0, 3)
         });
 
         // 4. Only include providers with at least one CCN
+        const providersBeforeFilter = allProviders.length;
         allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
+        
+        console.log('🔍 Provider filtering:', {
+          providersBeforeFilter,
+          providersAfterFilter: allProviders.length,
+          filteredOutCount: providersBeforeFilter - allProviders.length,
+          providersWithCcns: allProviders.map(p => ({ dhc: p.dhc, name: p.name, ccns: providerDhcToCcns[p.dhc]?.length || 0 })),
+          // Debug: Show which providers are being filtered out
+          filteredOutProviders: allProviders.filter(p => !providerDhcToCcns[p.dhc] || providerDhcToCcns[p.dhc].length === 0).map(p => ({ dhc: p.dhc, name: p.name }))
+        });
         
         // 4b. Get unique measure settings for dropdown (instead of provider types)
         // This will be populated after we fetch the measures data
 
         // 5. Get all CCNs for the combined request
         const allCcns = Object.values(providerDhcToCcns).flat();
+        
+        // 5b. Check if we have any CCNs before proceeding
+        if (allCcns.length === 0) {
+          console.log('⚠️ No CCNs found for any providers, skipping quality measures fetch');
+          setMatrixError("No CCNs found for providers in this market");
+          setMatrixLoading(false);
+          return;
+        }
         
         // 6. Check cache for combined data
         const cacheKey = getCacheKey('qm_combined', { ccns: allCcns, publish_date: selectedPublishDate || '2025-04-01' });
@@ -233,8 +287,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
         // 11. Calculate market averages from the provider data
         let marketAverages = {};
-        if (nearbyDhcCcns.length > 0) {
-          const marketCcns = nearbyDhcCcns.map(row => row.ccn).filter(Boolean);
+        if (memoizedNearbyDhcCcns.length > 0) {
+          const marketCcns = memoizedNearbyDhcCcns.map(row => row.ccn).filter(Boolean);
           const marketRows = providerData.filter(d => marketCcns.includes(d.ccn));
           
           // Aggregate in JS
@@ -301,7 +355,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
       }
     }
     fetchMatrixData();
-  }, [provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate]);
+  }, [provider, memoizedNearbyProviders, memoizedNearbyDhcCcns, selectedPublishDate]);
 
   // Function to clear cache and force refresh
   const clearCache = useCallback(() => {

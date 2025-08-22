@@ -397,7 +397,6 @@ export default function ProviderListingTab({
 
         // Create GeoJSON for providers
         const providerFeatures = uniqueResults
-          .filter(p => p.dhc !== provider.dhc) // Exclude main provider from markers
           .map(p => ({
             type: 'Feature',
             geometry: {
@@ -554,7 +553,6 @@ export default function ProviderListingTab({
     if (layersAdded && map.current && map.current.getSource('providers')) {
       // Update the provider data without removing/re-adding layers
       const providerFeatures = uniqueResults
-        .filter(p => p.dhc !== provider.dhc)
         .map(p => ({
           type: 'Feature',
           geometry: {

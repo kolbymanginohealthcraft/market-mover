@@ -12,7 +12,8 @@ import {
   Network,
   Activity,
   Settings,
-  Lightbulb
+  Lightbulb,
+  Code
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -21,7 +22,7 @@ const Sidebar = () => {
 
   const isActive = (path) => location.pathname.includes(path);
   const isProviderPage = location.pathname.includes('/provider/');
-  const isMarketPage = location.pathname.includes('/market/');
+  const isMarketPage = location.pathname.includes('/market/') && !location.pathname.includes('/market/create');
 
   return (
     <div className={styles.sidebar}>
@@ -46,15 +47,16 @@ const Sidebar = () => {
         </Link>
         <Link to="/app/markets" className={`${styles.navItem} ${isActive('/markets') ? styles.active : ''}`}>
           <MapPin size={14} />
-          Saved Markets
+          My Markets
         </Link>
         <Link to="/app/network" className={`${styles.navItem} ${isActive('/network') ? styles.active : ''}`}>
           <Network size={14} />
           My Network
         </Link>
+
       </div>
 
-      {/* Provider Analysis Section (only shown on provider pages) */}
+            {/* Provider Analysis Section (only shown on provider pages) */}
       {isProviderPage && (
         <div className={styles.navItems}>
           <div className={`${styles.navItem} ${styles.active}`}>
@@ -78,7 +80,7 @@ const Sidebar = () => {
       <div className={styles.bottomNav}>
         <Link to="/app/settings" className={`${styles.navItem} ${isActive('/settings') ? styles.active : ''}`}>
           <Settings size={14} />
-          Settings
+          Account Settings
         </Link>
         <Link to="/app/feedback" className={`${styles.navItem} ${isActive('/feedback') ? styles.active : ''}`}>
           <Lightbulb size={14} />

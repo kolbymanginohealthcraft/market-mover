@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import Scorecard from "./Scorecard";
 import styles from "./Storyteller.module.css";
 
-export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
+export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, allCcns, allProviderDhcs }) {
   const location = useLocation();
   
   // Check if we're on the benchmarks route
@@ -28,15 +28,22 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   const currentPublishDate = prefetchedData?.currentDate || null;
 
   // DEBUG: Log availableProviderTypes and providerTypeFilter
-  console.log('Storyteller availableProviderTypes:', availableProviderTypes, 'providerTypeFilter:', providerTypeFilter, 'prefetchedData:', prefetchedData);
+  console.log('Storyteller data received:', {
+    availableProviderTypes,
+    providerTypeFilter,
+    prefetchedData,
+    allCcnsCount: allCcns?.length || 0,
+    allProviderDhcsCount: allProviderDhcs?.length || 0,
+    nearbyProvidersCount: nearbyProviders?.length || 0,
+    nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0
+  });
 
   // Set default provider type filter when available types change
   useEffect(() => {
     if (availableProviderTypes.length > 0 && !providerTypeFilter) {
-      // Default to SNF if available, otherwise use the first available type
-      const defaultType = availableProviderTypes.includes('SNF') ? 'SNF' : availableProviderTypes[0];
-      setProviderTypeFilter(defaultType);
-      console.log('🎯 Setting default provider type filter to:', defaultType);
+      // Default to SNF
+      setProviderTypeFilter('SNF');
+      console.log('🎯 Setting default provider type filter to: SNF');
     }
   }, [availableProviderTypes]);
 
@@ -118,7 +125,7 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
               <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
               <SelectInput
                 id="provider-type-select"
-                value={providerTypeFilter}
+                value={providerTypeFilter || ''}
                 onChange={e => setProviderTypeFilter(e.target.value)}
                 options={availableProviderTypes}
                 size="sm"
@@ -150,6 +157,8 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
             setSelectedPublishDate={setSelectedPublishDate}
             chartMode={chartMode}
             setChartMode={setChartMode}
+            allCcns={allCcns}
+            allProviderDhcs={allProviderDhcs}
           />
         )}
       </div>

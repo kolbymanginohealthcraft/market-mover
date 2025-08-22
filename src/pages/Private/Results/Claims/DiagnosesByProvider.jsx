@@ -20,9 +20,18 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
       setError(null);
       
       // Get all provider DHCs in the market (main provider + nearby providers)
-      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
+      // Only include numeric DHCs (exclude market IDs like 'market-123')
+      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)]
+        .filter(Boolean)
+        .filter(dhc => !isNaN(parseInt(dhc)));
       
       console.log(`🔍 Getting NPIs for ${allProviderDhcs.length} providers in ${radiusInMiles}mi radius`);
+      
+      // Check if we have any valid DHCs before making the API call
+      if (allProviderDhcs.length === 0) {
+        setError("No valid provider DHCs found in this market");
+        return;
+      }
       
       // First, get the related NPIs for all providers in the market
       const npisResponse = await fetch(apiUrl("/api/related-npis"), {
@@ -77,7 +86,10 @@ export default function DiagnosesByProvider({ provider, radiusInMiles, nearbyPro
 
   const debugOrgDhcJoin = async () => {
     try {
-      const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)].filter(Boolean);
+              // Only include numeric DHCs (exclude market IDs like 'market-123')
+        const allProviderDhcs = [provider.dhc, ...nearbyProviders.map(p => p.dhc)]
+          .filter(Boolean)
+          .filter(dhc => !isNaN(parseInt(dhc)));
       
       const npisResponse = await fetch(apiUrl("/api/related-npis"), {
         method: "POST",

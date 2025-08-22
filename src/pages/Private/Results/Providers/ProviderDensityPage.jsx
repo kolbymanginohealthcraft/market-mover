@@ -6,8 +6,10 @@ import styles from './ProviderDensityPage.module.css';
 import Banner from '../../../../components/Buttons/Banner';
 import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Button from '../../../../components/Buttons/Button';
+import ControlsRow from '../../../../components/Layouts/ControlsRow';
+import SectionHeader from '../../../../components/Layouts/SectionHeader';
 
-export default function ProviderDensityPage({ radius }) {
+export default function ProviderDensityPage({ radius, latitude, longitude, provider }) {
   const { dhc } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
@@ -21,12 +23,12 @@ export default function ProviderDensityPage({ radius }) {
   const [providersPerPage] = useState(10);
   const dropdownRef = useRef(null);
 
-  // Get provider info to use its location
-  const { provider: providerInfo, loading: providerLoading } = useProviderInfo(dhc);
+  // Get provider info to use its location (only if dhc is available and no props provided)
+  const { provider: providerInfo, loading: providerLoading } = useProviderInfo(dhc && !latitude && !longitude ? dhc : null);
   
-  // Use provider's location
-  const lat = providerInfo?.latitude;
-  const lon = providerInfo?.longitude;
+  // Use provided location props or fall back to provider info
+  const lat = latitude || providerInfo?.latitude;
+  const lon = longitude || providerInfo?.longitude;
 
   const { data: densityData, loading: densityLoading, error: densityError } = useProviderDensity(lat, lon, radius);
   const { data: detailsData, loading: detailsLoading, error: detailsError } = useProviderDensityDetails(lat, lon, radius, selectedSpecialty);
@@ -154,9 +156,7 @@ export default function ProviderDensityPage({ radius }) {
   const endIndex = startIndex + providersPerPage;
   const currentProviders = filteredProviders.slice(startIndex, endIndex);
 
-
-
-  if (providerLoading || densityLoading) {
+  if ((providerLoading && !latitude && !longitude) || densityLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
@@ -180,129 +180,137 @@ export default function ProviderDensityPage({ radius }) {
   }
 
   return (
-    <div className={styles.container} onKeyDown={handleEscapeKey}>
-
-
-      <div className={styles.controls}>
-        <div className={styles.controlGroup}>
-          <label>Filter Specialties:</label>
-          <div className={styles.multiSelectContainer} ref={dropdownRef}>
-            <div className={styles.selectedSpecialties}>
-              {selectedSpecialties.length === 0 ? (
-                <span className={styles.placeholder}>All specialties</span>
-              ) : (
-                <>
-                  {selectedSpecialties.map(specialty => (
-                    <span key={specialty} className={styles.selectedTag}>
-                      {specialty}
-                      <button 
-                        className={styles.removeTag}
-                        onClick={() => handleSpecialtyFilterChange(specialty)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                  <button 
-                    className={styles.clearAllButton}
-                    onClick={handleClearAll}
-                  >
-                    Clear all
-                  </button>
-                </>
-              )}
-            </div>
-            <div className={styles.dropdownContainer}>
-              <button 
-                className={styles.dropdownButton}
-                onClick={() => setShowDropdown(prev => !prev)}
-              >
-                ▼
-              </button>
-              {showDropdown && (
-                <div className={styles.dropdown}>
-                  <div className={styles.dropdownSearch}>
-                    <input
-                      type="text"
-                      placeholder="Search specialties..."
-                      value={dropdownSearch}
-                      onChange={(e) => setDropdownSearch(e.target.value)}
-                      className={styles.dropdownSearchInput}
-                      autoFocus
-                    />
-                  </div>
-                  {dropdownSpecialties.map(specialty => (
-                    <label key={specialty} className={styles.dropdownItem}>
+    <div onKeyDown={handleEscapeKey}>
+      <ControlsRow
+        leftContent={
+          <div className={styles.controlGroup}>
+            <label>Filter Specialties:</label>
+            <div className={styles.multiSelectContainer} ref={dropdownRef}>
+              <div className={styles.selectedSpecialties}>
+                {selectedSpecialties.length === 0 ? (
+                  <span className={styles.placeholder}>All specialties</span>
+                ) : (
+                  <>
+                    {selectedSpecialties.map(specialty => (
+                      <span key={specialty} className={styles.selectedTag}>
+                        {specialty}
+                        <button 
+                          className={styles.removeTag}
+                          onClick={() => handleSpecialtyFilterChange(specialty)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <button 
+                      className={styles.clearAllButton}
+                      onClick={handleClearAll}
+                    >
+                      Clear all
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className={styles.dropdownContainer}>
+                <button 
+                  className={styles.dropdownButton}
+                  onClick={() => setShowDropdown(prev => !prev)}
+                >
+                  ▼
+                </button>
+                {showDropdown && (
+                  <div className={styles.dropdown}>
+                    <div className={styles.dropdownSearch}>
                       <input
-                        type="checkbox"
-                        checked={selectedSpecialties.includes(specialty)}
-                        onChange={() => handleSpecialtyFilterChange(specialty)}
+                        type="text"
+                        placeholder="Search specialties..."
+                        value={dropdownSearch}
+                        onChange={(e) => setDropdownSearch(e.target.value)}
+                        className={styles.dropdownSearchInput}
+                        autoFocus
                       />
-                      <span>{specialty}</span>
-                    </label>
-                  ))}
-                  {dropdownSpecialties.length === 0 && (
-                    <div className={styles.noResults}>
-                      No specialties found
                     </div>
-                  )}
-                </div>
-              )}
+                    {dropdownSpecialties.map(specialty => (
+                      <label key={specialty} className={styles.dropdownItem}>
+                        <input
+                          type="checkbox"
+                          checked={selectedSpecialties.includes(specialty)}
+                          onChange={() => handleSpecialtyFilterChange(specialty)}
+                        />
+                        <span>{specialty}</span>
+                      </label>
+                    ))}
+                    {dropdownSpecialties.length === 0 && (
+                      <div className={styles.noResults}>
+                        No specialties found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className={styles.resultCount}>
-          Showing {totalProviders.toLocaleString()} provider{totalProviders !== 1 ? 's' : ''} across {filteredData.length.toLocaleString()} specialt{filteredData.length !== 1 ? 'ies' : 'y'}
-        </div>
-      </div>
+        }
+        rightContent={
+          <div className={styles.resultCount}>
+            Showing {totalProviders.toLocaleString()} provider{totalProviders !== 1 ? 's' : ''} across {filteredData.length.toLocaleString()} specialt{filteredData.length !== 1 ? 'ies' : 'y'}
+          </div>
+        }
+      />
 
       <div className={styles.twoColumnLayout}>
-                    <div className={styles.leftColumn}>
-              <div className={styles.specialtySection}>
-                <div className={styles.sectionHeader}>
-                  <h3>Provider Count by Specialty</h3>
-                  <ButtonGroup
-                    options={[
-                      { label: 'Sort by Count', value: 'count' },
-                      { label: 'Sort by Specialty', value: 'name' }
-                    ]}
-                    selected={sortBy}
-                    onSelect={setSortBy}
-                    size="sm"
-                    variant="blue"
-                  />
+        <div className={styles.leftColumn}>
+          <div className={styles.specialtySection}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.headerContent}>
+                <div className={styles.leftSection}>
+                  <span className={styles.headerTitle}>Provider Count by Specialty</span>
                 </div>
-                {sortedData && sortedData.length > 0 ? (
-              <div className={styles.specialtyTable}>
-                <div className={styles.tableHeader}>
-                  <div className={styles.rankColumn}>#</div>
-                  <div className={styles.specialtyColumn}>Specialty</div>
-                  <div className={styles.countColumn}>Providers</div>
-                </div>
-                                  <div className={styles.tableBody}>
+                <button 
+                  className={styles.sortButton} 
+                  onClick={() => setSortBy(sortBy === 'count' ? 'name' : 'count')}
+                >
+                  {sortBy === 'count' ? 'Sorted by Count' : 'Sorted by Specialty'}
+                </button>
+              </div>
+              <div className={styles.separator} />
+            </div>
+            <div className={styles.sectionContent}>
+              {sortedData && sortedData.length > 0 ? (
+                <div className={styles.specialtyTable}>
+                  <div className={styles.tableHeader}>
+                    <div className={styles.rankColumn}>#</div>
+                    <div className={styles.specialtyColumn}>Specialty</div>
+                    <div className={styles.countColumn}>Providers</div>
+                  </div>
+                  <div className={styles.tableBody}>
                     {sortedData.map((item, index) => (
-                    <div key={item.specialty} className={`${styles.tableRow} ${selectedSpecialty === item.specialty ? styles.selected : ''}`} onClick={() => handleSpecialtyClick(item.specialty)}>
-                      <div className={styles.rankColumn}>{index + 1}</div>
-                      <div className={styles.specialtyColumn}>{item.specialty}</div>
-                      <div className={styles.countColumn}>{item.provider_count.toLocaleString()}</div>
-                    </div>
-                  ))}
+                      <div key={item.specialty} className={`${styles.tableRow} ${selectedSpecialty === item.specialty ? styles.selected : ''}`} onClick={() => handleSpecialtyClick(item.specialty)}>
+                        <div className={styles.rankColumn}>{index + 1}</div>
+                        <div className={styles.specialtyColumn}>{item.specialty}</div>
+                        <div className={styles.countColumn}>{item.provider_count.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className={styles.noData}>
-                <h3>No Data Available</h3>
-                <p>No provider data found for the selected location and radius.</p>
-              </div>
-            )}
+              ) : (
+                <div className={styles.noData}>
+                  <h3>No Data Available</h3>
+                  <p>No provider data found for the selected location and radius.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-                    <div className={styles.rightColumn}>
-              <div className={styles.providerDetailsSection}>
-                <div className={styles.sectionHeader}>
-                  <h3>Provider Details</h3>
+        <div className={styles.rightColumn}>
+          <div className={styles.providerDetailsSection}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.headerContent}>
+                <div className={styles.leftSection}>
+                  <span className={styles.headerTitle}>Provider Details</span>
+                </div>
+                <div className={styles.rightSection}>
                   <div className={styles.providerSearchContainer}>
                     <input
                       type="text"
@@ -314,63 +322,66 @@ export default function ProviderDensityPage({ radius }) {
                   </div>
                   {totalPages > 1 && (
                     <div className={styles.pagination}>
-                      <Button
-                        outline
-                        size="sm"
+                      <button
+                        className={styles.paginationButton}
                         disabled={currentPage === 1}
                         onClick={() => handlePageChange(currentPage - 1)}
+                        title="Previous page"
                       >
-                        Previous
-                      </Button>
+                        ←
+                      </button>
                       <span className={styles.pageInfo}>
-                        Page {currentPage} of {totalPages}
+                        Page {currentPage}/{totalPages}
                       </span>
-                      <Button
-                        outline
-                        size="sm"
+                      <button
+                        className={styles.paginationButton}
                         disabled={currentPage === totalPages}
                         onClick={() => handlePageChange(currentPage + 1)}
+                        title="Next page"
                       >
-                        Next
-                      </Button>
+                        →
+                      </button>
                     </div>
                   )}
                 </div>
-                
-                {(detailsLoading || allProvidersLoading) ? (
-                  <div className={styles.loading}>Loading provider details...</div>
-                ) : (detailsError || allProvidersError) ? (
-                  <div className={styles.error}>Error loading details: {detailsError || allProvidersError}</div>
-                ) : (
-                  <div className={styles.providerList}>
-                    <div className={styles.providerTable}>
-                      <div className={styles.providerTableHeader}>
-                        <div className={styles.npiColumn}>NPI</div>
-                        <div className={styles.providerNameColumn}>Provider Name</div>
-                        <div className={styles.distanceColumn}>Distance</div>
-                      </div>
-                      <div className={styles.providerTableBody}>
-                        {currentProviders.map((provider) => (
-                          <div key={provider.npi} className={styles.providerTableRow}>
-                            <div className={styles.npiColumn}>{provider.npi}</div>
-                            <div className={styles.providerNameColumn}>{provider.provider_name || 'N/A'}</div>
-                            <div className={styles.distanceColumn}>{provider.distance_miles} mi</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {filteredProviders.length === 0 && (
-                      <div className={styles.noData}>
-                        {providerSearch ? 'No providers found matching your search' : 'No providers found'}
-                      </div>
-                    )}
-                    
-
-                  </div>
-                )}
               </div>
+              <div className={styles.separator} />
             </div>
+            <div className={styles.sectionContent}>
+              
+              {(detailsLoading || allProvidersLoading) ? (
+                <div className={styles.loading}>Loading provider details...</div>
+              ) : (detailsError || allProvidersError) ? (
+                <div className={styles.error}>Error loading details: {detailsError || allProvidersError}</div>
+              ) : (
+                <div className={styles.providerList}>
+                  <div className={styles.providerTable}>
+                    <div className={styles.providerTableHeader}>
+                      <div className={styles.npiColumn}>NPI</div>
+                      <div className={styles.providerNameColumn}>Provider Name</div>
+                      <div className={styles.distanceColumn}>Distance</div>
+                    </div>
+                    <div className={styles.providerTableBody}>
+                      {currentProviders.map((provider) => (
+                        <div key={provider.npi} className={styles.providerTableRow}>
+                          <div className={styles.npiColumn}>{provider.npi}</div>
+                          <div className={styles.providerNameColumn}>{provider.provider_name || 'N/A'}</div>
+                          <div className={styles.distanceColumn}>{provider.distance_miles} mi</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {filteredProviders.length === 0 && (
+                    <div className={styles.noData}>
+                      {providerSearch ? 'No providers found matching your search' : 'No providers found'}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
