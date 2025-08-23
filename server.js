@@ -20,7 +20,7 @@ import providerDensity from "./server/routes/providerDensity.js";
 import getProvidersByDhc from "./server/routes/getProvidersByDhc.js";
 import maEnrollment from "./server/routes/maEnrollment.js";
 import cmsEnrollment from "./server/routes/cmsEnrollment.js";
-import supplierSearch from "./server/routes/supplierSearch.js";
+
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
 
@@ -39,6 +39,7 @@ app.use(cors({
     'http://localhost:5174',
     'https://market-mover-rust.vercel.app',
     'https://market-mover.vercel.app',
+    'https://www.healthcraftmarketmover.com',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
@@ -64,7 +65,7 @@ app.use("/api", providerDensity);
 app.use("/api", getProvidersByDhc);
 app.use("/api", maEnrollment);
 app.use("/api", cmsEnrollment);
-app.use("/api/supplier", supplierSearch);
+
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);
 

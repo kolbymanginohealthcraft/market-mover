@@ -6,7 +6,7 @@ import DashboardLayout from './DashboardLayout';
 import PageLayout from '../../../components/Layouts/PageLayout';
 import { supabase } from '../../../app/supabaseClient';
 import useUserActivity from '../../../hooks/useUserActivity';
-import useUserProgress from '../../../hooks/useUserProgress';
+
 import useTestimonials from '../../../hooks/useTestimonials';
 import { useFirstTimeLogin } from '../../../hooks/useFirstTimeLogin';
 import { trackActivity, ACTIVITY_TYPES, trackDashboardVisit } from '../../../utils/activityTracker';
@@ -20,7 +20,7 @@ export default function Home() {
 
   // Custom hooks for data
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
-  const { progress, streaks, roi, loading: progressLoading } = useUserProgress();
+
   const { announcements, loading: announcementsLoading } = useTestimonials();
   const { isChecking, needsOnboarding } = useFirstTimeLogin();
 
