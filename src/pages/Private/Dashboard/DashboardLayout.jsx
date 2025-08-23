@@ -11,8 +11,6 @@ export default function DashboardLayout({
   activitiesLoading,
   onClearAllActivities,
   onClearActivity,
-  progressLoading,
-  streaks,
   announcements,
   announcementsLoading,
   userFirstName,
@@ -25,8 +23,6 @@ export default function DashboardLayout({
       <section className={styles.welcomeSection}>
         <WelcomePanel 
           userFirstName={userFirstName}
-          progressLoading={progressLoading}
-          streaks={streaks}
           quote={quote}
           greetingText={greetingText}
         />

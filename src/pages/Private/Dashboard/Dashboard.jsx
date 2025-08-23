@@ -140,19 +140,17 @@ export default function Home() {
 
   return (
     <PageLayout>
-      <DashboardLayout
-        activities={activities}
-        activitiesLoading={activitiesLoading}
-        onClearAllActivities={clearAllActivities}
-        onClearActivity={clearActivity}
-        progressLoading={progressLoading}
-        streaks={streaks}
-        announcements={announcements}
-        announcementsLoading={announcementsLoading}
-        userFirstName={userFirstName}
-        quote={quote}
-        greetingText={greetingText}
-      />
+             <DashboardLayout
+         activities={activities}
+         activitiesLoading={activitiesLoading}
+         onClearAllActivities={clearAllActivities}
+         onClearActivity={clearActivity}
+         announcements={announcements}
+         announcementsLoading={announcementsLoading}
+         userFirstName={userFirstName}
+         quote={quote}
+         greetingText={greetingText}
+       />
     </PageLayout>
   );
 }
