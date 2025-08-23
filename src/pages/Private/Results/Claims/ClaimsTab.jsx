@@ -128,14 +128,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   }), [provider, radiusInMiles, nearbyProviders, claimType, dataType, cachedNPIs, loading, error]);
 
   if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
-        <Spinner message="Loading provider data..." />
-        <p style={{ marginTop: '20px', color: '#666', fontSize: '14px' }}>
-          Claims data can take 30-60 seconds to load due to large datasets
-        </p>
-      </div>
-    );
+    return <Spinner message="Loading provider data..." />;
   }
 
   if (error) {
