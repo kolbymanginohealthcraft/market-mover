@@ -128,7 +128,14 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   }), [provider, radiusInMiles, nearbyProviders, claimType, dataType, cachedNPIs, loading, error]);
 
   if (loading) {
-    return <Spinner message="Loading provider data..." />;
+    return (
+      <div style={{ textAlign: 'center', padding: '40px' }}>
+        <Spinner message="Loading provider data..." />
+        <p style={{ marginTop: '20px', color: '#666', fontSize: '14px' }}>
+          Claims data can take 30-60 seconds to load due to large datasets
+        </p>
+      </div>
+    );
   }
 
   if (error) {
@@ -217,9 +224,15 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
 
       {/* Tab Content */}
       <div className={styles.tabContent}>
-        {activeTab === "month" && <ClaimsByMonth {...sharedProps} />}
-        {activeTab === "provider" && <ClaimsByProvider {...sharedProps} />}
-        {activeTab === "serviceLine" && <ClaimsByServiceLine {...sharedProps} />}
+        {activeTab === "month" && (
+          <ClaimsByMonth {...sharedProps} />
+        )}
+        {activeTab === "provider" && (
+          <ClaimsByProvider {...sharedProps} />
+        )}
+        {activeTab === "serviceLine" && (
+          <ClaimsByServiceLine {...sharedProps} />
+        )}
       </div>
     </div>
   );
