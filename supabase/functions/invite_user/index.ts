@@ -24,11 +24,11 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const body = await req.json();
-    const { email, team_id, team_name } = body;
+    const { email, team_id, team_name, inviter_id } = body;
 
-    if (!email || !team_id || !team_name) {
+    if (!email || !team_id || !team_name || !inviter_id) {
       return new Response(
-        JSON.stringify({ error: "Missing email, team_id, or team_name" }),
+        JSON.stringify({ error: "Missing required fields: email, team_id, team_name, or inviter_id" }),
         { status: 400, headers: corsHeaders }
       );
     }
@@ -38,98 +38,133 @@ serve(async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Strict match user by email
-    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 10,
-    });
+    // 1. Verify the inviter has permission to invite users
+    const { data: inviterProfile, error: inviterError } = await supabase
+      .from("profiles")
+      .select("role, team_id")
+      .eq("id", inviter_id)
+      .single();
 
-    if (listError) {
+    if (inviterError || !inviterProfile) {
       return new Response(
-        JSON.stringify({ error: "Failed to list users", details: listError }),
+        JSON.stringify({ error: "Invalid inviter" }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Check if inviter is part of the team and has admin privileges
+    if (inviterProfile.team_id !== team_id || 
+        !["Team Admin", "Platform Admin", "Platform Support"].includes(inviterProfile.role)) {
+      return new Response(
+        JSON.stringify({ error: "You don't have permission to invite users to this team" }),
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
+    // 2. Check team license availability
+    const { data: team, error: teamError } = await supabase
+      .from("teams")
+      .select("max_users, name")
+      .eq("id", team_id)
+      .single();
+
+    if (teamError || !team) {
+      return new Response(
+        JSON.stringify({ error: "Team not found" }),
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    // Count current team members
+    const { count: currentMembers, error: countError } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("team_id", team_id);
+
+    if (countError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to check team membership" }),
         { status: 500, headers: corsHeaders }
       );
     }
 
-    const existingUser = usersData.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
+    if (currentMembers >= team.max_users) {
+      return new Response(
+        JSON.stringify({ error: "No available licenses on this team" }),
+        { status: 403, headers: corsHeaders }
+      );
+    }
 
-    let userId: string;
+    // 3. Skip expensive user existence check - let Supabase handle it
+    // We'll just try to invite and handle any errors
+    let isNewUser = true; // Assume new user for simplicity
 
-    if (existingUser) {
-      userId = existingUser.id;
+    // 4. Send invitation email using Supabase's built-in invitation system
+    const { data: inviterData, error: inviterDataError } = await supabase
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("id", inviter_id)
+      .single();
 
-      const { data: profile, error: profileError } = await supabase
+    const inviterName = inviterDataError ? "Team Admin" : 
+      `${inviterData.first_name || ""} ${inviterData.last_name || ""}`.trim() || "Team Admin";
+
+    // Send invitation email with redirect URL to ensure email is sent
+    console.log("Attempting to invite user:", email);
+    
+    // Use localhost for development, production URL for production
+    const siteUrl = Deno.env.get("SITE_URL") || "https://www.healthcraftmarketmover.com";
+    const redirectUrl = email.includes('test') || email.includes('localhost') ? 
+      "http://localhost:5173/set-password" : 
+      `${siteUrl}/set-password`;
+    
+    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: redirectUrl
+    });
+    
+    if (inviteError) {
+      console.error("Invitation error:", inviteError);
+      return new Response(
+        JSON.stringify({ error: "Failed to send invitation email", details: inviteError }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+    
+    // Invitation sent successfully - manually update profile
+    console.log("Invitation sent successfully, updating profile...");
+    
+    // Try to update the profile (for existing users or after user creation)
+    try {
+      const { error: profileError } = await supabase
         .from("profiles")
-        .select("team_id")
-        .eq("id", userId)
-        .maybeSingle();
-
+        .update({
+          team_id: team_id,
+          role: "Team Member",
+          access_type: "join"
+        })
+        .eq("email", email.toLowerCase());
+        
       if (profileError) {
-        return new Response(
-          JSON.stringify({ error: "Failed to fetch profile", details: profileError }),
-          { status: 500, headers: corsHeaders }
-        );
+        console.log("Profile update error (this might be expected for new users):", profileError);
+      } else {
+        console.log("Profile updated successfully");
       }
-
-      if (profile && profile.team_id) {
-        return new Response(
-          JSON.stringify({ error: "User is already part of a team" }),
-          { status: 400, headers: corsHeaders }
-        );
-      }
-
-      // Safe update
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ team_id })
-        .eq("id", userId);
-
-      if (updateError) {
-        return new Response(
-          JSON.stringify({ error: "Failed to update profile", details: updateError }),
-          { status: 500, headers: corsHeaders }
-        );
-      }
-
-    } else {
-      // New user — Supabase will auto-create profile via trigger
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: false,
-      });
-
-      if (createError || !newUser?.user?.id) {
-        return new Response(
-          JSON.stringify({ error: "Failed to create user", details: createError }),
-          { status: 500, headers: corsHeaders }
-        );
-      }
-
-      userId = newUser.user.id;
-
-      // Wait briefly to let Supabase create the profile
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ team_id })
-        .eq("id", userId);
-
-      if (updateError) {
-        return new Response(
-          JSON.stringify({ error: "Failed to update profile after user creation", details: updateError }),
-          { status: 500, headers: corsHeaders }
-        );
-      }
+    } catch (err) {
+      console.log("Profile update failed (this might be expected for new users):", err);
     }
 
     return new Response(
-      JSON.stringify({ message: "User invited or linked successfully." }),
+      JSON.stringify({ 
+        message: "User invited successfully",
+        isNewUser,
+        teamName: team.name,
+        availableLicenses: team.max_users - (currentMembers + 1)
+      }),
       { status: 200, headers: corsHeaders }
     );
+
   } catch (err) {
+    console.error("💥 Unexpected error in invite_user:", err);
     return new Response(
       JSON.stringify({ error: "Unexpected error", details: err.message }),
       { status: 500, headers: corsHeaders }

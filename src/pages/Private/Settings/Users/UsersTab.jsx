@@ -173,6 +173,7 @@ export default function UsersTab() {
       email: inviteEmail,
       team_id: teamInfo.id,
       team_name: teamInfo.name,
+      inviter_id: currentUserId,
     };
 
     try {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiUrl } from '../utils/api';
 
-export function useProviderDensity(lat, lon, radius = 25) {
+export function useProviderDensity(lat, lon, radius = 10) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -69,7 +69,7 @@ export function useProviderDensity(lat, lon, radius = 25) {
   return { data, loading, error };
 }
 
-export function useProviderDensityDetails(lat, lon, radius = 25, specialty = null) {
+export function useProviderDensityDetails(lat, lon, radius = 10, specialty = null) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

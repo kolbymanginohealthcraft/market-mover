@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiUrl } from '../utils/api';
 
-export function useHCODensity(lat, lon, radius = 25) {
+export function useHCODensity(lat, lon, radius = 10) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

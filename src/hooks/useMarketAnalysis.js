@@ -102,7 +102,7 @@ export default function useMarketAnalysis(centerPoint, radiusInMiles, context = 
     setProvidersError(null);
 
     try {
-      console.log('🔍 Fetching nearby providers for:', centerPoint.dhc || 'market', 'at', centerPoint.latitude, centerPoint.longitude, 'radius:', radiusInMiles, 'context:', context);
+      console.log('🔍 Fetching nearby providers for:', centerPoint.dhc || 'market', 'at', centerPoint.latitude, centerPoint.longitude, 'radius:', radiusInMiles, 'context:', context, 'radiusType:', typeof radiusInMiles);
       
       const response = await fetch(apiUrl(`/api/nearby-providers?lat=${centerPoint.latitude}&lon=${centerPoint.longitude}&radius=${radiusInMiles}`));
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);

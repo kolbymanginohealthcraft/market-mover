@@ -15,7 +15,7 @@ const router = express.Router();
  * Returns: Array of provider counts by specialty within the specified radius.
  */
 router.get("/provider-density", async (req, res) => {
-  const { lat, lon, radius = 25, refresh } = req.query;
+  const { lat, lon, radius = 10, refresh } = req.query;
 
   if (!lat || !lon) {
     return res.status(400).json({
@@ -106,7 +106,7 @@ router.get("/provider-density", async (req, res) => {
  * Returns: Detailed provider information within the specified radius.
  */
 router.get("/provider-density-details", async (req, res) => {
-  const { lat, lon, radius = 25, specialty } = req.query;
+  const { lat, lon, radius = 10, specialty } = req.query;
 
   if (!lat || !lon) {
     return res.status(400).json({
@@ -218,7 +218,7 @@ router.get("/provider-density-details", async (req, res) => {
  * Returns: Array of healthcare organization counts by type within the specified radius.
  */
 router.get("/hco-density", async (req, res) => {
-  const { lat, lon, radius = 25, refresh } = req.query;
+  const { lat, lon, radius = 10, refresh } = req.query;
 
   if (!lat || !lon) {
     return res.status(400).json({

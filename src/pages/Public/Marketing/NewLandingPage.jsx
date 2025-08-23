@@ -214,7 +214,7 @@ const NewLandingPage = () => {
                                                <div className={styles.heroActions}>
                    <Link to="/signup">
                      <button className={styles.primaryButton}>
-                       Start Free Trial
+                       Start For Free
                      </button>
                    </Link>
                    <Link to="/pricing">
@@ -379,7 +379,7 @@ const NewLandingPage = () => {
           <div className={styles.ctaActions}>
             <Link to="/signup">
               <button className={styles.ctaPrimaryButton}>
-                Start Free Trial
+                Start For Free
               </button>
             </Link>
             <Link to="/pricing">

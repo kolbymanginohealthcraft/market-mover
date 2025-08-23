@@ -25,6 +25,22 @@ export default function ProviderListingTab({
   console.log("Providers:", providers);
   console.log("Radius:", radiusInMiles);
   console.log("Is in saved market:", isInSavedMarket);
+  
+  // Debug provider distances
+  if (providers && providers.length > 0) {
+    const maxDistance = Math.max(...providers.map(p => p.distance || 0));
+    const minDistance = Math.min(...providers.map(p => p.distance || 0));
+    console.log("📏 Provider distance range:", { minDistance, maxDistance, expectedMax: radiusInMiles });
+    
+    const providersOutsideRadius = providers.filter(p => (p.distance || 0) > radiusInMiles);
+    if (providersOutsideRadius.length > 0) {
+      console.warn("⚠️ Providers outside expected radius:", providersOutsideRadius.map(p => ({
+        name: p.name,
+        distance: p.distance,
+        expectedMax: radiusInMiles
+      })));
+    }
+  }
 
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [showOnlyCCNs, setShowOnlyCCNs] = useState(false);

@@ -1224,6 +1224,12 @@ export default function ProviderSearch() {
                            >
                              {provider.name}
                            </div>
+                          <div className={styles.providerAddress}>
+                            {provider.street}, {provider.city}, {provider.state} {provider.zip}
+                            {provider.phone && (
+                              <span className={styles.providerPhone}> • {provider.phone}</span>
+                            )}
+                          </div>
                           <div className={styles.providerDetails}>
                             <span className={styles.providerType}>{provider.type || "Unknown"}</span>
                             {provider.network && (
@@ -1231,12 +1237,6 @@ export default function ProviderSearch() {
                             )}
                             {ccnProviderIds.has(provider.dhc) && (
                               <span className={styles.ccnBadge}>Medicare</span>
-                            )}
-                          </div>
-                          <div className={styles.providerAddress}>
-                            {provider.street}, {provider.city}, {provider.state} {provider.zip}
-                            {provider.phone && (
-                              <span className={styles.providerPhone}> • {provider.phone}</span>
                             )}
                           </div>
                         </div>

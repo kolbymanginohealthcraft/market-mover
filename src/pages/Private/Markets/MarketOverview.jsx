@@ -25,7 +25,7 @@ export default function MarketOverview({ market: marketProp, providers: provider
   const [resolvedLocation, setResolvedLocation] = useState(null);
   const [editingMarket, setEditingMarket] = useState(false);
   const [marketName, setMarketName] = useState('');
-  const [marketRadius, setMarketRadius] = useState(25);
+  const [marketRadius, setMarketRadius] = useState(10);
   const [tagUpdateTrigger, setTagUpdateTrigger] = useState(0);
 
   // Team provider tags functionality

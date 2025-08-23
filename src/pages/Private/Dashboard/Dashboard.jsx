@@ -8,6 +8,7 @@ import { supabase } from '../../../app/supabaseClient';
 import useUserActivity from '../../../hooks/useUserActivity';
 import useUserProgress from '../../../hooks/useUserProgress';
 import useTestimonials from '../../../hooks/useTestimonials';
+import { useFirstTimeLogin } from '../../../hooks/useFirstTimeLogin';
 import { trackActivity, ACTIVITY_TYPES, trackDashboardVisit } from '../../../utils/activityTracker';
 
 export default function Home() {
@@ -21,6 +22,7 @@ export default function Home() {
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
   const { progress, streaks, roi, loading: progressLoading } = useUserProgress();
   const { announcements, loading: announcementsLoading } = useTestimonials();
+  const { isChecking, needsOnboarding } = useFirstTimeLogin();
 
   const motivationalQuotes = [
     "Every great decision starts with great data.",
@@ -111,6 +113,17 @@ export default function Home() {
       console.error('Error clearing activity:', err);
     }
   };
+
+  // If checking first time login, show loading
+  if (isChecking) {
+    return (
+      <PageLayout>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <h2>Loading...</h2>
+        </div>
+      </PageLayout>
+    );
+  }
 
   // If there's an error, show a fallback
   if (error) {

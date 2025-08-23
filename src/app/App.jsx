@@ -21,10 +21,14 @@ import MarketingPage from "../pages/Public/Marketing/MarketingPage";
 import NewLandingPage from "../pages/Public/Marketing/NewLandingPage";
 import LoginTest from "../pages/Auth/LoginTest";
 import SignupTest from "../pages/Auth/SignupTest";
+import ForgotPassword from "../pages/Auth/ForgotPassword";
+import ResetPassword from "../pages/Auth/ResetPassword";
+import TeamOnboarding from "../pages/Auth/TeamOnboarding";
+import SetPassword from "../pages/Auth/SetPassword";
 import PricingPage from "../pages/Public/Pricing/PricingPage";
 import FAQPage from "../pages/Public/FAQ/FAQPage";
 import LegalPage from "../pages/Public/Legal/LegalPage";
-import OverviewPage from "../pages/Public/OverviewPage";
+
 
 import SelectPlan from "../pages/Public/SelectPlan";
 
@@ -102,10 +106,14 @@ export default function App() {
                 element={session ? <Navigate to="/app/dashboard" /> : <LoginTest />}
               />
               <Route path="signup" element={<SignupTest />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="reset-password" element={<ResetPassword />} />
+              <Route path="team-onboarding" element={<TeamOnboarding />} />
+              <Route path="set-password" element={<SetPassword />} />
               <Route path="pricing" element={<PricingPage />} />
               <Route path="faq" element={<FAQPage />} />
               <Route path="legal" element={<LegalPage />} />
-              <Route path="overview" element={<OverviewPage />} />
+      
 
 
               <Route path="select-plan" element={<SelectPlan />} />

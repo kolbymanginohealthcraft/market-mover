@@ -51,13 +51,30 @@ export default function MarketDetail() {
   const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
   const [debouncedRadius] = useDebounce(radiusInMiles, 500);
 
+  // Debug radius changes
+  useEffect(() => {
+    console.log('🔄 Radius state changed:', {
+      radiusInMiles,
+      debouncedRadius,
+      radiusFromUrl,
+      marketRadius: market?.radius_miles
+    });
+  }, [radiusInMiles, debouncedRadius, radiusFromUrl, market?.radius_miles]);
+
   // Update radius when URL parameter changes or when market data loads
   useEffect(() => {
     const newRadius = radiusFromUrl || market?.radius_miles || 10;
+    console.log('🔄 MarketDetail radius update:', {
+      radiusFromUrl,
+      marketRadius: market?.radius_miles,
+      currentRadius: radiusInMiles,
+      newRadius,
+      willUpdate: newRadius !== radiusInMiles
+    });
     if (newRadius !== radiusInMiles) {
       setRadiusInMiles(newRadius);
     }
-  }, [searchParams, radiusInMiles, market?.radius_miles]);
+  }, [searchParams, market?.radius_miles]);
 
   // Fetch market data
   useEffect(() => {
@@ -81,6 +98,14 @@ export default function MarketDetail() {
         if (marketError) {
           throw new Error('Market not found');
         }
+
+        console.log('📊 Market data loaded:', {
+          marketId,
+          name: marketData.name,
+          savedRadius: marketData.radius_miles,
+          latitude: marketData.latitude,
+          longitude: marketData.longitude
+        });
 
         setMarket(marketData);
       } catch (err) {

@@ -28,20 +28,8 @@ const LoginTest = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setStatus("❌ Please enter your email address first");
-      return;
-    }
-
-    setStatus("Processing...");
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-
-    if (error) {
-      setStatus(`❌ ${error.message}`);
-    } else {
-      setStatus("✅ Password reset email sent!");
-    }
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
          return (
