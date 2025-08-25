@@ -209,7 +209,12 @@ export default function MarketsList() {
     // Initialize map for displaying all markets
     useEffect(() => {
       const initializeMarketsMap = async () => {
-        if (!mapContainerRef.current || markets.length === 0) return;
+        if (!mapContainerRef.current) return;
+        
+        // If no markets, don't initialize the map
+        if (markets.length === 0) {
+          return;
+        }
 
         try {
           // Load MapLibre GL JS
@@ -401,39 +406,51 @@ export default function MarketsList() {
 
          return (
        <div className={styles.content}>
-         <div className={styles.mapView}>
-           <div ref={mapContainerRef} className={`${styles.mapContainer} mapContainer`}>
-             {!mapReady && (
-               <div className={styles.mapLoading}>
-                 Loading markets map...
+         {markets.length === 0 ? (
+           <div className={styles.emptyState}>
+             <h3>No Markets Yet</h3>
+             <p>You haven't created any markets yet. Create your first market to get started.</p>
+             <Link to="/app/markets/create">
+               <Button variant="gold" size="lg">
+                 Create Your First Market
+               </Button>
+             </Link>
+           </div>
+         ) : (
+           <div className={styles.mapView}>
+             <div ref={mapContainerRef} className={`${styles.mapContainer} mapContainer`}>
+               {!mapReady && (
+                 <div className={styles.mapLoading}>
+                   Loading markets map...
+                 </div>
+               )}
+             </div>
+             
+             {/* Market Tooltip */}
+             {tooltip && (
+               <div 
+                 className={`${styles.marketTooltip} market-tooltip`}
+                 style={{
+                   left: tooltip.x + 10,
+                   top: tooltip.y - 10
+                 }}
+               >
+                 <div className={styles.tooltipContent}>
+                   <h4>{tooltip.market.name}</h4>
+                   <p>{tooltip.market.city}, {tooltip.market.state}</p>
+                   <p>{tooltip.market.radius_miles} mile radius</p>
+                   <Button 
+                     variant="blue" 
+                     size="sm"
+                     onClick={() => navigate(`/app/market/${tooltip.market.id}/overview`)}
+                   >
+                     View Market
+                   </Button>
+                 </div>
                </div>
              )}
            </div>
-           
-           {/* Market Tooltip */}
-           {tooltip && (
-             <div 
-               className={`${styles.marketTooltip} market-tooltip`}
-               style={{
-                 left: tooltip.x + 10,
-                 top: tooltip.y - 10
-               }}
-             >
-               <div className={styles.tooltipContent}>
-                 <h4>{tooltip.market.name}</h4>
-                 <p>{tooltip.market.city}, {tooltip.market.state}</p>
-                 <p>{tooltip.market.radius_miles} mile radius</p>
-                 <Button 
-                   variant="blue" 
-                   size="sm"
-                   onClick={() => navigate(`/app/market/${tooltip.market.id}/overview`)}
-                 >
-                   View Market
-                 </Button>
-               </div>
-             </div>
-           )}
-         </div>
+         )}
        </div>
      );
   };
@@ -482,24 +499,26 @@ export default function MarketsList() {
 
   return (
     <div className={styles.container}>
-      {markets.length === 0 ? (
-        <div className={styles.emptyState}>
-          <h3>No Markets Yet</h3>
-          <p>You haven't created any markets yet. Create your first market to get started.</p>
-          <Link to="/app/markets/create">
-            <Button variant="gold" size="lg">
-              Create Your First Market
-            </Button>
-          </Link>
-        </div>
-      ) : (
-        <Routes>
-          <Route path="list" element={<MarketsListView />} />
-          <Route path="map" element={<MarketsMapView />} />
-          <Route path="create" element={<InteractiveMarketCreation />} />
-          <Route path="*" element={<Navigate to="list" replace />} />
-        </Routes>
-      )}
+      <Routes>
+        <Route path="list" element={
+          markets.length === 0 ? (
+            <div className={styles.emptyState}>
+              <h3>No Markets Yet</h3>
+              <p>You haven't created any markets yet. Create your first market to get started.</p>
+                             <Link to="/app/markets/create">
+                 <Button variant="gold" size="lg">
+                   Create Your First Market
+                 </Button>
+               </Link>
+            </div>
+          ) : (
+            <MarketsListView />
+          )
+        } />
+        <Route path="map" element={<MarketsMapView />} />
+        <Route path="create" element={<InteractiveMarketCreation />} />
+        <Route path="*" element={<Navigate to="list" replace />} />
+      </Routes>
     </div>
   );
 }

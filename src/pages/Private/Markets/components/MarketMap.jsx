@@ -17,6 +17,7 @@ export default function MarketMap({
   const errorCount = useRef(0);
   const MAX_ERRORS = 3;
   const updateTimeoutRef = useRef(null);
+  const currentRadius = useRef(radius);
 
   // Load MapLibre GL JS
   useEffect(() => {
@@ -79,12 +80,36 @@ export default function MarketMap({
     };
   };
 
-  const updateCircle = (lat, lng, radiusMiles) => {
-    // Don't update if we're currently dragging
-    if (isDragging.current) {
-      return;
-    }
+  const calculateMapBounds = (lat, lng, radiusMiles) => {
+    const radiusInDegrees = radiusMiles / 69; // Approximate degrees per mile
     
+    // Calculate bounds for the circle
+    const minLat = lat - radiusInDegrees;
+    const maxLat = lat + radiusInDegrees;
+    const minLng = lng - radiusInDegrees;
+    const maxLng = lng + radiusInDegrees;
+    
+    // Calculate the zoom level needed to fit the circle
+    const latDiff = maxLat - minLat;
+    const lngDiff = maxLng - minLng;
+    const maxDiff = Math.max(latDiff, lngDiff);
+    
+    // Calculate zoom using the formula: zoom = log2(360 / maxDiff) - 1
+    const zoom = Math.log2(360 / maxDiff) - 1;
+    
+    // Clamp zoom to reasonable bounds
+    const clampedZoom = Math.max(3, Math.min(15, zoom));
+    
+    // Create bounds array for fitBounds
+    const bounds = [
+      [minLng, minLat], // Southwest corner
+      [maxLng, maxLat]  // Northeast corner
+    ];
+    
+    return { bounds, zoom: clampedZoom };
+  };
+
+  const updateCircle = (lat, lng, radiusMiles) => {
     // Clear any pending updates
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
@@ -128,6 +153,8 @@ export default function MarketMap({
   const initializeMap = () => {
     if (!window.maplibregl) return;
 
+    const bounds = calculateMapBounds(center.lat, center.lng, radius);
+
     const newMap = new window.maplibregl.Map({
       container: mapContainerRef.current,
       style: {
@@ -151,7 +178,7 @@ export default function MarketMap({
         ]
       },
       center: [center.lng, center.lat],
-      zoom: 8,
+      zoom: bounds.zoom,
       // Add performance optimizations
       maxZoom: 18,
       minZoom: 3,
@@ -286,8 +313,8 @@ export default function MarketMap({
           const centerSource = newMap.getSource('center-marker');
           
           if (circleSource) {
-            // Use cached radius value to avoid DOM queries
-            circleSource.setData(createCircleGeoJSON(newCenter.lat, newCenter.lng, radius));
+            // Use current radius value from ref
+            circleSource.setData(createCircleGeoJSON(newCenter.lat, newCenter.lng, currentRadius.current));
           }
           
           if (centerSource) {
@@ -374,8 +401,8 @@ export default function MarketMap({
           const centerSource = newMap.getSource('center-marker');
           
           if (circleSource) {
-            // Use cached radius value to avoid DOM queries
-            circleSource.setData(createCircleGeoJSON(newCenter.lat, newCenter.lng, radius));
+            // Use current radius value from ref
+            circleSource.setData(createCircleGeoJSON(newCenter.lat, newCenter.lng, currentRadius.current));
           }
           
           if (centerSource) {
@@ -430,6 +457,11 @@ export default function MarketMap({
     });
   };
 
+  // Update current radius ref when radius prop changes
+  useEffect(() => {
+    currentRadius.current = radius;
+  }, [radius]);
+
   // Update circle when center or radius changes
   useEffect(() => {
     if (map) {
@@ -440,9 +472,11 @@ export default function MarketMap({
   // Fly to new location when center changes externally
   useEffect(() => {
     if (map && center) {
-      map.flyTo({
-        center: [center.lng, center.lat],
-        zoom: 10,
+      const bounds = calculateMapBounds(center.lat, center.lng, radius);
+      
+      map.fitBounds(bounds.bounds, {
+        padding: 20, // Add some padding around the bounds
+        maxZoom: 15, // Don't zoom in too much
         duration: 1500
       });
       
@@ -450,7 +484,7 @@ export default function MarketMap({
         updateCircle(center.lat, center.lng, radius);
       }, 300);
     }
-  }, [center]);
+  }, [center, radius]);
 
   return (
     <div className={styles.mapSection}>
