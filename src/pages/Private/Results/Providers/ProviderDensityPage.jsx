@@ -2,16 +2,19 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { useProviderDensity, useProviderDensityDetails } from '../../../../hooks/useProviderDensity';
 import useProviderInfo from '../../../../hooks/useProviderInfo';
+import { useUserTeam } from '../../../../hooks/useUserTeam';
 import styles from './ProviderDensityPage.module.css';
 import Banner from '../../../../components/Buttons/Banner';
 import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Button from '../../../../components/Buttons/Button';
 import ControlsRow from '../../../../components/Layouts/ControlsRow';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
+import { Lock } from 'lucide-react';
 
 export default function ProviderDensityPage({ radius, latitude, longitude, provider }) {
   const { dhc } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hasTeam, loading: teamLoading } = useUserTeam();
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
   const [selectedSpecialties, setSelectedSpecialties] = useState([]);
   const [showBanner, setShowBanner] = useState(true);
@@ -35,6 +38,25 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
 
   // Get all providers data (not filtered by specialty)
   const { data: allProvidersData, loading: allProvidersLoading, error: allProvidersError } = useProviderDensityDetails(lat, lon, radius, null);
+
+  // Check if user has team access
+  if (!hasTeam && !teamLoading) {
+    return (
+      <div className={styles.teamRequiredState}>
+        <Lock size={48} className={styles.teamRequiredIcon} />
+        <h3>Team Required</h3>
+        <p>Join or create a team to access provider density analysis.</p>
+        <div className={styles.teamRequiredActions}>
+          <Button onClick={() => window.location.href = '/app/settings/company'}>
+            Create a Team
+          </Button>
+          <Button variant="outline" onClick={() => window.location.href = '/app/settings/company'}>
+            Join a Team
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Debug logging
   useEffect(() => {

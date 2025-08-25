@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Network as NetworkIcon } from 'lucide-react';
+import { Network as NetworkIcon, Lock } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import ButtonGroup from '../../../components/Buttons/ButtonGroup';
 import Spinner from '../../../components/Buttons/Spinner';
@@ -8,6 +8,7 @@ import SectionHeader from '../../../components/Layouts/SectionHeader';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import useTaggedProviders from '../../../hooks/useTaggedProviders';
+import { useUserTeam } from '../../../hooks/useUserTeam';
 import styles from './Network.module.css';
 import dropdownStyles from '../../../components/Buttons/Dropdown.module.css';
 import controlsStyles from '../../../components/Layouts/ControlsRow.module.css';
@@ -34,6 +35,9 @@ export default function NetworkListView() {
     removeAllProviderTags,
     changeProviderTag,
   } = useTaggedProviders();
+
+  // Check if user has a team
+  const { hasTeam } = useUserTeam();
 
 
 
@@ -470,7 +474,7 @@ export default function NetworkListView() {
                   </div>
                 )}
                 
-                {selectedProviders.size > 0 && (
+                {selectedProviders.size > 0 && hasTeam && (
                   <div className={styles.bulkActions}>
                     <select 
                       value={bulkEditTag} 
@@ -498,6 +502,14 @@ export default function NetworkListView() {
                     >
                       Remove All Tags
                     </Button>
+                  </div>
+                )}
+                {selectedProviders.size > 0 && !hasTeam && (
+                  <div className={styles.bulkActions}>
+                    <div className={styles.teamRequiredMessage}>
+                      <Lock size={14} />
+                      Join or create a team to edit tags
+                    </div>
                   </div>
                 )}
               </div>

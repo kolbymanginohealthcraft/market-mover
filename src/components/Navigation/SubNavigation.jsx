@@ -20,11 +20,13 @@ import {
   MessageCircle,
   Search,
   Activity,
-  ShoppingCart
+  ShoppingCart,
+  Lock
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
 import { supabase } from '../../app/supabaseClient';
+import { useUserTeam } from '../../hooks/useUserTeam';
 
 const SubNavigation = () => {
   const location = useLocation();
@@ -33,6 +35,7 @@ const SubNavigation = () => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pricingStep, setPricingStep] = useState(1);
+  const { hasTeam } = useUserTeam();
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -115,6 +118,24 @@ const SubNavigation = () => {
 
   // Handle Markets page navigation
   if (isMarketsPage) {
+    if (!hasTeam) {
+      return (
+        <nav className={styles.subNavigation}>
+          <div className={styles.navLeft}>
+            <div className={`${styles.tab} ${styles.disabled}`} style={{ cursor: 'not-allowed' }}>
+              <Lock size={16} />
+              Team Required
+            </div>
+          </div>
+          <div className={styles.navRight}>
+            <div className={styles.teamRequiredMessage}>
+              Join or create a team to access markets and network features
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
     // Determine the current view from the URL
     const currentView = location.pathname.includes('/markets/list') ? 'list' : 
                        location.pathname.includes('/markets/map') ? 'map' : 
@@ -151,6 +172,24 @@ const SubNavigation = () => {
 
   // Handle Network page navigation
   if (isNetworkPage) {
+    if (!hasTeam) {
+      return (
+        <nav className={styles.subNavigation}>
+          <div className={styles.navLeft}>
+            <div className={`${styles.tab} ${styles.disabled}`} style={{ cursor: 'not-allowed' }}>
+              <Lock size={16} />
+              Team Required
+            </div>
+          </div>
+          <div className={styles.navRight}>
+            <div className={styles.teamRequiredMessage}>
+              Join or create a team to access markets and network features
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
     // Determine the current view from the URL
     const currentView = location.pathname.includes('/network/list') ? 'list' : 
                        location.pathname.includes('/network/map') ? 'map' : 'list';
@@ -207,13 +246,13 @@ const SubNavigation = () => {
     }
 
     const tabs = [
-      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview` },
-      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing` },
-      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density` },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population` },
-      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims` },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment` },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller` }
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview`, locked: false },
+      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing`, locked: false },
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
     ];
 
     return (
@@ -221,6 +260,19 @@ const SubNavigation = () => {
         <div className={styles.navLeft}>
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
+            if (tab.locked) {
+              return (
+                <div
+                  key={tab.id}
+                  className={`${styles.tab} ${styles.disabled}`}
+                  title="Join or create a team to access this feature"
+                >
+                  <IconComponent size={16} />
+                  {tab.label}
+                  <Lock size={12} style={{ marginLeft: '4px' }} />
+                </div>
+              );
+            }
             return (
               <Link
                 key={tab.id}
@@ -267,13 +319,13 @@ const SubNavigation = () => {
     }
 
     const tabs = [
-      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview` },
-      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing` },
-      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density` },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population` },
-      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims` },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment` },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller` }
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview`, locked: false },
+      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing`, locked: false },
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
     ];
 
     return (
@@ -281,6 +333,19 @@ const SubNavigation = () => {
         <div className={styles.navLeft}>
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
+            if (tab.locked) {
+              return (
+                <div
+                  key={tab.id}
+                  className={`${styles.tab} ${styles.disabled}`}
+                  title="Join or create a team to access this feature"
+                >
+                  <IconComponent size={16} />
+                  {tab.label}
+                  <Lock size={12} style={{ marginLeft: '4px' }} />
+                </div>
+              );
+            }
             return (
               <Link
                 key={tab.id}
@@ -416,7 +481,13 @@ const SubNavigation = () => {
     
     const tabs = [
       { id: "basic", label: "Search for a Provider", icon: Search, path: "/app/search?tab=basic" },
-      { id: "advanced", label: "Advanced Search", icon: Settings, path: "/app/search?tab=advanced" }
+      { 
+        id: "advanced", 
+        label: "Advanced Search", 
+        icon: Settings, 
+        path: "/app/search?tab=advanced",
+        requiresTeam: true
+      }
     ];
 
     return (
@@ -424,6 +495,22 @@ const SubNavigation = () => {
         <div className={styles.navLeft}>
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
+            
+            // If tab requires team and user doesn't have one, show disabled version
+            if (tab.requiresTeam && !hasTeam) {
+              return (
+                <div
+                  key={tab.id}
+                  className={`${styles.tab} ${styles.disabled}`}
+                  title="Join or create a team to access advanced search features"
+                >
+                  <IconComponent size={16} />
+                  {tab.label}
+                  <Lock size={12} style={{ marginLeft: 'auto' }} />
+                </div>
+              );
+            }
+            
             return (
               <Link
                 key={tab.id}

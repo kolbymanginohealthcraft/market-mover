@@ -13,12 +13,15 @@ import {
   Activity,
   Settings,
   Lightbulb,
-  Code
+  Code,
+  Lock
 } from 'lucide-react';
+import { useUserTeam } from '../../hooks/useUserTeam';
 import styles from './Sidebar.module.css';
 
 const Sidebar = () => {
   const location = useLocation();
+  const { hasTeam, loading } = useUserTeam();
 
   const isActive = (path) => location.pathname.includes(path);
   const isProviderPage = location.pathname.includes('/provider/');
@@ -45,15 +48,36 @@ const Sidebar = () => {
           <Search size={14} />
           Search the Industry
         </Link>
-        <Link to="/app/markets" className={`${styles.navItem} ${isActive('/markets') ? styles.active : ''}`}>
-          <MapPin size={14} />
-          My Markets
-        </Link>
-        <Link to="/app/network" className={`${styles.navItem} ${isActive('/network') ? styles.active : ''}`}>
-          <Network size={14} />
-          My Network
-        </Link>
-
+        {hasTeam ? (
+          <Link to="/app/markets" className={`${styles.navItem} ${isActive('/markets') ? styles.active : ''}`}>
+            <MapPin size={14} />
+            My Markets
+          </Link>
+        ) : (
+          <div 
+            className={`${styles.navItem} ${styles.disabled}`}
+            title="Join or create a team to access markets and network features"
+          >
+            <MapPin size={14} />
+            My Markets
+            <Lock size={12} style={{ marginLeft: 'auto' }} />
+          </div>
+        )}
+        {hasTeam ? (
+          <Link to="/app/network" className={`${styles.navItem} ${isActive('/network') ? styles.active : ''}`}>
+            <Network size={14} />
+            My Network
+          </Link>
+        ) : (
+          <div 
+            className={`${styles.navItem} ${styles.disabled}`}
+            title="Join or create a team to access markets and network features"
+          >
+            <Network size={14} />
+            My Network
+            <Lock size={12} style={{ marginLeft: 'auto' }} />
+          </div>
+        )}
       </div>
 
             {/* Provider Analysis Section (only shown on provider pages) */}
@@ -82,10 +106,12 @@ const Sidebar = () => {
           <Settings size={14} />
           Account Settings
         </Link>
-        <Link to="/app/feedback" className={`${styles.navItem} ${isActive('/feedback') ? styles.active : ''}`}>
-          <Lightbulb size={14} />
-          Leave Feedback
-        </Link>
+        {hasTeam && (
+          <Link to="/app/feedback" className={`${styles.navItem} ${isActive('/feedback') ? styles.active : ''}`}>
+            <Lightbulb size={14} />
+            Leave Feedback
+          </Link>
+        )}
       </div>
     </div>
   );

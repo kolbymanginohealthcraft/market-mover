@@ -297,6 +297,19 @@
   border: 1px solid #fecaca;
 }
 
+.teamRequiredMessage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  background: var(--gray-50);
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(100%);

@@ -9,6 +9,7 @@ import ControlsRow from "../../../components/Layouts/ControlsRow";
 import { apiUrl } from '../../../utils/api';
 import { trackProviderSearch } from '../../../utils/activityTracker';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
+import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
 import { 
   Search, 
@@ -20,7 +21,8 @@ import {
   Filter,
   X,
   Plus,
-  Minus
+  Minus,
+  Lock
 } from 'lucide-react';
 
 export default function ProviderSearch() {
@@ -94,6 +96,9 @@ export default function ProviderSearch() {
     addTeamProviderTag,
     removeTeamProviderTag
   } = useTeamProviderTags();
+
+  // Check if user has a team
+  const { hasTeam } = useUserTeam();
 
   // Error boundary for the component
   if (componentError) {
@@ -602,18 +607,22 @@ export default function ProviderSearch() {
                     
                     {/* Select All Button */}
                     {paginatedResults.length > 0 && (
-                      <label className={styles.selectAllLabel}>
+                      <label className={`${styles.selectAllLabel} ${!hasTeam ? styles.disabled : ''}`}>
                         <input
                           type="checkbox"
                           checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
-                          onChange={handleSelectAll}
+                          onChange={hasTeam ? handleSelectAll : undefined}
+                          disabled={!hasTeam}
                         />
-                        <span>Select All</span>
+                        <span>
+                          Select All
+                          {!hasTeam && <Lock size={10} style={{ marginLeft: '4px' }} />}
+                        </span>
                       </label>
                     )}
                     
                     {/* Bulk Actions */}
-                    {showBulkActions && (
+                    {showBulkActions && hasTeam && (
                       <div className={styles.bulkActions}>
                         <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
                           <button
@@ -711,11 +720,14 @@ export default function ProviderSearch() {
                   </button>
                   <button
                     type="button"
-                    className={`${styles.glassmorphismButton} ${hasActiveFilters ? styles.activeFilter : ''}`}
-                    onClick={() => setShowFilters(!showFilters)}
+                    className={`${styles.glassmorphismButton} ${hasActiveFilters ? styles.activeFilter : ''} ${!hasTeam ? styles.disabled : ''}`}
+                    onClick={() => hasTeam && setShowFilters(!showFilters)}
+                    disabled={!hasTeam}
+                    title={!hasTeam ? "Join or create a team to access filters" : ""}
                   >
                     {showFilters ? "Hide Filters" : "Show Filters"}
                     {hasActiveFilters && <span className={styles.filterBadge}>●</span>}
+                    {!hasTeam && <Lock size={12} style={{ marginLeft: '4px' }} />}
                   </button>
                   {hasActiveFilters && (
                     <button
@@ -1208,9 +1220,13 @@ export default function ProviderSearch() {
                             checked={selectedProviders.has(provider.dhc)}
                             onChange={(e) => {
                               e.stopPropagation();
-                              handleCheckboxChange(provider.dhc, e.target.checked);
+                              if (hasTeam) {
+                                handleCheckboxChange(provider.dhc, e.target.checked);
+                              }
                             }}
-                            className={styles.providerCheckbox}
+                            className={`${styles.providerCheckbox} ${!hasTeam ? styles.disabled : ''}`}
+                            disabled={!hasTeam}
+                            title={!hasTeam ? "Join or create a team to select providers" : ""}
                           />
                         </div>
                                                  <div className={styles.cardInfo}>
@@ -1275,16 +1291,21 @@ export default function ProviderSearch() {
                             ))
                           ) : (
                             // Show tag button if no tags
-                                                         <div className={styles.tagDropdown}>
-                               <button
-                                 className={styles.tagButton}
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   handleTagButtonClick(provider.dhc, e);
-                                 }}
-                               >
-                                 Tag
-                               </button>
+                            <div className={styles.tagDropdown}>
+                              <button
+                                className={`${styles.tagButton} ${!hasTeam ? styles.disabled : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (hasTeam) {
+                                    handleTagButtonClick(provider.dhc, e);
+                                  }
+                                }}
+                                disabled={!hasTeam}
+                                title={!hasTeam ? "Join or create a team to tag providers" : ""}
+                              >
+                                Tag
+                                {!hasTeam && <Lock size={10} style={{ marginLeft: '4px' }} />}
+                              </button>
                                                                {taggingProviderId === provider.dhc && (
                                    <div 
                                      className={styles.dropdown}

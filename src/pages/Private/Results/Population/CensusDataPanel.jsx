@@ -1,8 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import useCensusData, { useAvailableCensusYears } from "../../../../hooks/useCensusData";
+import { useUserTeam } from "../../../../hooks/useUserTeam";
 import styles from "./CensusDataPanel.module.css";
 import React from 'react';
 import Spinner from "../../../../components/Buttons/Spinner";
+import { Lock } from 'lucide-react';
 
 // Memoized formatting functions to prevent unnecessary recalculations
 const formatNumber = (num) => {
@@ -29,6 +31,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
   // Hardcode year to 2023
   const year = '2023';
   const { data, loading, error } = useCensusData(provider, radiusInMiles, year);
+  const { hasTeam, loading: teamLoading } = useUserTeam();
   const [selectedBenchmark, setSelectedBenchmark] = useState('national');
   const [countyNames, setCountyNames] = useState({});
 
@@ -359,6 +362,31 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
       </span>
     );
   };
+
+  // Check if user has team access
+  if (!hasTeam && !teamLoading) {
+    return (
+      <div className={styles.teamRequiredState}>
+        <Lock size={48} className={styles.teamRequiredIcon} />
+        <h3>Team Required</h3>
+        <p>Join or create a team to access population demographics analysis.</p>
+        <div className={styles.teamRequiredActions}>
+          <button 
+            className={styles.teamRequiredButton}
+            onClick={() => window.location.href = '/app/settings/company'}
+          >
+            Create a Team
+          </button>
+          <button 
+            className={`${styles.teamRequiredButton} ${styles.outline}`}
+            onClick={() => window.location.href = '/app/settings/company'}
+          >
+            Join a Team
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

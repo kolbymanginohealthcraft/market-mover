@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Network } from 'lucide-react';
+import { Network, Lock } from 'lucide-react';
 import Button from '../../../../components/Buttons/Button';
 import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Spinner from '../../../../components/Buttons/Spinner';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
 import Dropdown from '../../../../components/Buttons/Dropdown';
 import useTaggedProviders from '../../../../hooks/useTaggedProviders';
+import { useUserTeam } from '../../../../hooks/useUserTeam';
 import styles from './NetworkTab.module.css';
 import dropdownStyles from '../../../../components/Buttons/Dropdown.module.css';
 
@@ -32,6 +33,9 @@ export default function NetworkTab() {
     removeAllProviderTags,
     changeProviderTag,
   } = useTaggedProviders();
+
+  // Check if user has a team
+  const { hasTeam } = useUserTeam();
 
 
 
@@ -499,20 +503,29 @@ export default function NetworkTab() {
                     </>
                   ) : (
                     <>
-                      <Button 
-                        size="md" 
-                        variant="blue" 
-                        onClick={() => setBulkEditMode(true)}
-                      >
-                        Edit Tags
-                      </Button>
-                      <Button 
-                        size="md" 
-                        variant="red" 
-                        onClick={handleBulkDelete}
-                      >
-                        Delete All
-                      </Button>
+                      {hasTeam ? (
+                        <>
+                          <Button 
+                            size="md" 
+                            variant="blue" 
+                            onClick={() => setBulkEditMode(true)}
+                          >
+                            Edit Tags
+                          </Button>
+                          <Button 
+                            size="md" 
+                            variant="red" 
+                            onClick={handleBulkDelete}
+                          >
+                            Delete All
+                          </Button>
+                        </>
+                      ) : (
+                        <div className={styles.teamRequiredMessage}>
+                          <Lock size={14} />
+                          Join or create a team to edit tags
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

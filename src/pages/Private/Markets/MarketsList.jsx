@@ -7,6 +7,8 @@ import Spinner from '../../../components/Buttons/Spinner';
 import InteractiveMarketCreation from './InteractiveMarketCreation';
 import MarketMap from './components/MarketMap';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
+import { useUserTeam } from '../../../hooks/useUserTeam';
+import { Lock } from 'lucide-react';
 
 export default function MarketsList() {
   const [markets, setMarkets] = useState([]);
@@ -15,6 +17,7 @@ export default function MarketsList() {
   const [deletingMarket, setDeletingMarket] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasTeam, loading: teamLoading } = useUserTeam();
 
   useEffect(() => {
     fetchMarkets();
@@ -435,7 +438,7 @@ export default function MarketsList() {
      );
   };
 
-  if (loading) {
+  if (loading || teamLoading) {
     return (
       <div className={styles.loading}>
         <Spinner message="Loading your markets..." />
@@ -449,6 +452,30 @@ export default function MarketsList() {
         <h2>Error Loading Markets</h2>
         <p>{error}</p>
         <Button onClick={fetchMarkets}>Try Again</Button>
+      </div>
+    );
+  }
+
+  // Show team required message if user doesn't have a team
+  if (!hasTeam) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.teamRequiredState}>
+          <div className={styles.teamRequiredIcon}>
+            <Lock size={48} />
+          </div>
+          <h3>Team Required</h3>
+          <p>Join or create a team to access markets and network features.</p>
+          <p>These features help you collaborate with your team and manage geographic market intelligence.</p>
+          <div className={styles.teamRequiredActions}>
+            <Button variant="gold" size="lg" onClick={() => navigate('/app/settings/company')}>
+              Create Team
+            </Button>
+            <Button variant="blue" size="lg" outline onClick={() => navigate('/app/settings/users')}>
+              Join Team
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

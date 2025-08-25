@@ -443,6 +443,36 @@
   flex-shrink: 0;
 }
 
+.selectAllLabel.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+  color: var(--gray-500);
+}
+
+.selectAllLabel.disabled:hover {
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+  transform: none;
+}
+
+.selectAllLabel.disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+.selectAllLabel span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.selectAllLabel span svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
 .bulkActions {
   display: flex;
   align-items: center;
@@ -545,6 +575,12 @@
   height: 12px;
   cursor: pointer;
   accent-color: #265947;
+}
+
+.providerCheckbox.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  accent-color: #9ca3af;
 }
 
 .cardInfo {
@@ -908,6 +944,30 @@
 .glassmorphismButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+}
+
+.glassmorphismButton.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.glassmorphismButton.disabled:hover {
+  background: var(--white);
+  border-color: var(--gray-200);
+  transform: none;
+}
+
+.tagButton.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tagButton.disabled:hover {
+  background: var(--white);
+  border-color: var(--gray-200);
   transform: none;
 }
 

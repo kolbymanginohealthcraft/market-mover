@@ -98,6 +98,75 @@
   border: 1px solid #e9ecef;
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
+}
+
+.teamRequiredState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--gray-200);
+  margin: 2rem;
+}
+
+.teamRequiredIcon {
+  color: var(--gray-400);
+  margin-bottom: 1rem;
+}
+
+.teamRequiredState h3 {
+  color: var(--gray-700);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.teamRequiredState p {
+  color: var(--gray-600);
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.teamRequiredActions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.teamRequiredButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--primary-teal);
+  background: var(--primary-teal);
+  color: white;
+}
+
+.teamRequiredButton:hover {
+  background: var(--primary-teal-dark);
+  border-color: var(--primary-teal-dark);
+}
+
+.teamRequiredButton.outline {
+  background: transparent;
+  color: var(--primary-teal);
+}
+
+.teamRequiredButton.outline:hover {
+  background: var(--primary-teal);
+  color: white;
+}
+
+.benchmarkSelect {
   color: #333;
   font-size: 0.9rem;
   font-weight: 500;
