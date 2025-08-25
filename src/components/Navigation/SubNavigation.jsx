@@ -21,7 +21,8 @@ import {
   Search,
   Activity,
   ShoppingCart,
-  Lock
+  Lock,
+  TrendingUp
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
@@ -327,6 +328,78 @@ const SubNavigation = () => {
       );
     }
 
+    // If we're on an enrollment sub-page, render both navigation levels
+    if (location.pathname.includes('/cms-enrollment')) {
+      // Determine the correct active enrollment sub-tab
+      let currentEnrollmentTab = "overview"; // Default to overview
+      
+      if (location.pathname.includes('/overview')) {
+        currentEnrollmentTab = 'overview';
+      } else if (location.pathname.includes('/payers')) {
+        currentEnrollmentTab = 'payers';
+      }
+
+      const enrollmentTabs = [
+        { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview` },
+        { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers` }
+      ];
+
+      return (
+        <>
+          {/* First level navigation - Provider/Market tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                if (tab.locked) {
+                  return (
+                    <div
+                      key={tab.id}
+                      className={`${styles.tab} ${styles.disabled}`}
+                      title="Join or create a team to access this feature"
+                    >
+                      <IconComponent size={16} />
+                      {tab.label}
+                      <Lock size={12} style={{ marginLeft: '4px' }} />
+                    </div>
+                  );
+                }
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Enrollment sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.enrollmentSubNav}`}>
+            <div className={styles.navLeft}>
+              {enrollmentTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentEnrollmentTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+    }
+
     return (
       <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>
@@ -471,6 +544,81 @@ const SubNavigation = () => {
         </>
       );
     }
+
+     // If we're on an enrollment sub-page, render both navigation levels
+     if (location.pathname.includes('/cms-enrollment')) {
+       // Determine the correct active enrollment sub-tab
+       let currentEnrollmentTab = "overview"; // Default to overview
+       
+       if (location.pathname.includes('/overview')) {
+         currentEnrollmentTab = 'overview';
+       } else if (location.pathname.includes('/demographics')) {
+         currentEnrollmentTab = 'demographics';
+       } else if (location.pathname.includes('/payers')) {
+         currentEnrollmentTab = 'payers';
+       }
+
+       const enrollmentTabs = [
+         { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview` },
+         { id: "demographics", label: "Demographics", icon: Users, path: `${basePath}/cms-enrollment/demographics` },
+         { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers` }
+       ];
+
+       return (
+         <>
+           {/* First level navigation - Market tabs */}
+           <nav className={styles.subNavigation}>
+             <div className={styles.navLeft}>
+               {tabs.map((tab) => {
+                 const IconComponent = tab.icon;
+                 if (tab.locked) {
+                   return (
+                     <div
+                       key={tab.id}
+                       className={`${styles.tab} ${styles.disabled}`}
+                       title="Join or create a team to access this feature"
+                     >
+                       <IconComponent size={16} />
+                       {tab.label}
+                       <Lock size={12} style={{ marginLeft: '4px' }} />
+                     </div>
+                   );
+                 }
+                 return (
+                   <Link
+                     key={tab.id}
+                     to={tab.path}
+                     className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                   >
+                     <IconComponent size={16} />
+                     {tab.label}
+                   </Link>
+                 );
+               })}
+             </div>
+           </nav>
+           
+           {/* Second level navigation - Enrollment sub-tabs */}
+           <nav className={`${styles.subNavigation} ${styles.enrollmentSubNav}`}>
+             <div className={styles.navLeft}>
+               {enrollmentTabs.map((tab) => {
+                 const IconComponent = tab.icon;
+                 return (
+                   <Link
+                     key={tab.id}
+                     to={tab.path}
+                     className={`${styles.tab} ${currentEnrollmentTab === tab.id ? styles.active : ''}`}
+                   >
+                     <IconComponent size={16} />
+                     {tab.label}
+                   </Link>
+                 );
+               })}
+             </div>
+           </nav>
+         </>
+       );
+     }
 
     return (
       <nav className={styles.subNavigation}>

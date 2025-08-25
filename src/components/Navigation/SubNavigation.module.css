@@ -90,6 +90,15 @@
   border-bottom: 2px solid #3599b8;
 }
 
+/* Enrollment sub-navigation uses blue borders (same as platform) */
+.enrollmentSubNav {
+  top: 128px; /* 80px (main nav) + 48px (first sub nav) */
+}
+
+.enrollmentSubNav .tab.active {
+  border-bottom: 2px solid #3599b8;
+}
+
 .createButton {
   background: var(--primary-teal) !important;
   color: white !important;

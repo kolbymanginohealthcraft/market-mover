@@ -65,7 +65,7 @@ const METRIC_GROUPS = [
   }
 ];
 
-export default function CMSEnrollmentPanel({ data, loading, error, latestMonth }) {
+export default function CMSEnrollmentPanel({ data, loading, error, latestMonth, benchmarkSelector }) {
   const [selectedMetric, setSelectedMetric] = useState('ma_and_other');
 
   // Filter to latest month for summary cards
@@ -129,52 +129,59 @@ export default function CMSEnrollmentPanel({ data, loading, error, latestMonth }
   if (error) return <div className={styles.panel}>Error: {error}</div>;
   if (!data || !latestMonth) return <div className={styles.panel}><Spinner message="Loading CMS enrollment data..." /></div>;
 
-  return (
-    <div className={styles.panel}>
-      <div className={styles.twoColumnLayout}>
-        {/* Left Column - Scrollable Metrics */}
-        <div className={styles.metricsColumn}>
-          {METRIC_GROUPS.map(group => (
-            <div key={group.title} className={styles.metricGroup}>
-              <h4 className={styles.groupTitle}>{group.title}</h4>
-              <div className={styles.metricsList}>
-                {group.metrics.map(metric => (
-                  <div
-                    key={metric.key}
-                    className={
-                      styles.metricItem +
-                      (selectedMetric === metric.key ? ' ' + styles.selected : '')
-                    }
-                    onClick={() => setSelectedMetric(metric.key)}
-                    tabIndex={0}
-                    role="button"
-                    aria-pressed={selectedMetric === metric.key}
-                    title={`Show monthly trend for ${metric.label}`}
-                  >
-                    <span className={styles.metricLabel}>{metric.label}</span>
-                    <div className={styles.metricValues}>
-                      <span className={styles.metricValue}>
-                        {summary[metric.key]?.toLocaleString()}
-                      </span>
-                      <span className={styles.metricPercentage}>
-                        ({percentages[metric.key]}%)
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+    return (
+    <div className={styles.twoColumnLayout}>
+             {/* Left Column - Scrollable Metrics */}
+     <div className={styles.metricsColumn}>
+       {benchmarkSelector && (
+         <div className={styles.benchmarkSelectorContainer}>
+           {benchmarkSelector}
+         </div>
+       )}
+       <div className={styles.metricsListContainer}>
+         {METRIC_GROUPS.map(group => (
+           <div key={group.title} className={styles.metricGroup}>
+             <h4 className={styles.groupTitle}>{group.title}</h4>
+             <div className={styles.metricsList}>
+               {group.metrics.map(metric => (
+                 <div
+                   key={metric.key}
+                   className={
+                     styles.metricItem +
+                     (selectedMetric === metric.key ? ' ' + styles.selected : '')
+                   }
+                   onClick={() => setSelectedMetric(metric.key)}
+                   tabIndex={0}
+                   role="button"
+                   aria-pressed={selectedMetric === metric.key}
+                   title={`Show monthly trend for ${metric.label}`}
+                 >
+                   <span className={styles.metricLabel}>{metric.label}</span>
+                   <div className={styles.metricValues}>
+                     <span className={styles.metricValue}>
+                       {summary[metric.key]?.toLocaleString()}
+                     </span>
+                     <span className={styles.metricPercentage}>
+                       ({percentages[metric.key]}%)
+                     </span>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
+         ))}
+       </div>
+     </div>
 
-        {/* Right Column - Sticky Chart */}
-        <div className={styles.chartColumn}>
-          <CMSEnrollmentTrendChart
-            data={monthlyTrend}
-            metric={selectedMetric}
-          />
-        </div>
-      </div>
+             {/* Right Column - Sticky Chart */}
+     <div className={styles.chartColumn}>
+       <div className={styles.chartContainer}>
+         <CMSEnrollmentTrendChart
+           data={monthlyTrend}
+           metric={selectedMetric}
+         />
+       </div>
+     </div>
     </div>
   );
 } 

@@ -1,21 +1,24 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styles from "./CMSEnrollmentTab.module.css";
 import CMSEnrollmentPanel from "./CMSEnrollmentPanel";
-import CMSEnrollmentTrendChart from "./CMSEnrollmentTrendChart";
 import MAEnrollmentPanel from "./MAEnrollmentPanel";
 import MAEnrollmentTrendChart from "./MAEnrollmentTrendChart";
 import useCMSEnrollmentData from "../../../../hooks/useCMSEnrollmentData";
 import { useCMSEnrollmentDataByLevel, useCMSEnrollmentYears } from "../../../../hooks/useCMSEnrollmentData";
 import useMAEnrollmentData, { useMAEnrollmentTrendData } from "../../../../hooks/useMAEnrollmentData";
 import { apiUrl } from "../../../../utils/api";
-import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
+
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
 
-export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
-  const [selectedView, setSelectedView] = useState('overview'); // 'overview', 'trends', 'demographics', 'payers'
-  const [selectedTimeframe, setSelectedTimeframe] = useState('latest'); // 'latest', 'monthly', 'yearly'
-  const [selectedMetric, setSelectedMetric] = useState('ma_and_other');
+export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView = 'overview' }) {
+  const [selectedView, setSelectedView] = useState(defaultView); // 'overview', 'demographics', 'payers'
+  
+  // Update selectedView when defaultView prop changes (URL navigation)
+  useEffect(() => {
+    setSelectedView(defaultView);
+  }, [defaultView]);
+
   const [selectedBenchmark, setSelectedBenchmark] = useState('national'); // 'national', 'state-XX', 'county-XXXXX'
   const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   
@@ -371,126 +374,54 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.titleSection}>
-            <h1>Enrollment</h1>
-            <p>Comprehensive Medicare enrollment data from the Centers for Medicare & Medicaid Services</p>
-          </div>
-          <div className={styles.headerStats}>
-            {summaryStats && (
-              <>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{summaryStats.totalBenes.toLocaleString()}</span>
-                  <span className={styles.statLabel}>Total Beneficiaries</span>
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{summaryStats.maPercentage}%</span>
-                  <span className={styles.statLabel}>Medicare Advantage</span>
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{summaryStats.dualPercentage}%</span>
-                  <span className={styles.statLabel}>Dual Eligible</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.controls}>
-        <div className={styles.viewControls}>
-          <ButtonGroup
-            options={[
-              { label: 'Overview', value: 'overview' },
-              { label: 'Trends', value: 'trends' },
-              { label: 'Demographics', value: 'demographics' },
-              { label: 'Payers', value: 'payers' }
-            ]}
-            selected={selectedView}
-            onSelect={setSelectedView}
-            size="md"
-            variant="blue"
-          />
-        </div>
-        
-        <div className={styles.benchmarkControls}>
-          <div className={styles.benchmarkDropdown}>
-            <label>Benchmark:</label>
-            <div className={styles.dropdownContainer}>
-              <button 
-                className={styles.dropdownButton}
-                onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
-              >
-                {getSelectedBenchmarkDisplay()} ▼
-              </button>
-              {showBenchmarkDropdown && (
-                <div className={styles.dropdown}>
-                  {buildBenchmarkOptions().map(option => (
-                    <button
-                      key={option.value}
-                      className={`${styles.dropdownItem} ${selectedBenchmark === option.value ? styles.selected : ''}`}
-                      onClick={() => {
-                        setSelectedBenchmark(option.value);
-                        setShowBenchmarkDropdown(false);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          {benchmarkError && (
-            <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Benchmark Error: {benchmarkError}
-            </div>
-          )}
-        </div>
-        
-        {selectedView === 'trends' && (
-          <div className={styles.timeframeControls}>
-            <ButtonGroup
-              options={[
-                { label: 'Latest', value: 'latest' },
-                { label: 'Monthly', value: 'monthly' },
-                { label: 'Yearly', value: 'yearly' }
-              ]}
-              selected={selectedTimeframe}
-              onSelect={setSelectedTimeframe}
-              size="sm"
-              variant="blue"
-            />
-          </div>
-        )}
-      </div>
-
+    <div className={styles.pageContainer}>
       <div className={styles.content}>
-        {selectedView === 'overview' && (
-          <div className={styles.overviewSection}>
-            <CMSEnrollmentPanel 
-              data={data} 
-              loading={loading} 
-              error={error}
-              latestMonth={latestMonth}
-            />
-          </div>
+                         {selectedView === 'overview' && (
+          <CMSEnrollmentPanel 
+            data={data} 
+            loading={loading} 
+            error={error}
+            latestMonth={latestMonth}
+            benchmarkSelector={
+              <div className={styles.benchmarkControls}>
+                <div className={styles.benchmarkDropdown}>
+                  <label>Benchmark:</label>
+                  <div className={styles.dropdownContainer}>
+                    <button 
+                      className={styles.dropdownButton}
+                      onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
+                    >
+                      {getSelectedBenchmarkDisplay()} ▼
+                    </button>
+                    {showBenchmarkDropdown && (
+                      <div className={styles.dropdown}>
+                        {buildBenchmarkOptions().map(option => (
+                          <button
+                            key={option.value}
+                            className={`${styles.dropdownItem} ${selectedBenchmark === option.value ? styles.selected : ''}`}
+                            onClick={() => {
+                              setSelectedBenchmark(option.value);
+                              setShowBenchmarkDropdown(false);
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {benchmarkError && (
+                  <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
+                    Benchmark Error: {benchmarkError}
+                  </div>
+                )}
+              </div>
+            }
+          />
         )}
 
-        {selectedView === 'trends' && (
-          <div className={styles.trendsSection}>
-            <CMSEnrollmentTrendChart
-              data={data}
-              loading={loading}
-              error={error}
-              timeframe={selectedTimeframe}
-              metric={selectedMetric}
-              months={months}
-            />
-          </div>
-        )}
+
 
         {selectedView === 'demographics' && (
           <div className={styles.demographicsSection}>
@@ -581,7 +512,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
         )}
 
         {selectedView === 'payers' && (
-          <div className={styles.payersSection}>
+          <>
             {loadingDates ? (
               <div>Loading available dates...</div>
             ) : errorDates ? (
@@ -589,65 +520,62 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles }) {
             ) : !publishDates.length ? (
               <div>No enrollment dates available.</div>
             ) : (
-              <div>
-                <div className={styles.payersHeader}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className={styles.payersLayout}>
+                {/* Left Panel - Controls and Summary Cards */}
+                <div className={styles.payersLeftPanel}>
+                  <div className={styles.payersHeader}>
                     <h3>Medicare Advantage Enrollment</h3>
                     <span style={{ color: '#666', fontSize: '0.9rem' }}>
                       Medicare enrollment data for {publishDate}
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
-                        Plan Type:
-                      </span>
-                      <ButtonGroup
-                        options={[
-                          { label: "Medicare Advantage", value: "MA" },
-                          { label: "Prescription Drug Plans", value: "PDP" }
-                        ]}
-                        selected={selectedType}
-                        onSelect={setSelectedType}
-                        size="sm"
-                        variant="blue"
-                      />
+                  </div>
+                  
+                  <div className={styles.planTypeControls}>
+                    <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                      Plan Type:
+                    </span>
+                    <div className={styles.planTypeButtons}>
+                      <button
+                        className={`${styles.planTypeButton} ${selectedType === "MA" ? styles.active : ""}`}
+                        onClick={() => setSelectedType("MA")}
+                      >
+                        Medicare Advantage
+                      </button>
+                      <button
+                        className={`${styles.planTypeButton} ${selectedType === "PDP" ? styles.active : ""}`}
+                        onClick={() => setSelectedType("PDP")}
+                      >
+                        Prescription Drug Plans
+                      </button>
                     </div>
+                  </div>
+                  
+                  <div className={styles.summaryCards}>
+                    <MAEnrollmentPanel 
+                      data={maData} 
+                      loading={maLoading} 
+                      error={maError}
+                      type={selectedType}
+                    />
                   </div>
                 </div>
                 
-                <MAEnrollmentPanel 
-                  data={maData} 
-                  loading={maLoading} 
-                  error={maError}
-                  type={selectedType}
-                />
-                
-                <MAEnrollmentTrendChart
-                  data={maTrendData}
-                  loading={maTrendLoading}
-                  error={maTrendError}
-                  startDate={startDate}
-                  endDate={endDate}
-                  type={selectedType}
-                />
+                {/* Right Panel - Organization List */}
+                <div className={styles.payersRightPanel}>
+                  <div className={styles.organizationList}>
+                    <MAEnrollmentPanel 
+                      data={maData} 
+                      loading={maLoading} 
+                      error={maError}
+                      type={selectedType}
+                      showTableOnly={true}
+                    />
+                  </div>
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
-      </div>
-
-      <div className={styles.info}>
-        <h4>About This Data</h4>
-        <p>
-          This tab provides comprehensive Medicare enrollment data directly from the Centers for Medicare & Medicaid Services (CMS). 
-          The data includes detailed demographic breakdowns by county, including age distribution, race/ethnicity, 
-          dual eligibility status, and prescription drug coverage.
-        </p>
-        <div className={styles.dataSource}>
-          <strong>Data Source:</strong> CMS Medicare Enrollment Data API<br/>
-          <strong>Coverage:</strong> All Medicare beneficiaries by county<br/>
-          <strong>Updates:</strong> Annual and monthly data releases<br/>
-          <strong>Latest Data:</strong> {latestMonth || 'N/A'}
-        </div>
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ export default function SubNavbar({ providerId: providerDhc }) {
         Storyteller
       </NavLink>
       <NavLink
-        to={`${prefix}/cms-enrollment${search}`}
+        to={`${prefix}/cms-enrollment/overview${search}`}
         className={({ isActive }) => {
           const isOnEnrollmentRoute = location.pathname.includes('/enrollment') || location.pathname.includes('/cms-enrollment');
           return `${styles.tab} ${(isActive || isOnEnrollmentRoute) ? styles.activeTab : ""}`;

@@ -1,194 +1,72 @@
-.chart {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+/* Chart wrapper styles - matching storyteller benchmarks */
+.chartWrapper {
+  width: 100%;
   height: 100%;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
-}
-
-.header {
-  margin-bottom: 16px;
-  flex-shrink: 0;
-}
-
-.header h4 {
-  margin: 0 0 6px 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.subtitle {
-  margin: 0;
-  color: #6b7280;
-  font-size: 0.85rem;
-}
-
-.chartContainer {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-  overflow-x: auto;
+  position: relative;
   flex: 1;
   min-height: 0;
 }
 
-.yAxis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  font-size: 0.8rem;
-  color: #6b7280;
-  min-width: 60px;
-  flex-shrink: 0;
-  font-weight: 500;
+.chartTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #265947;
+  margin: 0 0 0.5rem 0;
+  text-align: left;
 }
 
-.chartArea {
-  flex: 1;
-  min-width: 0;
-  background: #f9fafb;
-  border-radius: 6px;
-  padding: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.svg {
-  width: 100%;
-  height: 100%;
-  min-height: 200px;
-  flex: 1;
-}
-
-.legend {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-  flex-shrink: 0;
-}
-
-.legendItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* Tooltip Styling */
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 6px 10px;
   font-size: 0.85rem;
-  color: #374151;
-  font-weight: 500;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  color: #333;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  z-index: 1000;
 }
 
-.legendColor {
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
+.tooltipLabel {
+  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  color: #666;
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-  flex-shrink: 0;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.statLabel {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-bottom: 3px;
-  font-weight: 500;
-}
-
-.statValue {
+.tooltipValue {
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #333;
+}
+
+/* No data state */
+.noData {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
-  .chart {
-    height: auto;
-    padding: 16px;
-  }
-  
-  .chartContainer {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .yAxis {
-    height: auto;
-    flex-direction: row;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    font-size: 0.75rem;
-  }
-  
-  .chartArea {
-    min-width: 300px;
-  }
-  
-  .svg {
-    min-width: 400px;
-    height: 200px;
-  }
-  
-  .stats {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .legendItem {
-    font-size: 0.8rem;
-  }
-}
-
 @media (max-width: 768px) {
-  .chart {
-    padding: 12px;
+  .chartWrapper {
+    min-height: 150px;
   }
   
-  .chartContainer {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .yAxis {
-    height: auto;
-    flex-direction: row;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    font-size: 0.7rem;
-  }
-  
-  .chartArea {
-    min-width: 250px;
-  }
-  
-  .svg {
-    min-width: 300px;
-    height: 180px;
-  }
-  
-  .stats {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  
-  .legendItem {
-    font-size: 0.75rem;
+  .tooltip {
+    font-size: 0.8rem;
+    padding: 4px 8px;
   }
 } 

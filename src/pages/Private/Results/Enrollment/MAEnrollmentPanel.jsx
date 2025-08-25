@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './MAEnrollmentPanel.module.css';
 
-export default function MAEnrollmentPanel({ data, loading, error, type = "ALL" }) {
+export default function MAEnrollmentPanel({ data, loading, error, type = "ALL", showTableOnly = false }) {
   if (loading) return <div className={styles.panel}>Loading enrollment data...</div>;
   if (error) return <div className={styles.panel}>Error: {error}</div>;
   if (!data || data.length === 0) return <div className={styles.panel}>No enrollment data available.</div>;
@@ -45,6 +45,34 @@ export default function MAEnrollmentPanel({ data, loading, error, type = "ALL" }
 
   const totalEnrollment = orgList.reduce((sum, org) => sum + org.total_enrollment, 0);
 
+  if (showTableOnly) {
+    return (
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <h3>Parent Organizations</h3>
+        </div>
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Parent Organization</th>
+                <th>Enrollment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orgList.map((org, index) => (
+                <tr key={index}>
+                  <td>{org.parent_org || 'N/A'}</td>
+                  <td>{org.total_enrollment.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
@@ -87,25 +115,6 @@ export default function MAEnrollmentPanel({ data, loading, error, type = "ALL" }
             })()}
           </span>
         </div>
-      </div>
-
-      <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Parent Organization</th>
-              <th>Enrollment</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orgList.map((org, index) => (
-              <tr key={index}>
-                <td>{org.parent_org || 'N/A'}</td>
-                <td>{org.total_enrollment.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );

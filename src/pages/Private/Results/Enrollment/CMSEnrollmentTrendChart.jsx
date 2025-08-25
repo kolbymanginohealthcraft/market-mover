@@ -1,119 +1,186 @@
 import React, { useMemo } from 'react';
-import styles from './CMSEnrollmentTrendChart.module.css';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import styles from "./CMSEnrollmentTrendChart.module.css";
 
-function formatMonthLabel(ym) {
-  if (!ym) return '';
-  const [year, month] = ym.split('-');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const mIdx = parseInt(month, 10) - 1;
-  return mIdx >= 0 && mIdx < 12 ? `${monthNames[mIdx]} ${year}` : year;
-}
-
-export default function CMSEnrollmentTrendChart({ data, metric = 'ma_and_other' }) {
+const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
+  // Process data for Recharts
   const chartData = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return [];
+
     // Remove duplicates and sort by month
     const seen = new Set();
-    const sorted = data
+    return data
       .filter(d => d.month && !seen.has(d.month) && seen.add(d.month))
-      .sort((a, b) => a.month.localeCompare(b.month));
-    return sorted.map(d => ({
-      month: d.month,
-      value: d[metric] || 0
-    }));
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(d => ({
+        month: d.month,
+        value: d[metric] || 0
+      }));
   }, [data, metric]);
 
-  if (!data || data.length === 0) return <div className={styles.chart}>No trend data available.</div>;
+  // Get unique years for reference lines
+  const yearStarts = useMemo(() => {
+    const years = [...new Set(chartData.map(d => d.month.split('-')[0]))];
+    return years.map(year => `${year}-01`);
+  }, [chartData]);
 
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num);
+  // Get year ranges for labels
+  const yearRanges = useMemo(() => {
+    if (chartData.length === 0) return [];
+    
+    const years = [...new Set(chartData.map(d => d.month.split('-')[0]))].sort();
+    return years.map(year => {
+      const yearData = chartData.filter(d => d.month.startsWith(year));
+      const firstIndex = chartData.findIndex(d => d.month.startsWith(year));
+      const lastIndex = chartData.findLastIndex(d => d.month.startsWith(year));
+      
+      return {
+        year,
+        startIndex: firstIndex,
+        endIndex: lastIndex,
+        centerIndex: (firstIndex + lastIndex) / 2
+      };
+    });
+  }, [chartData]);
+
+  // Calculate custom Y-axis domain
+  const yAxisDomain = useMemo(() => {
+    if (chartData.length === 0) return [0, 100];
+    
+    const values = chartData.map(d => d.value).filter(v => v !== null && v !== undefined);
+    if (values.length === 0) return [0, 100];
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min;
+    
+    // Add 20% padding above and below
+    const padding = range * 0.2;
+    return [Math.max(0, min - padding), max + padding];
+  }, [chartData]);
+
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className={styles.tooltip}>
+          <p className={styles.tooltipLabel}>
+            <strong>{label}</strong>
+          </p>
+          <p className={styles.tooltipValue}>
+            {new Intl.NumberFormat().format(payload[0].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
-  const maxValue = Math.max(...chartData.map(d => d.value));
-  const minValue = Math.min(...chartData.map(d => d.value));
+  // Create a more sophisticated tick formatter that shows years appropriately
+  const formatXAxisTick = (tickItem) => {
+    if (!tickItem) return '';
+    
+    const [year, month] = tickItem.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const mIdx = parseInt(month, 10) - 1;
+    
+    if (mIdx >= 0 && mIdx < 12) {
+      // Show year for January and July to help with multi-year data
+      if (mIdx === 0 || mIdx === 6) {
+        return `${monthNames[mIdx]} ${year}`;
+      }
+      // Show just month for other points
+      return monthNames[mIdx];
+    }
+    return `${year}-${month}`;
+  };
 
-  // Only show every Nth label to avoid crowding
-  const labelStep = chartData.length > 24 ? Math.ceil(chartData.length / 12) : 1;
+  if (!chartData || chartData.length === 0) {
+    return (
+      <div className={styles.chartWrapper}>
+        <div className={styles.noData}>No trend data available.</div>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.chart}>
-      <div className={styles.header}>
-        <h4>Monthly Trend</h4>
-        <p className={styles.subtitle}>
-          {metric.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} by Month
-        </p>
-      </div>
-      <div className={styles.chartContainer}>
-        <div className={styles.yAxis}>
-          <span>{formatNumber(maxValue)}</span>
-          <span>{formatNumber(Math.round((maxValue + minValue) / 2))}</span>
-          <span>{formatNumber(minValue)}</span>
-        </div>
-        <div className={styles.chartArea}>
-          <svg className={styles.svg} viewBox={`0 0 ${chartData.length * 40 + 40} 200`}>
-            {/* Grid lines */}
-            <defs>
-              <pattern id="grid" width="40" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 50" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-            {/* Data line */}
-            <polyline
-              points={chartData.map((d, i) => {
-                const x = 20 + (i * 40);
-                const y = 180 - ((d.value - minValue) / (maxValue - minValue || 1)) * 160;
-                return `${x},${y}`;
-              }).join(' ')}
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+    <div className={styles.chartWrapper}>
+      <div className={styles.chartTitle}>Enrollment Trend</div>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={chartData}
+          margin={{
+            top: 20,
+            right: 20,
+            left: 60,
+            bottom: 50,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          {yearStarts.map((yearStart, index) => (
+            <ReferenceLine
+              key={yearStart}
+              x={yearStart}
+              stroke="#e5e7eb"
+              strokeWidth={2}
+              strokeDasharray="0"
             />
-            {/* Data points */}
-            {chartData.map((d, i) => {
-              const x = 20 + (i * 40);
-              const y = 180 - ((d.value - minValue) / (maxValue - minValue || 1)) * 160;
-              return (
-                <g key={d.month}>
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r="4"
-                    fill="#3b82f6"
-                    stroke="white"
-                    strokeWidth="2"
-                  />
-                  {/* Only show every Nth label */}
-                  {i % labelStep === 0 && (
-                    <text
-                      x={x}
-                      y="195"
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="#6b7280"
-                    >
-                      {formatMonthLabel(d.month)}
-                    </text>
-                  )}
-                  {/* Show value on hover or always if desired */}
-                  {/* <text
-                    x={x}
-                    y={y - 10}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fill="#059669"
-                    fontWeight="bold"
-                  >
-                    {formatNumber(d.value)}
-                  </text> */}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      </div>
+          ))}
+          <XAxis
+            dataKey="month"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fill: '#666', fontWeight: '500' }}
+            tickFormatter={formatXAxisTick}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+            ticks={chartData.map(d => d.month)}
+          />
+          {/* Year labels underneath */}
+          {yearRanges.map(({ year, centerIndex }) => {
+            const centerMonth = chartData[centerIndex]?.month;
+            return (
+              <ReferenceLine
+                key={`year-label-${year}`}
+                x={centerMonth}
+                stroke="none"
+                label={{
+                  value: year,
+                  position: 'bottom',
+                  offset: 10,
+                  style: {
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    fill: '#374151'
+                  }
+                }}
+              />
+            );
+          })}
+                                                                                       <YAxis
+               axisLine={false}
+               tickLine={false}
+               tick={{ fontSize: 12, fill: '#666' }}
+               tickFormatter={(value) => new Intl.NumberFormat().format(Math.round(value))}
+               domain={yAxisDomain}
+               allowDecimals={false}
+             />
+          <Tooltip content={<CustomTooltip />} />
+                                    <Line
+                 type="natural"
+                 dataKey="value"
+                 stroke="#10B981"
+                 strokeWidth={2.5}
+                 dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                 activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2, fill: '#fff' }}
+                 animationDuration={1000}
+                 animationEasing="ease-out"
+               />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
-} 
+};
+
+export default CMSEnrollmentTrendChart; 
