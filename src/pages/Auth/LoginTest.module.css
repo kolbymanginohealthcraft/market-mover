@@ -1,6 +1,17 @@
+/* Using global form-input focus styles */
+
+/* Override global form-input focus styles for login page */
 .form-input:focus {
-  outline: none;
-  border-color: #3599b8 !important;
-  box-shadow: 0 0 0 3px rgba(53, 153, 184, 0.2) !important;
-  background: #fff8cc !important;
+  outline: none !important;
+  border: 2px solid #3599b8 !important;
+  background-color: #fff9e6 !important;
+  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2) !important;
+}
+
+/* Additional specificity for login page inputs */
+input.form-input:focus {
+  outline: none !important;
+  border: 2px solid #3599b8 !important;
+  background-color: #fff9e6 !important;
+  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2) !important;
 }

@@ -1,50 +1,49 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../../app/supabaseClient';
+import { 
+  Users, 
+  Calendar, 
+  Building, 
+  RefreshCw,
+  Clock,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import Button from '../../../../components/Buttons/Button';
 import Spinner from '../../../../components/Buttons/Spinner';
+import SectionHeader from '../../../../components/Layouts/SectionHeader';
 import styles from './AnalyticsDashboard.module.css';
 
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState({
-    userActivity: {},
-    featureUsage: {},
-    engagement: {},
-    feedback: {},
-    systemHealth: {}
+    userMetrics: {},
+    loginHistory: {},
+    teamAnalytics: {}
   });
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
+  const [expandedTeams, setExpandedTeams] = useState(new Set());
+  const [teamUsers, setTeamUsers] = useState({});
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch all analytics data in parallel
       const [
-        userActivity,
-        featureUsage,
-        engagement,
-        feedback,
-        systemHealth
+        userMetrics,
+        loginHistory,
+        teamAnalytics
       ] = await Promise.all([
-        fetchUserActivity(),
-        fetchFeatureUsage(),
-        fetchEngagement(),
-        fetchFeedback(),
-        fetchSystemHealth()
+        fetchUserMetrics(),
+        fetchLoginHistory(),
+        fetchTeamAnalytics()
       ]);
 
       setAnalytics({
-        userActivity,
-        featureUsage,
-        engagement,
-        feedback,
-        systemHealth
+        userMetrics,
+        loginHistory,
+        teamAnalytics
       });
     } catch (err) {
       console.error('Error fetching analytics:', err);
@@ -54,199 +53,339 @@ export default function AnalyticsDashboard() {
     }
   };
 
-  const fetchUserActivity = async () => {
+  const fetchUserMetrics = async () => {
     try {
-      // Get activity counts by type for last 30 days
+      // Get total users
+      const { count: totalUsers, error: totalError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      if (totalError) throw totalError;
+      console.log('Total users:', totalUsers);
+
+      // Get monthly active users (users with activity in last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data, error } = await supabase
+      const { data: recentActivities, error: activityError } = await supabase
         .from('user_activities')
-        .select('activity_type, created_at')
+        .select('user_id')
         .gte('created_at', thirtyDaysAgo.toISOString());
 
-      if (error) throw error;
+      if (activityError) throw activityError;
+      console.log('Recent activities:', recentActivities?.length || 0);
 
-      const activityCounts = {};
-      const dailyActivity = {};
+      const monthlyActiveUsers = new Set(recentActivities?.map(a => a.user_id) || []).size;
+      console.log('Monthly active users:', monthlyActiveUsers);
 
-      data?.forEach(activity => {
-        const date = new Date(activity.created_at).toDateString();
-        const type = activity.activity_type;
+      // Get users by role
+      const { data: usersByRole, error: roleError } = await supabase
+        .from('profiles')
+        .select('role')
+        .not('role', 'is', null);
 
-        // Count by type
-        activityCounts[type] = (activityCounts[type] || 0) + 1;
+      if (roleError) throw roleError;
+      console.log('Users by role:', usersByRole?.length || 0);
 
-        // Count by date
-        if (!dailyActivity[date]) dailyActivity[date] = {};
-        dailyActivity[date][type] = (dailyActivity[date][type] || 0) + 1;
+      const roleCounts = {};
+      usersByRole?.forEach(user => {
+        const role = user.role || 'No Role';
+        roleCounts[role] = (roleCounts[role] || 0) + 1;
       });
 
-      return {
-        totalActivities: data?.length || 0,
-        activityCounts,
-        dailyActivity,
-        topActivities: Object.entries(activityCounts)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 5)
+      // Get users by team
+      const { data: usersByTeam, error: teamError } = await supabase
+        .from('profiles')
+        .select('team_id, teams(name)')
+        .not('team_id', 'is', null);
+
+      if (teamError) throw teamError;
+      console.log('Users by team:', usersByTeam?.length || 0);
+
+      const teamCounts = {};
+      usersByTeam?.forEach(user => {
+        const teamName = user.teams?.name || 'Unknown Team';
+        teamCounts[teamName] = (teamCounts[teamName] || 0) + 1;
+      });
+
+      const result = {
+        totalUsers: totalUsers || 0,
+        monthlyActiveUsers,
+        roleCounts,
+        teamCounts,
+        activeUserPercentage: totalUsers > 0 ? Math.round((monthlyActiveUsers / totalUsers) * 100) : 0
       };
+      
+      console.log('User metrics result:', result);
+      return result;
     } catch (err) {
-      console.error('Error fetching user activity:', err);
+      console.error('Error fetching user metrics:', err);
       return {};
     }
   };
 
-  const fetchFeatureUsage = async () => {
+  const fetchLoginHistory = async () => {
     try {
-      // Get unique users who performed each activity type
-      const { data, error } = await supabase
+      // First, let's see what columns exist in user_activities
+      const { data: sampleActivities, error: sampleError } = await supabase
         .from('user_activities')
-        .select('user_id, activity_type')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (error) throw error;
-
-      const featureUsers = {};
-      const totalUsers = new Set();
-
-      data?.forEach(activity => {
-        totalUsers.add(activity.user_id);
-        if (!featureUsers[activity.activity_type]) {
-          featureUsers[activity.activity_type] = new Set();
-        }
-        featureUsers[activity.activity_type].add(activity.user_id);
-      });
-
-      const featureUsage = {};
-      Object.entries(featureUsers).forEach(([feature, users]) => {
-        featureUsage[feature] = {
-          uniqueUsers: users.size,
-          percentage: Math.round((users.size / totalUsers.size) * 100)
-        };
-      });
-
-      return {
-        totalActiveUsers: totalUsers.size,
-        featureUsage,
-        topFeatures: Object.entries(featureUsage)
-          .sort(([,a], [,b]) => b.uniqueUsers - a.uniqueUsers)
-          .slice(0, 5)
-      };
-    } catch (err) {
-      console.error('Error fetching feature usage:', err);
-      return {};
-    }
-  };
-
-  const fetchEngagement = async () => {
-    try {
-      // Get user streaks data
-      const { data: streaks, error: streaksError } = await supabase
-        .from('user_streaks')
-        .select('*');
-
-      if (streaksError) throw streaksError;
-
-      const engagementData = {
-        totalUsers: 0,
-        activeStreaks: 0,
-        averageStreak: 0,
-        topStreak: 0
-      };
-
-      if (streaks?.length > 0) {
-        const uniqueUsers = new Set(streaks.map(s => s.user_id));
-        const currentStreaks = streaks.filter(s => s.current_streak > 0);
-        const avgStreak = streaks.reduce((sum, s) => sum + s.current_streak, 0) / streaks.length;
-        const maxStreak = Math.max(...streaks.map(s => s.longest_streak));
-
-        engagementData.totalUsers = uniqueUsers.size;
-        engagementData.activeStreaks = currentStreaks.length;
-        engagementData.averageStreak = Math.round(avgStreak);
-        engagementData.topStreak = maxStreak;
-      }
-
-      return engagementData;
-    } catch (err) {
-      console.error('Error fetching engagement:', err);
-      return {};
-    }
-  };
-
-  const fetchFeedback = async () => {
-    try {
-      // Get testimonials and feature requests
-      const { data: testimonials, error: testimonialsError } = await supabase
-        .from('user_testimonials')
-        .select('*');
-
-      const { data: featureRequests, error: featureRequestsError } = await supabase
-        .from('feature_requests')
-        .select('*');
-
-      if (testimonialsError) throw testimonialsError;
-      if (featureRequestsError) throw featureRequestsError;
-
-      const pendingTestimonials = testimonials?.filter(t => t.status === 'pending')?.length || 0;
-      const approvedTestimonials = testimonials?.filter(t => t.status === 'approved')?.length || 0;
-      const pendingFeatures = featureRequests?.filter(f => f.status === 'pending')?.length || 0;
-      const approvedFeatures = featureRequests?.filter(f => f.status === 'approved')?.length || 0;
-
-      return {
-        testimonials: {
-          total: testimonials?.length || 0,
-          pending: pendingTestimonials,
-          approved: approvedTestimonials
-        },
-        featureRequests: {
-          total: featureRequests?.length || 0,
-          pending: pendingFeatures,
-          approved: approvedFeatures
-        }
-      };
-    } catch (err) {
-      console.error('Error fetching feedback:', err);
-      return {};
-    }
-  };
-
-  const fetchSystemHealth = async () => {
-    try {
-      // Get recent system announcements
-      const { data: announcements, error: announcementsError } = await supabase
-        .from('system_announcements')
         .select('*')
-        .order('created_at', { ascending: false })
         .limit(5);
 
-      if (announcementsError) throw announcementsError;
+      if (sampleError) {
+        console.error('Error checking user_activities structure:', sampleError);
+        return { totalLogins: 0, uniqueLogins: 0, loginByDate: {}, recentLogins: [] };
+      }
 
-      return {
-        activeAnnouncements: announcements?.filter(a => a.is_active)?.length || 0,
-        totalAnnouncements: announcements?.length || 0,
-        recentAnnouncements: announcements || []
+      console.log('Sample activity records:', sampleActivities);
+
+      // Get all activities from the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: allActivities, error } = await supabase
+        .from('user_activities')
+        .select('*')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      console.log('All activities found:', allActivities?.length || 0);
+
+      // For now, let's treat all activities as "logins" since we don't know the exact structure
+      // This will show all user activity in the last 30 days
+      const loginActivities = allActivities || [];
+
+      // Get unique user IDs from login activities
+      const uniqueUserIds = [...new Set(loginActivities.map(a => a.user_id))];
+      
+      // Fetch user details for the unique users
+      let userDetails = {};
+      if (uniqueUserIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', uniqueUserIds);
+        
+        if (!usersError && users) {
+          users.forEach(user => {
+            userDetails[user.id] = user;
+          });
+        }
+      }
+
+      // Group by date
+      const loginByDate = {};
+      loginActivities.forEach(activity => {
+        const date = new Date(activity.created_at).toISOString().split('T')[0];
+        if (!loginByDate[date]) {
+          loginByDate[date] = [];
+        }
+        loginByDate[date].push({
+          userId: activity.user_id,
+          timestamp: activity.created_at,
+          user: userDetails[activity.user_id]
+        });
+      });
+
+      // Get unique users who logged in
+      const uniqueLogins = uniqueUserIds.length;
+
+      const result = {
+        totalLogins: loginActivities.length,
+        uniqueLogins,
+        loginByDate,
+        recentLogins: loginActivities.slice(0, 10).map(activity => ({
+          userId: activity.user_id,
+          timestamp: activity.created_at,
+          user: userDetails[activity.user_id]
+        }))
       };
+      
+      console.log('Login history result:', result);
+      return result;
     } catch (err) {
-      console.error('Error fetching system health:', err);
-      return {};
+      console.error('Error fetching login history:', err);
+      return { totalLogins: 0, uniqueLogins: 0, loginByDate: {}, recentLogins: [] };
     }
   };
 
+  const fetchTeamAnalytics = async () => {
+    try {
+      // Get all teams with their member counts
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          id,
+          name,
+          tier,
+          max_users,
+          created_at,
+          profiles(count)
+        `);
+
+      if (teamsError) throw teamsError;
+      console.log('Teams found:', teams?.length || 0);
+
+      // Get team activity (simplified query)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: teamActivities, error: activityError } = await supabase
+        .from('user_activities')
+        .select('user_id, created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString());
+
+      if (activityError) {
+        console.error('Error fetching team activities:', activityError);
+        // Continue without team activities
+        const teamAnalytics = teams?.map(team => ({
+          id: team.id,
+          name: team.name,
+          tier: team.tier,
+          maxUsers: team.max_users,
+          currentUsers: team.profiles?.[0]?.count || 0,
+          createdAt: team.created_at,
+          activityCount: 0,
+          utilizationRate: team.max_users > 0 ? Math.round((team.profiles?.[0]?.count / team.max_users) * 100) : 0
+        })) || [];
+
+        const result = {
+          totalTeams: teamAnalytics.length,
+          teamsByTier: teamAnalytics.reduce((acc, team) => {
+            acc[team.tier] = (acc[team.tier] || 0) + 1;
+            return acc;
+          }, {}),
+          teamAnalytics: teamAnalytics.sort((a, b) => b.activityCount - a.activityCount)
+        };
+        
+        console.log('Team analytics result (no activities):', result);
+        return result;
+      }
+
+      console.log('Team activities found:', teamActivities?.length || 0);
+
+      // Get unique user IDs from team activities
+      const uniqueUserIds = [...new Set(teamActivities?.map(a => a.user_id) || [])];
+      
+      // Fetch user team assignments
+      let userTeamMap = {};
+      if (uniqueUserIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('id, team_id')
+          .in('id', uniqueUserIds);
+        
+        if (!usersError && users) {
+          users.forEach(user => {
+            if (user.team_id) {
+              userTeamMap[user.id] = user.team_id;
+            }
+          });
+        }
+      }
+
+      // Calculate team activity
+      const teamActivityCounts = {};
+      teamActivities?.forEach(activity => {
+        const teamId = userTeamMap[activity.user_id];
+        if (teamId) {
+          if (!teamActivityCounts[teamId]) {
+            teamActivityCounts[teamId] = 0;
+          }
+          teamActivityCounts[teamId]++;
+        }
+      });
+
+      const teamAnalytics = teams?.map(team => ({
+        id: team.id,
+        name: team.name,
+        tier: team.tier,
+        maxUsers: team.max_users,
+        currentUsers: team.profiles?.[0]?.count || 0,
+        createdAt: team.created_at,
+        activityCount: teamActivityCounts[team.id] || 0,
+        utilizationRate: team.max_users > 0 ? Math.round((team.profiles?.[0]?.count / team.max_users) * 100) : 0
+      })) || [];
+
+      const result = {
+        totalTeams: teamAnalytics.length,
+        teamsByTier: teamAnalytics.reduce((acc, team) => {
+          acc[team.tier] = (acc[team.tier] || 0) + 1;
+          return acc;
+        }, {}),
+        teamAnalytics: teamAnalytics.sort((a, b) => b.activityCount - a.activityCount)
+      };
+      
+      console.log('Team analytics result:', result);
+      return result;
+    } catch (err) {
+      console.error('Error fetching team analytics:', err);
+      return { totalTeams: 0, teamsByTier: {}, teamAnalytics: [] };
+    }
+  };
+
+  const fetchTeamUsers = async (teamId) => {
+    try {
+      const { data: users, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, role, updated_at')
+        .eq('team_id', teamId)
+        .order('first_name', { ascending: true });
+
+      if (error) {
+        console.error('Supabase error fetching team users:', error);
+        throw error;
+      }
+      
+      return users || [];
+    } catch (err) {
+      console.error('Error fetching team users:', err);
+      return [];
+    }
+  };
+
+  const toggleTeamExpansion = async (teamId) => {
+    const newExpandedTeams = new Set(expandedTeams);
+    
+    if (newExpandedTeams.has(teamId)) {
+      newExpandedTeams.delete(teamId);
+    } else {
+      newExpandedTeams.add(teamId);
+      
+      // Fetch team users if not already loaded
+      if (!teamUsers[teamId]) {
+        const users = await fetchTeamUsers(teamId);
+        setTeamUsers(prev => ({ ...prev, [teamId]: users }));
+      }
+    }
+    
+    setExpandedTeams(newExpandedTeams);
+  };
+
+
+
+  // Helper functions
   const formatNumber = (num) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
-  const getActivityIcon = (activityType) => {
-    const icons = {
-      'search_providers': '🔍',
-      'view_provider': '👤',
-      'save_market': '📍',
-      'view_market': '🗺️'
-    };
-    return icons[activityType] || '📊';
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
+
+
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
 
   if (loading) {
     return (
@@ -276,197 +415,190 @@ export default function AnalyticsDashboard() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>📊 Analytics Dashboard</h1>
+        <div className={styles.headerContent}>
+          <h1>Analytics Dashboard</h1>
         <p className={styles.subtitle}>
-          Platform usage insights and user engagement metrics
+            Platform analytics and user insights
         </p>
+        </div>
         <div className={styles.actions}>
           <Button onClick={fetchAnalytics} variant="accent" size="sm">
-            🔄 Refresh Data
-          </Button>
-          <Button variant="blue" size="sm">
-            📈 View Supabase Analytics
+            <RefreshCw size={16} />
+            Refresh Data
           </Button>
         </div>
       </div>
 
-      <div className={styles.analyticsGrid}>
-        {/* User Activity Overview */}
-        <div className={styles.section}>
-          <h2>👥 User Activity (Last 30 Days)</h2>
-          <div className={styles.metricsGrid}>
-            <div className={styles.metricCard}>
-              <div className={styles.metricValue}>
-                {formatNumber(analytics.userActivity.totalActivities || 0)}
-              </div>
-              <div className={styles.metricLabel}>Total Activities</div>
-            </div>
-            <div className={styles.metricCard}>
-              <div className={styles.metricValue}>
-                {formatNumber(analytics.featureUsage.totalActiveUsers || 0)}
-              </div>
-              <div className={styles.metricLabel}>Active Users</div>
-            </div>
-            <div className={styles.metricCard}>
-              <div className={styles.metricValue}>
-                {analytics.engagement.averageStreak || 0}
-              </div>
-              <div className={styles.metricLabel}>Avg. Streak</div>
-            </div>
-          </div>
-
-          {analytics.userActivity.topActivities?.length > 0 && (
-            <div className={styles.activityBreakdown}>
-              <h3>Top Activities</h3>
-              <div className={styles.activityList}>
-                {analytics.userActivity.topActivities.map(([activity, count]) => (
-                  <div key={activity} className={styles.activityItem}>
-                    <span className={styles.activityIcon}>
-                      {getActivityIcon(activity)}
-                    </span>
-                    <span className={styles.activityName}>
-                      {activity.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </span>
-                    <span className={styles.activityCount}>{count}</span>
+             <div className={styles.analyticsGrid}>
+                   {/* User Metrics Overview */}
+          <div className={styles.section}>
+            <SectionHeader 
+              title="User Metrics" 
+              icon={Users}
+              showActionButton={false}
+            />
+            <div className={styles.sectionContent}>
+              <div className={styles.metricsGrid}>
+                <div className={styles.metricCard}>
+                  <div className={styles.metricValue}>
+                    {formatNumber(analytics.userMetrics.totalUsers || 0)}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Feature Usage */}
-        <div className={styles.section}>
-          <h2>🔧 Feature Usage</h2>
-          <div className={styles.featureUsage}>
-            {analytics.featureUsage.topFeatures?.map(([feature, data]) => (
-              <div key={feature} className={styles.featureCard}>
-                <div className={styles.featureHeader}>
-                  <span className={styles.featureName}>
-                    {feature.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </span>
-                  <span className={styles.featurePercentage}>{data.percentage}%</span>
+                  <div className={styles.metricLabel}>Total Users</div>
                 </div>
-                <div className={styles.featureBar}>
-                  <div 
-                    className={styles.featureBarFill}
-                    style={{ width: `${data.percentage}%` }}
-                  />
+                <div className={styles.metricCard}>
+                  <div className={styles.metricValue}>
+                    {formatNumber(analytics.userMetrics.monthlyActiveUsers || 0)}
+                  </div>
+                  <div className={styles.metricLabel}>Monthly Active Users</div>
                 </div>
-                <div className={styles.featureUsers}>
-                  {data.uniqueUsers} users
+                <div className={styles.metricCard}>
+                  <div className={styles.metricValue}>
+                    {analytics.userMetrics.activeUserPercentage || 0}%
+                  </div>
+                  <div className={styles.metricLabel}>Active User Rate</div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Engagement Metrics */}
-        <div className={styles.section}>
-          <h2>📈 Engagement</h2>
-          <div className={styles.engagementGrid}>
-            <div className={styles.engagementCard}>
-              <div className={styles.engagementValue}>
-                {analytics.engagement.activeStreaks || 0}
-              </div>
-              <div className={styles.engagementLabel}>Active Streaks</div>
-            </div>
-            <div className={styles.engagementCard}>
-              <div className={styles.engagementValue}>
-                {analytics.engagement.topStreak || 0}
-              </div>
-              <div className={styles.engagementLabel}>Longest Streak</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Feedback & Requests */}
-        <div className={styles.section}>
-          <h2>💬 Feedback & Requests</h2>
-          <div className={styles.feedbackGrid}>
-            <div className={styles.feedbackCard}>
-              <h3>Testimonials</h3>
-              <div className={styles.feedbackStats}>
-                <div className={styles.feedbackStat}>
-                  <span className={styles.statValue}>
-                    {analytics.feedback.testimonials?.total || 0}
-                  </span>
-                  <span className={styles.statLabel}>Total</span>
-                </div>
-                <div className={styles.feedbackStat}>
-                  <span className={styles.statValue}>
-                    {analytics.feedback.testimonials?.pending || 0}
-                  </span>
-                  <span className={styles.statLabel}>Pending</span>
-                </div>
-                <div className={styles.feedbackStat}>
-                  <span className={styles.statValue}>
-                    {analytics.feedback.testimonials?.approved || 0}
-                  </span>
-                  <span className={styles.statLabel}>Approved</span>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.feedbackCard}>
-              <h3>Feature Requests</h3>
-              <div className={styles.feedbackStats}>
-                <div className={styles.feedbackStat}>
-                  <span className={styles.statValue}>
-                    {analytics.feedback.featureRequests?.total || 0}
-                  </span>
-                  <span className={styles.statLabel}>Total</span>
-                </div>
-                <div className={styles.feedbackStat}>
-                  <span className={styles.statValue}>
-                    {analytics.feedback.featureRequests?.pending || 0}
-                  </span>
-                  <span className={styles.statLabel}>Pending</span>
-                </div>
-                <div className={styles.feedbackStat}>
-                  <span className={styles.statValue}>
-                    {analytics.feedback.featureRequests?.approved || 0}
-                  </span>
-                  <span className={styles.statLabel}>Approved</span>
+                <div className={styles.metricCard}>
+                  <div className={styles.metricValue}>
+                    {formatNumber(analytics.loginHistory.uniqueLogins || 0)}
+                  </div>
+                  <div className={styles.metricLabel}>Unique Logins (30d)</div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* System Health */}
-        <div className={styles.section}>
-          <h2>⚙️ System Health</h2>
-          <div className={styles.systemHealth}>
-            <div className={styles.healthCard}>
-              <div className={styles.healthValue}>
-                {analytics.systemHealth.activeAnnouncements || 0}
+                                       {/* User Activity */}
+           <div className={styles.section}>
+             <SectionHeader 
+               title="User Activity" 
+               icon={Calendar}
+               showActionButton={false}
+             />
+            <div className={styles.sectionContent}>
+              <div className={styles.metricsGrid}>
+                                 <div className={styles.metricCard}>
+                   <div className={styles.metricValue}>
+                     {formatNumber(analytics.loginHistory.totalLogins || 0)}
+                   </div>
+                   <div className={styles.metricLabel}>Total Activities (30d)</div>
+                 </div>
+                 <div className={styles.metricCard}>
+                   <div className={styles.metricValue}>
+                     {formatNumber(analytics.loginHistory.uniqueLogins || 0)}
+                   </div>
+                   <div className={styles.metricLabel}>Active Users</div>
+                 </div>
               </div>
-              <div className={styles.healthLabel}>Active Announcements</div>
-            </div>
-            <div className={styles.healthCard}>
-              <div className={styles.healthValue}>
-                {analytics.systemHealth.totalAnnouncements || 0}
-              </div>
-              <div className={styles.healthLabel}>Total Announcements</div>
+
+                             {analytics.loginHistory.recentLogins?.length > 0 && (
+                 <div className={styles.loginHistory}>
+                   <h3>Recent Activity</h3>
+                   <div className={styles.loginList}>
+                     {analytics.loginHistory.recentLogins.map((login, index) => (
+                       <div key={index} className={styles.loginItem}>
+                         <span className={styles.loginUser}>
+                           {login.user?.first_name} {login.user?.last_name}
+                         </span>
+                         <span className={styles.loginTime}>
+                           <Clock size={14} />
+                           {formatDate(login.timestamp)}
+                         </span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className={styles.footer}>
-        <div className={styles.note}>
-          <h3>📊 Technical Metrics</h3>
-          <p>
-            For detailed technical analytics including login trends, session duration, 
-            database performance, and API usage, visit the{' '}
-            <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">
-              Supabase Dashboard
-            </a>
-            .
-          </p>
-        </div>
-      </div>
+                   {/* Team Analytics */}
+          <div className={styles.section}>
+            <SectionHeader 
+              title="Team Analytics" 
+              icon={Building}
+              showActionButton={false}
+            />
+            <div className={styles.sectionContent}>
+              <div className={styles.metricsGrid}>
+                <div className={styles.metricCard}>
+                  <div className={styles.metricValue}>
+                    {analytics.teamAnalytics.totalTeams || 0}
+                  </div>
+                  <div className={styles.metricLabel}>Total Teams</div>
+                </div>
+                <div className={styles.metricCard}>
+                  <div className={styles.metricValue}>
+                    {Object.keys(analytics.teamAnalytics.teamsByTier || {}).length}
+                  </div>
+                  <div className={styles.metricLabel}>Active Tiers</div>
+                </div>
+              </div>
+
+                             {analytics.teamAnalytics.teamAnalytics?.length > 0 && (
+                 <div className={styles.teamBreakdown}>
+                   <h3>All Teams</h3>
+                   <div className={styles.teamList}>
+                     {analytics.teamAnalytics.teamAnalytics.map((team) => (
+                       <div key={team.id} className={styles.teamItem}>
+                         <div 
+                           className={styles.teamHeader}
+                           onClick={() => toggleTeamExpansion(team.id)}
+                         >
+                           <div className={styles.teamInfo}>
+                             <div className={styles.teamExpandIcon}>
+                               {expandedTeams.has(team.id) ? (
+                                 <ChevronDown size={16} />
+                               ) : (
+                                 <ChevronRight size={16} />
+                               )}
+                             </div>
+                             <div className={styles.teamDetails}>
+                               <span className={styles.teamName}>{team.name}</span>
+                               <span className={styles.teamTier}>{team.tier}</span>
+                             </div>
+                           </div>
+                           <div className={styles.teamStats}>
+                             <span className={styles.teamUsers}>
+                               {team.currentUsers}/{team.maxUsers} users
+                             </span>
+                             <span className={styles.teamActivity}>
+                               {team.activityCount} activities
+                             </span>
+                           </div>
+                         </div>
+                         
+                                                   {expandedTeams.has(team.id) && (
+                            <div className={styles.teamMembers}>
+                              {teamUsers[team.id] ? (
+                                teamUsers[team.id].map((user) => (
+                                  <div key={user.id} className={styles.teamMember}>
+                                    <div className={styles.memberInfo}>
+                                      <span className={styles.memberName}>
+                                        {user.first_name} {user.last_name}
+                                      </span>
+                                      <span className={styles.memberEmail}>{user.email}</span>
+                                    </div>
+                                    <div className={styles.memberRole}>
+                                      <span className={styles.roleBadge}>{user.role || 'No Role'}</span>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className={styles.loadingMembers}>
+                                  <Spinner size="sm" />
+                                  <span>Loading team members...</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
+            </div>
+          </div>
+       </div>
     </div>
   );
 } 

@@ -3,7 +3,7 @@ import { supabase } from "../../../../app/supabaseClient";
 import styles from "./ManageUsers.module.css";
 import Button from "../../../../components/Buttons/Button";
 import { useNavigate } from "react-router-dom";
-import TeamColorManager from "../../../../components/TeamColorManager";
+import TeamColorManager from "../Branding/TeamColorManager";
 
 export default function ManageUsers() {
   const navigate = useNavigate();
@@ -273,18 +273,8 @@ export default function ManageUsers() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.backButtonRow}>
-        <Button
-          variant="gray"
-          size="sm"
-          onClick={() => navigate("/app/profile")}
-        >
-          ← Back to Profile
-        </Button>
-      </div>
-
       <div className={styles.teamNameTopBar}>
-        <h1 className={styles.header}>Admin Dashboard</h1>
+        <h1 className={styles.header}>User Management</h1>
         <div className={styles.teamNameWrapper}>
           {!editingTeamName ? (
             <>

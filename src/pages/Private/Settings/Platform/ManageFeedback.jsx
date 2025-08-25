@@ -345,7 +345,7 @@ export default function ManageFeedback() {
     <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1>💬 Feedback Management</h1>
+          <h1>Feedback Management</h1>
           <p>Review and approve testimonials and feature requests</p>
         </div>
         

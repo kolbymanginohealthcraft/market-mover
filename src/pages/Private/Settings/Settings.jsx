@@ -8,9 +8,9 @@ import {
   UsersTab,
   BrandingTab,
   SubscriptionTab,
-  PlatformTab,
   CompanyTab
 } from "./index";
+import PlatformLayout from "./Platform/PlatformLayout";
 
 export default function Settings() {
   const location = useLocation();
@@ -91,7 +91,7 @@ export default function Settings() {
           <Route path="company" element={<CompanyTab />} />
           <Route path="branding" element={<BrandingTab />} />
           <Route path="subscription" element={<SubscriptionTab />} />
-          <Route path="platform" element={<PlatformTab />} />
+          <Route path="platform/*" element={<PlatformLayout />} />
           <Route path="*" element={<Navigate to="profile" replace />} />
         </Routes>
       </div>

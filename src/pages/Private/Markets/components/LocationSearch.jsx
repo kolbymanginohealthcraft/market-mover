@@ -49,7 +49,9 @@ export default function LocationSearch({
             Search
           </Button>
         </div>
+      </div>
 
+      <div className={styles.controlsRight}>
         <div className={styles.radiusSection}>
           <label htmlFor="radius-slider" className={styles.radiusLabel}>
             Radius: {radius} miles
@@ -64,9 +66,6 @@ export default function LocationSearch({
             className={styles.radiusSlider}
           />
         </div>
-      </div>
-
-      <div className={styles.controlsRight}>
         <div className={styles.saveSection}>
           <Button 
             onClick={onSaveMarket}

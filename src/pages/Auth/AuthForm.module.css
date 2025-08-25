@@ -59,10 +59,18 @@
 }
 
 .input:focus {
-  outline: none;
-  border: 2px solid #3599b8;
-  background-color: #fff9e6;
-  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2);
+  outline: none !important;
+  border: 2px solid #3599b8 !important;
+  background-color: #fff9e6 !important;
+  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2) !important;
+}
+
+/* Override global input focus styles for login page */
+.container .input:focus {
+  outline: none !important;
+  border: 2px solid #3599b8 !important;
+  background-color: #fff9e6 !important;
+  box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2) !important;
 }
 
 .button {

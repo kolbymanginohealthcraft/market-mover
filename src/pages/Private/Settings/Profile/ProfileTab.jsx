@@ -361,7 +361,7 @@ export default function ProfileTab() {
                         <Button
                           variant="gold"
                           size="sm"
-                          onClick={() => navigate("/pricing")}
+                          onClick={() => navigate("/app/pricing")}
                         >
                           Go to Pricing & Payment
                         </Button>

@@ -467,6 +467,7 @@
 .controlsRight {
   display: flex;
   align-items: center;
+  gap: 24px;
 }
 
 .searchSection {
@@ -478,9 +479,9 @@
 
 .searchInput {
   width: 500px;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
   font-size: 14px;
   transition: all 0.2s ease;
   background: white;
@@ -488,7 +489,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: #00c08b;
+  border-color: var(--primary-teal);
   background: white;
   box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
 }
@@ -501,60 +502,62 @@
 }
 
 .radiusLabel {
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .radiusSlider {
   flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: #e9ecef;
+  height: 4px;
+  border-radius: 2px;
+  background: #f8f8f8;
   outline: none;
-  -webkit-appearance: none;
+  /* -webkit-appearance: none; */
   min-width: 100px;
   cursor: pointer;
   transition: all 0.2s ease;
+  accent-color: #1DADBE;
+  color: #fafafa;
 }
 
 .radiusSlider:hover {
-  background: #d1d5db;
+  background: var(--gray-300);
 }
 
 .radiusSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #00c08b;
+  background: var(--primary-teal);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 192, 139, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   border: 2px solid white;
   transition: all 0.2s ease;
 }
 
 .radiusSlider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 192, 139, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .radiusSlider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #00c08b;
+  background: var(--primary-teal);
   cursor: pointer;
   border: 2px solid white;
-  box-shadow: 0 2px 8px rgba(0, 192, 139, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
 .radiusSlider::-moz-range-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 192, 139, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .saveSection {
@@ -565,10 +568,10 @@
 /* Custom Button Styles to Override Default */
 .searchSection button,
 .saveSection button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 6px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -578,18 +581,21 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
 }
 
 .searchSection button {
-  background: #00c08b;
-  color: white;
+  background: var(--white);
+  color: var(--gray-700);
 }
 
 .searchSection button:hover:not(:disabled) {
-  background: #00a876;
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 192, 139, 0.3);
 }
 
 .searchSection button:disabled {
@@ -600,18 +606,20 @@
 }
 
 .saveSection button {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: var(--primary-teal);
   color: white;
+  border-color: var(--primary-teal);
 }
 
 .saveSection button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  background: var(--primary-teal-dark);
+  border-color: var(--primary-teal-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 .saveSection button:disabled {
   background: #9ca3af;
+  border-color: #9ca3af;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;

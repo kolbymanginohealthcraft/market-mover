@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   User, 
@@ -19,14 +19,53 @@ import {
   Lightbulb,
   MessageCircle,
   Search,
-  Activity
+  Activity,
+  ShoppingCart
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
+import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
+import { supabase } from '../../app/supabaseClient';
 
 const SubNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [marketsViewMode, setMarketsViewMode] = useState('list');
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [pricingStep, setPricingStep] = useState(1);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+          
+          setUserRole(profile?.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  // Listen for pricing step updates
+  useEffect(() => {
+    const handlePricingStepUpdate = (event) => {
+      setPricingStep(event.detail.step);
+    };
+
+    window.addEventListener('pricingStepUpdate', handlePricingStepUpdate);
+    return () => window.removeEventListener('pricingStepUpdate', handlePricingStepUpdate);
+  }, []);
   
   // Extract the active tab from the current path
   const pathSegments = location.pathname.split('/');
@@ -260,25 +299,106 @@ const SubNavigation = () => {
 
   // Handle settings pages
   if (location.pathname.includes('/settings')) {
-    const tabs = [
-      { id: "profile", label: "Profile", icon: User, path: "/app/settings/profile" },
-      { id: "company", label: "Company", icon: Building2, path: "/app/settings/company" },
-      { id: "users", label: "Users", icon: Users, path: "/app/settings/users" },
-      { id: "branding", label: "Branding", icon: Palette, path: "/app/settings/branding" },
-      { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription" },
-      { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform" }
+    // Check if user can access restricted tabs
+    const canAccessPlatform = hasPlatformAccess(userRole);
+    const canAccessSubscription = isTeamAdmin(userRole);
+    const canAccessUsers = isTeamAdmin(userRole);
+    const canAccessColors = userRole !== null;
+
+    // Special handling for platform sub-routes
+    let currentActiveTab = activeTab;
+    if (location.pathname.includes('/settings/platform')) {
+      currentActiveTab = 'platform';
+    }
+
+    const allTabs = [
+      { id: "profile", label: "Profile", icon: User, path: "/app/settings/profile", show: true },
+      { id: "company", label: "Company", icon: Building2, path: "/app/settings/company", show: canAccessUsers },
+      { id: "users", label: "Users", icon: Users, path: "/app/settings/users", show: canAccessUsers },
+      { id: "branding", label: "Branding", icon: Palette, path: "/app/settings/branding", show: canAccessColors },
+      { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription", show: canAccessSubscription },
+      { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform", show: canAccessPlatform }
     ];
 
+    // Filter tabs based on user permissions
+    const visibleTabs = allTabs.filter(tab => tab.show);
+
+    // If we're on a platform sub-page, render both navigation levels
+    if (location.pathname.includes('/settings/platform/')) {
+      // Determine the correct active platform sub-tab
+      let currentPlatformTab = "analytics"; // Default to analytics
+      
+      if (location.pathname.includes('/analytics')) {
+        currentPlatformTab = 'analytics';
+      } else if (location.pathname.includes('/announcements')) {
+        currentPlatformTab = 'announcements';
+      } else if (location.pathname.includes('/feedback')) {
+        currentPlatformTab = 'feedback';
+      } else if (location.pathname.includes('/policies')) {
+        currentPlatformTab = 'policies';
+      }
+
+      const platformTabs = [
+        { id: "analytics", label: "Analytics Dashboard", icon: BarChart3, path: "/app/settings/platform/analytics" },
+        { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/settings/platform/announcements" },
+        { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/settings/platform/feedback" },
+        { id: "policies", label: "Policy Management", icon: FileText, path: "/app/settings/platform/policies" }
+      ];
+
+             return (
+         <>
+           {/* First level navigation - Settings tabs */}
+           <nav className={styles.subNavigation}>
+             <div className={styles.navLeft}>
+               {visibleTabs.map((tab) => {
+                 const IconComponent = tab.icon;
+                 return (
+                   <Link
+                     key={tab.id}
+                     to={tab.path}
+                     className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                   >
+                     <IconComponent size={16} />
+                     {tab.label}
+                   </Link>
+                 );
+               })}
+             </div>
+           </nav>
+           
+           {/* Second level navigation - Platform sub-tabs */}
+           <nav className={`${styles.subNavigation} ${styles.platformSubNav}`}>
+             <div className={styles.navLeft}>
+               {platformTabs.map((tab) => {
+                 const IconComponent = tab.icon;
+                 return (
+                   <Link
+                     key={tab.id}
+                     to={tab.path}
+                     className={`${styles.tab} ${currentPlatformTab === tab.id ? styles.active : ''}`}
+                   >
+                     <IconComponent size={16} />
+                     {tab.label}
+                   </Link>
+                 );
+               })}
+             </div>
+           </nav>
+         </>
+       );
+    }
+
+    // Regular settings page - just the first level navigation
     return (
       <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
               <Link
                 key={tab.id}
                 to={tab.path}
-                className={`${styles.tab} ${activeTab === tab.id ? styles.active : ''}`}
+                className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
               >
                 <IconComponent size={16} />
                 {tab.label}
@@ -344,6 +464,40 @@ const SubNavigation = () => {
                 <IconComponent size={16} />
                 {tab.label}
               </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // Handle pricing page
+  if (location.pathname.includes('/pricing')) {
+    const currentStep = pricingStep.toString();
+    
+    const tabs = [
+      { id: "1", label: "Add to Cart", icon: ShoppingCart, path: "/app/pricing?step=1" },
+      { id: "2", label: "Team Setup", icon: Users, path: "/app/pricing?step=2" },
+      { id: "3", label: "Payment", icon: CreditCard, path: "/app/pricing?step=3" }
+    ];
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+                             <button
+                 key={tab.id}
+                 className={`${styles.tab} ${parseInt(currentStep) === parseInt(tab.id) ? styles.active : ''}`}
+                 onClick={() => {
+                   // This will be handled by the pricing page component
+                   window.dispatchEvent(new CustomEvent('pricingStepChange', { detail: { step: parseInt(tab.id) } }));
+                 }}
+               >
+                <IconComponent size={16} />
+                {tab.label}
+              </button>
             );
           })}
         </div>

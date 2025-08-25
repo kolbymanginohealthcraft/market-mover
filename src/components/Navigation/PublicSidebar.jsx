@@ -33,10 +33,6 @@ const PublicSidebar = () => {
           Home
         </Link>
 
-        <Link to="/pricing" className={`${styles.navItem} ${isActive('/pricing') ? styles.active : ''}`}>
-          <DollarSign size={14} />
-          Pricing
-        </Link>
         <Link to="/faq" className={`${styles.navItem} ${isActive('/faq') ? styles.active : ''}`}>
           <HelpCircle size={14} />
           FAQ

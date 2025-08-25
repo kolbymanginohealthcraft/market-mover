@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './MarketOverview.module.css';
@@ -27,6 +27,8 @@ export default function MarketOverview({ market: marketProp, providers: provider
   const [marketName, setMarketName] = useState('');
   const [marketRadius, setMarketRadius] = useState(10);
   const [tagUpdateTrigger, setTagUpdateTrigger] = useState(0);
+  
+  const marketNameInputRef = useRef(null);
 
   // Team provider tags functionality
   const { 
@@ -81,6 +83,16 @@ export default function MarketOverview({ market: marketProp, providers: provider
     console.log('🔄 Team provider tags updated:', teamProviderTags.length, teamProviderTags);
     setTagUpdateTrigger(prev => prev + 1);
   }, [teamProviderTags]);
+
+  // Auto-focus input when sidebar opens
+  useEffect(() => {
+    if (showSettings && editingMarket && marketNameInputRef.current) {
+      // Small delay to ensure the sidebar is fully rendered
+      setTimeout(() => {
+        marketNameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showSettings, editingMarket]);
 
   const fetchMarketData = async () => {
     try {
@@ -506,17 +518,12 @@ export default function MarketOverview({ market: marketProp, providers: provider
                  Market Name:
                </label>
                <input
+                 ref={marketNameInputRef}
                  type="text"
                  id="marketName"
                  value={marketName}
                  onChange={(e) => setMarketName(e.target.value)}
-                 style={{
-                   width: '100%',
-                   padding: '0.75rem',
-                   border: '1px solid #e5e7eb',
-                   borderRadius: '6px',
-                   fontSize: '1rem'
-                 }}
+                 className="form-input"
                />
              </div>
 

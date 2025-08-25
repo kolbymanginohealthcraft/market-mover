@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Palette } from "lucide-react";
 import useTeamCustomColors from "../../../../hooks/useTeamCustomColors";
 import Button from "../../../../components/Buttons/Button";
@@ -27,6 +27,8 @@ export default function BrandingTab() {
   const [newColorHex, setNewColorHex] = useState('#3B82F6');
   const [editColorName, setEditColorName] = useState('');
   const [editColorHex, setEditColorHex] = useState('');
+  
+  const colorNameInputRef = useRef(null);
 
   // Logo management state
   const [logoFile, setLogoFile] = useState(null);
@@ -98,6 +100,16 @@ export default function BrandingTab() {
     setNewColorHex('#3B82F6');
     setShowAddPanel(true);
   };
+
+  // Auto-focus input when sidebar opens
+  useEffect(() => {
+    if (showAddPanel && colorNameInputRef.current) {
+      // Small delay to ensure the sidebar is fully rendered
+      setTimeout(() => {
+        colorNameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showAddPanel]);
 
   const copyHexToClipboard = async (hexCode) => {
     try {
@@ -498,19 +510,14 @@ export default function BrandingTab() {
               Color Name
             </label>
             <input
+              ref={colorNameInputRef}
               type="text"
               value={editingColor ? editColorName : newColorName}
               onChange={(e) => editingColor ? setEditColorName(e.target.value) : setNewColorName(e.target.value)}
               placeholder="e.g., Primary Blue, Accent Red"
               maxLength={50}
               required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                fontSize: '1rem'
-              }}
+              className="form-input"
             />
           </div>
 
@@ -539,13 +546,8 @@ export default function BrandingTab() {
                 placeholder="#3B82F6"
                 pattern="^#[0-9A-Fa-f]{6}$"
                 required
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '1rem'
-                }}
+                className="form-input"
+                style={{ flex: 1 }}
               />
             </div>
           </div>

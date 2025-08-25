@@ -621,14 +621,7 @@ const PolicyManagement = () => {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Button
-          variant="gray"
-          size="sm"
-          onClick={() => navigate('/app/settings')}
-          className={styles.backButton}
-        >
-          ← Back to Settings
-        </Button>
+
         <h1>Policy Management</h1>
       </div>
 

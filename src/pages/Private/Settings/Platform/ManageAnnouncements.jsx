@@ -88,7 +88,7 @@ export default function ManageAnnouncements() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>📢 Manage System Announcements</h1>
+        <h1>System Announcements</h1>
         <p className={styles.subtitle}>
           Create and manage announcements that appear on user home pages
         </p>
@@ -98,13 +98,13 @@ export default function ManageAnnouncements() {
         {/* Left Panel - Add New Announcement */}
         <div className={styles.leftPanel}>
           <div className={styles.section}>
-            <h2>➕ Create New Announcement</h2>
+            <h2>Create New Announcement</h2>
             <div className={styles.form}>
               <div className={styles.formGroup}>
                 <label>Title</label>
                 <input
                   type="text"
-                  placeholder="e.g., 🎉 New Feature Available"
+                  placeholder="e.g., New Feature Available"
                   value={newAnnouncement.title}
                   onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
                 />
@@ -165,7 +165,7 @@ export default function ManageAnnouncements() {
         {/* Right Panel - Existing Announcements */}
         <div className={styles.rightPanel}>
           <div className={styles.section}>
-            <h2>📋 All Announcements</h2>
+            <h2>All Announcements</h2>
             {loading ? (
               <p className={styles.loading}>Loading announcements...</p>
             ) : announcements.length === 0 ? (

@@ -6,7 +6,8 @@ import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
 import SidePanel from "../../../../components/Overlays/SidePanel";
 import SectionHeader from "../../../../components/Layouts/SectionHeader";
-import { isTeamAdmin, getRoleDisplayName } from "../../../../utils/roleHelpers";
+import Dropdown from "../../../../components/Buttons/Dropdown";
+import { isTeamAdmin, isPlatformAdmin, getRoleDisplayName } from "../../../../utils/roleHelpers";
 import styles from "./UsersTab.module.css";
 
 export default function UsersTab() {
@@ -29,12 +30,26 @@ export default function UsersTab() {
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [removing, setRemoving] = useState(null); // Track which user is being removed
+  const [editingRole, setEditingRole] = useState(null); // Track which user's role is being edited
+  const [updatingRole, setUpdatingRole] = useState(null); // Track which user's role is being updated
 
   const inviteInputRef = useRef(null);
 
   useEffect(() => {
     fetchTeamData();
   }, []);
+
+  // Auto-focus input when sidebar opens
+  useEffect(() => {
+    if (showInvitePanel && inviteInputRef.current) {
+      // Small delay to ensure the sidebar is fully rendered
+      setTimeout(() => {
+        inviteInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showInvitePanel]);
 
   const fetchTeamData = async () => {
     setLoading(true);
@@ -169,6 +184,8 @@ export default function UsersTab() {
       return;
     }
 
+    setInviting(true);
+
     const payload = {
       email: inviteEmail,
       team_id: teamInfo.id,
@@ -201,13 +218,21 @@ export default function UsersTab() {
         setMessage("Invite sent successfully!");
         setMessageType("success");
         setInviteEmail("");
+        setShowInvitePanel(false); // Close the sidebar
         fetchTeamData(); // Refresh data
-        if (inviteInputRef.current) inviteInputRef.current.focus();
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setMessage("");
+          setMessageType("");
+        }, 5000);
       }
     } catch (err) {
       console.error("💥 Invite failed:", err);
       setMessage("Failed to send invite. Try again.");
       setMessageType("error");
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -224,6 +249,8 @@ export default function UsersTab() {
     ) {
       return;
     }
+
+    setRemoving(member.id);
 
     try {
       const res = await fetch(
@@ -253,17 +280,71 @@ export default function UsersTab() {
         setMessage("Member removed successfully!");
         setMessageType("success");
         fetchTeamData(); // Refresh data
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setMessage("");
+          setMessageType("");
+        }, 5000);
       }
     } catch (err) {
       console.error("💥 Remove failed:", err);
       setMessage("Failed to remove member. Try again.");
       setMessageType("error");
+    } finally {
+      setRemoving(null);
     }
   };
 
   const handleInviteKeyDown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !inviting && inviteEmail.trim()) {
       sendInviteEmail();
+    }
+  };
+
+  const handleRoleUpdate = async (member, newRole) => {
+    if (newRole === member.role) {
+      setEditingRole(null);
+      return;
+    }
+
+    setUpdatingRole(member.id);
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", member.id);
+
+      if (error) {
+        setMessage("Failed to update role. Try again.");
+        setMessageType("error");
+      } else {
+        setMessage("Role updated successfully!");
+        setMessageType("success");
+        fetchTeamData(); // Refresh data
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setMessage("");
+          setMessageType("");
+        }, 5000);
+      }
+    } catch (err) {
+      console.error("💥 Role update failed:", err);
+      setMessage("Failed to update role. Try again.");
+      setMessageType("error");
+    } finally {
+      setUpdatingRole(null);
+      setEditingRole(null);
+    }
+  };
+
+  const handleRoleKeyDown = (e, member, newRole) => {
+    if (e.key === "Enter") {
+      handleRoleUpdate(member, newRole);
+    } else if (e.key === "Escape") {
+      setEditingRole(null);
     }
   };
 
@@ -291,13 +372,11 @@ export default function UsersTab() {
       />
       
       <div className={styles.content}>
-        {message && (
-          <div className={`${styles.message} ${styles[messageType]}`}>
-            {messageType === "success" && "✅"}
-            {messageType === "error" && "❌"}
-            {message}
-          </div>
-        )}
+                 {message && (
+           <div className={`${styles.message} ${styles[messageType]}`}>
+             {message}
+           </div>
+         )}
 
         {/* Team Members Table */}
         <div className={styles.membersSection}>
@@ -340,7 +419,74 @@ export default function UsersTab() {
                   {member.first_name || "-"} {member.last_name || ""}
                 </td>
                 <td>{member.title || "-"}</td>
-                <td>{getRoleDisplayName(member.role)}</td>
+                <td>
+                  {updatingRole === member.id ? (
+                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Updating...</span>
+                  ) : (
+                                         <Dropdown
+                       trigger={
+                         <span 
+                           className={`${styles.roleBadge} ${
+                             member.role === 'Platform Admin' ? styles.platformAdmin :
+                             member.role === 'Platform Support' ? styles.platformSupport :
+                             member.role === 'Team Admin' ? styles.admin : styles.member
+                           } ${userIsTeamAdmin && member.id !== currentUserId ? styles.editableRoleBadge : ''}`}
+                           title={userIsTeamAdmin && member.id !== currentUserId ? "Click to edit role" : ""}
+                         >
+                           {getRoleDisplayName(member.role)}
+                         </span>
+                       }
+                       isOpen={editingRole === member.id}
+                       onToggle={(isOpen) => {
+                         if (userIsTeamAdmin && member.id !== currentUserId) {
+                           setEditingRole(isOpen ? member.id : null);
+                         }
+                       }}
+                       className={styles.roleDropdown}
+                     >
+                       {isPlatformAdmin(profile.role) && (
+                         <button
+                           className={styles.dropdownItem}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleRoleUpdate(member, 'Platform Admin');
+                           }}
+                         >
+                           Platform Admin
+                         </button>
+                       )}
+                       {isPlatformAdmin(profile.role) && (
+                         <button
+                           className={styles.dropdownItem}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleRoleUpdate(member, 'Platform Support');
+                           }}
+                         >
+                           Platform Support
+                         </button>
+                       )}
+                       <button
+                         className={styles.dropdownItem}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleRoleUpdate(member, 'Team Admin');
+                         }}
+                       >
+                         Team Admin
+                       </button>
+                       <button
+                         className={styles.dropdownItem}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleRoleUpdate(member, 'Team Member');
+                         }}
+                       >
+                         Team Member
+                       </button>
+                     </Dropdown>
+                  )}
+                </td>
                 <td>{member.email || "-"}</td>
                 {userIsTeamAdmin && (
                   <td>
@@ -350,8 +496,9 @@ export default function UsersTab() {
                         variant="red"
                         ghost
                         onClick={() => onDeleteMember(member)}
+                        disabled={removing === member.id}
                       >
-                        Remove
+                        {removing === member.id ? 'Removing...' : 'Remove'}
                       </Button>
                     )}
                   </td>
@@ -372,6 +519,20 @@ export default function UsersTab() {
         <div>
           <p>Send an invitation to join your team. The recipient will receive an email with instructions to join.</p>
           
+          {inviting && (
+            <div style={{ 
+              marginTop: '1rem', 
+              padding: '0.75rem', 
+              backgroundColor: 'rgba(53, 153, 184, 0.1)', 
+              border: '1px solid rgba(53, 153, 184, 0.2)', 
+              borderRadius: '6px',
+              color: '#265947',
+              textAlign: 'center'
+            }}>
+              <p>📧 Sending invitation email...</p>
+            </div>
+          )}
+          
           <div style={{ marginTop: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
               Email Address
@@ -383,14 +544,8 @@ export default function UsersTab() {
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               onKeyDown={handleInviteKeyDown}
-              disabled={licensesMaxedOut}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                fontSize: '1rem'
-              }}
+              disabled={licensesMaxedOut || inviting}
+              className="form-input"
             />
             
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -398,15 +553,16 @@ export default function UsersTab() {
                 variant="green"
                 size="md"
                 onClick={sendInviteEmail}
-                disabled={!inviteEmail || licensesMaxedOut}
+                disabled={!inviteEmail || licensesMaxedOut || inviting}
               >
-                Send Invite
+                {inviting ? 'Sending Invite...' : 'Send Invite'}
               </Button>
               <Button 
                 variant="gray" 
                 size="md" 
                 outline 
                 onClick={() => setShowInvitePanel(false)}
+                disabled={inviting}
               >
                 Cancel
               </Button>

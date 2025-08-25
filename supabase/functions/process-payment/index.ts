@@ -71,7 +71,7 @@ serve(async (req) => {
   }
 
   // ─── Build Cybersource Request ─────────────────────────────────────
-  const { number, expMonth, expYear, cvv, amount } = payloadJson;
+  const { number, expMonth, expYear, cvv, amount, teamName, companyType, planId, billingCycle, additionalLicenses, userId } = payloadJson;
   const resource = "/pts/v2/payments";
   const endpoint = "https://apitest.cybersource.com";
   const url      = endpoint + resource;
@@ -172,6 +172,103 @@ serve(async (req) => {
   } catch (err) {
     console.error("❌ Response parsing error:", err);
     csData = { error: "Invalid response" };
+  }
+
+  // ─── Create Team if Payment Successful ─────────────────────────────
+  if (csResp.status === 201 && csData.status === "AUTHORIZED") {
+    try {
+      console.log("🎉 Payment successful, creating team...");
+      
+      // Create Supabase client
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      
+      if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("❌ Missing Supabase credentials");
+        return new Response(JSON.stringify({ error: "Server configuration error" }), {
+          status: 500,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Map plan ID to tier
+      const planTiers = ["starter", "advanced", "pro"];
+      const tier = planTiers[planId] || "starter";
+
+      // Calculate max users based on plan and additional licenses
+      const baseUsers = planId === 0 ? 3 : planId === 1 ? 10 : 30;
+      const maxUsers = baseUsers + additionalLicenses;
+
+      // Create team
+      const { data: team, error: teamError } = await supabase
+        .from("teams")
+        .insert({
+          name: teamName,
+          tier: tier,
+          max_users: maxUsers,
+          company_type: companyType,
+          billing_cycle: billingCycle,
+          created_by: userId
+        })
+        .select()
+        .single();
+
+      if (teamError) {
+        console.error("❌ Team creation failed:", teamError);
+        return new Response(JSON.stringify({ error: "Team creation failed" }), {
+          status: 500,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      // Update user's team_id and role
+      const { error: userError } = await supabase
+        .from("profiles")
+        .update({
+          team_id: team.id,
+          role: "Team Admin"
+        })
+        .eq("id", userId);
+
+      if (userError) {
+        console.error("❌ User update failed:", userError);
+        return new Response(JSON.stringify({ error: "User update failed" }), {
+          status: 500,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      console.log("✅ Team created successfully:", team.id);
+      
+      // Add team info to response
+      csData.team = {
+        id: team.id,
+        name: team.name,
+        tier: team.tier
+      };
+
+    } catch (err) {
+      console.error("❌ Team creation error:", err);
+      return new Response(JSON.stringify({ error: "Team creation failed" }), {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json",
+        },
+      });
+    }
   }
 
   // ─── Return to Client ──────────────────────────────────────────────

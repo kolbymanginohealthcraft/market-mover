@@ -1,3 +1,12 @@
+/* CSS Variables */
+:root {
+  --color-green: #265947;
+  --color-gray: #5f6b6d;
+  --gray-50: #f9fafb;
+  --gray-200: #e5e7eb;
+  --gray-700: #374151;
+}
+
 /* Team Tab Styling */
 .section {
   margin-bottom: 32px;
@@ -271,6 +280,100 @@
 
 .membersTable tr:last-child td {
   border-bottom: none;
+}
+
+/* Editable Role Badge Styling */
+.editableRoleBadge {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.editableRoleBadge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.editableRoleBadge:active {
+  transform: translateY(0);
+}
+
+.editableRoleBadge::after {
+  content: "";
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.editableRoleBadge:hover::after {
+  opacity: 1;
+}
+
+/* Role Badge Styling */
+.roleBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.roleBadge.admin {
+  background: #f0f9f6;
+  color: #265947;
+  border-color: #d1e7dd;
+}
+
+.roleBadge.member {
+  background: #f8f9fa;
+  color: #6c757d;
+  border-color: #e9ecef;
+}
+
+.roleBadge.platformAdmin {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffeaa7;
+}
+
+.roleBadge.platformSupport {
+  background: #d1ecf1;
+  color: #0c5460;
+  border-color: #bee5eb;
+}
+
+/* Role Dropdown */
+.roleDropdown {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 0.25rem 0;
+  min-width: 140px;
+  z-index: 1000;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background-color: var(--gray-50);
 }
 
 /* Loading State */

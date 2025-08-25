@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './PricingPage.module.css';
 import Button from '../../../components/Buttons/Button';
 import { usePlans } from '../../../hooks/usePlans';
@@ -6,11 +7,45 @@ import Spinner from '../../../components/Buttons/Spinner';
 import { featureMatrix, planDescriptions } from './pricingMatrix.js';
 import { supabase } from '../../../app/supabaseClient';
 
+
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [additionalLicenses, setAdditionalLicenses] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const { plans, loading, error } = usePlans();
+  const navigate = useNavigate();
+  
+  // Step navigation
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  
+  // Listen for step changes from the subnavigation
+  useEffect(() => {
+    const handleStepChange = (event) => {
+      const newStep = event.detail.step;
+      if (newStep <= currentStep || newStep === 1) {
+        setCurrentStep(newStep);
+      }
+    };
+
+    window.addEventListener('pricingStepChange', handleStepChange);
+    return () => window.removeEventListener('pricingStepChange', handleStepChange);
+  }, [currentStep]);
+
+  // Broadcast current step to subnavigation
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('pricingStepUpdate', { detail: { step: currentStep } }));
+  }, [currentStep]);
+  
+  // Form state for payment
+  const [teamName, setTeamName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expMonth, setExpMonth] = useState('');
+  const [expYear, setExpYear] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
 
   const calculatePrice = (amount) => {
     if (!amount) return '$0/mo';
@@ -117,6 +152,81 @@ export default function PricingPage() {
     return plan?.max_users || 0;
   };
 
+  // Payment form helpers
+  const isFormValid = () => {
+    if (currentStep === 1) {
+      return selectedPlan !== null;
+    }
+    if (currentStep === 2) {
+      return teamName.trim();
+    }
+    return teamName.trim() && 
+           cardNumber.replace(/\s/g, '').length >= 13 &&
+           expMonth && 
+           expYear && 
+           cvv.length >= 3;
+  };
+
+  const formatCardNumber = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const handleCardNumberChange = (e) => {
+    const formatted = formatCardNumber(e.target.value);
+    setCardNumber(formatted);
+  };
+
+  const calculateTotal = () => {
+    if (!plans || selectedPlan === null) return 0;
+    
+    const plan = plans[selectedPlan];
+    let basePrice = plan.price_monthly || 0;
+    
+    if (billingCycle === 'annual') {
+      basePrice = basePrice * 12 * 0.8; // 20% discount
+    }
+    
+    // Additional licenses cost
+    const licenseBlockPrice = plans[0]?.license_block_price || 250;
+    const additionalCost = additionalLicenses > 0 
+      ? (additionalLicenses / 5) * licenseBlockPrice * (billingCycle === 'annual' ? 12 * 0.8 : 1)
+      : 0;
+    
+    return basePrice + additionalCost;
+  };
+
+  const getPlanName = () => {
+    const planNames = ['Starter', 'Advanced', 'Pro'];
+    return planNames[selectedPlan] || 'Unknown';
+  };
+
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      setPaymentError('');
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      setPaymentError('');
+    }
+  };
+
   const handleCheckout = async () => {
     if (selectedPlan === null) {
       alert('Please select a plan first');
@@ -129,45 +239,61 @@ export default function PricingPage() {
       return;
     }
 
-    const user_id = data.user.id;
-    
-    // Map plan index to price_id (you'll need to update these based on your actual Stripe price IDs)
-    const planPriceIds = {
-      0: 'starter_mock', // Starter plan
-      1: 'advanced_mock', // Advanced plan  
-      2: 'pro_mock' // Pro plan
-    };
+    // Move to next step
+    setCurrentStep(2);
+  };
 
-    const price_id = planPriceIds[selectedPlan];
-    if (!price_id) {
-      alert('Invalid plan selected');
-      return;
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
+    setPaymentError('');
 
     try {
-      const res = await fetch(
-        'https://ukuxibhujcozcwozljzf.supabase.co/functions/v1/create-checkout-session',
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        setPaymentError('Authentication failed. Please log in again.');
+        setProcessing(false);
+        return;
+      }
+
+      const totalAmount = calculateTotal();
+      
+      const response = await fetch(
+        'https://ukuxibhujcozcwozljzf.supabase.co/functions/v1/process-payment',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            user_id, 
-            price_id,
-            billing_cycle: billingCycle,
-            additional_licenses: additionalLicenses
+          body: JSON.stringify({
+            number: cardNumber.replace(/\s/g, ''),
+            expMonth: parseInt(expMonth),
+            expYear: parseInt(expYear),
+            cvv,
+            amount: totalAmount.toFixed(2),
+            teamName,
+            companyType: 'Provider', // Default value
+            planId: selectedPlan,
+            billingCycle,
+            additionalLicenses,
+            userId: user.id
           }),
         }
       );
 
-      const { url } = await res.json();
-      if (url) {
-        window.location.href = url;
-      } else {
-        alert('Error creating checkout session');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Payment failed');
       }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Error processing checkout. Please try again.');
+
+             // Payment successful - show success state
+       setPaymentSuccess(true);
+       setCurrentStep(3);
+
+    } catch (err) {
+      console.error('Payment error:', err);
+      setPaymentError(err.message || 'Payment processing failed. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -194,259 +320,544 @@ export default function PricingPage() {
     );
   }
 
-  return (
+    return (
     <div className={styles.page}>
-      {/* Two Column Layout */}
-      <div className={styles.twoColumnLayout}>
-        {/* Left Column - Pricing Matrix */}
-        <div className={styles.leftColumn}>
-          <div className={styles.pricingMatrix}>
-            <div className={styles.matrixTable}>
-              <div className={styles.matrixHeader}>
-                <div className={styles.matrixFeature}>Feature</div>
-                <div className={`${styles.matrixPlan} ${selectedPlan === 0 ? styles.selectedPlan : ''}`}>
-                  <div className={styles.planName}>{planDescriptions.starter.name}</div>
-                  <div className={styles.planDescription}>{planDescriptions.starter.description}</div>
-                </div>
-                <div className={`${styles.matrixPlan} ${selectedPlan === 1 ? styles.selectedPlan : ''}`}>
-                  <div className={styles.planName}>{planDescriptions.advanced.name}</div>
-                  <div className={styles.planDescription}>{planDescriptions.advanced.description}</div>
-                </div>
-                <div className={`${styles.matrixPlan} ${selectedPlan === 2 ? styles.selectedPlan : ''}`}>
-                  <div className={styles.planName}>{planDescriptions.pro.name}</div>
-                  <div className={styles.planDescription}>{planDescriptions.pro.description}</div>
+      <div className={styles.content}>
+        <>
+          {/* Step 1: Pricing Matrix */}
+          {currentStep === 1 && (
+            <div className={styles.twoColumnLayout}>
+              {/* Left Column - Pricing Matrix */}
+              <div className={styles.leftColumn}>
+                <div className={styles.pricingMatrix}>
+                  <div className={styles.matrixTable}>
+                    <div className={styles.matrixHeader}>
+                      <div className={styles.matrixFeature}>Feature</div>
+                      <div className={`${styles.matrixPlan} ${selectedPlan === 0 ? styles.selectedPlan : ''}`}>
+                        <div className={styles.planName}>{planDescriptions.starter.name}</div>
+                        <div className={styles.planDescription}>{planDescriptions.starter.description}</div>
+                      </div>
+                      <div className={`${styles.matrixPlan} ${selectedPlan === 1 ? styles.selectedPlan : ''}`}>
+                        <div className={styles.planName}>{planDescriptions.advanced.name}</div>
+                        <div className={styles.planDescription}>{planDescriptions.advanced.description}</div>
+                      </div>
+                      <div className={`${styles.matrixPlan} ${selectedPlan === 2 ? styles.selectedPlan : ''}`}>
+                        <div className={styles.planName}>{planDescriptions.pro.name}</div>
+                        <div className={styles.planDescription}>{planDescriptions.pro.description}</div>
+                      </div>
+                    </div>
+                    {featureMatrix.map((row, index) => (
+                      <div key={index} className={styles.matrixRow}>
+                        <div className={styles.matrixFeature}>
+                          {row.feature}
+                        </div>
+                        <div className={`${styles.matrixCell} ${row.type === 'price' ? styles.priceCell : ''} ${selectedPlan === 0 ? styles.selectedCell : ''}`}>
+                          {row.feature === 'Price' ? (
+                            <div className={styles.priceDisplay}>
+                              <div className={styles.priceAmount}>
+                                {calculatePrice(plans?.[0]?.price_monthly || 0)}
+                              </div>
+                              {billingCycle === 'annual' && (
+                                <div className={styles.savingsAmount}>
+                                  {calculateSavings(plans?.[0]?.price_monthly || 0)}
+                                </div>
+                              )}
+                            </div>
+                          ) : row.feature === 'Team Members' ? (
+                            <div className={styles.teamMembersDisplay}>
+                              <div className={styles.baseMembers}>
+                                {plans?.[0]?.max_users || 3}
+                              </div>
+                            </div>
+                          ) : row.feature === 'Saved Markets' ? (
+                            plans?.[0]?.saved_markets || row.starter
+                          ) : row.feature === 'Available Filters' ? (
+                            row.starter
+                          ) : row.feature === 'Provider Contact Info' ? (
+                            row.starter
+                          ) : row.feature === 'AI Marketing Assistant' ? (
+                            row.starter
+                          ) : (
+                            row.starter
+                          )}
+                        </div>
+                        <div className={`${styles.matrixCell} ${row.type === 'price' ? styles.priceCell : ''} ${selectedPlan === 1 ? styles.selectedCell : ''}`}>
+                          {row.feature === 'Price' ? (
+                            <div className={styles.priceDisplay}>
+                              <div className={styles.priceAmount}>
+                                {calculatePrice(plans?.[1]?.price_monthly || 0)}
+                              </div>
+                              {billingCycle === 'annual' && (
+                                <div className={styles.savingsAmount}>
+                                  {calculateSavings(plans?.[1]?.price_monthly || 0)}
+                                </div>
+                              )}
+                            </div>
+                          ) : row.feature === 'Team Members' ? (
+                            <div className={styles.teamMembersDisplay}>
+                              <div className={styles.baseMembers}>
+                                {plans?.[1]?.max_users || 10}
+                              </div>
+                            </div>
+                          ) : row.feature === 'Saved Markets' ? (
+                            plans?.[1]?.saved_markets || row.advanced
+                          ) : row.feature === 'Available Filters' ? (
+                            row.advanced
+                          ) : row.feature === 'Provider Contact Info' ? (
+                            row.advanced
+                          ) : row.feature === 'AI Marketing Assistant' ? (
+                            row.advanced
+                          ) : (
+                            row.advanced
+                          )}
+                        </div>
+                        <div className={`${styles.matrixCell} ${row.type === 'price' ? styles.priceCell : ''} ${selectedPlan === 2 ? styles.selectedCell : ''}`}>
+                          {row.feature === 'Price' ? (
+                            <div className={styles.priceDisplay}>
+                              <div className={styles.priceAmount}>
+                                {calculatePrice(plans?.[2]?.price_monthly || 0)}
+                              </div>
+                              {billingCycle === 'annual' && (
+                                <div className={styles.savingsAmount}>
+                                  {calculateSavings(plans?.[2]?.price_monthly || 0)}
+                                </div>
+                              )}
+                            </div>
+                          ) : row.feature === 'Team Members' ? (
+                            <div className={styles.teamMembersDisplay}>
+                              <div className={styles.baseMembers}>
+                                {plans?.[2]?.max_users || 30}
+                              </div>
+                            </div>
+                          ) : row.feature === 'Saved Markets' ? (
+                            plans?.[2]?.saved_markets || row.pro
+                          ) : row.feature === 'Available Filters' ? (
+                            row.pro
+                          ) : row.feature === 'Provider Contact Info' ? (
+                            row.pro
+                          ) : row.feature === 'AI Marketing Assistant' ? (
+                            row.pro
+                          ) : (
+                            row.pro
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              {featureMatrix.map((row, index) => (
-                <div key={index} className={styles.matrixRow}>
-                  <div className={styles.matrixFeature}>
-                    {row.feature}
-                  </div>
-                  <div className={`${styles.matrixCell} ${row.type === 'price' ? styles.priceCell : ''} ${selectedPlan === 0 ? styles.selectedCell : ''}`}>
-                    {row.feature === 'Price' ? (
-                      <div className={styles.priceDisplay}>
-                        <div className={styles.priceAmount}>
-                          {calculatePrice(plans?.[0]?.price_monthly || 0)}
-                        </div>
-                        {billingCycle === 'annual' && (
-                          <div className={styles.savingsAmount}>
-                            {calculateSavings(plans?.[0]?.price_monthly || 0)}
-                          </div>
-                        )}
-                      </div>
-                    ) : row.feature === 'Team Members' ? (
-                      <div className={styles.teamMembersDisplay}>
-                        <div className={styles.baseMembers}>
-                          {plans?.[0]?.max_users || 3}
-                        </div>
-                      </div>
-                    ) : row.feature === 'Saved Markets' ? (
-                      plans?.[0]?.saved_markets || row.starter
-                    ) : row.feature === 'Available Filters' ? (
-                      row.starter
-                    ) : row.feature === 'Provider Contact Info' ? (
-                      row.starter
-                    ) : row.feature === 'AI Marketing Assistant' ? (
-                      row.starter
-                    ) : (
-                      row.starter
-                    )}
-                  </div>
-                  <div className={`${styles.matrixCell} ${row.type === 'price' ? styles.priceCell : ''} ${selectedPlan === 1 ? styles.selectedCell : ''}`}>
-                    {row.feature === 'Price' ? (
-                      <div className={styles.priceDisplay}>
-                        <div className={styles.priceAmount}>
-                          {calculatePrice(plans?.[1]?.price_monthly || 0)}
-                        </div>
-                        {billingCycle === 'annual' && (
-                          <div className={styles.savingsAmount}>
-                            {calculateSavings(plans?.[1]?.price_monthly || 0)}
-                          </div>
-                        )}
-                      </div>
-                    ) : row.feature === 'Team Members' ? (
-                      <div className={styles.teamMembersDisplay}>
-                        <div className={styles.baseMembers}>
-                          {plans?.[1]?.max_users || 10}
-                        </div>
-                      </div>
-                    ) : row.feature === 'Saved Markets' ? (
-                      plans?.[1]?.saved_markets || row.advanced
-                    ) : row.feature === 'Available Filters' ? (
-                      row.advanced
-                    ) : row.feature === 'Provider Contact Info' ? (
-                      row.advanced
-                    ) : row.feature === 'AI Marketing Assistant' ? (
-                      row.advanced
-                    ) : (
-                      row.advanced
-                    )}
-                  </div>
-                  <div className={`${styles.matrixCell} ${row.type === 'price' ? styles.priceCell : ''} ${selectedPlan === 2 ? styles.selectedCell : ''}`}>
-                    {row.feature === 'Price' ? (
-                      <div className={styles.priceDisplay}>
-                        <div className={styles.priceAmount}>
-                          {calculatePrice(plans?.[2]?.price_monthly || 0)}
-                        </div>
-                        {billingCycle === 'annual' && (
-                          <div className={styles.savingsAmount}>
-                            {calculateSavings(plans?.[2]?.price_monthly || 0)}
-                          </div>
-                        )}
-                      </div>
-                    ) : row.feature === 'Team Members' ? (
-                      <div className={styles.teamMembersDisplay}>
-                        <div className={styles.baseMembers}>
-                          {plans?.[2]?.max_users || 30}
-                        </div>
-                      </div>
-                    ) : row.feature === 'Saved Markets' ? (
-                      plans?.[2]?.saved_markets || row.pro
-                    ) : row.feature === 'Available Filters' ? (
-                      row.pro
-                    ) : row.feature === 'Provider Contact Info' ? (
-                      row.pro
-                    ) : row.feature === 'AI Marketing Assistant' ? (
-                      row.pro
-                    ) : (
-                      row.pro
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* Right Column - Running Total and Checkout */}
-        <div className={styles.rightColumn}>
-          <div className={styles.orderSummary}>
-            <h3 className={styles.summaryTitle}>Order Summary</h3>
-            
-            {/* Billing Frequency Toggle */}
-            <div className={styles.lineItem}>
-              <span className={styles.itemLabel}>Billing Cycle</span>
-              <div className={styles.toggleWrapper}>
-                <span className={`${styles.toggleLabel} ${billingCycle === 'monthly' ? styles.active : ''}`}>
-                  Monthly
-                </span>
-                <button
-                  className={`${styles.toggleSwitch} ${billingCycle === 'annual' ? styles.annual : ''}`}
-                  onClick={() =>
-                    setBillingCycle((prev) => (prev === 'monthly' ? 'annual' : 'monthly'))
-                  }
-                  aria-label="Toggle billing cycle"
-                >
-                  <div className={styles.toggleHandle} />
-                </button>
-                <span className={`${styles.toggleLabel} ${billingCycle === 'annual' ? styles.active : ''}`}>
-                  Annual <span className={styles.discountNote}>(20% off)</span>
-                </span>
-              </div>
-            </div>
-            
-            {/* Plan Selection Line Item */}
-            <div className={styles.lineItem}>
-              <div className={styles.planGroup}>
-                <span className={styles.itemLabel}>Plan</span>
-                <select 
-                  value={selectedPlan !== null ? selectedPlan : ''} 
-                  onChange={(e) => handlePlanSelect(parseInt(e.target.value))}
-                  className={styles.planSelect}
-                >
-                  <option value="">Choose a plan...</option>
-                  <option value="0">Starter</option>
-                  <option value="1">Advanced</option>
-                  <option value="2">Pro</option>
-                </select>
-              </div>
-              {selectedPlan !== null && selectedPlan !== undefined && (
-                <span className={styles.itemPrice}>
-                  {billingCycle === 'annual' 
-                    ? `$${((plans?.[selectedPlan]?.price_monthly || 0) * 12).toLocaleString()}/yr`
-                    : `$${(plans?.[selectedPlan]?.price_monthly || 0).toLocaleString()}/mo`
-                  }
-                </span>
-              )}
-            </div>
-
-            {selectedPlan !== null && selectedPlan !== undefined && (
-              <>
-
-                {/* Number of Users Line Item */}
-                <div className={styles.lineItem}>
-                  <div className={styles.itemLabelWithControls}>
-                    <div className={styles.usersGroup}>
-                      <span className={styles.itemLabel}>Users</span>
-                      <span className={styles.defaultUsers}>
-                        ({getSelectedPlanMaxUsers()} included)
+              {/* Right Column - Order Summary */}
+              <div className={styles.rightColumn}>
+                <div className={styles.orderSummary}>
+                  <h3 className={styles.summaryTitle}>Order Summary</h3>
+                  
+                  {/* Billing Frequency Toggle */}
+                  <div className={styles.lineItem}>
+                    <span className={styles.itemLabel}>Billing Cycle</span>
+                    <div className={styles.toggleWrapper}>
+                      <span className={`${styles.toggleLabel} ${billingCycle === 'monthly' ? styles.active : ''}`}>
+                        Monthly
                       </span>
-                      <span className={styles.addMoreLabel}>Add more?</span>
-                      <div className={styles.licenseControls}>
-                        <button 
-                          className={styles.licenseBtn}
-                          onClick={handleDecrementLicenses}
-                          disabled={additionalLicenses === 0}
-                        >
-                          -5
-                        </button>
-                        <button 
-                          className={styles.licenseBtn}
-                          onClick={handleIncrementLicenses}
-                        >
-                          +5
-                        </button>
+                      <button
+                        className={`${styles.toggleSwitch} ${billingCycle === 'annual' ? styles.annual : ''}`}
+                        onClick={() =>
+                          setBillingCycle((prev) => (prev === 'monthly' ? 'annual' : 'monthly'))
+                        }
+                        aria-label="Toggle billing cycle"
+                      >
+                        <div className={styles.toggleHandle} />
+                      </button>
+                      <span className={`${styles.toggleLabel} ${billingCycle === 'annual' ? styles.active : ''}`}>
+                        Annual <span className={styles.discountNote}>(20% off)</span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Plan Selection Line Item */}
+                  <div className={styles.lineItem}>
+                    <div className={styles.planGroup}>
+                      <span className={styles.itemLabel}>Plan</span>
+                      <select 
+                        value={selectedPlan !== null ? selectedPlan : ''} 
+                        onChange={(e) => handlePlanSelect(parseInt(e.target.value))}
+                        className={styles.planSelect}
+                      >
+                        <option value="">Choose a plan...</option>
+                        <option value="0">Starter</option>
+                        <option value="1">Advanced</option>
+                        <option value="2">Pro</option>
+                      </select>
+                    </div>
+                    {selectedPlan !== null && selectedPlan !== undefined && (
+                      <span className={styles.itemPrice}>
+                        {billingCycle === 'annual' 
+                          ? `$${((plans?.[selectedPlan]?.price_monthly || 0) * 12).toLocaleString()}/yr`
+                          : `$${(plans?.[selectedPlan]?.price_monthly || 0).toLocaleString()}/mo`
+                        }
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedPlan !== null && selectedPlan !== undefined && (
+                    <>
+                      {/* Number of Users Line Item */}
+                      <div className={styles.lineItem}>
+                        <div className={styles.itemLabelWithControls}>
+                          <div className={styles.usersGroup}>
+                            <span className={styles.itemLabel}>Users</span>
+                            <span className={styles.defaultUsers}>
+                              ({getSelectedPlanMaxUsers()} included)
+                            </span>
+                            <span className={styles.addMoreLabel}>Add more?</span>
+                            <div className={styles.licenseControls}>
+                              <button 
+                                className={styles.licenseBtn}
+                                onClick={handleDecrementLicenses}
+                                disabled={additionalLicenses === 0}
+                              >
+                                -5
+                              </button>
+                              <button 
+                                className={styles.licenseBtn}
+                                onClick={handleIncrementLicenses}
+                              >
+                                +5
+                              </button>
+                            </div>
+                            {additionalLicenses > 0 && (
+                              <div className={styles.licenseInfo}>
+                                <span className={styles.licenseCount}>
+                                  {additionalLicenses} users added (total {getSelectedPlanMaxUsers() + additionalLicenses})
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className={styles.itemPrice}>
+                          {additionalLicenses > 0 
+                            ? billingCycle === 'monthly'
+                              ? `$${calculateAdditionalCost().toLocaleString()}/mo`
+                              : `$${((additionalLicenses / 5) * (plans?.[0]?.license_block_price || 250) * 12).toLocaleString()}/yr`
+                            : billingCycle === 'monthly' ? '$0/mo' : '$0/yr'
+                          }
+                        </span>
                       </div>
-                      {additionalLicenses > 0 && (
-                        <div className={styles.licenseInfo}>
-                          <span className={styles.licenseCount}>
-                            {additionalLicenses} users added (total {getSelectedPlanMaxUsers() + additionalLicenses})
+
+                      {billingCycle === 'annual' && (
+                        <div className={styles.lineItem}>
+                          <span className={styles.itemLabel}>Annual Savings</span>
+                          <span className={styles.itemPrice}>
+                            -${(
+                              // Calculate 20% of the total annual amount (plan + licenses)
+                              ((plans?.[selectedPlan]?.price_monthly || 0) * 12 +
+                               ((additionalLicenses / 5) * (plans?.[0]?.license_block_price || 250) * 12)) * 0.2
+                            ).toLocaleString()}/yr
                           </span>
                         </div>
                       )}
+
+                      <div className={styles.summaryTotal}>
+                        <span className={styles.totalLabel}>Total</span>
+                        <span className={styles.totalPrice}>
+                          {getTotalPriceDisplay()}
+                        </span>
+                      </div>
+
+                      <Button
+                        onClick={handleCheckout}
+                        className={styles.checkoutButton}
+                        variant="blue"
+                      >
+                        Add to Cart
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Team Setup */}
+          {currentStep === 2 && (
+            <div className={styles.twoColumnLayout}>
+              <div className={styles.leftColumn}>
+                <form onSubmit={handleSubmit} className={styles.paymentForm}>
+                  <div className={styles.formSection}>
+                    <h3 className={styles.sectionTitle}>Team Information</h3>
+                    
+                    <div className={styles.formGroup}>
+                      <label htmlFor="teamName">Team Name *</label>
+                      <input
+                        id="teamName"
+                        type="text"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        placeholder="Enter your team name"
+                        required
+                        className={styles.input}
+                      />
                     </div>
                   </div>
-                  <span className={styles.itemPrice}>
-                    {additionalLicenses > 0 
-                      ? billingCycle === 'monthly'
-                        ? `$${calculateAdditionalCost().toLocaleString()}/mo`
-                        : `$${((additionalLicenses / 5) * (plans?.[0]?.license_block_price || 250) * 12).toLocaleString()}/yr`
-                      : billingCycle === 'monthly' ? '$0/mo' : '$0/yr'
-                    }
-                  </span>
-                </div>
 
-                {billingCycle === 'annual' && (
-                  <div className={styles.lineItem}>
-                    <span className={styles.itemLabel}>Annual Savings</span>
-                    <span className={styles.itemPrice}>
-                      -${(
-                        // Calculate 20% of the total annual amount (plan + licenses)
-                        ((plans?.[selectedPlan]?.price_monthly || 0) * 12 +
-                         ((additionalLicenses / 5) * (plans?.[0]?.license_block_price || 250) * 12)) * 0.2
-                      ).toLocaleString()}/yr
+                  {paymentError && (
+                    <div className={styles.errorMessage}>
+                      {paymentError}
+                    </div>
+                  )}
+
+                  <div className={styles.navigationButtons}>
+                    <Button
+                      type="button"
+                      variant="gray"
+                      onClick={handleBack}
+                      className={styles.backButton}
+                    >
+                      Back
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="blue"
+                      onClick={handleNext}
+                      disabled={!isFormValid()}
+                      className={styles.nextButton}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </form>
+              </div>
+
+              <div className={styles.rightColumn}>
+                <div className={styles.orderSummary}>
+                  <h3 className={styles.summaryTitle}>Order Summary</h3>
+                  
+                  <div className={styles.summaryItem}>
+                    <span className={styles.itemLabel}>Plan</span>
+                    <span className={styles.itemValue}>{getPlanName()}</span>
+                  </div>
+                  
+                  <div className={styles.summaryItem}>
+                    <span className={styles.itemLabel}>Billing Cycle</span>
+                    <span className={styles.itemValue}>
+                      {billingCycle === 'annual' ? 'Annual (20% off)' : 'Monthly'}
                     </span>
                   </div>
-                )}
-
-                <div className={styles.summaryTotal}>
-                  <span className={styles.totalLabel}>Total</span>
-                  <span className={styles.totalPrice}>
-                    {getTotalPriceDisplay()}
-                  </span>
+                  
+                  {additionalLicenses > 0 && (
+                    <div className={styles.summaryItem}>
+                      <span className={styles.itemLabel}>Additional Users</span>
+                      <span className={styles.itemValue}>
+                        +{additionalLicenses} users
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className={styles.summaryTotal}>
+                    <span className={styles.totalLabel}>Total</span>
+                    <span className={styles.totalAmount}>
+                      ${calculateTotal().toFixed(2)}
+                      <span className={styles.billingPeriod}>
+                        /{billingCycle === 'annual' ? 'year' : 'month'}
+                      </span>
+                    </span>
+                  </div>
                 </div>
+              </div>
+            </div>
+          )}
 
+          {/* Step 3: Payment Information */}
+          {currentStep === 3 && !paymentSuccess && (
+            <div className={styles.twoColumnLayout}>
+              <div className={styles.leftColumn}>
+                <form onSubmit={handleSubmit} className={styles.paymentForm}>
+                  <div className={styles.formSection}>
+                    <h3 className={styles.sectionTitle}>Payment Information</h3>
+                    
+                    <div className={styles.formGroup}>
+                      <label htmlFor="cardNumber">Card Number *</label>
+                      <input
+                        id="cardNumber"
+                        type="text"
+                        value={cardNumber}
+                        onChange={handleCardNumberChange}
+                        placeholder="1234 5678 9012 3456"
+                        maxLength="19"
+                        required
+                        className={styles.input}
+                      />
+                    </div>
+                    
+                    <div className={styles.cardDetails}>
+                      <div className={styles.formGroup}>
+                        <label htmlFor="expMonth">Expiry Month *</label>
+                        <select
+                          id="expMonth"
+                          value={expMonth}
+                          onChange={(e) => setExpMonth(e.target.value)}
+                          required
+                          className={styles.select}
+                        >
+                          <option value="">MM</option>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                            <option key={month} value={month.toString().padStart(2, '0')}>
+                              {month.toString().padStart(2, '0')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className={styles.formGroup}>
+                        <label htmlFor="expYear">Expiry Year *</label>
+                        <select
+                          id="expYear"
+                          value={expYear}
+                          onChange={(e) => setExpYear(e.target.value)}
+                          required
+                          className={styles.select}
+                        >
+                          <option value="">YYYY</option>
+                          {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className={styles.formGroup}>
+                        <label htmlFor="cvv">CVV *</label>
+                        <input
+                          id="cvv"
+                          type="text"
+                          value={cvv}
+                          onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
+                          placeholder="123"
+                          maxLength="4"
+                          required
+                          className={styles.input}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {paymentError && (
+                    <div className={styles.errorMessage}>
+                      {paymentError}
+                    </div>
+                  )}
+
+                  <div className={styles.navigationButtons}>
+                    <Button
+                      type="button"
+                      variant="gray"
+                      onClick={handleBack}
+                      className={styles.backButton}
+                    >
+                      Back
+                    </Button>
+                    
+                    <Button
+                      type="submit"
+                      variant="blue"
+                      disabled={!isFormValid() || processing}
+                      className={styles.submitButton}
+                    >
+                      {processing ? (
+                        <>
+                          <Spinner size={16} />
+                          Processing Payment...
+                        </>
+                      ) : (
+                        <>
+                          Complete Purchase
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+
+              <div className={styles.rightColumn}>
+                <div className={styles.orderSummary}>
+                  <h3 className={styles.summaryTitle}>Order Summary</h3>
+                  
+                  <div className={styles.summaryItem}>
+                    <span className={styles.itemLabel}>Plan</span>
+                    <span className={styles.itemValue}>{getPlanName()}</span>
+                  </div>
+                  
+                  <div className={styles.summaryItem}>
+                    <span className={styles.itemLabel}>Billing Cycle</span>
+                    <span className={styles.itemValue}>
+                      {billingCycle === 'annual' ? 'Annual (20% off)' : 'Monthly'}
+                    </span>
+                  </div>
+                  
+                  {additionalLicenses > 0 && (
+                    <div className={styles.summaryItem}>
+                      <span className={styles.itemLabel}>Additional Users</span>
+                      <span className={styles.itemValue}>
+                        +{additionalLicenses} users
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className={styles.summaryTotal}>
+                    <span className={styles.totalLabel}>Total</span>
+                    <span className={styles.totalAmount}>
+                      ${calculateTotal().toFixed(2)}
+                      <span className={styles.billingPeriod}>
+                        /{billingCycle === 'annual' ? 'year' : 'month'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Success */}
+          {currentStep === 3 && paymentSuccess && (
+            <div className={styles.successSection}>
+                          <div className={styles.successIcon}>
+              
+            </div>
+              
+              <h3 className={styles.successTitle}>Welcome to Market Mover!</h3>
+              <p className={styles.successSubtitle}>
+                Your team has been created successfully and your payment has been processed.
+              </p>
+              
+              <div className={styles.successDetails}>
+                <div className={styles.successDetailItem}>
+                  <span className={styles.detailLabel}>Team Name:</span>
+                  <span className={styles.detailValue}>{teamName}</span>
+                </div>
+                
+                <div className={styles.successDetailItem}>
+                  <span className={styles.detailLabel}>Plan:</span>
+                  <span className={styles.detailValue}>{getPlanName()}</span>
+                </div>
+                
+                <div className={styles.successDetailItem}>
+                  <span className={styles.detailLabel}>Amount Paid:</span>
+                  <span className={styles.detailValue}>${calculateTotal().toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className={styles.successActions}>
                 <Button
-                  onClick={handleCheckout}
-                  className={styles.checkoutButton}
-                  variant="primary"
+                  onClick={() => navigate('/app/dashboard')}
+                  variant="blue"
+                  className={styles.successButton}
                 >
-                  Proceed to Checkout
+                  Go to Dashboard
                 </Button>
-              </>
-            )}
-          </div>
-        </div>
+              </div>
+            </div>
+          )}
+        </>
       </div>
     </div>
   );

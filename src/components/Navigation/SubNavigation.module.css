@@ -41,6 +41,7 @@
   height: 100%;
   background: transparent;
   border: none;
+  border-radius: 0;
   color: var(--gray-600);
   font-size: 14px;
   font-weight: 500;
@@ -58,6 +59,7 @@
   transform: translateY(-1px);
   text-decoration: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 0;
 }
 
 .tab:focus {
@@ -71,6 +73,12 @@
   background: var(--white);
   text-decoration: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 0;
+}
+
+/* Platform sub-navigation uses blue borders */
+.platformSubNav .tab.active {
+  border-bottom: 2px solid #3599b8;
 }
 
 .createButton {

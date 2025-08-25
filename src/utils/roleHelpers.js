@@ -54,15 +54,15 @@ export const hasPlatformAccess = (role) => {
 export const getRoleDisplayName = (role) => {
   switch (role) {
     case ROLES.PLATFORM_ADMIN:
-      return '👑 Platform Admin';
+      return 'Platform Admin';
     case ROLES.PLATFORM_SUPPORT:
-      return '🛠️ Platform Support';
+      return 'Platform Support';
     case ROLES.TEAM_ADMIN:
-      return '👥 Team Admin';
+      return 'Team Admin';
     case ROLES.TEAM_MEMBER:
-      return '👤 Team Member';
+      return 'Team Member';
     default:
-      return '👤 Team Member';
+      return 'Team Member';
   }
 };
 

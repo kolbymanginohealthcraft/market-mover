@@ -28,13 +28,13 @@ export const featureMatrix = [
     pro: 'Custom',
     type: 'text'
   },
-  {
-    feature: 'Provider Contact Info',
-    starter: '-',
-    advanced: 'Limited',
-    pro: 'Full',
-    type: 'text'
-  },
+  // {
+  //   feature: 'Provider Contact Info',
+  //   starter: '-',
+  //   advanced: 'Limited',
+  //   pro: 'Full',
+  //   type: 'text'
+  // },
   // {
   //   feature: 'AI Marketing Assistant',
   //   starter: '-',

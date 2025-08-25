@@ -3,8 +3,15 @@
   background: linear-gradient(135deg, rgba(29, 173, 190, 0.2) 0%, #f6f9f8 100%);
   background-size: 100% 60vh;
   background-repeat: no-repeat;
-  padding: 24px;
   margin: 0;
+}
+
+
+
+.content {
+  padding: 24px;
+  /* max-width: 1200px; */
+  margin: 0 auto;
 }
 
 /* Two Column Layout */
@@ -617,5 +624,155 @@
   
   .licenseCount {
     font-size: 1rem;
+  }
+}
+
+/* Payment Form Styles */
+.paymentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.input, .select {
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  background: white;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cardDetails {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.navigationButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.backButton, .nextButton, .submitButton {
+  min-width: 120px;
+}
+
+.errorMessage {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* Success Step Styles */
+.successSection {
+  text-align: center;
+  padding: 32px 0;
+}
+
+.successIcon {
+  color: #10b981;
+  margin-bottom: 24px;
+}
+
+.successTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+.successSubtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0 0 32px 0;
+  line-height: 1.6;
+}
+
+.successDetails {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.successDetailItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detailLabel {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.detailValue {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.successActions {
+  display: flex;
+  justify-content: center;
+}
+
+.successButton {
+  min-width: 200px;
+}
+
+/* Responsive Design for Payment Form */
+@media (max-width: 768px) {
+  .navigationButtons {
+    flex-direction: column;
+  }
+  
+  .backButton, .nextButton, .submitButton {
+    width: 100%;
+  }
+  
+  .cardDetails {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }

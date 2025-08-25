@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './Feedback.module.css';
@@ -24,6 +24,8 @@ export default function Feedback() {
   const [userSubmissionsLoading, setUserSubmissionsLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'votes', direction: 'desc' });
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  
+  const titleInputRef = useRef(null);
 
   // Get active tab from URL params
   const activeTab = new URLSearchParams(location.search).get('tab') || 'feature-requests';
@@ -37,6 +39,16 @@ export default function Feedback() {
     fetchUserVotes();
     fetchUserSubmissions();
   }, []);
+
+  // Auto-focus input when sidebar opens
+  useEffect(() => {
+    if (showSidePanel && titleInputRef.current) {
+      // Small delay to ensure the sidebar is fully rendered
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showSidePanel]);
 
   useEffect(() => {
     // Filter and sort feature requests
@@ -624,6 +636,7 @@ export default function Feedback() {
           <div className={styles.formGroup}>
             <label htmlFor="title">Feature Title *</label>
             <input
+              ref={titleInputRef}
               id="title"
               type="text"
               value={newRequest}
@@ -631,6 +644,7 @@ export default function Feedback() {
               placeholder="Enter feature title..."
               required
               maxLength={100}
+              className="form-input"
             />
           </div>
           <div className={styles.formGroup}>
@@ -642,6 +656,7 @@ export default function Feedback() {
               placeholder="Tell us more about this feature..."
               rows={3}
               maxLength={500}
+              className="form-input"
             />
           </div>
           <button 

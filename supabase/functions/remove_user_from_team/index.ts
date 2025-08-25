@@ -6,7 +6,7 @@ serve(async (req: Request): Promise<Response> => {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, apikey, x-client-info, x-admin-secret",
+      "Content-Type, Authorization, apikey, x-client-info, x-invite-secret",
     "Content-Type": "application/json",
   };
 
@@ -24,8 +24,8 @@ serve(async (req: Request): Promise<Response> => {
   };
 
   try {
-    const secret = req.headers.get("x-admin-secret");
-    const expected = Deno.env.get("EDGE_ADMIN_SECRET");
+    const secret = req.headers.get("x-invite-secret");
+    const expected = Deno.env.get("EDGE_INVITE_SECRET");
     debugLog.steps.push({ step: "received_secret", value: secret });
 
     if (secret !== expected) {
@@ -56,7 +56,10 @@ serve(async (req: Request): Promise<Response> => {
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ team_id: null, access_type: "free", selected_plan: "free" })
+      .update({ 
+        team_id: null, 
+        role: null
+      })
       .eq("id", user_id);
 
     if (updateError) {

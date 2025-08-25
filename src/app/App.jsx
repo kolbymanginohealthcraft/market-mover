@@ -60,6 +60,7 @@ import Feedback from "../pages/Private/Dashboard/Feedback";
 import PaymentTest from "../pages/Auth/PaymentTest";
 import PaymentFlow from "../pages/Auth/PaymentFlow";
 import Success from "../pages/Auth/Success";
+import PaymentForm from "../pages/Private/Payment/PaymentForm";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -110,7 +111,6 @@ export default function App() {
               <Route path="reset-password" element={<ResetPassword />} />
               <Route path="team-onboarding" element={<TeamOnboarding />} />
               <Route path="set-password" element={<SetPassword />} />
-              <Route path="pricing" element={<PricingPage />} />
               <Route path="faq" element={<FAQPage />} />
               <Route path="legal" element={<LegalPage />} />
       
@@ -144,6 +144,8 @@ export default function App() {
               <Route path="billing" element={<BillingHistory />} />
 
               <Route path="settings/*" element={<Settings />} />
+              <Route path="pricing" element={<PricingPage />} />
+              <Route path="payment" element={<PaymentForm />} />
               <Route path="manage-announcements" element={<ManageAnnouncements />} />
               <Route path="manage-feedback" element={<ManageFeedback />} />
               <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />

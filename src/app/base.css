@@ -261,11 +261,27 @@ a {
   transition: border-color 0.2s ease;
 }
 
+/* General input focus styles for all inputs */
+input:focus {
+  outline: none !important;
+  border-color: var(--primary-teal) !important;
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1) !important;
+  background: #fff8cc !important;
+}
+
+/* General textarea focus styles */
+textarea:focus {
+  outline: none !important;
+  border-color: var(--primary-teal) !important;
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1) !important;
+  background: #fff8cc !important;
+}
+
 .form-input:focus {
-  outline: none;
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
-  background: linear-gradient(135deg, var(--white) 0%, #f8fffd 100%);
+  outline: none !important;
+  border-color: var(--primary-teal) !important;
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1) !important;
+  background: #fff8cc !important;
 }
 
 .form-select {
@@ -279,10 +295,10 @@ a {
 }
 
 .form-select:focus {
-  outline: none;
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
-  background: linear-gradient(135deg, var(--white) 0%, #f8fffd 100%);
+  outline: none !important;
+  border-color: var(--primary-teal) !important;
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1) !important;
+  background: #fff8cc !important;
 }
 
 /* ===== TYPOGRAPHY UTILITIES ===== */

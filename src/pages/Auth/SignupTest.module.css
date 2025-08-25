@@ -4,9 +4,4 @@
   flex-shrink: 0;
 }
 
-.form-input:focus {
-  outline: none;
-  border-color: #265947 !important;
-  box-shadow: 0 0 0 3px rgba(38, 89, 71, 0.2) !important;
-  background: #fff8cc !important;
-}
+/* Using global form-input focus styles */
