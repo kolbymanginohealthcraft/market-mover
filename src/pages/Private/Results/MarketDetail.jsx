@@ -156,8 +156,6 @@ export default function MarketDetail() {
     npisError,
     censusError,
     qualityMeasuresDatesError,
-    getAllProviderDhcs,
-    getAllCcns,
     getAllNpis,
     getProviderDhcToCcns,
     getProviderDhcToNpis
@@ -179,10 +177,9 @@ export default function MarketDetail() {
       market: market?.name,
       shouldFetchQualityMeasures: location.pathname.includes('/storyteller'),
       nearbyProvidersCount: nearbyProviders?.length || 0,
-      nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
-      allCcnsCount: getAllCcns()?.length || 0
+      nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0
     });
-  }, [location.pathname, marketId, market?.name, nearbyProviders, nearbyDhcCcns, getAllCcns]);
+  }, [location.pathname, marketId, market?.name, nearbyProviders, nearbyDhcCcns]);
 
   // Quality measures hook - always fetch when on storyteller route
   const shouldFetchQualityMeasures = location.pathname.includes('/storyteller');
@@ -244,44 +241,39 @@ export default function MarketDetail() {
 
 
 
-  // For all other routes, render normally inside PageLayout
+  // For all routes, render normally inside PageLayout
   return (
     <PageLayout>
-      <div className={styles.container}>
-        <Routes key={location.pathname}>
-          <Route path="overview" element={<MarketOverview key={`overview-${marketId}`} market={market} providers={nearbyProviders} />} />
-                     <Route path="provider-listing" element={<ProviderListingTab provider={marketProvider} radiusInMiles={radiusInMiles} providers={nearbyProviders} />} />
-          <Route path="provider-density" element={<ProviderDensityPage key={`provider-density-${marketId}`} radius={radiusInMiles} latitude={market?.latitude} longitude={market?.longitude} provider={marketProvider} />} />
-          <Route path="population" element={<PopulationTab key={`population-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} censusData={censusData} counties={counties} censusTracts={censusTracts} />} />
-          <Route path="claims" element={<ClaimsTab key={`claims-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-          <Route path="cms-enrollment" element={<CMSEnrollmentTab key={`cms-enrollment-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} />} />
-          <Route path="storyteller" element={<Storyteller 
-            key={`storyteller-${marketId}`}
-            provider={marketProvider}
-            radiusInMiles={radiusInMiles}
-            nearbyProviders={nearbyProviders}
-            nearbyDhcCcns={nearbyDhcCcns}
-            mainProviderCcns={getProviderDhcToCcns(marketProvider?.dhc) || []}
-            prefetchedData={{
-              loading: qualityLoading,
-              measures: qualityMeasures,
-              data: qualityData,
-              marketAverages: qualityMarketAverages,
-              nationalAverages: qualityNationalAverages,
-              error: qualityError,
-              allProviders: qualityProviders,
-              providerTypes: qualityProviderTypes,
-              publishDates: qualityPublishDates,
-              currentDate: qualityCurrentDate,
-              qualityMeasuresDates
-            }}
-            // Pass CCNs data for storyteller functionality
-            allCcns={getAllCcns()}
-            allProviderDhcs={getAllProviderDhcs()}
-          />} />
-          <Route path="*" element={<Navigate to="overview" replace />} />
-        </Routes>
-      </div>
+      <Routes key={location.pathname}>
+        <Route path="overview" element={<MarketOverview key={`overview-${marketId}`} market={market} providers={nearbyProviders} />} />
+        <Route path="provider-listing" element={<ProviderListingTab provider={marketProvider} radiusInMiles={radiusInMiles} providers={nearbyProviders} />} />
+        <Route path="provider-density" element={<ProviderDensityPage key={`provider-density-${marketId}`} radius={radiusInMiles} latitude={market?.latitude} longitude={market?.longitude} provider={marketProvider} />} />
+        <Route path="population" element={<PopulationTab key={`population-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} censusData={censusData} counties={counties} censusTracts={censusTracts} />} />
+        <Route path="claims" element={<ClaimsTab key={`claims-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+        <Route path="cms-enrollment" element={<CMSEnrollmentTab key={`cms-enrollment-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} />} />
+        <Route path="storyteller/*" element={<Storyteller 
+          key={`storyteller-${marketId}`}
+          provider={marketProvider}
+          radiusInMiles={radiusInMiles}
+          nearbyProviders={nearbyProviders}
+          nearbyDhcCcns={nearbyDhcCcns}
+          mainProviderCcns={getProviderDhcToCcns(marketProvider?.dhc) || []}
+          prefetchedData={{
+            loading: qualityLoading,
+            measures: qualityMeasures,
+            data: qualityData,
+            marketAverages: qualityMarketAverages,
+            nationalAverages: qualityNationalAverages,
+            error: qualityError,
+            allProviders: qualityProviders,
+            providerTypes: qualityProviderTypes,
+            publishDates: qualityPublishDates,
+            currentDate: qualityCurrentDate,
+            qualityMeasuresDates
+          }}
+        />} />
+        <Route path="*" element={<Navigate to="overview" replace />} />
+      </Routes>
     </PageLayout>
   );
 }

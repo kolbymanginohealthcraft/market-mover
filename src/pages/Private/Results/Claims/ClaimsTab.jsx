@@ -144,7 +144,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   }
 
   return (
-    <div className={styles.container}>
+    <>
       {/* Claim Type Selection */}
       <div className={styles.claimTypeSelection}>
         <div className={styles.selectionGroup}>
@@ -227,6 +227,6 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           <ClaimsByServiceLine {...sharedProps} />
         )}
       </div>
-    </div>
+    </>
   );
 } 

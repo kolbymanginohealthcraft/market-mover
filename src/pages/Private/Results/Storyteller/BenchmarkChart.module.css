@@ -1,0 +1,118 @@
+/* Main Container */
+.benchmarkContainer {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Chart Header */
+.chartHeader {
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+.metricTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #265947;
+  margin: 0 0 0.5rem 0;
+  text-align: left;
+}
+
+.metricDescription {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.chartNotes {
+  margin-bottom: 1rem;
+}
+
+.noteText {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+  text-align: left;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Chart Content */
+.chartContent {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Tooltip */
+.customTooltip {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.tooltipLabel {
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+}
+
+.tooltipValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #265947;
+  margin: 0;
+}
+
+/* Loading, Error, and No Data States */
+.loadingMessage,
+.errorMessage,
+.noDataMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  padding: 2rem;
+}
+
+.errorMessage {
+  color: #dc3545;
+}
+
+.noDataMessage {
+  color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .benchmarkContainer {
+    padding: 1rem;
+  }
+  
+  .metricTitle {
+    font-size: 1.25rem;
+  }
+}

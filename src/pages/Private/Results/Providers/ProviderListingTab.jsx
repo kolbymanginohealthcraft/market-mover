@@ -61,6 +61,54 @@ export default function ProviderListingTab({
   const marketId = new URLSearchParams(window.location.search).get("marketId");
   const layersTimeoutRef = useRef(null);
 
+  // Calculate map bounds to include the full circle radius
+  const calculateMapBounds = () => {
+    if (!provider?.latitude || !provider?.longitude) {
+      return {
+        center: { lng: -98.5795, lat: 39.8283 }, // Center of US
+        zoom: 4,
+        bounds: [
+          [-98.5795 - 10, 39.8283 - 10], // Southwest corner
+          [-98.5795 + 10, 39.8283 + 10]  // Northeast corner
+        ]
+      };
+    }
+
+    const lat = provider.latitude;
+    const lng = provider.longitude;
+    const radiusDegrees = radiusInMiles / 69; // Approximate degrees per mile
+    
+    // Calculate bounds including the full circle radius
+    const minLat = lat - radiusDegrees;
+    const maxLat = lat + radiusDegrees;
+    const minLng = lng - radiusDegrees;
+    const maxLng = lng + radiusDegrees;
+    
+    const center = {
+      lat: (minLat + maxLat) / 2,
+      lng: (minLng + maxLng) / 2
+    };
+    
+    // Calculate the exact zoom level needed to fit the circle
+    const latDiff = maxLat - minLat;
+    const lngDiff = maxLng - minLng;
+    const maxDiff = Math.max(latDiff, lngDiff);
+    
+    // Calculate zoom using the formula: zoom = log2(360 / maxDiff) - 1
+    const zoom = Math.log2(360 / maxDiff) - 1;
+    
+    // Clamp zoom to reasonable bounds
+    const clampedZoom = Math.max(3, Math.min(15, zoom));
+    
+    // Create bounds array for fitBounds
+    const bounds = [
+      [minLng, minLat], // Southwest corner
+      [maxLng, maxLat]  // Northeast corner
+    ];
+    
+    return { center, bounds, zoom: clampedZoom };
+  };
+
   // Team provider tags functionality
   const {
     teamProviderTags,
@@ -151,37 +199,44 @@ export default function ProviderListingTab({
       return;
     }
 
-    // Add a small delay to ensure container is fully rendered
-    const initTimeout = setTimeout(() => {
-      console.log("🗺️ Creating MapLibre map...");
-      
-      try {
-        // MapLibre GL JS - completely free, no API token needed!
-        map.current = new maplibregl.Map({
-          container: mapContainer.current,
-          style: {
-            version: 8,
-            sources: {
-              'osm': {
-                type: 'raster',
-                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                tileSize: 256,
-                attribution: '© OpenStreetMap contributors'
-              }
-            },
-            layers: [
-              {
-                id: 'osm-tiles',
-                type: 'raster',
-                source: 'osm',
-                minzoom: 0,
-                maxzoom: 22
-              }
-            ]
-          },
-          center: [provider.longitude, provider.latitude],
-          zoom: 10
-        });
+         // Add a small delay to ensure container is fully rendered
+     const initTimeout = setTimeout(() => {
+       console.log("🗺️ Creating MapLibre map...");
+       
+       try {
+         const bounds = calculateMapBounds();
+         
+         // MapLibre GL JS - completely free, no API token needed!
+         map.current = new maplibregl.Map({
+           container: mapContainer.current,
+           style: {
+             version: 8,
+             sources: {
+               'osm': {
+                 type: 'raster',
+                 tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                 tileSize: 256,
+                 attribution: '© OpenStreetMap contributors'
+               }
+             },
+             layers: [
+               {
+                 id: 'osm-tiles',
+                 type: 'raster',
+                 source: 'osm',
+                 minzoom: 0,
+                 maxzoom: 22
+               }
+             ]
+           },
+           center: [bounds.center.lng, bounds.center.lat],
+           zoom: bounds.zoom,
+           maxZoom: 18,
+           minZoom: 3,
+           maxPitch: 0,
+           preserveDrawingBuffer: false,
+           antialias: false
+         });
         
         console.log("🗺️ Map created successfully:", map.current);
 
@@ -468,26 +523,32 @@ export default function ProviderListingTab({
             data: providerGeoJSON
           });
 
-          map.current.addLayer({
-            id: 'providers',
-            type: 'circle',
-            source: 'providers',
-            paint: {
-              'circle-radius': [
-                'case',
-                ['boolean', ['get', 'hasCCN'], false], 6,
-                4
-              ],
-              'circle-color': [
-                'case',
-                ['boolean', ['get', 'hasCCN'], false], '#4caf50',
-                '#2196f3'
-              ],
-              'circle-stroke-color': '#ffffff',
-              'circle-stroke-width': 2,
-              'circle-opacity': 0.8
-            }
-          });
+                     map.current.addLayer({
+             id: 'providers',
+             type: 'circle',
+             source: 'providers',
+             paint: {
+                               'circle-radius': [
+                  'case',
+                  ['==', ['get', 'tag'], 'me'], 10,
+                  ['==', ['get', 'tag'], 'partner'], 10,
+                  ['==', ['get', 'tag'], 'competitor'], 10,
+                  ['==', ['get', 'tag'], 'target'], 10,
+                  6
+                ],
+                               'circle-color': [
+                  'case',
+                  ['==', ['get', 'tag'], 'me'], '#265947',
+                  ['==', ['get', 'tag'], 'partner'], '#3599b8',
+                  ['==', ['get', 'tag'], 'competitor'], '#d64550',
+                  ['==', ['get', 'tag'], 'target'], '#f1b62c',
+                  '#5f6b6d'
+                ],
+                               'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 1,
+               'circle-opacity': 0.8
+             }
+           });
 
           // Add click handler for provider markers
           map.current.on('click', 'providers', (e) => {
@@ -497,26 +558,38 @@ export default function ProviderListingTab({
               
               if (popup) popup.remove();
               
-              const newPopup = new maplibregl.Popup({ offset: 25 })
-                .setLngLat([longitude, latitude])
-                .setHTML(`
-                  <div style="padding: 8px;">
-                    <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
-                      ${feature.properties.name}
-                    </h4>
-                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-                      ${feature.properties.type}
-                    </p>
-                    ${feature.properties.network ? `
-                      <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-                        Network: ${feature.properties.network}
-                      </p>
-                    ` : ''}
-                    <p style="margin: 0; font-size: 12px; color: #666;">
-                      Distance: ${feature.properties.distance.toFixed(2)} miles
-                    </p>
-                  </div>
-                `);
+                             const tagColor = feature.properties.tag === 'me' ? '#265947' : 
+                               feature.properties.tag === 'partner' ? '#3599b8' : 
+                               feature.properties.tag === 'competitor' ? '#d64550' : 
+                               feature.properties.tag === 'target' ? '#f1b62c' : '#5f6b6d';
+               
+                               const tagDisplay = feature.properties.tag ? 
+                  `<span style="background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: capitalize;">${feature.properties.tag}</span>` : 
+                  '<span style="background-color: #5f6b6d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Untagged</span>';
+               
+               const newPopup = new maplibregl.Popup({ offset: 25 })
+                 .setLngLat([longitude, latitude])
+                 .setHTML(`
+                   <div style="padding: 8px;">
+                     <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
+                       ${feature.properties.name}
+                     </h4>
+                     <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+                       ${feature.properties.type}
+                     </p>
+                     ${feature.properties.network ? `
+                       <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+                         Network: ${feature.properties.network}
+                       </p>
+                     ` : ''}
+                     <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+                       Distance: ${feature.properties.distance.toFixed(2)} miles
+                     </p>
+                     <p style="margin: 0; font-size: 12px;">
+                       Tag: ${tagDisplay}
+                     </p>
+                   </div>
+                 `);
               
               newPopup.addTo(map.current);
               setPopup(newPopup);
@@ -533,12 +606,22 @@ export default function ProviderListingTab({
           });
         }
         
-        console.log("🗺️ Custom layers added successfully");
-        setLayersAdded(true);
-      } catch (error) {
-        console.error("🗺️ Error adding custom layers:", error);
-      }
-    }, 300); // 300ms debounce
+                 console.log("🗺️ Custom layers added successfully");
+         setLayersAdded(true);
+         
+         // Fit the map to show the full circle radius
+         setTimeout(() => {
+           const bounds = calculateMapBounds();
+           map.current.fitBounds(bounds.bounds, {
+             padding: 20, // Add some padding around the bounds
+             maxZoom: 15, // Don't zoom in too much
+             duration: 300 // Very short, subtle animation
+           });
+         }, 100); // Small delay to ensure all layers are rendered
+       } catch (error) {
+         console.error("🗺️ Error adding custom layers:", error);
+       }
+     }, 300); // 300ms debounce
   }, [layersReady, dataReady, provider, radiusInMiles]); // Added dataReady dependency
 
   // Update layers when both map and data are ready
@@ -615,7 +698,7 @@ export default function ProviderListingTab({
 
   try {
     return (
-      <>
+      <div className={styles.providerListingContainer}>
         <ControlsRow
           leftContent={
             <>
@@ -803,10 +886,32 @@ export default function ProviderListingTab({
           </div>
 
           <div className={styles.mapPanel}>
-            <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+            <div className={styles.mapLegend}>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.legendMe}`}></div>
+                <span>Me</span>
+              </div>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.legendPartner}`}></div>
+                <span>Partner</span>
+              </div>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.legendCompetitor}`}></div>
+                <span>Competitor</span>
+              </div>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.legendTarget}`}></div>
+                <span>Target</span>
+              </div>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.legendUntagged}`}></div>
+                <span>Untagged</span>
+              </div>
+            </div>
+            <div ref={mapContainer} style={{ width: '100%', height: 'calc(100% - 60px)' }} />
           </div>
         </div>
-      </>
+      </div>
     );
   } catch (error) {
     console.error("❌ Error in ProviderListingTab:", error);

@@ -14,4 +14,34 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filterLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.selectSm {
+  font-size: 0.85rem !important;
+  padding: 3px 8px !important;
+  height: 1.7rem !important;
+  border-radius: 5px !important;
+  border: 1px solid #ddd;
+  background-color: white;
+  outline: none;
+  transition: border 0.2s;
+  margin: 0 !important;
+}
+
+.selectSm:focus {
+  border: 1.5px solid #4a90e2;
 } 

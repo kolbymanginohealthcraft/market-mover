@@ -4,11 +4,9 @@ import styles from "./PopulationTab.module.css";
 
 export default function PopulationTab({ provider, radiusInMiles }) {
   return (
-    <div className={styles.container}>
-      <CensusDataPanel 
-        provider={provider}
-        radiusInMiles={radiusInMiles}
-      />
-    </div>
+    <CensusDataPanel 
+      provider={provider}
+      radiusInMiles={radiusInMiles}
+    />
   );
 } 

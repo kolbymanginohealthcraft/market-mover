@@ -255,6 +255,78 @@ const SubNavigation = () => {
       { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
     ];
 
+    // If we're on a storyteller sub-page, render both navigation levels
+    if (location.pathname.includes('/storyteller/')) {
+      // Determine the correct active storyteller sub-tab
+      let currentStorytellerTab = "scorecard"; // Default to scorecard
+      
+      if (location.pathname.includes('/scorecard')) {
+        currentStorytellerTab = 'scorecard';
+      } else if (location.pathname.includes('/benchmarks')) {
+        currentStorytellerTab = 'benchmarks';
+      }
+
+      const storytellerTabs = [
+        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard` },
+        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks` }
+      ];
+
+      return (
+        <>
+          {/* First level navigation - Provider/Market tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                if (tab.locked) {
+                  return (
+                    <div
+                      key={tab.id}
+                      className={`${styles.tab} ${styles.disabled}`}
+                      title="Join or create a team to access this feature"
+                    >
+                      <IconComponent size={16} />
+                      {tab.label}
+                      <Lock size={12} style={{ marginLeft: '4px' }} />
+                    </div>
+                  );
+                }
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Storyteller sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.storytellerSubNav}`}>
+            <div className={styles.navLeft}>
+              {storytellerTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentStorytellerTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+    }
+
     return (
       <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>
@@ -327,6 +399,78 @@ const SubNavigation = () => {
       { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
       { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
     ];
+
+    // If we're on a storyteller sub-page, render both navigation levels
+    if (location.pathname.includes('/storyteller/')) {
+      // Determine the correct active storyteller sub-tab
+      let currentStorytellerTab = "scorecard"; // Default to scorecard
+      
+      if (location.pathname.includes('/scorecard')) {
+        currentStorytellerTab = 'scorecard';
+      } else if (location.pathname.includes('/benchmarks')) {
+        currentStorytellerTab = 'benchmarks';
+      }
+
+      const storytellerTabs = [
+        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard` },
+        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks` }
+      ];
+
+      return (
+        <>
+          {/* First level navigation - Market tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                if (tab.locked) {
+                  return (
+                    <div
+                      key={tab.id}
+                      className={`${styles.tab} ${styles.disabled}`}
+                      title="Join or create a team to access this feature"
+                    >
+                      <IconComponent size={16} />
+                      {tab.label}
+                      <Lock size={12} style={{ marginLeft: '4px' }} />
+                    </div>
+                  );
+                }
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Storyteller sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.storytellerSubNav}`}>
+            <div className={styles.navLeft}>
+              {storytellerTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentStorytellerTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+    }
 
     return (
       <nav className={styles.subNavigation}>

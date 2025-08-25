@@ -1,0 +1,196 @@
+/* Main Container - Same as Scorecard */
+.benchmarksContainer {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Data Period Banner */
+.dataPeriodBanner {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.bannerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateDisplay {
+  font-family: monospace;
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filterLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.selectSm {
+  font-size: 0.85rem !important;
+  padding: 3px 8px !important;
+  height: 1.7rem !important;
+  border-radius: 5px !important;
+  border: 1px solid #ddd;
+  background-color: white;
+  outline: none;
+  transition: border 0.2s;
+  margin: 0 !important;
+}
+
+.selectSm:focus {
+  border: 1.5px solid #4a90e2;
+}
+
+/* Two Column Layout */
+.benchmarksLayout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  height: 100%;
+  width: 100%;
+}
+
+/* Left Column - Measures Panel */
+.measuresPanel {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.measuresTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #265947;
+  margin: 0 0 1rem 0;
+  flex-shrink: 0;
+}
+
+.measuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.measureItem {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.measureItem:hover {
+  border-color: #3FB985;
+  box-shadow: 0 2px 8px rgba(59, 185, 133, 0.15);
+}
+
+.measureRadio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.radioInput {
+  margin: 0;
+  margin-top: 2px;
+  accent-color: #3FB985;
+}
+
+.measureContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.measureName {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.measureDescription {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* Right Column - Chart Panel */
+.chartPanel {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .benchmarksLayout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .dataPeriodBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+
+}
+
+@media (max-width: 480px) {
+  .measuresPanel {
+    padding: 1rem;
+  }
+  
+  .measureRadio {
+    padding: 0.75rem;
+  }
+}

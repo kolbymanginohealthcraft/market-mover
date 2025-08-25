@@ -2,8 +2,6 @@ import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
 
-
-
 export default function Scorecard({ 
   provider, 
   radiusInMiles, 
@@ -14,8 +12,7 @@ export default function Scorecard({
   setProviderTypeFilter,
   selectedPublishDate,
   setSelectedPublishDate,
-  allCcns,
-  allProviderDhcs
+  availableProviderTypes
 }) {
   // Always use the hook to ensure we get all providers, but use prefetched data if available
   const {
@@ -26,7 +23,7 @@ export default function Scorecard({
     matrixNationalAverages,
     matrixError,
     allMatrixProviders,
-    availableProviderTypes,
+    availableProviderTypes: hookProviderTypes,
     availablePublishDates,
     currentPublishDate,
     clearCache
@@ -47,9 +44,36 @@ export default function Scorecard({
   const finalNationalAverages = matrixNationalAverages;
   const finalError = matrixError;
   const finalAllProviders = allMatrixProviders;
-  const finalProviderTypes = availableProviderTypes;
+  const finalProviderTypes = availableProviderTypes || hookProviderTypes;
   const finalPublishDates = availablePublishDates;
   const finalCurrentDate = currentPublishDate;
+
+  // Helper function for SelectInput component
+  function SelectInput({ id, value, onChange, options, size = 'sm', formatOptions = false, ...props }) {
+    return (
+      <select
+        id={id}
+        value={value}
+        onChange={onChange}
+        className={size === 'sm' ? styles.selectSm : ''}
+        {...props}
+      >
+        {options.map(opt => (
+          <option key={opt} value={opt}>
+            {formatOptions ? formatPublishDate(opt) : opt}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  // Helper function to format publish date
+  const formatPublishDate = (dateStr) => {
+    if (!dateStr) return '';
+    // Parse the date string directly to avoid timezone issues
+    const [year, month] = dateStr.split('-');
+    return `${year}-${month}`;
+  };
 
   // Filter measures by selected setting (if any) - this is the key change
   const filteredMeasures = finalMeasures.filter(m => {
@@ -83,8 +107,6 @@ export default function Scorecard({
 
   // Main provider for the scorecard (only if they have data for selected measures)
   const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
-
-
 
   if (finalLoading) {
     return (
@@ -140,19 +162,35 @@ export default function Scorecard({
         color: '#495057',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        justifyContent: 'space-between',
         flexShrink: 0
       }}>
-        <strong>Current Data Period:</strong>
-        <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
-          {finalCurrentDate || 'Not set'}
-        </span>
-        {providerTypeFilter && (
-          <>
-            <span>•</span>
-            <strong>Setting:</strong>
-            <span>{providerTypeFilter}</span>
-          </>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <strong>Current Data Period:</strong>
+          <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+            {finalCurrentDate || 'Not set'}
+          </span>
+          {providerTypeFilter && (
+            <>
+              <span>•</span>
+              <strong>Setting:</strong>
+              <span>{providerTypeFilter}</span>
+            </>
+          )}
+        </div>
+        
+        {/* Measure Setting Filter */}
+        {typeof window !== 'undefined' && finalProviderTypes && finalProviderTypes.length > 0 && (
+          <div className={styles.filterGroup}>
+            <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
+            <SelectInput
+              id="provider-type-select"
+              value={providerTypeFilter || ''}
+              onChange={e => setProviderTypeFilter(e.target.value)}
+              options={finalProviderTypes}
+              size="sm"
+            />
+          </div>
         )}
       </div>
       

@@ -43,9 +43,6 @@ export default function ProviderDetail() {
   const location = useLocation();
   const { setCurrentProvider } = useProviderContext();
   
-  // Check if we're on a storyteller route
-  const isStorytellerRoute = location.pathname.includes('/storyteller');
-
   const radiusFromUrl = Number(searchParams.get("radius"));
   const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
   const [mainProviderCcns, setMainProviderCcns] = useState([]);
@@ -74,8 +71,6 @@ export default function ProviderDetail() {
     npisError,
     censusError,
     qualityMeasuresDatesError,
-    getAllProviderDhcs,
-    getAllCcns,
     getAllNpis,
     getProviderDhcToCcns,
     getProviderDhcToNpis
@@ -103,7 +98,7 @@ export default function ProviderDetail() {
     async function fetchMainProviderCcns() {
       if (!provider?.dhc) return setMainProviderCcns([]);
       console.log('Fetching related CCNs for provider:', provider?.dhc);
-      const response = await fetch(apiUrl('related-ccns'), {
+      const response = await fetch(apiUrl('/api/related-ccns'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dhc: provider?.dhc })
@@ -158,52 +153,44 @@ export default function ProviderDetail() {
     );
   }
 
-  // If we're on a storyteller route, render the navigation outside PageLayout
-  if (isStorytellerRoute) {
-    return (
-      <>
-        <Storyteller
-          provider={provider}
-          radiusInMiles={radiusInMiles}
-          nearbyProviders={nearbyProviders}
-          nearbyDhcCcns={nearbyDhcCcns}
-          mainProviderCcns={mainProviderCcns}
-          prefetchedData={{
-            loading: storytellerLoading,
-            measures: storytellerMeasures,
-            data: storytellerData,
-            marketAverages: storytellerMarketAverages,
-            nationalAverages: storytellerNationalAverages,
-            error: storytellerError,
-            allProviders: storytellerAllProviders,
-            providerTypes: storytellerProviderTypes,
-            publishDates: storytellerPublishDates,
-            currentDate: storytellerCurrentDate,
-            qualityMeasuresDates
-          }}
-        />
-      </>
-    );
-  }
-
-  // For all other routes, render normally inside PageLayout
+  // For all routes, render normally inside PageLayout
   return (
     <PageLayout>
-      <div className={styles.container}>
-        <Routes>
-          <Route path="overview" element={<OverviewTab provider={provider} />} />
-          <Route path="provider-listing" element={<ProviderListingTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} />} />
-          <Route path="charts" element={<ChartsTab provider={provider} />} />
-          <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-          <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-          <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-          <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
-          <Route path="referrals" element={<ReferralsTab provider={provider} />} />
-          <Route path="cms-enrollment" element={<CMSEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
-                     <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} provider={provider} />} />
-          <Route path="*" element={<Navigate to="overview" replace />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="overview" element={<OverviewTab provider={provider} />} />
+        <Route path="provider-listing" element={<ProviderListingTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} />} />
+        <Route path="charts" element={<ChartsTab provider={provider} />} />
+        <Route path="diagnoses" element={<DiagnosesTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+        <Route path="procedures" element={<ProceduresTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+        <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+        <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
+        <Route path="referrals" element={<ReferralsTab provider={provider} />} />
+        <Route path="cms-enrollment" element={<CMSEnrollmentTab provider={provider} radiusInMiles={radiusInMiles} />} />
+        <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} provider={provider} />} />
+        <Route path="storyteller/*" element={
+          <Storyteller
+            provider={provider}
+            radiusInMiles={radiusInMiles}
+            nearbyProviders={nearbyProviders}
+            nearbyDhcCcns={nearbyDhcCcns}
+            mainProviderCcns={mainProviderCcns}
+            prefetchedData={{
+              loading: storytellerLoading,
+              measures: storytellerMeasures,
+              data: storytellerData,
+              marketAverages: storytellerMarketAverages,
+              nationalAverages: storytellerNationalAverages,
+              error: storytellerError,
+              allProviders: storytellerAllProviders,
+              providerTypes: storytellerProviderTypes,
+              publishDates: storytellerPublishDates,
+              currentDate: storytellerCurrentDate,
+              qualityMeasuresDates
+            }}
+          />
+        } />
+        <Route path="*" element={<Navigate to="overview" replace />} />
+      </Routes>
     </PageLayout>
   );
 }
