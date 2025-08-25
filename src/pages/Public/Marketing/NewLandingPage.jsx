@@ -217,11 +217,11 @@ const NewLandingPage = () => {
                        Start For Free
                      </button>
                    </Link>
-                   <Link to="/pricing">
+                   {/* <Link to="/pricing">
                      <button className={styles.secondaryButton}>
                        View Plans
                      </button>
-                   </Link>
+                   </Link> */}
                  </div>
            </div>
 
@@ -382,11 +382,11 @@ const NewLandingPage = () => {
                 Start For Free
               </button>
             </Link>
-            <Link to="/pricing">
+            {/* <Link to="/pricing">
               <button className={styles.ctaSecondaryButton}>
                 View Plans
               </button>
-            </Link>
+            </Link> */}
           </div>
         </div>
       </section>
