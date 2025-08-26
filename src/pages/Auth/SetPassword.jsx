@@ -74,32 +74,7 @@ const SetPassword = () => {
         
         setUserEmail(user.email);
 
-        // Check if user has already set their password
-        // If email is confirmed and they can sign in with password, they're already set up
-        if (user.email_confirmed_at) {
-          console.log("🔍 SetPassword - User already has confirmed email, checking if they need team onboarding");
-          
-          // Check if they need to complete team onboarding
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, team_id')
-            .eq('id', user.id)
-            .single();
-          
-          if (profile?.team_id && (!profile.first_name || !profile.last_name)) {
-            // User has team but incomplete profile - redirect to team onboarding
-            console.log("🔍 SetPassword - User needs team onboarding");
-            navigate('/team-onboarding');
-            return;
-          } else {
-            // User is fully set up - redirect to dashboard
-            console.log("🔍 SetPassword - User is fully set up, redirecting to dashboard");
-            navigate('/app/dashboard');
-            return;
-          }
-        }
-        
-        // User needs to set password
+        // User is on the set-password page, so they need to set a password
         console.log("🔍 SetPassword - User needs to set password");
         setMessage("Please set your password to complete your account setup.");
         setMessageType("info");
