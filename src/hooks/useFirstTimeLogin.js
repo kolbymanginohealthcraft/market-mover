@@ -21,6 +21,13 @@ export const useFirstTimeLogin = () => {
         return;
       }
 
+      console.log("🔍 useFirstTimeLogin - User state:", {
+        email: user.email,
+        provider: user.app_metadata?.provider,
+        emailConfirmed: user.email_confirmed_at,
+        userMetadata: user.user_metadata
+      });
+
       // Check if user just joined a team (from URL param)
       const teamJoined = searchParams.get('team_joined');
       
@@ -45,8 +52,24 @@ export const useFirstTimeLogin = () => {
         return;
       }
 
+      console.log("🔍 useFirstTimeLogin - Profile state:", {
+        hasTeam: !!profile.team_id,
+        hasFirstName: !!profile.first_name,
+        hasLastName: !!profile.last_name
+      });
+
+      // Check if user needs to set password first (new invited user with team but no password)
+      if (profile.team_id && user.app_metadata?.provider === 'email' && !user.email_confirmed_at) {
+        // User has a team but needs to set password first
+        console.log("🔍 useFirstTimeLogin - User needs to set password");
+        navigate('/set-password');
+        setIsChecking(false);
+        return;
+      }
+
       // If user has a team but incomplete profile, redirect to onboarding
       if (profile.team_id && (!profile.first_name || !profile.last_name)) {
+        console.log("🔍 useFirstTimeLogin - User needs team onboarding");
         setNeedsOnboarding(true);
         navigate('/team-onboarding');
         setIsChecking(false);

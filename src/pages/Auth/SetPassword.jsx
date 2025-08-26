@@ -193,9 +193,9 @@ const SetPassword = () => {
       setMessage("Password set successfully! Welcome to the team!");
       setMessageType("success");
       
-      // Redirect to dashboard after a brief delay
+      // Redirect to team onboarding after a brief delay
       setTimeout(() => {
-        navigate('/app/dashboard');
+        navigate('/team-onboarding');
       }, 2000);
 
     } catch (err) {
