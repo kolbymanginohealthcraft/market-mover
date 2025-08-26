@@ -25,17 +25,20 @@ const SetPassword = () => {
   const checkInvitation = async () => {
     try {
       // Debug: Log the current URL and search params
-      console.log("Current URL:", window.location.href);
-      console.log("Search params:", Object.fromEntries(searchParams.entries()));
-      console.log("Hash:", window.location.hash);
+      console.log("🔍 SetPassword - Current URL:", window.location.href);
+      console.log("🔍 SetPassword - Search params:", Object.fromEntries(searchParams.entries()));
+      console.log("🔍 SetPassword - Hash:", window.location.hash);
       
       // Check for error in hash fragment first
       const hash = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hash);
+      console.log("🔍 SetPassword - Hash params:", Object.fromEntries(hashParams.entries()));
+      
       const hashError = hashParams.get('error');
       const errorDescription = hashParams.get('error_description');
       
       if (hashError) {
+        console.log("🔍 SetPassword - Hash error detected:", hashError, errorDescription);
         if (hashError === 'access_denied' && errorDescription?.includes('expired')) {
           setMessage("This invitation link has expired. Please ask your team admin to send a new invitation.");
         } else {
@@ -49,6 +52,8 @@ const SetPassword = () => {
       // First, check if we already have a valid session (user clicked invitation link)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
+      console.log("🔍 SetPassword - Session check:", { hasSession: !!session, sessionError });
+      
       if (sessionError) {
         console.error("Session error:", sessionError);
         setMessage("Unable to verify your session. Please try the invitation link again.");
@@ -60,24 +65,35 @@ const SetPassword = () => {
       if (session && session.user) {
         // User is authenticated, check if they need to set password
         const user = session.user;
+        console.log("🔍 SetPassword - User authenticated:", { 
+          email: user.email, 
+          provider: user.app_metadata?.provider,
+          emailConfirmed: user.email_confirmed_at,
+          userMetadata: user.user_metadata
+        });
+        
         setUserEmail(user.email);
 
         // Check if user has a password set
         if (user.app_metadata?.provider === 'email' && !user.email_confirmed_at) {
           // User needs to confirm email and set password
+          console.log("🔍 SetPassword - User needs to set password");
           setMessage("Please set your password to complete your account setup.");
           setMessageType("info");
         } else {
           // User is already set up, redirect to dashboard
+          console.log("🔍 SetPassword - User already set up, redirecting to dashboard");
           navigate('/app/dashboard');
           return;
         }
 
         // Get team info from user metadata or profile
         if (user.user_metadata?.team_name) {
+          console.log("🔍 SetPassword - Team name from metadata:", user.user_metadata.team_name);
           setTeamName(user.user_metadata.team_name);
         } else {
           // Try to get team info from profile
+          console.log("🔍 SetPassword - Fetching team info from profile");
           const { data: profile } = await supabase
             .from('profiles')
             .select('teams(name)')
@@ -85,6 +101,7 @@ const SetPassword = () => {
             .single();
           
           if (profile?.teams?.name) {
+            console.log("🔍 SetPassword - Team name from profile:", profile.teams.name);
             setTeamName(profile.teams.name);
           }
         }
@@ -102,20 +119,25 @@ const SetPassword = () => {
       let accessToken = searchParams.get('access_token') || searchParams.get('token');
       let refreshToken = searchParams.get('refresh_token') || searchParams.get('refresh');
       
+      console.log("🔍 SetPassword - No session, checking URL tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
+      
       // Also check hash fragment
       if (!accessToken) {
         accessToken = hashParams.get('access_token') || hashParams.get('token');
         refreshToken = hashParams.get('refresh_token') || hashParams.get('refresh');
+        console.log("🔍 SetPassword - Checking hash tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
       }
       
       if (accessToken) {
         // Try to set session with tokens
+        console.log("🔍 SetPassword - Setting session with tokens");
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken
         });
 
         if (error) {
+          console.error("🔍 SetPassword - Token session error:", error);
           setMessage("Invalid or expired invitation link.");
           setMessageType("error");
           setLoading(false);
@@ -148,6 +170,7 @@ const SetPassword = () => {
       }
 
       // No valid session or tokens found
+      console.log("🔍 SetPassword - No valid session or tokens found");
       setMessage("Invalid invitation link. Please check your email for the correct link.");
       setMessageType("error");
       setLoading(false);

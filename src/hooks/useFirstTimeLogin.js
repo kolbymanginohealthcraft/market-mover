@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '../app/supabaseClient';
 
 export const useFirstTimeLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [isChecking, setIsChecking] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -27,6 +28,13 @@ export const useFirstTimeLogin = () => {
         emailConfirmed: user.email_confirmed_at,
         userMetadata: user.user_metadata
       });
+
+      // Don't redirect if user is currently on set-password page
+      if (location.pathname === '/set-password') {
+        console.log("🔍 useFirstTimeLogin - User is on set-password page, not redirecting");
+        setIsChecking(false);
+        return;
+      }
 
       // Check if user just joined a team (from URL param)
       const teamJoined = searchParams.get('team_joined');
