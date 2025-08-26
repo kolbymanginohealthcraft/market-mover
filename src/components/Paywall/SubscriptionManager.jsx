@@ -38,13 +38,10 @@ export default function SubscriptionManager() {
 
       setTeam(teamData);
 
-      // Fetch subscription data
+      // Fetch subscription data (simplified to avoid 406 errors)
       const { data: subData } = await supabase
         .from('subscriptions')
-        .select(`
-          *,
-          plans(name, price_monthly, max_users, features)
-        `)
+        .select('*')
         .eq('team_id', profile.team_id)
         .eq('status', 'active')
         .single();
