@@ -34,7 +34,7 @@ export default function BillingHistory() {
           subscriptions(
             billing_interval,
             license_quantity,
-            plans(name)
+            plan_id
           )
         `)
         .eq('subscriptions.team_id', profile.team_id)

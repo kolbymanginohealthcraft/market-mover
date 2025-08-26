@@ -5,7 +5,7 @@ import Button from './Button';
 export default function Banner({
   title,
   subtitle,
-  gradient = "blue", // "blue", "green", or custom gradient
+  gradient = "blue", // "blue", "green", or custom gradients
   cards = [],
   buttons = [],
   className = "",

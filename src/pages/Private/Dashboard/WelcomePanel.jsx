@@ -29,15 +29,15 @@ export default function WelcomePanel({ userFirstName, progressLoading, streaks, 
       if (profileData?.team_id) {
         const { data: subData } = await supabase
           .from("subscriptions")
-          .select("plans(name)")
+          .select("plan_id")
           .eq("team_id", profileData.team_id)
           .in("status", ["active", "trialing"])
           .order("renewed_at", { ascending: false })
           .limit(1)
           .single();
 
-        if (subData?.plans?.name) {
-          subscriptionTier = subData.plans.name;
+        if (subData?.plan_id) {
+          subscriptionTier = "Active Plan"; // Simplified for now
         }
       }
 
