@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import './buttons.css';
 
 /**
- * Flexible Button component with color, size, and style modifiers.
+ * Flexible Button components with color, size, and style modifiers.
  *
  * Props:
  * - variant: "green" | "gold" | "accent" | "red" | "teal" | "blue" | "aqua" | "gray"
