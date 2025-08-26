@@ -41,13 +41,6 @@ export default function UsersTab() {
     fetchTeamData();
   }, []);
 
-  // Temporary debug code to check environment variables
-  useEffect(() => {
-    console.log("Edge secret available:", !!import.meta.env.VITE_EDGE_INVITE_SECRET);
-    console.log("Edge secret value:", import.meta.env.VITE_EDGE_INVITE_SECRET);
-    console.log("All env vars:", import.meta.env);
-  }, []);
-
   // Auto-focus input when sidebar opens
   useEffect(() => {
     if (showInvitePanel && inviteInputRef.current) {

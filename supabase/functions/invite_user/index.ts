@@ -16,7 +16,14 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const secret = req.headers.get("x-invite-secret");
-    if (secret !== Deno.env.get("EDGE_INVITE_SECRET")) {
+    const envSecret = Deno.env.get("EDGE_INVITE_SECRET");
+    
+    // Debug logging
+    console.log("Received secret:", secret);
+    console.log("Environment secret:", envSecret);
+    console.log("Secrets match:", secret === envSecret);
+    
+    if (secret !== envSecret) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: corsHeaders,
