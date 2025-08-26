@@ -139,7 +139,7 @@ export default function BillingHistory() {
                   </div>
                   <div>{formatDate(invoice.issued_at)}</div>
                   <div>
-                    {invoice.subscriptions?.plans?.name || 'N/A'}
+                    {'Active Plan'}
                     <span className={styles.detail}>
                       {invoice.subscriptions?.license_quantity} users
                     </span>

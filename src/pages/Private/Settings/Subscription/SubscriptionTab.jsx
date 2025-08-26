@@ -85,7 +85,7 @@ export default function SubscriptionTab() {
             plan_id, 
             license_quantity,
             trial_ends_at,
-            plans(name, price)
+            plan_id
           `)
           .eq("team_id", profileData.team_id)
           .in("status", ["active", "trialing", "past_due", "canceled"])
@@ -96,8 +96,8 @@ export default function SubscriptionTab() {
         if (!subError && subData) {
           setSubscription({
             ...subData,
-            plan_name: subData.plans?.name || "–",
-            plan_price: subData.plans?.price || 0,
+            plan_name: "Active Plan",
+            plan_price: 0,
           });
         }
       }
