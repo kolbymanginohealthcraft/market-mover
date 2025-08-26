@@ -56,7 +56,7 @@ export default function PaywallGate({
       // Check subscription status
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('status, plan_id')
+        .select('*')
         .eq('team_id', profile.team_id)
         .eq('status', 'active')
         .single();

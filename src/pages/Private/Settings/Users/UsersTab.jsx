@@ -107,29 +107,27 @@ export default function UsersTab() {
           created_at: team.created_at,
         });
 
-        // Fetch subscription data (simplified to avoid 406 errors)
-        try {
-          const { data: subData, error: subError } = await supabase
-            .from("subscriptions")
-            .select(
-              "id, started_at, renewed_at, expires_at, status, billing_interval, discount_percent, plan_id"
-            )
-            .eq("team_id", profileData.team_id)
-            .in("status", ["active", "trialing"])
-            .order("renewed_at", { ascending: false })
-            .limit(1)
-            .single();
+        // Fetch subscription data (temporarily disabled due to 406 errors)
+        // try {
+        //   const { data: subData, error: subError } = await supabase
+        //     .from("subscriptions")
+        //     .select("*")
+        //     .eq("team_id", profileData.team_id)
+        //     .in("status", ["active", "trialing"])
+        //     .order("renewed_at", { ascending: false })
+        //     .limit(1)
+        //     .single();
 
-          if (!subError && subData) {
-            setSubscription({
-              ...subData,
-              plan_name: "Active Plan", // Simplified for now
-            });
-          }
-        } catch (subErr) {
-          console.log("Subscription query failed (this is expected for some teams):", subErr);
-          // Don't set error message for subscription failures as they're not critical
-        }
+        //   if (!subError && subData) {
+        //     setSubscription({
+        //       ...subData,
+        //       plan_name: "Active Plan", // Simplified for now
+        //     });
+        //   }
+        // } catch (subErr) {
+        //   console.log("Subscription query failed (this is expected for some teams):", subErr);
+        //   // Don't set error message for subscription failures as they're not critical
+        // }
 
         // Fetch team members directly from profiles table
         const { data: members, error: membersError } = await supabase

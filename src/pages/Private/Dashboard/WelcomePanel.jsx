@@ -25,21 +25,21 @@ export default function WelcomePanel({ userFirstName, progressLoading, streaks, 
       let subscriptionTier = 'Free';
       let taggedProvidersCount = 0;
 
-      // Fetch subscription data (following TeamTab pattern)
-      if (profileData?.team_id) {
-        const { data: subData } = await supabase
-          .from("subscriptions")
-          .select("plan_id")
-          .eq("team_id", profileData.team_id)
-          .in("status", ["active", "trialing"])
-          .order("renewed_at", { ascending: false })
-          .limit(1)
-          .single();
+             // Fetch subscription data (temporarily disabled due to 406 errors)
+       // if (profileData?.team_id) {
+       //   const { data: subData } = await supabase
+       //     .from("subscriptions")
+       //     .select("*")
+       //     .eq("team_id", profileData.team_id)
+       //     .in("status", ["active", "trialing"])
+       //     .order("renewed_at", { ascending: false })
+       //     .limit(1)
+       //     .single();
 
-        if (subData?.plan_id) {
-          subscriptionTier = "Active Plan"; // Simplified for now
-        }
-      }
+       //   if (subData?.plan_id) {
+       //     subscriptionTier = "Active Plan"; // Simplified for now
+       //   }
+       // }
 
       // Fetch tagged providers count (following useTaggedProviders pattern)
       if (profileData?.team_id) {

@@ -1,10 +1,47 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import styles from './TermsAndConditions.module.css';
 
 const LegalContent = ({ content, className }) => {
+  // Sanitize content to fix malformed HTML attributes
+  const sanitizeContent = (rawContent) => {
+    if (!rawContent || typeof rawContent !== 'string') return rawContent;
+    
+    // Fix common malformed attributes like type"a" -> type="a"
+    let sanitized = rawContent
+      // Fix type"a" -> type="a" (missing equals sign)
+      .replace(/type"([^"]*)"/g, 'type="$1"')
+      // Fix other common malformed attributes with missing equals sign
+      .replace(/(\w+)"([^"]*)"/g, (match, attr, value) => {
+        // Only fix if it looks like a malformed attribute (no equals sign before quote)
+        if (match.includes('"') && !match.includes('="')) {
+          return `${attr}="${value}"`;
+        }
+        return match;
+      })
+      // Fix any remaining malformed attributes that might have spaces but no equals
+      .replace(/(\w+)\s+"([^"]*)"/g, '$1="$2"');
+    
+    return sanitized;
+  };
+
+  const sanitizedContent = sanitizeContent(content);
+
+  // Debug: Check for malformed attributes in content
+  useEffect(() => {
+    if (content && typeof content === 'string') {
+      // Look for malformed attributes like type"a" (missing space or quote)
+      const malformedPattern = /type"[^"]*"/g;
+      const matches = content.match(malformedPattern);
+      if (matches) {
+        console.warn('Found malformed attributes in legal content:', matches);
+        console.warn('Content snippet:', content.substring(0, 500));
+      }
+    }
+  }, [content]);
+
   return (
     <div className={`${styles.container} ${className || ''}`}>
       <ReactMarkdown 
@@ -30,7 +67,7 @@ const LegalContent = ({ content, className }) => {
           hr: () => <hr />,
         }}
       >
-        {content}
+        {sanitizedContent}
       </ReactMarkdown>
     </div>
   );

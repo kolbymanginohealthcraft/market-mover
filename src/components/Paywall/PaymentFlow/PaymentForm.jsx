@@ -1,14 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../app/supabaseClient';
 import Button from '../../Buttons/Button';
 import Spinner from '../../Buttons/Spinner';
 import styles from './PaymentFlow.module.css';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export default function PaymentForm({ 
   selectedPlan, 

@@ -49,44 +49,38 @@ export default function ActivityStatsPanel() {
         activitiesByDate[date].push(activity);
       });
 
-      console.log('Activities by date:', activitiesByDate);
+             // Calculate current streak by checking consecutive days from today backwards
+       const today = new Date().toISOString().split('T')[0];
+       let currentStreak = 0;
+       let longestStreak = 0;
+       let tempStreak = 0;
 
-      // Calculate current streak by checking consecutive days from today backwards
-      const today = new Date().toISOString().split('T')[0];
-      let currentStreak = 0;
-      let longestStreak = 0;
-      let tempStreak = 0;
+       // Check consecutive days starting from today
+       for (let i = 0; i <= 30; i++) {
+         const checkDate = new Date();
+         checkDate.setDate(checkDate.getDate() - i);
+         const dateStr = checkDate.toISOString().split('T')[0];
 
-      console.log('Today:', today);
-
-      // Check consecutive days starting from today
-      for (let i = 0; i <= 30; i++) {
-        const checkDate = new Date();
-        checkDate.setDate(checkDate.getDate() - i);
-        const dateStr = checkDate.toISOString().split('T')[0];
-
-        if (activitiesByDate[dateStr]) {
-          tempStreak++;
-          if (tempStreak > longestStreak) {
-            longestStreak = tempStreak;
-          }
-          console.log(`Day ${i}: ${dateStr} - Activity found, tempStreak: ${tempStreak}`);
-        } else {
-          // Break in streak - if this is the first break, set current streak
-          if (currentStreak === 0) {
-            currentStreak = tempStreak;
-          }
-          console.log(`Day ${i}: ${dateStr} - No activity, break in streak. currentStreak: ${currentStreak}, tempStreak: ${tempStreak}`);
-          tempStreak = 0;
-        }
-      }
+         if (activitiesByDate[dateStr]) {
+           tempStreak++;
+           if (tempStreak > longestStreak) {
+             longestStreak = tempStreak;
+           }
+         } else {
+           // Break in streak - if this is the first break, set current streak
+           if (currentStreak === 0) {
+             currentStreak = tempStreak;
+           }
+           tempStreak = 0;
+         }
+       }
 
       // If we haven't found a current streak yet, use the temp streak
       if (currentStreak === 0) {
         currentStreak = tempStreak;
       }
 
-      console.log('Final streak calculation:', { current: currentStreak, longest: longestStreak });
+      
       setActivityStreak({ current: currentStreak, longest: longestStreak });
     } catch (err) {
       console.error('Error calculating activity streak:', err);
@@ -109,21 +103,21 @@ export default function ActivityStatsPanel() {
       let subscriptionTier = 'Free';
       let taggedProvidersCount = 0;
 
-      // Fetch subscription data
-      if (profileData?.team_id) {
-        const { data: subData } = await supabase
-          .from("subscriptions")
-          .select("plan_id")
-          .eq("team_id", profileData.team_id)
-          .in("status", ["active", "trialing"])
-          .order("renewed_at", { ascending: false })
-          .limit(1)
-          .single();
+             // Fetch subscription data (temporarily disabled due to 406 errors)
+       // if (profileData?.team_id) {
+       //   const { data: subData } = await supabase
+       //     .from("subscriptions")
+       //     .select("*")
+       //     .eq("team_id", profileData.team_id)
+       //     .in("status", ["active", "trialing"])
+       //     .order("renewed_at", { ascending: false })
+       //     .limit(1)
+       //     .single();
 
-        if (subData?.plan_id) {
-          subscriptionTier = "Active Plan"; // Simplified for now
-        }
-      }
+       //   if (subData?.plan_id) {
+       //     subscriptionTier = "Active Plan"; // Simplified for now
+       //   }
+       // }
 
       // Fetch tagged providers count
       if (profileData?.team_id) {

@@ -41,11 +41,11 @@ export const trackActivity = async (activityType, targetId = null, targetName = 
 // Predefined activity types
 export const ACTIVITY_TYPES = {
   LOGIN: 'login',
-  DASHBOARD_VISIT: 'dashboard_visit',
+  DASHBOARD_VISIT: 'login', // Using 'login' as fallback since 'dashboard_visit' not in DB constraint
   SEARCH_PROVIDERS: 'search_providers',
   VIEW_PROVIDER: 'view_provider',
   SAVE_MARKET: 'save_market',
-  VIEW_MARKET: 'view_market'
+  VIEW_MARKET: 'view_provider' // Using 'view_provider' as fallback
 };
 
 // Helper functions for common activities

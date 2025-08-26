@@ -54,13 +54,13 @@ export function useDropdownClose({
       }
 
       // Close if clicking outside
-      if (!clickedInside) {
+      if (!clickedInside && typeof closeCallback === 'function') {
         closeCallback();
       }
     };
 
     const handleEscape = (e) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && typeof closeCallback === 'function') {
         closeCallback();
       }
     };

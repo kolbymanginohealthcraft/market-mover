@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../../app/supabaseClient';
 import Button from '../../../../components/Buttons/Button';
 import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import MarkdownEditor from './MarkdownEditor';
 import styles from './PolicyManagement.module.css';
 import { marked } from 'marked';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const PolicyManagement = () => {
   const navigate = useNavigate();

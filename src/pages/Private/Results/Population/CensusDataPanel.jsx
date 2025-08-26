@@ -310,7 +310,14 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
     try {
       const response = await fetch(`/api/census-data/county-names?stateFips=${stateFips}`);
       if (!response.ok) {
-        console.error(`Failed to fetch county names for state ${stateFips}`);
+        console.error(`Failed to fetch county names for state ${stateFips}: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error(`Invalid response type for county names: ${contentType}`);
         return;
       }
       
@@ -326,6 +333,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
       }
     } catch (error) {
       console.error('Error fetching county names:', error);
+      // Don't throw the error, just log it and continue
     }
   };
 
