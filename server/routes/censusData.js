@@ -268,11 +268,12 @@ router.get("/census-data/schema/:year", async (req, res) => {
  * 
  * Query params:
  *   - stateFips: State FIPS code (required)
+ *   - countyFips: Specific county FIPS codes (optional, multiple allowed)
  * 
- * Returns: County names for the specified state
+ * Returns: County names for the specified state and counties
  */
 router.get("/census-data/county-names", async (req, res) => {
-  const { stateFips } = req.query;
+  const { stateFips, countyFips } = req.query;
 
   if (!stateFips) {
     return res.status(400).json({
@@ -282,38 +283,63 @@ router.get("/census-data/county-names", async (req, res) => {
   }
 
   try {
-    // Check cache first
-    const cacheKey = `county_names_${stateFips}`;
-    const cachedData = cache.get('county_names', { stateFips });
-    if (cachedData) {
-      console.log('📦 Serving county names from cache');
-      return res.status(200).json({ success: true, data: cachedData });
+    // Handle multiple countyFips parameters
+    const countyFipsList = Array.isArray(countyFips) ? countyFips : countyFips ? [countyFips] : null;
+    
+    // Completely disable cache for testing
+    console.log('🔍 Cache completely disabled - forcing fresh query for countyFipsList:', countyFipsList);
+
+    let query, params;
+    
+    if (countyFipsList && countyFipsList.length > 0) {
+      // Query for specific counties only
+      const countyConditions = countyFipsList.map((_, index) => `county_fips_code = @county${index}`).join(' OR ');
+      query = `
+        SELECT 
+          county_fips_code,
+          area_name
+        FROM \`bigquery-public-data.census_utility.fips_codes_all\`
+        WHERE state_fips_code = @stateFips
+          AND summary_level = '050'
+          AND (${countyConditions})
+        ORDER BY area_name
+      `;
+      
+      params = { stateFips };
+      countyFipsList.forEach((countyFips, index) => {
+        // Construct full county FIPS code (state + county)
+        params[`county${index}`] = `${stateFips}${countyFips.padStart(3, '0')}`;
+      });
+    } else {
+      // Query for all counties in the state
+      query = `
+        SELECT 
+          county_fips_code,
+          area_name
+        FROM \`bigquery-public-data.census_utility.fips_codes_all\`
+        WHERE state_fips_code = @stateFips
+          AND summary_level = '050'
+          AND county_fips_code LIKE CONCAT(@stateFips, '%')
+        ORDER BY area_name
+      `;
+      params = { stateFips };
     }
 
-    const query = `
-      SELECT 
-        county_fips_code,
-        area_name
-      FROM \`bigquery-public-data.census_utility.fips_codes_all\`
-      WHERE state_fips_code = @stateFips
-        AND summary_level = '050'
-        AND county_fips_code LIKE CONCAT(@stateFips, '%')
-      ORDER BY area_name
-    `;
-
+    console.log('🔍 County names query params:', params);
     const [rows] = await myBigQuery.query({
       query,
       location: "US",
-      params: { stateFips }
+      params
     });
+    console.log('🔍 County names query results:', rows.length, 'rows');
 
     const countyNames = {};
     rows.forEach(row => {
       countyNames[row.county_fips_code] = row.area_name;
     });
 
-    // Cache the result for 24 hours (county names don't change frequently)
-    cache.set('county_names', { stateFips }, countyNames, 24 * 60 * 60 * 1000);
+    // Cache disabled for testing
+    console.log('🔍 Skipping cache set - cache disabled for testing');
 
     res.status(200).json({
       success: true,

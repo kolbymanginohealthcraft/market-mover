@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import Banner from '../../../components/Buttons/Banner';
@@ -71,13 +71,11 @@ export default function Home() {
     }
   }, [userFirstName]);
 
-
-
-  const handleCloseBanner = () => {
+  const handleCloseBanner = useCallback(() => {
     setShowBanner(false);
-  };
+  }, []);
 
-  const clearAllActivities = async () => {
+  const clearAllActivities = useCallback(async () => {
     try {
       console.log('Clearing all activities...');
       const success = await deleteAllActivities();
@@ -89,9 +87,9 @@ export default function Home() {
     } catch (err) {
       console.error('Error clearing activities:', err);
     }
-  };
+  }, [deleteAllActivities]);
 
-  const clearActivity = async (activityId) => {
+  const clearActivity = useCallback(async (activityId) => {
     try {
       console.log('Clearing activity:', activityId);
       const success = await deleteActivity(activityId);
@@ -103,7 +101,7 @@ export default function Home() {
     } catch (err) {
       console.error('Error clearing activity:', err);
     }
-  };
+  }, [deleteActivity]);
 
   // If checking first time login, show loading
   if (isChecking) {

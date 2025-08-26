@@ -14,10 +14,9 @@ import { useDebounce } from 'use-debounce';
 import { apiUrl } from '../../../utils/api';
 import { trackProviderView } from '../../../utils/activityTracker';
 import { useProviderContext } from '../../../components/Context/ProviderContext';
+import { ProviderAnalysisProvider, useProviderAnalysis } from '../../../components/Context/ProviderAnalysisContext';
 
 import useProviderInfo from "../../../hooks/useProviderInfo";
-import useMarketAnalysis from "../../../hooks/useMarketAnalysis";
-import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
 import OverviewTab from "./Overview/OverviewTab";
 import ProviderListingTab from "./Providers/ProviderListingTab";
@@ -35,7 +34,8 @@ import DetailedLoadingSpinner from "../../../components/Buttons/DetailedLoadingS
 import Storyteller from "./Storyteller/Storyteller";
 import PageLayout from "../../../components/Layouts/PageLayout";
 
-export default function ProviderDetail() {
+// Inner component that uses the provider analysis context
+function ProviderDetailContent() {
   const { dhc } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -47,7 +47,7 @@ export default function ProviderDetail() {
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
-  // Market analysis hook - unified data source
+  // Use the unified provider analysis context
   const {
     providers: nearbyProviders,
     ccns: nearbyDhcCcns,
@@ -56,42 +56,27 @@ export default function ProviderDetail() {
     counties,
     censusTracts,
     qualityMeasuresDates,
+    qualityMeasuresData,
     loading: marketAnalysisLoading,
     providersLoading,
     ccnsLoading,
     npisLoading,
     censusLoading,
     qualityMeasuresDatesLoading,
+    qualityMeasuresLoading,
     error: marketAnalysisError,
     providersError,
     ccnsError,
     npisError,
     censusError,
     qualityMeasuresDatesError,
+    qualityMeasuresError,
     getAllNpis,
     getProviderDhcToCcns,
     getProviderDhcToNpis
-  } = useMarketAnalysis(provider, radiusInMiles, 'provider');
-
-  // Prefetch quality measures data for Storyteller tab
-  const {
-    matrixLoading: storytellerLoading,
-    matrixMeasures: storytellerMeasures,
-    matrixData: storytellerData,
-    matrixMarketAverages: storytellerMarketAverages,
-    matrixNationalAverages: storytellerNationalAverages,
-    matrixError: storytellerError,
-    allMatrixProviders: storytellerAllProviders,
-    availableProviderTypes: storytellerProviderTypes,
-    availablePublishDates: storytellerPublishDates,
-    currentPublishDate: storytellerCurrentDate
-  } = useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, null, qualityMeasuresDates);
+  } = useProviderAnalysis();
 
   const [debouncedRadius] = useDebounce(radiusInMiles, 400);
-
-
-
-
 
   // Track provider view activity (only once per provider per session)
   useEffect(() => {
@@ -135,7 +120,7 @@ export default function ProviderDetail() {
       ccns: ccnsLoading,
       npis: npisLoading,
       censusData: censusLoading,
-      qualityMeasures: storytellerLoading
+      qualityMeasures: qualityMeasuresLoading
     };
     
     return (
@@ -168,16 +153,16 @@ export default function ProviderDetail() {
             nearbyProviders={nearbyProviders}
             nearbyDhcCcns={nearbyDhcCcns}
             prefetchedData={{
-              loading: storytellerLoading,
-              measures: storytellerMeasures,
-              data: storytellerData,
-              marketAverages: storytellerMarketAverages,
-              nationalAverages: storytellerNationalAverages,
-              error: storytellerError,
-              allProviders: storytellerAllProviders,
-              providerTypes: storytellerProviderTypes,
-              publishDates: storytellerPublishDates,
-              currentDate: storytellerCurrentDate,
+              loading: qualityMeasuresLoading,
+              measures: qualityMeasuresData.measures,
+              data: qualityMeasuresData.providerData,
+              marketAverages: qualityMeasuresData.marketAverages,
+              nationalAverages: qualityMeasuresData.nationalAverages,
+              error: qualityMeasuresError,
+              allProviders: qualityMeasuresData.allProviders,
+              providerTypes: qualityMeasuresData.availableProviderTypes,
+              publishDates: qualityMeasuresData.availablePublishDates,
+              currentDate: qualityMeasuresData.currentPublishDate,
               qualityMeasuresDates
             }}
           />
@@ -185,5 +170,20 @@ export default function ProviderDetail() {
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>
     </PageLayout>
+  );
+}
+
+// Main component that provides the context
+export default function ProviderDetail() {
+  const { dhc } = useParams();
+  const [searchParams] = useSearchParams();
+  const radiusFromUrl = Number(searchParams.get("radius"));
+  const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
+  const { provider, loading, error: providerError } = useProviderInfo(dhc);
+
+  return (
+    <ProviderAnalysisProvider provider={provider} radiusInMiles={radiusInMiles}>
+      <ProviderDetailContent />
+    </ProviderAnalysisProvider>
   );
 }

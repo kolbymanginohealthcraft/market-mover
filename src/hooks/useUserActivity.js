@@ -1,14 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../app/supabaseClient';
 
 export default function useUserActivity() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const fetchInProgress = useRef(false);
 
   // Fetch recent activities
-  const fetchActivities = async (limit = 10) => {
+  const fetchActivities = useCallback(async (limit = 10) => {
+    // Prevent duplicate requests
+    if (fetchInProgress.current) {
+      console.log('🔍 Fetch already in progress, skipping...');
+      return;
+    }
+
     try {
+      fetchInProgress.current = true;
       setLoading(true);
       console.log('🔍 Fetching user activities...');
       
@@ -45,11 +53,12 @@ export default function useUserActivity() {
       setActivities([]); // Fallback to empty array
     } finally {
       setLoading(false);
+      fetchInProgress.current = false;
     }
-  };
+  }, []);
 
   // Fetch more activities when needed
-  const fetchMoreActivities = async () => {
+  const fetchMoreActivities = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -71,10 +80,10 @@ export default function useUserActivity() {
     } catch (err) {
       console.error('Error fetching more activities:', err);
     }
-  };
+  }, []);
 
   // Track a new activity
-  const trackActivity = async (activityType, targetId = null, targetName = null, metadata = {}) => {
+  const trackActivity = useCallback(async (activityType, targetId = null, targetName = null, metadata = {}) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -108,7 +117,7 @@ export default function useUserActivity() {
       setError(err.message);
       return null;
     }
-  };
+  }, []);
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -141,10 +150,10 @@ export default function useUserActivity() {
 
   useEffect(() => {
     fetchActivities();
-  }, []);
+  }, [fetchActivities]);
 
   // Delete a single activity
-  const deleteActivity = async (activityId) => {
+  const deleteActivity = useCallback(async (activityId) => {
     try {
       const { error } = await supabase
         .from('user_activities')
@@ -174,10 +183,10 @@ export default function useUserActivity() {
       setError(err.message);
       return false;
     }
-  };
+  }, [fetchMoreActivities]);
 
   // Delete all activities
-  const deleteAllActivities = async () => {
+  const deleteAllActivities = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
@@ -201,7 +210,7 @@ export default function useUserActivity() {
       setError(err.message);
       return false;
     }
-  };
+  }, []);
 
   return {
     activities,

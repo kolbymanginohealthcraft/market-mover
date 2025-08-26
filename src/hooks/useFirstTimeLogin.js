@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '../app/supabaseClient';
 
@@ -8,13 +8,17 @@ export const useFirstTimeLogin = () => {
   const [searchParams] = useSearchParams();
   const [isChecking, setIsChecking] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const checkInProgress = useRef(false);
 
-  useEffect(() => {
-    checkFirstTimeLogin();
-  }, []);
+  const checkFirstTimeLogin = useCallback(async () => {
+    // Prevent duplicate requests
+    if (checkInProgress.current) {
+      console.log('🔍 First time login check already in progress, skipping...');
+      return;
+    }
 
-  const checkFirstTimeLogin = async () => {
     try {
+      checkInProgress.current = true;
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -60,12 +64,6 @@ export const useFirstTimeLogin = () => {
         return;
       }
 
-      console.log("🔍 useFirstTimeLogin - Profile state:", {
-        hasTeam: !!profile.team_id,
-        hasFirstName: !!profile.first_name,
-        hasLastName: !!profile.last_name
-      });
-
       // Check if user needs to set password first (new invited user with team but no password)
       if (profile.team_id && user.app_metadata?.provider === 'email' && !user.email_confirmed_at) {
         // User has a team but needs to set password first
@@ -88,8 +86,14 @@ export const useFirstTimeLogin = () => {
     } catch (err) {
       console.error("Error checking first time login:", err);
       setIsChecking(false);
+    } finally {
+      checkInProgress.current = false;
     }
-  };
+  }, [navigate, location.pathname, searchParams]);
+
+  useEffect(() => {
+    checkFirstTimeLogin();
+  }, [checkFirstTimeLogin]);
 
   return {
     isChecking,

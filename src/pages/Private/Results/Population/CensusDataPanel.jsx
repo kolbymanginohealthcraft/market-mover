@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import useCensusData, { useAvailableCensusYears } from "../../../../hooks/useCensusData";
+import { useProviderAnalysis } from "../../../../components/Context/ProviderAnalysisContext";
 import { useUserTeam } from "../../../../hooks/useUserTeam";
+import { apiUrl } from "../../../../utils/api";
 import styles from "./CensusDataPanel.module.css";
 import React from 'react';
 import Spinner from "../../../../components/Buttons/Spinner";
@@ -28,9 +29,7 @@ const formatPercent = (num) => {
 };
 
 const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
-  // Hardcode year to 2023
-  const year = '2023';
-  const { data, loading, error } = useCensusData(provider, radiusInMiles, year);
+  const { censusData: data, censusLoading: loading, censusError: error } = useProviderAnalysis();
   const { hasTeam, loading: teamLoading } = useUserTeam();
   const [selectedBenchmark, setSelectedBenchmark] = useState('national');
   const [countyNames, setCountyNames] = useState({});
@@ -53,21 +52,31 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
   // Fetch county names when data is available
   React.useEffect(() => {
     if (data && !countyNames.loaded) {
-      console.log('Fetching county names for all states');
-      const states = getAvailableStates();
-      states.forEach(stateFips => {
+      // Get the specific counties that are actually in the market data
+      const countiesInMarket = getAvailableCounties();
+      console.log('Fetching county names for counties in market:', countiesInMarket);
+      
+      // Group counties by state and fetch only the ones we need
+      const countiesByState = {};
+      countiesInMarket.forEach(countyKey => {
+        const [stateFips, countyFips] = countyKey.split('-');
+        if (!countiesByState[stateFips]) {
+          countiesByState[stateFips] = [];
+        }
+        countiesByState[stateFips].push(countyFips);
+      });
+      
+      // Fetch county names for each state, but only for the counties we need
+      Object.keys(countiesByState).forEach(stateFips => {
         if (!countyNames[stateFips]) {
-          fetchCountyNames(stateFips);
+          fetchCountyNames(stateFips, countiesByState[stateFips]);
         }
       });
       setCountyNames(prev => ({ ...prev, loaded: true }));
     }
   }, [data, countyNames]);
 
-  // Debug: log county names state
-  React.useEffect(() => {
-    console.log('County names state:', countyNames);
-  }, [countyNames]);
+
 
   // Memoize data processing to prevent unnecessary recalculations
   const processedData = useMemo(() => {
@@ -303,33 +312,42 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
     );
   };
 
-  // Function to get county names for a state
-  const fetchCountyNames = async (stateFips) => {
+  // Function to get county names for a state (only for specific counties)
+  const fetchCountyNames = async (stateFips, specificCounties = null) => {
     if (countyNames[stateFips]) return; // Already cached
     
     try {
-      const response = await fetch(`/api/census-data/county-names?stateFips=${stateFips}`);
-      if (!response.ok) {
-        console.error(`Failed to fetch county names for state ${stateFips}: ${response.status} ${response.statusText}`);
-        return;
-      }
-      
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error(`Invalid response type for county names: ${contentType}`);
-        return;
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        console.log(`Setting county names for state ${stateFips}:`, result.data);
-        setCountyNames(prev => ({
-          ...prev,
-          [stateFips]: result.data
-        }));
+      if (specificCounties && specificCounties.length > 0) {
+        console.log(`🔍 Fetching county names for state ${stateFips}, counties:`, specificCounties);
+        // Fetch only specific counties
+        const countyParams = specificCounties.map(county => `countyFips=${county}`).join('&');
+        const response = await fetch(apiUrl(`/api/census-data/county-names?stateFips=${stateFips}&${countyParams}`));
+        if (!response.ok) {
+          console.error(`Failed to fetch county names for state ${stateFips}: ${response.status} ${response.statusText}`);
+          return;
+        }
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error(`Invalid response type for county names: ${contentType}`);
+          const responseText = await response.text();
+          console.error('Response text:', responseText.substring(0, 500));
+          return;
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+          console.log(`✅ Setting county names for state ${stateFips}:`, result.data);
+          setCountyNames(prev => ({
+            ...prev,
+            [stateFips]: result.data
+          }));
+        } else {
+          console.error('Error fetching county names:', result.error);
+        }
       } else {
-        console.error('Error fetching county names:', result.error);
+        console.log(`🔍 No specific counties requested for state ${stateFips}`);
       }
     } catch (error) {
       console.error('Error fetching county names:', error);

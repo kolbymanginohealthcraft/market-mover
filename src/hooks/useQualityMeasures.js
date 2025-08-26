@@ -50,33 +50,25 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   const memoizedNearbyProviders = useMemo(() => nearbyProviders, [JSON.stringify(nearbyProviders)]);
   const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns, [JSON.stringify(nearbyDhcCcns)]);
 
-     // Effect to update current publish date when measure setting changes
-   useEffect(() => {
-     console.log('📅 Quality measures dates effect triggered:', {
-       qualityMeasuresDates,
-       currentMeasureSetting,
-       hasQualityMeasuresDates: qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0
-     });
-     
-           if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0 && currentMeasureSetting) {
-        if (qualityMeasuresDates[currentMeasureSetting]) {
-          const settingSpecificDate = qualityMeasuresDates[currentMeasureSetting];
-          console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
-          setCurrentPublishDate(settingSpecificDate);
-          // Clear cache when measure setting changes to ensure fresh data
-          apiCache.clear();
-          console.log('🧹 Cache cleared due to measure setting change');
-        } else {
-          // Fallback to the most recent available date if the setting doesn't have a specific date
-          const allDates = Object.values(qualityMeasuresDates).sort().reverse();
-          console.log('📅 Setting not found in qualityMeasuresDates, using most recent date:', allDates[0]);
-          setCurrentPublishDate(allDates[0]);
-          // Clear cache when measure setting changes to ensure fresh data
-          apiCache.clear();
-          console.log('🧹 Cache cleared due to measure setting change');
-        }
+       // Effect to update current publish date when measure setting changes
+  useEffect(() => {
+    if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0 && currentMeasureSetting) {
+      if (qualityMeasuresDates[currentMeasureSetting]) {
+        const settingSpecificDate = qualityMeasuresDates[currentMeasureSetting];
+        console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
+        setCurrentPublishDate(settingSpecificDate);
+        // Clear cache when measure setting changes to ensure fresh data
+        apiCache.clear();
+      } else {
+        // Fallback to the most recent available date if the setting doesn't have a specific date
+        const allDates = Object.values(qualityMeasuresDates).sort().reverse();
+        console.log('📅 Setting not found, using fallback date:', allDates[0]);
+        setCurrentPublishDate(allDates[0]);
+        // Clear cache when measure setting changes to ensure fresh data
+        apiCache.clear();
       }
-   }, [qualityMeasuresDates, currentMeasureSetting]);
+    }
+  }, [qualityMeasuresDates, currentMeasureSetting]);
 
   useEffect(() => {
     async function fetchMatrixData() {
@@ -215,11 +207,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           combinedData = cachedData;
         } else {
           // 9. Fetch all data in a single API call with the determined date
-          console.log('🔍 Fetching combined quality measure data:', {
-            providerDhc: provider?.dhc,
-            allCcnsCount: allCcns.length,
-            publish_date
-          });
+          console.log('🔍 Fetching quality measures data for', allCcns.length, 'CCNs with date:', publish_date);
           
           const combinedResponse = await fetch(apiUrl('/api/qm_combined'), {
             method: 'POST',
