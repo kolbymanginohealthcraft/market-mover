@@ -9,7 +9,7 @@ import useUserActivity from '../../../hooks/useUserActivity';
 
 import useTestimonials from '../../../hooks/useTestimonials';
 import { useFirstTimeLogin } from '../../../hooks/useFirstTimeLogin';
-import { trackActivity, ACTIVITY_TYPES, trackDashboardVisit } from '../../../utils/activityTracker';
+import { trackActivity, ACTIVITY_TYPES } from '../../../utils/activityTracker';
 
 export default function Home() {
   const [userFirstName, setUserFirstName] = useState('');
@@ -55,20 +55,11 @@ export default function Home() {
       }
     };
 
-    const handleDashboardVisit = async () => {
-      try {
-        await trackDashboardVisit();
-      } catch (err) {
-        console.error('Error tracking dashboard visit:', err);
-      }
-    };
-
     // Set a random motivational quote
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
     setQuote(randomQuote);
 
     fetchUserProfile();
-    handleDashboardVisit();
   }, []);
 
   // Update greeting text when userFirstName changes

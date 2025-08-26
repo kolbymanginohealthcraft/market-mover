@@ -23,12 +23,6 @@ export async function getPlans(priceBookName = 'standard') {
         plan_pricing!inner(
           price_monthly,
           effective_date
-        ),
-        plan_features(
-          features(
-            name,
-            description
-          )
         )
       `)
       .eq('plan_pricing.price_book_id', priceBook.id)
@@ -47,7 +41,6 @@ export async function getPlans(priceBookName = 'standard') {
         saved_markets: plan.saved_markets,
         price_monthly: plan.plan_pricing[0]?.price_monthly,
         license_block_price: priceBook.additional_license_price || 250,
-        features: plan.plan_features.map(pf => pf.features.name),
         badge: plan.name === 'Advanced' ? 'Most Popular' : null
       }))
       .sort((a, b) => (a.price_monthly || 0) - (b.price_monthly || 0));
@@ -74,12 +67,6 @@ export async function getPlanById(planId, priceBookName = 'standard') {
         plan_pricing!inner(
           price_monthly,
           effective_date
-        ),
-        plan_features(
-          features(
-            name,
-            description
-          )
         )
       `)
       .eq('id', planId)
@@ -97,8 +84,7 @@ export async function getPlanById(planId, priceBookName = 'standard') {
       max_users: plan.max_users,
       saved_markets: plan.saved_markets,
       price_monthly: plan.plan_pricing[0]?.price_monthly,
-      license_block_price: priceBook.additional_license_price || 250,
-      features: plan.plan_features.map(pf => pf.features.name)
+      license_block_price: priceBook.additional_license_price || 250
     };
   } catch (error) {
     console.error('Error fetching plan:', error);

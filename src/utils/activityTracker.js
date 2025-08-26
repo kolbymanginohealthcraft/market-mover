@@ -40,12 +40,9 @@ export const trackActivity = async (activityType, targetId = null, targetName = 
 
 // Predefined activity types
 export const ACTIVITY_TYPES = {
-  LOGIN: 'login',
-  DASHBOARD_VISIT: 'login', // Using 'login' as fallback since 'dashboard_visit' not in DB constraint
   SEARCH_PROVIDERS: 'search_providers',
   VIEW_PROVIDER: 'view_provider',
-  SAVE_MARKET: 'save_market',
-  VIEW_MARKET: 'view_provider' // Using 'view_provider' as fallback
+  VIEW_MARKET: 'view_market'
 };
 
 // Helper functions for common activities
@@ -57,14 +54,4 @@ export const trackProviderView = (providerDhc, providerName) => {
   return trackActivity(ACTIVITY_TYPES.VIEW_PROVIDER, providerDhc, providerName);
 };
 
-export const trackMarketSave = (marketId, marketName, radius) => {
-  return trackActivity(ACTIVITY_TYPES.SAVE_MARKET, marketId, marketName, { radius });
-};
-
-export const trackMarketView = (marketId, marketName, radius) => {
-  return trackActivity(ACTIVITY_TYPES.VIEW_MARKET, marketId, marketName, { radius });
-};
-
-export const trackDashboardVisit = () => {
-  return trackActivity(ACTIVITY_TYPES.DASHBOARD_VISIT, null, 'Dashboard Visit');
-}; 
+ 

@@ -92,19 +92,47 @@ export default function Feedback() {
 
   const fetchFeatureRequests = async () => {
     try {
-      const { data, error } = await supabase
-        .from('feature_requests_with_votes')
+      // Get feature requests
+      const { data: requests, error: requestsError } = await supabase
+        .from('feature_requests')
         .select('*')
         .eq('status', 'approved')
-        .order('votes', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching feature requests:', error);
+      if (requestsError) {
+        console.error('Error fetching feature requests:', requestsError);
         return;
       }
 
-      setFeatureRequests(data || []);
+      // Get vote counts
+      const { data: votes, error: votesError } = await supabase
+        .from('feature_request_votes')
+        .select('feature_request_id');
+
+      if (votesError) {
+        console.error('Error fetching votes:', votesError);
+        return;
+      }
+
+      // Count votes per request
+      const voteCounts = {};
+      votes.forEach(vote => {
+        voteCounts[vote.feature_request_id] = (voteCounts[vote.feature_request_id] || 0) + 1;
+      });
+
+      // Combine data
+      const requestsWithVotes = requests.map(request => ({
+        ...request,
+        votes: voteCounts[request.id] || 0
+      }));
+
+      // Sort by votes (descending) then by created_at (descending)
+      const sorted = requestsWithVotes.sort((a, b) => {
+        if (b.votes !== a.votes) return b.votes - a.votes;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      setFeatureRequests(sorted);
     } catch (err) {
       console.error('Error fetching feature requests:', err);
     } finally {
@@ -211,8 +239,6 @@ export default function Feedback() {
           return;
         }
 
-        // Vote count will be updated automatically via the view
-
         setUserVotes(prev => {
           const newVotes = { ...prev };
           delete newVotes[requestId];
@@ -232,14 +258,13 @@ export default function Feedback() {
           return;
         }
 
-        // Vote count will be updated automatically via the view
-
         setUserVotes(prev => ({
           ...prev,
           [requestId]: true
         }));
       }
 
+      // Refresh the feature requests to update vote counts
       fetchFeatureRequests();
     } catch (err) {
       console.error('Error voting:', err);
@@ -294,9 +319,9 @@ export default function Feedback() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch user's feature requests with vote counts
+      // Fetch user's feature requests
       const { data: userRequests, error: requestsError } = await supabase
-        .from('feature_requests_with_votes')
+        .from('feature_requests')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -304,6 +329,27 @@ export default function Feedback() {
       if (requestsError) {
         console.error('Error fetching user feature requests:', requestsError);
       }
+
+      // Get vote counts for user's requests
+      const { data: votes, error: votesError } = await supabase
+        .from('feature_request_votes')
+        .select('feature_request_id');
+
+      if (votesError) {
+        console.error('Error fetching votes:', votesError);
+      }
+
+      // Count votes per request
+      const voteCounts = {};
+      votes?.forEach(vote => {
+        voteCounts[vote.feature_request_id] = (voteCounts[vote.feature_request_id] || 0) + 1;
+      });
+
+      // Add vote counts to user requests
+      const userRequestsWithVotes = userRequests?.map(request => ({
+        ...request,
+        votes: voteCounts[request.id] || 0
+      })) || [];
 
       // Fetch user's testimonials
       const { data: userTestimonials, error: testimonialsError } = await supabase
@@ -317,7 +363,7 @@ export default function Feedback() {
       }
 
       setUserSubmissions({
-        featureRequests: userRequests || [],
+        featureRequests: userRequestsWithVotes,
         testimonials: userTestimonials || []
       });
     } catch (err) {

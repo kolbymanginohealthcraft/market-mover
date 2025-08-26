@@ -12,7 +12,7 @@ import styles from "./ProviderDetail.module.css";
 import { Pencil, Check, X } from "lucide-react";
 import { useDebounce } from 'use-debounce';
 import { apiUrl } from '../../../utils/api';
-import { trackProviderView } from '../../../utils/activityTracker';
+import { trackProviderView, trackActivity, ACTIVITY_TYPES } from '../../../utils/activityTracker';
 import { supabase } from '../../../app/supabaseClient';
 
 import useMarketAnalysis from "../../../hooks/useMarketAnalysis";
@@ -120,6 +120,33 @@ export default function MarketDetail() {
       fetchMarket();
     }
   }, [marketId]);
+
+  // Track market view activity (only once per market per session)
+  useEffect(() => {
+    if (market && !marketLoading) {
+      // Don't track if coming from activity panel
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromActivity = urlParams.get('fromActivity');
+      
+      if (fromActivity) {
+        // Remove the parameter from URL without triggering a page reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        return;
+      }
+      
+      const viewedMarkets = JSON.parse(sessionStorage.getItem('viewedMarkets') || '[]');
+      const marketKey = `${market.id}`;
+      
+      if (!viewedMarkets.includes(marketKey)) {
+        trackActivity(ACTIVITY_TYPES.VIEW_MARKET, market.id, market.name, { radius: market.radius_miles });
+        viewedMarkets.push(marketKey);
+        sessionStorage.setItem('viewedMarkets', JSON.stringify(viewedMarkets));
+      }
+    }
+  }, [market, marketLoading]);
+
+
 
   // Create a mock provider object for the market center point
   const marketProvider = useMemo(() => {

@@ -17,7 +17,6 @@ import { useProviderContext } from '../../../components/Context/ProviderContext'
 
 import useProviderInfo from "../../../hooks/useProviderInfo";
 import useMarketAnalysis from "../../../hooks/useMarketAnalysis";
-import useMarketData from "../../../hooks/useMarketData";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
 import OverviewTab from "./Overview/OverviewTab";
@@ -45,8 +44,6 @@ export default function ProviderDetail() {
   
   const radiusFromUrl = Number(searchParams.get("radius"));
   const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
-  const [mainProviderCcns, setMainProviderCcns] = useState([]);
-  const hasTrackedView = useRef(false);
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
@@ -94,33 +91,30 @@ export default function ProviderDetail() {
 
 
 
-  useEffect(() => {
-    async function fetchMainProviderCcns() {
-      if (!provider?.dhc) return setMainProviderCcns([]);
-      console.log('Fetching related CCNs for provider:', provider?.dhc);
-      const response = await fetch(apiUrl('/api/related-ccns'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dhc: provider?.dhc })
-      })
-      .catch(err => { console.error('Fetch error (related-ccns):', err); throw err; });
-      console.log('Fetch completed for related CCNs');
-      if (!response.ok) return setMainProviderCcns([]);
-      const result = await response.json();
-      if (result.success) {
-        setMainProviderCcns(result.data.map(row => row.ccn));
-      } else {
-        setMainProviderCcns([]);
-      }
-    }
-    fetchMainProviderCcns();
-  }, [provider?.dhc]);
 
-  // Track provider view activity (only once per provider)
+
+  // Track provider view activity (only once per provider per session)
   useEffect(() => {
-    if (provider && !loading && !hasTrackedView.current) {
-      trackProviderView(provider.dhc, provider.name);
-      hasTrackedView.current = true;
+    if (provider && !loading) {
+      // Don't track if coming from activity panel
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromActivity = urlParams.get('fromActivity');
+      
+      if (fromActivity) {
+        // Remove the parameter from URL without triggering a page reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        return;
+      }
+      
+      const viewedProviders = JSON.parse(sessionStorage.getItem('viewedProviders') || '[]');
+      const providerKey = `${provider.dhc}`;
+      
+      if (!viewedProviders.includes(providerKey)) {
+        trackProviderView(provider.dhc, provider.name);
+        viewedProviders.push(providerKey);
+        sessionStorage.setItem('viewedProviders', JSON.stringify(viewedProviders));
+      }
     }
   }, [provider, loading]);
 
@@ -173,7 +167,6 @@ export default function ProviderDetail() {
             radiusInMiles={radiusInMiles}
             nearbyProviders={nearbyProviders}
             nearbyDhcCcns={nearbyDhcCcns}
-            mainProviderCcns={mainProviderCcns}
             prefetchedData={{
               loading: storytellerLoading,
               measures: storytellerMeasures,

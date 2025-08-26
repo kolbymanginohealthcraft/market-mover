@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Search, User, MapPin } from 'lucide-react';
+import { Search, Building2, MapPin } from 'lucide-react';
 import styles from './ActivityPanel.module.css';
 
 export default function ActivityPanel({ 
@@ -12,7 +12,7 @@ export default function ActivityPanel({
   const getActivityIcon = (activityType) => {
     const icons = {
       'search_providers': <Search size={14} />,
-      'view_provider': <User size={14} />,
+      'view_provider': <Building2 size={14} />,
       'save_market': <MapPin size={14} />,
       'view_market': <MapPin size={14} />
     };
@@ -36,9 +36,9 @@ export default function ActivityPanel({
   const getActivityLink = (activity) => {
     const links = {
       'search_providers': `/app/search?search=${encodeURIComponent(activity.target_name)}`,
-      'view_provider': `/app/provider/${activity.target_id}`,
+      'view_provider': `/app/provider/${activity.target_id}?fromActivity=true`,
       'save_market': '#',
-      'view_market': '#'
+      'view_market': `/app/market/${activity.target_id}?fromActivity=true`
     };
     
     return links[activity.activity_type] || '#';
