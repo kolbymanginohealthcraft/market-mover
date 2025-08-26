@@ -197,6 +197,14 @@ export default function UsersTab() {
     };
 
     try {
+      // Debug: Log what we're sending
+      console.log("🔍 Sending invite request with secret:", import.meta.env.VITE_EDGE_INVITE_SECRET);
+      console.log("🔍 Full headers:", {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        "x-invite-secret": import.meta.env.VITE_EDGE_INVITE_SECRET,
+      });
+      
       const res = await fetch(
         "https://ukuxibhujcozcwozljzf.functions.supabase.co/invite_user",
         {
