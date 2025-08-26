@@ -198,7 +198,11 @@ export default function UsersTab() {
 
     try {
       // Debug: Log what we're sending
+      console.log("🔍 TIMESTAMP:", new Date().toISOString());
       console.log("🔍 Sending invite request with secret:", import.meta.env.VITE_EDGE_INVITE_SECRET);
+      console.log("🔍 Secret length:", import.meta.env.VITE_EDGE_INVITE_SECRET?.length);
+      console.log("🔍 All env vars:", import.meta.env);
+      
       console.log("🔍 Full headers:", {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -271,7 +275,7 @@ export default function UsersTab() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "x-invite-secret": import.meta.env.VITE_EDGE_INVITE_SECRET,
+            "x-admin-secret": import.meta.env.VITE_EDGE_ADMIN_SECRET,
           },
           body: JSON.stringify({
             user_id: member.id,
