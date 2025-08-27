@@ -319,13 +319,15 @@ const SetPassword = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className={`form-input ${styles['form-input']}`}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '16px',
-                  backgroundColor: '#fff'
+                  backgroundColor: '#fff',
+                  transition: 'all 0.2s ease'
                 }}
                 placeholder="Enter your password"
                 disabled={saving}
@@ -346,13 +348,15 @@ const SetPassword = () => {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`form-input ${styles['form-input']}`}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '16px',
-                  backgroundColor: '#fff'
+                  backgroundColor: '#fff',
+                  transition: 'all 0.2s ease'
                 }}
                 placeholder="Confirm your password"
                 disabled={saving}
@@ -367,7 +371,7 @@ const SetPassword = () => {
                 disabled={saving}
                 style={{ width: '100%' }}
               >
-                {saving ? <Spinner size="sm" /> : 'Set Password'}
+                {saving ? 'Setting Password...' : 'Set Password'}
               </Button>
             </div>
           </form>

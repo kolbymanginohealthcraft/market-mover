@@ -28,8 +28,13 @@ const formatPercent = (num) => {
   return `${(num * 100).toFixed(1)}%`;
 };
 
-const CensusDataPanel = React.memo(({ provider, radiusInMiles }) => {
-  const { censusData: data, censusLoading: loading, censusError: error } = useProviderAnalysis();
+const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propCensusData, counties: propCounties, censusTracts: propCensusTracts }) => {
+  // Use props if provided (for market analysis), otherwise use context (for provider analysis)
+  const contextData = propCensusData ? null : useProviderAnalysis();
+  
+  const data = propCensusData || contextData?.censusData;
+  const loading = propCensusData ? false : contextData?.censusLoading || false;
+  const error = propCensusData ? null : contextData?.censusError || null;
   const { hasTeam, loading: teamLoading } = useUserTeam();
   const [selectedBenchmark, setSelectedBenchmark] = useState('national');
   const [countyNames, setCountyNames] = useState({});

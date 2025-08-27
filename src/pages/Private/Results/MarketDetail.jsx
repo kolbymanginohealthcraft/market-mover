@@ -14,6 +14,7 @@ import { useDebounce } from 'use-debounce';
 import { apiUrl } from '../../../utils/api';
 import { trackProviderView, trackActivity, ACTIVITY_TYPES } from '../../../utils/activityTracker';
 import { supabase } from '../../../app/supabaseClient';
+import { ProviderAnalysisProvider } from '../../../components/Context/ProviderAnalysisContext';
 
 import useMarketAnalysis from "../../../hooks/useMarketAnalysis";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";

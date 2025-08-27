@@ -285,7 +285,7 @@ export default function MarketOverview({ market: marketProp, providers: provider
   }
 
   return (
-    <div className={styles.container}>
+    <>
       {/* Banner Component */}
       <Banner
         title={market.name}
@@ -558,6 +558,6 @@ export default function MarketOverview({ market: marketProp, providers: provider
            </div>
          )}
       </SidePanel>
-    </div>
+    </>
   );
 } 
