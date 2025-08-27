@@ -85,7 +85,14 @@ export default function App() {
 
   useEffect(() => {
     // Don't redirect if user is on reset-password page (they need to complete password reset)
+    console.log("🔍 App.jsx - Session redirect check:", {
+      hasSession: !!session,
+      pathname: location.pathname,
+      isResetPassword: location.pathname === "/reset-password"
+    });
+    
     if (session && (location.pathname === "/" || location.pathname === "/login") && location.pathname !== "/reset-password") {
+      console.log("🔍 App.jsx - Redirecting to dashboard");
       navigate("/app/dashboard");
     }
   }, [session, location.pathname, navigate]);

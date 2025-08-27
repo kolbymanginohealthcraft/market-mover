@@ -40,7 +40,7 @@ const ForgotPassword = () => {
           setStatus(`❌ ${error.message}`);
         }
       } else {
-        setStatus("✅ Password reset email sent!");
+        setStatus("✅ Password reset email sent! Please check your email and click the link. If the link doesn't work, you can return here to request a new one.");
       }
     } catch (err) {
       console.error("Password reset error:", err);
