@@ -84,7 +84,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (session && (location.pathname === "/" || location.pathname === "/login")) {
+    // Don't redirect if user is on reset-password page (they need to complete password reset)
+    if (session && (location.pathname === "/" || location.pathname === "/login") && location.pathname !== "/reset-password") {
       navigate("/app/dashboard");
     }
   }, [session, location.pathname, navigate]);
@@ -158,7 +159,11 @@ export default function App() {
             </Route>
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to={session ? "/app/dashboard" : "/"} />} />
+            <Route path="*" element={
+              session && location.pathname !== "/reset-password" 
+                ? <Navigate to="/app/dashboard" /> 
+                : <Navigate to="/" />
+            } />
           </Routes>
         </ProviderContextProvider>
     </>
