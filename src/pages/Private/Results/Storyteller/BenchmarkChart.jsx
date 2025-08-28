@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { apiUrl } from '../../../../utils/api';
 import styles from './BenchmarkChart.module.css';
@@ -11,12 +11,14 @@ export default function BenchmarkChart({
   selectedPublishDate,
   providerTypeFilter,
   selectedMeasure,
-  measuresLoading = false
+  measuresLoading = false,
+  onExport = null
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [measureInfo, setMeasureInfo] = useState(null);
+  const chartRef = useRef(null);
 
   useEffect(() => {
     async function fetchRehospitalizationData() {
@@ -174,6 +176,16 @@ export default function BenchmarkChart({
 
         setData(chartData);
         setLoading(false);
+        
+        // Expose export function to parent component
+        if (onExport) {
+          onExport({
+            chartRef,
+            data: chartData,
+            measureInfo: targetMeasure,
+            publishDate
+          });
+        }
 
       } catch (err) {
         console.error('Error fetching rehospitalization data:', err);
@@ -246,7 +258,7 @@ export default function BenchmarkChart({
       }
 
      return (
-     <div className={styles.benchmarkContainer}>
+     <div className={styles.benchmarkContainer} ref={chartRef}>
        <div className={styles.chartHeader}>
          <h3 className={styles.metricTitle}>
            {measureInfo?.name || 'Rehospitalization Rate'}

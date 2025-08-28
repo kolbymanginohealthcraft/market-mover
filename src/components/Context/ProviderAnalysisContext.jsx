@@ -42,6 +42,12 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
   const [qualityMeasuresDatesLoading, setQualityMeasuresDatesLoading] = useState(false);
   const [qualityMeasuresLoading, setQualityMeasuresLoading] = useState(false);
   
+  // Batch loading states for better UI synchronization
+  const [batchDataCompleted, setBatchDataCompleted] = useState(false);
+  const [censusDataCompleted, setCensusDataCompleted] = useState(false);
+  const [providerIdsCompleted, setProviderIdsCompleted] = useState(false);
+  const [qualityMeasuresCompleted, setQualityMeasuresCompleted] = useState(false);
+  
   // Error states
   const [error, setError] = useState(null);
   const [providersError, setProvidersError] = useState(null);
@@ -469,6 +475,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
       };
       
       setQualityMeasuresData(qualityData);
+      setQualityMeasuresCompleted(true);
       return qualityData;
     } catch (err) {
       console.error('Error fetching quality measures data:', err);
@@ -511,10 +518,11 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
         throw new Error(batchResult.error || 'Batch request failed');
       }
 
-      // Update state with batch results
+      // Update state with batch results and set completion flags
       if (batchResult.data.providers) {
         const filteredProviders = batchResult.data.providers.filter(p => p.dhc !== provider.dhc);
         setProviders(filteredProviders);
+        setBatchDataCompleted(true);
       }
       
       if (batchResult.data.census) {
@@ -537,14 +545,13 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
         
         setCounties(Array.from(uniqueCounties));
         setCensusTracts(Array.from(uniqueTracts));
+        setCensusDataCompleted(true);
       }
       
-      if (batchResult.data.ccns) {
+      if (batchResult.data.ccns && batchResult.data.npis) {
         setCcns(batchResult.data.ccns);
-      }
-      
-      if (batchResult.data.npis) {
         setNpis(batchResult.data.npis);
+        setProviderIdsCompleted(true);
       }
       
       if (batchResult.data.qualityMeasuresDates) {
@@ -647,6 +654,11 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
         currentPublishDate: null
       });
       setLoadingTier(0);
+      // Reset completion flags
+      setBatchDataCompleted(false);
+      setCensusDataCompleted(false);
+      setProviderIdsCompleted(false);
+      setQualityMeasuresCompleted(false);
       return;
     }
 
@@ -685,6 +697,12 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     qualityMeasuresDatesLoading,
     qualityMeasuresLoading,
     loadingTier,
+    
+    // Completion states for UI synchronization
+    batchDataCompleted,
+    censusDataCompleted,
+    providerIdsCompleted,
+    qualityMeasuresCompleted,
     
     // Error states
     error,

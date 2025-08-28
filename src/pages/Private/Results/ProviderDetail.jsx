@@ -65,6 +65,10 @@ function ProviderDetailContent() {
     censusLoading,
     qualityMeasuresDatesLoading,
     qualityMeasuresLoading,
+    batchDataCompleted,
+    censusDataCompleted,
+    providerIdsCompleted,
+    qualityMeasuresCompleted,
     error: marketAnalysisError,
     providersError,
     ccnsError,
@@ -116,12 +120,10 @@ function ProviderDetailContent() {
 
   if (loading || marketAnalysisLoading || !provider) {
     const loadingStates = {
-      provider: loading,
-      nearbyProviders: providersLoading,
-      ccns: ccnsLoading,
-      npis: npisLoading,
-      censusData: censusLoading,
-      qualityMeasures: qualityMeasuresLoading
+      batchData: !batchDataCompleted && loading,
+      censusData: !censusDataCompleted && loading,
+      providerIds: !providerIdsCompleted && loading,
+      qualityMeasures: !qualityMeasuresCompleted && qualityMeasuresLoading
     };
     
     return (

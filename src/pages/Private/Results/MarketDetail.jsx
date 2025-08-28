@@ -232,11 +232,9 @@ export default function MarketDetail() {
   // Loading state
   if (marketLoading || marketAnalysisLoading) {
     const loadingStates = {
-      market: marketLoading,
-      nearbyProviders: providersLoading,
-      ccns: ccnsLoading,
-      npis: npisLoading,
-      censusData: censusLoading,
+      batchData: marketAnalysisLoading && !nearbyProviders.length,
+      censusData: censusLoading || (marketAnalysisLoading && !censusData),
+      providerIds: ccnsLoading || npisLoading || (marketAnalysisLoading && (!nearbyDhcCcns.length || !nearbyNpis.length)),
       qualityMeasures: qualityLoading
     };
     

@@ -69,6 +69,11 @@
   border: 1.5px solid #4a90e2;
 }
 
+/* Export Button */
+.exportButton {
+  margin-left: 12px;
+}
+
 /* Two Column Layout */
 .benchmarksLayout {
   display: grid;

@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from "react";
 
 export default function DetailedLoadingSpinner({ 
-  message = "Loading provider analysis...",
+  message = "Loading market analysis...",
   loadingStates = {},
   showProgress = true 
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
-  // Define the loading steps in order
+  // Define the loading steps in order - user-friendly descriptions
   const loadingSteps = [
-    { key: 'provider', label: 'Loading provider details' },
-    { key: 'nearbyProviders', label: 'Fetching nearby providers' },
-    { key: 'ccns', label: 'Loading provider CCNs' },
-    { key: 'npis', label: 'Loading provider NPIs' },
-    { key: 'censusData', label: 'Fetching population statistics' },
-    { key: 'qualityMeasures', label: 'Loading quality measures' }
+    { key: 'batchData', label: 'Finding healthcare providers in your area' },
+    { key: 'censusData', label: 'Gathering population statistics' },
+    { key: 'providerIds', label: 'Collecting provider identifiers' },
+    { key: 'qualityMeasures', label: 'Preparing quality analysis tools' }
   ];
 
   // Update completed steps based on loading states

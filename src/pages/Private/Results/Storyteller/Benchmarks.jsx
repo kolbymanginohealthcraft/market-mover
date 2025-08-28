@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import BenchmarkChart from './BenchmarkChart';
+import ExportButton from '../../../../components/Buttons/ExportButton';
+import { exportChart } from '../../../../utils/chartExport';
 import { apiUrl } from '../../../../utils/api';
 import useQualityMeasures from '../../../../hooks/useQualityMeasures';
 import styles from './Benchmarks.module.css';
@@ -34,6 +36,8 @@ export default function Benchmarks({
   const [measuresLoading, setMeasuresLoading] = useState(false);
   const [measuresError, setMeasuresError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [chartExportData, setChartExportData] = useState(null);
+  const chartRef = useRef(null);
   // Helper function for SelectInput component
   function SelectInput({ id, value, onChange, options, size = 'sm', formatOptions = false, ...props }) {
     return (
@@ -110,6 +114,48 @@ export default function Benchmarks({
     fetchQualityMeasures();
   }, [providerTypeFilter]);
 
+  // Handle chart export
+  const handleChartExport = async (format) => {
+    console.log('Export button clicked:', format);
+    console.log('Chart export data:', chartExportData);
+    
+    if (!chartExportData) {
+      console.warn('No chart data available for export');
+      return;
+    }
+
+    try {
+      const { measureInfo, publishDate, chartRef: chartElementRef } = chartExportData;
+      const filename = `${measureInfo?.name || 'benchmark'}-${publishDate || 'data'}`;
+      
+      console.log('Exporting with filename:', filename);
+      
+      if (format === 'csv') {
+        // For CSV, we need to transform the chart data
+        const csvData = chartExportData.data.map(item => ({
+          Provider: item.name,
+          Value: `${item.value}%`,
+          Type: item.type || 'Provider'
+        }));
+        console.log('CSV data:', csvData);
+        await exportChart(format, null, csvData, `${filename}.csv`);
+      } else {
+        // For image formats, we need the chart element
+        if (!chartElementRef || !chartElementRef.current) {
+          console.error('Chart element reference not available');
+          return;
+        }
+        console.log('Chart element found:', chartElementRef.current);
+        await exportChart(format, chartElementRef.current, null, `${filename}.${format}`);
+      }
+      
+      console.log('Export completed successfully');
+    } catch (error) {
+      console.error('Export failed:', error);
+      // You could add a toast notification here
+    }
+  };
+
   // Filter measures based on search term
   const filteredMeasures = availableMeasures.filter(measure => {
     if (!searchTerm) return true;
@@ -153,6 +199,13 @@ export default function Benchmarks({
             />
           </div>
         )}
+        
+        {/* Export Button */}
+        <ExportButton
+          onExport={handleChartExport}
+          disabled={!chartExportData}
+          className={styles.exportButton}
+        />
       </div>
       
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -235,6 +288,7 @@ export default function Benchmarks({
                      providerTypeFilter={providerTypeFilter}
                      selectedMeasure={selectedMeasure}
                      measuresLoading={measuresLoading}
+                     onExport={setChartExportData}
                    />
                  </div>
         </div>
