@@ -166,6 +166,27 @@ const ProviderComparisonMatrix = ({
       <aside className={styles.sidebarCol}>
         {/* Sticky sidebar title */}
         <div className={styles.stickySidebarTitle}>Settings</div>
+        
+        {/* Measure Setting Filter */}
+        {availableProviderTypes && availableProviderTypes.length > 0 && (
+          <div className={styles.providerTypeFilter}>
+            <label htmlFor="provider-type-select">Measure Setting:</label>
+            <select
+              id="provider-type-select"
+              value={providerTypeFilter || ''}
+              onChange={e => setProviderTypeFilter(e.target.value)}
+              className={styles.selectInput}
+            >
+              <option value="">All Settings</option>
+              {availableProviderTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+
+        
         <div className="selectMeasures">
           {/* Drag-and-drop and toggles here */}
           <DragDropContext onDragEnd={onDragEnd}>

@@ -95,6 +95,27 @@ export default function Scorecard({
     return inferredSetting === providerTypeFilter;
   });
 
+  // Debug logging
+  console.log('🔍 Measure filtering debug:', {
+    totalMeasures: finalMeasures.length,
+    filteredMeasures: filteredMeasures.length,
+    providerTypeFilter,
+    availableProviderTypes: finalProviderTypes,
+    availableProviderTypesLength: finalProviderTypes?.length || 0,
+    sampleMeasures: finalMeasures.slice(0, 3).map(m => ({ code: m.code, setting: m.setting }))
+  });
+  
+  // Additional debug for dropdown visibility
+  console.log('🔍 Dropdown visibility debug:', {
+    hasProviderTypes: !!finalProviderTypes,
+    providerTypesLength: finalProviderTypes?.length || 0,
+    isWindowDefined: typeof window !== 'undefined',
+    shouldShowDropdown: typeof window !== 'undefined' && finalProviderTypes && finalProviderTypes.length > 0,
+    finalProviderTypes: finalProviderTypes,
+    availableProviderTypes: availableProviderTypes,
+    hookProviderTypes: hookProviderTypes
+  });
+
   // Use only the filtered measures for display
   const finalFilteredMeasures = filteredMeasures;
 
@@ -151,48 +172,73 @@ export default function Scorecard({
 
   return (
     <div className={styles.scorecardContainer}>
-      {/* Date Display Banner */}
-      <div style={{
-        background: '#f8f9fa',
-        border: '1px solid #e9ecef',
-        borderRadius: '8px',
-        padding: '8px 12px',
-        marginBottom: '12px',
-        fontSize: '13px',
-        color: '#495057',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <strong>Current Data Period:</strong>
-          <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
-            {finalCurrentDate || 'Not set'}
-          </span>
-          {providerTypeFilter && (
-            <>
-              <span>•</span>
-              <strong>Setting:</strong>
-              <span>{providerTypeFilter}</span>
-            </>
-          )}
-        </div>
-        
-        {/* Measure Setting Filter */}
-        {typeof window !== 'undefined' && finalProviderTypes && finalProviderTypes.length > 0 && (
-          <div className={styles.filterGroup}>
-            <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
-            <SelectInput
-              id="provider-type-select"
-              value={providerTypeFilter || ''}
-              onChange={e => setProviderTypeFilter(e.target.value)}
-              options={finalProviderTypes}
-              size="sm"
-            />
-          </div>
-        )}
-      </div>
+             {/* Date Display Banner */}
+       <div style={{
+         background: '#f8f9fa',
+         border: '1px solid #e9ecef',
+         borderRadius: '8px',
+         padding: '8px 12px',
+         marginBottom: '12px',
+         fontSize: '13px',
+         color: '#495057',
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'space-between',
+         flexShrink: 0
+       }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+           <strong>Current Data Period:</strong>
+           <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+             {finalCurrentDate || 'Not set'}
+           </span>
+           {providerTypeFilter && (
+             <>
+               <span>•</span>
+               <strong>Setting:</strong>
+               <span>{providerTypeFilter}</span>
+             </>
+           )}
+         </div>
+         
+                   {/* Measure Setting Filter - Right justified */}
+          {typeof window !== 'undefined' && (
+           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <label htmlFor="provider-type-select" style={{ fontSize: '13px', fontWeight: '600', color: '#495057' }}>
+               Measure Setting:
+             </label>
+                           <select
+                id="provider-type-select"
+                value={providerTypeFilter || 'SNF'}
+                onChange={e => setProviderTypeFilter(e.target.value)}
+               style={{
+                 fontSize: '13px',
+                 padding: '4px 8px',
+                 border: '1px solid #d0d0d0',
+                 borderRadius: '4px',
+                 background: '#ffffff',
+                 color: '#333',
+                 cursor: 'pointer',
+                 minWidth: '120px'
+               }}
+             >
+                               <option value="">All Settings</option>
+                {finalProviderTypes && finalProviderTypes.length > 0 ? (
+                  finalProviderTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="SNF">SNF</option>
+                    <option value="HH">HH</option>
+                    <option value="Hospice">Hospice</option>
+                    <option value="IRF">IRF</option>
+                    <option value="Hospital">Hospital</option>
+                  </>
+                )}
+             </select>
+           </div>
+         )}
+       </div>
       
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <ProviderComparisonMatrix

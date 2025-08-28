@@ -6,9 +6,11 @@ import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 import Banner from '../../../components//Buttons/Banner';
 import SidePanel from '../../../components/Overlays/SidePanel';
-import Dropdown from '../../../components/Buttons/Dropdown';
+
 import { apiUrl } from '../../../utils/api';
-import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
+import { useProviderTagging } from '../../../hooks/useProviderTagging';
+import { InlineTagging } from '../../../components/Tagging/InlineTagging';
+import { useUserTeam } from '../../../hooks/useUserTeam';
 
 export default function MarketOverview({ market: marketProp, providers: providersProp }) {
   const { marketId } = useParams();
@@ -17,8 +19,10 @@ export default function MarketOverview({ market: marketProp, providers: provider
   const [providers, setProviders] = useState(providersProp || []);
   const [loading, setLoading] = useState(!marketProp);
   const [error, setError] = useState(null);
-  const [taggingProviderId, setTaggingProviderId] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  
+  // Team functionality
+  const { hasTeam, loading: teamLoading } = useUserTeam();
   const [providerTypeFilter, setProviderTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showSettings, setShowSettings] = useState(false);
@@ -34,25 +38,18 @@ export default function MarketOverview({ market: marketProp, providers: provider
   const { 
     teamProviderTags, 
     loading: tagsLoading, 
-    addTeamProviderTag, 
-    removeTeamProviderTag, 
+    taggingProviderId,
+    dropdownPosition,
+    getPrimaryTag,
+    handleAddTag,
+    handleRemoveTag,
+    openTaggingDropdown,
+    closeTaggingDropdown,
     hasTeamProviderTag, 
     getProviderTags 
-  } = useTeamProviderTags();
+  } = useProviderTagging();
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (taggingProviderId && !event.target.closest(`.${styles.dropdownContainer}`)) {
-        setTaggingProviderId(null);
-      }
-    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [taggingProviderId]);
 
   // Update state when props change
   useEffect(() => {
@@ -141,36 +138,9 @@ export default function MarketOverview({ market: marketProp, providers: provider
 
 
 
-  const handleUntag = async (providerDhc, tagType) => {
-    try {
-      await removeTeamProviderTag(providerDhc, tagType);
-      // Force re-render after tag is removed
-      setTimeout(() => setTagUpdateTrigger(prev => prev + 1), 100);
-    } catch (err) {
-      console.error('Error untagging provider:', err);
-      setError(err.message);
-    }
-  };
 
-  const getTagColor = (tagType) => {
-    switch (tagType) {
-      case 'me': return '#265947'; // green variant
-      case 'partner': return '#3599b8'; // blue variant
-      case 'competitor': return '#d64550'; // red variant
-      case 'target': return '#f1b62c'; // gold variant
-      default: return '#5f6b6d';
-    }
-  };
 
-  const getTagLabel = (tagType) => {
-    switch (tagType) {
-      case 'me': return 'Me';
-      case 'partner': return 'Partner';
-      case 'competitor': return 'Competitor';
-      case 'target': return 'Target';
-      default: return 'Tag';
-    }
-  };
+
 
   const getFilteredProviders = () => {
     let filtered = providers;
@@ -410,80 +380,19 @@ export default function MarketOverview({ market: marketProp, providers: provider
                     <td className={styles.providerType}>{provider.type || 'Unknown'}</td>
                     <td className={styles.providerNetwork}>{provider.network || '-'}</td>
                     <td className={styles.providerActions}>
-                      <div className={styles.tagContainer}>
-                        {providerTags.length > 0 ? (
-                          <div className={styles.tagDisplay}>
-                            {providerTags.map(tagType => (
-                              <span
-                                key={tagType}
-                                className={styles.tag}
-                                style={{ backgroundColor: getTagColor(tagType) }}
-                              >
-                                {getTagLabel(tagType)}
-                                <button
-                                  className={styles.tagRemove}
-                                  onClick={() => handleUntag(provider.dhc, tagType)}
-                                  aria-label={`Remove ${getTagLabel(tagType)} tag`}
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <Dropdown
-                            trigger={
-                              <button className={styles.newTagButton}>
-                                Tag
-                              </button>
-                            }
-                            isOpen={taggingProviderId === provider.dhc}
-                            onToggle={(isOpen) => setTaggingProviderId(isOpen ? provider.dhc : null)}
-                            className={styles.tagDropdown}
-                          >
-                            <button
-                              className={styles.dropdownItem}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addTeamProviderTag(provider.dhc, 'me');
-                                setTaggingProviderId(null);
-                              }}
-                            >
-                              Me
-                            </button>
-                            <button
-                              className={styles.dropdownItem}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addTeamProviderTag(provider.dhc, 'partner');
-                                setTaggingProviderId(null);
-                              }}
-                            >
-                              Partner
-                            </button>
-                            <button
-                              className={styles.dropdownItem}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addTeamProviderTag(provider.dhc, 'competitor');
-                                setTaggingProviderId(null);
-                              }}
-                            >
-                              Competitor
-                            </button>
-                            <button
-                              className={styles.dropdownItem}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addTeamProviderTag(provider.dhc, 'target');
-                                setTaggingProviderId(null);
-                              }}
-                            >
-                              Target
-                            </button>
-                          </Dropdown>
-                        )}
-                      </div>
+                      <InlineTagging
+                        providerId={provider.dhc}
+                        hasTeam={hasTeam}
+                        teamLoading={teamLoading}
+                        taggingProviderId={taggingProviderId}
+                        dropdownPosition={dropdownPosition}
+                        primaryTag={getPrimaryTag(provider.dhc)}
+                        isSaving={tagsLoading}
+                        onOpenDropdown={openTaggingDropdown}
+                        onCloseDropdown={closeTaggingDropdown}
+                        onAddTag={handleAddTag}
+                        onRemoveTag={handleRemoveTag}
+                      />
                     </td>
                   </tr>
                 );

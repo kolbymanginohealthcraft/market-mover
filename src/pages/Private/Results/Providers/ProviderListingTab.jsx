@@ -5,11 +5,13 @@ import { supabase } from "../../../../app/supabaseClient";
 import Spinner from "../../../../components/Buttons/Spinner";
 import Button from "../../../../components/Buttons/Button";
 import ControlsRow from "../../../../components/Layouts/ControlsRow";
+import { InlineTagging } from "../../../../components/Tagging/InlineTagging";
 import styles from "./ProviderListingTab.module.css";
 import controlsStyles from "../../../../components/Layouts/ControlsRow.module.css";
 import { useDropdownClose } from "../../../../hooks/useDropdownClose";
 import { apiUrl } from '../../../../utils/api';
-import useTeamProviderTags from "../../../../hooks/useTeamProviderTags";
+import { useProviderTagging } from "../../../../hooks/useProviderTagging";
+import { useUserTeam } from "../../../../hooks/useUserTeam";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
@@ -46,9 +48,11 @@ export default function ProviderListingTab({
   const [showOnlyCCNs, setShowOnlyCCNs] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [ccnProviderIds, setCcnProviderIds] = useState(new Set());
-  const [taggingProviderId, setTaggingProviderId] = useState(null);
   const [popup, setPopup] = useState(null);
   const [mapReady, setMapReady] = useState(false);
+  
+  // Team functionality
+  const { hasTeam, loading: teamLoading } = useUserTeam();
   const [containerReady, setContainerReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [layersAdded, setLayersAdded] = useState(false);
@@ -66,7 +70,6 @@ export default function ProviderListingTab({
     if (!provider?.latitude || !provider?.longitude) {
       return {
         center: { lng: -98.5795, lat: 39.8283 }, // Center of US
-        zoom: 4,
         bounds: [
           [-98.5795 - 10, 39.8283 - 10], // Southwest corner
           [-98.5795 + 10, 39.8283 + 10]  // Northeast corner
@@ -89,24 +92,13 @@ export default function ProviderListingTab({
       lng: (minLng + maxLng) / 2
     };
     
-    // Calculate the exact zoom level needed to fit the circle
-    const latDiff = maxLat - minLat;
-    const lngDiff = maxLng - minLng;
-    const maxDiff = Math.max(latDiff, lngDiff);
-    
-    // Calculate zoom using the formula: zoom = log2(360 / maxDiff) - 1
-    const zoom = Math.log2(360 / maxDiff) - 1;
-    
-    // Clamp zoom to reasonable bounds
-    const clampedZoom = Math.max(3, Math.min(15, zoom));
-    
     // Create bounds array for fitBounds
     const bounds = [
       [minLng, minLat], // Southwest corner
       [maxLng, maxLat]  // Northeast corner
     ];
     
-    return { center, bounds, zoom: clampedZoom };
+    return { center, bounds };
   };
 
   // Team provider tags functionality
@@ -114,11 +106,15 @@ export default function ProviderListingTab({
     teamProviderTags,
     addingTag,
     removingTag,
-    addTeamProviderTag,
-    removeTeamProviderTag,
-    hasTeamProviderTag,
-    getProviderTags
-  } = useTeamProviderTags();
+    taggingProviderId,
+    dropdownPosition,
+    getPrimaryTag,
+    getProviderTags,
+    handleAddTag,
+    handleRemoveTag,
+    openTaggingDropdown,
+    closeTaggingDropdown
+  } = useProviderTagging();
 
   useDropdownClose(dropdownRef, () => {
     dropdownRef.current?.classList.remove(styles.dropdownOpen);
@@ -206,37 +202,37 @@ export default function ProviderListingTab({
        try {
          const bounds = calculateMapBounds();
          
-         // MapLibre GL JS - completely free, no API token needed!
-         map.current = new maplibregl.Map({
-           container: mapContainer.current,
-           style: {
-             version: 8,
-             sources: {
-               'osm': {
-                 type: 'raster',
-                 tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                 tileSize: 256,
-                 attribution: '© OpenStreetMap contributors'
-               }
-             },
-             layers: [
-               {
-                 id: 'osm-tiles',
-                 type: 'raster',
-                 source: 'osm',
-                 minzoom: 0,
-                 maxzoom: 22
-               }
-             ]
-           },
-           center: [bounds.center.lng, bounds.center.lat],
-           zoom: bounds.zoom,
-           maxZoom: 18,
-           minZoom: 3,
-           maxPitch: 0,
-           preserveDrawingBuffer: false,
-           antialias: false
-         });
+                   // MapLibre GL JS - completely free, no API token needed!
+          map.current = new maplibregl.Map({
+            container: mapContainer.current,
+            style: {
+              version: 8,
+              sources: {
+                'osm': {
+                  type: 'raster',
+                  tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                  tileSize: 256,
+                  attribution: '© OpenStreetMap contributors'
+                }
+              },
+              layers: [
+                {
+                  id: 'osm-tiles',
+                  type: 'raster',
+                  source: 'osm',
+                  minzoom: 0,
+                  maxzoom: 22
+                }
+              ]
+            },
+            center: [bounds.center.lng, bounds.center.lat],
+            zoom: 10, // Default zoom, will be overridden by fitBounds
+            maxZoom: 18,
+            minZoom: 3,
+            maxPitch: 0,
+            preserveDrawingBuffer: false,
+            antialias: false
+          });
         
         console.log("🗺️ Map created successfully:", map.current);
 
@@ -679,22 +675,7 @@ export default function ProviderListingTab({
     }
   }, [layersAdded, uniqueResults, ccnProviderIds, teamProviderTags, provider]);
 
-  const handleTag = async (providerDhc, tagType) => {
-    try {
-      await addTeamProviderTag(providerDhc, tagType);
-      setTaggingProviderId(null);
-    } catch (err) {
-      console.error("Unexpected error tagging provider:", err);
-    }
-  };
 
-  const handleUntag = async (providerDhc, tagType) => {
-    try {
-      await removeTeamProviderTag(providerDhc, tagType);
-    } catch (err) {
-      console.error("Unexpected error untagging provider:", err);
-    }
-  };
 
   try {
     return (
@@ -796,87 +777,19 @@ export default function ProviderListingTab({
                       <td>{p.type || "Unknown"}</td>
                       <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
                       <td onClick={(e) => e.stopPropagation()}>
-                        {taggingProviderId === p.dhc ? (
-                          <div className={styles.inlineTaggingMenu}>
-                            <label>
-                              <input
-                                type="radio"
-                                name={`tag-${p.dhc}`}
-                                onClick={() => handleTag(p.dhc, "me")}
-                              />
-                              Me
-                            </label>
-                            <label>
-                              <input
-                                type="radio"
-                                name={`tag-${p.dhc}`}
-                                onClick={() => handleTag(p.dhc, "partner")}
-                              />
-                              Partner
-                            </label>
-                            <label>
-                              <input
-                                type="radio"
-                                name={`tag-${p.dhc}`}
-                                onClick={() => handleTag(p.dhc, "competitor")}
-                              />
-                              Competitor
-                            </label>
-                            <label>
-                              <input
-                                type="radio"
-                                name={`tag-${p.dhc}`}
-                                onClick={() => handleTag(p.dhc, "target")}
-                              />
-                              Target
-                            </label>
-                            <button onClick={() => setTaggingProviderId(null)}>
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className={styles.tagContainer}>
-                            {(() => {
-                              const providerTags = getProviderTags(p.dhc);
-                              const primaryTag = providerTags[0]; // Show first tag if multiple
-                              return (
-                                <>
-                                  <span
-                                    className={`${
-                                      primaryTag === "me"
-                                        ? styles.meBadge
-                                        : primaryTag === "partner"
-                                        ? styles.partnerBadge
-                                        : primaryTag === "competitor"
-                                        ? styles.competitorBadge
-                                        : primaryTag === "target"
-                                        ? styles.targetBadge
-                                        : styles.tagDefault
-                                    } ${
-                                      addingTag === `${p.dhc}-${primaryTag}` || removingTag === `${p.dhc}-${primaryTag}` ? styles.animatePulse : ""
-                                    }`}
-                                    onClick={() => setTaggingProviderId(p.dhc)}
-                                  >
-                                    {primaryTag || "Tag"}
-                                    {providerTags.length > 1 && ` (+${providerTags.length - 1})`}
-                                  </span>
-                                  {primaryTag && (
-                                    <button
-                                      className={styles.untagButton}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleUntag(p.dhc, primaryTag);
-                                      }}
-                                      title="Remove tag"
-                                    >
-                                      ✕
-                                    </button>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        )}
+                                                 <InlineTagging
+                           providerId={p.dhc}
+                           hasTeam={hasTeam}
+                           teamLoading={teamLoading}
+                           taggingProviderId={taggingProviderId}
+                           dropdownPosition={dropdownPosition}
+                           primaryTag={getPrimaryTag(p.dhc)}
+                           isSaving={addingTag || removingTag}
+                           onOpenDropdown={openTaggingDropdown}
+                           onCloseDropdown={closeTaggingDropdown}
+                           onAddTag={handleAddTag}
+                           onRemoveTag={handleRemoveTag}
+                         />
                       </td>
                     </tr>
                   ))}

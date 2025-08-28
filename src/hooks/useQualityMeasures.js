@@ -132,8 +132,15 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 4b. Get unique measure settings for dropdown (instead of provider types)
         // This will be populated after we fetch the measures data
 
-        // 5. Get all CCNs for the combined request
-        const allCcns = Object.values(providerDhcToCcns).flat();
+                 // 5. Get all CCNs for the combined request
+         const allCcns = Object.values(providerDhcToCcns).flat();
+         
+         console.log('🔍 CCNs for quality measures:', {
+           totalCcns: allCcns.length,
+           ccnList: allCcns,
+           providerDhcToCcns: providerDhcToCcns,
+           allProviders: allProviders.map(p => ({ dhc: p.dhc, name: p.name }))
+         });
         
         // 5b. Check if we have any CCNs before proceeding
         if (allCcns.length === 0) {

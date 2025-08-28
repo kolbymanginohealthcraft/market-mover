@@ -54,6 +54,10 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
   // Refs for request management
   const abortControllerRef = useRef(null);
   const dataCacheRef = useRef(new Map());
+  
+  // Progressive loading state
+  const [loadingTier, setLoadingTier] = useState(0); // 0 = not started, 1 = core data, 2 = quality measures
+  const [isLazyLoadingEnabled, setIsLazyLoadingEnabled] = useState(false);
 
   // Helper functions
   const getAllProviderDhcs = useCallback(() => {
@@ -475,7 +479,154 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     }
   }, [provider, providers, ccns, qualityMeasuresDates]);
 
-  // Main effect to fetch all data
+  // Optimized progressive loading strategy with batch endpoint
+  const fetchCoreData = useCallback(async () => {
+    if (!provider?.latitude || !provider?.longitude || !radiusInMiles) return;
+
+    setLoadingTier(1);
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('🚀 Starting Tier 1: Core data fetch (batch mode)');
+      
+      // Use batch endpoint for core data
+      const batchResponse = await fetch(apiUrl('/api/batch-data'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider,
+          radiusInMiles,
+          dataTypes: ['providers', 'census', 'ccns', 'npis', 'qualityMeasuresDates']
+        })
+      });
+
+      if (!batchResponse.ok) {
+        throw new Error(`Batch request failed: ${batchResponse.status}`);
+      }
+
+      const batchResult = await batchResponse.json();
+      
+      if (!batchResult.success) {
+        throw new Error(batchResult.error || 'Batch request failed');
+      }
+
+      // Update state with batch results
+      if (batchResult.data.providers) {
+        const filteredProviders = batchResult.data.providers.filter(p => p.dhc !== provider.dhc);
+        setProviders(filteredProviders);
+      }
+      
+      if (batchResult.data.census) {
+        setCensusData(batchResult.data.census);
+        
+        // Extract counties and census tracts
+        const geographicUnits = batchResult.data.census?.geographic_units || [];
+        const uniqueCounties = new Set();
+        const uniqueTracts = new Set();
+        
+        geographicUnits.forEach(unit => {
+          if (unit.state && unit.county) {
+            const countyKey = `${unit.state}-${unit.county}`;
+            uniqueCounties.add(countyKey);
+          }
+          if (unit.tract) {
+            uniqueTracts.add(unit.tract);
+          }
+        });
+        
+        setCounties(Array.from(uniqueCounties));
+        setCensusTracts(Array.from(uniqueTracts));
+      }
+      
+      if (batchResult.data.ccns) {
+        setCcns(batchResult.data.ccns);
+      }
+      
+      if (batchResult.data.npis) {
+        setNpis(batchResult.data.npis);
+      }
+      
+      if (batchResult.data.qualityMeasuresDates) {
+        console.log('📅 Setting quality measures dates from batch:', batchResult.data.qualityMeasuresDates);
+        setQualityMeasuresDates(batchResult.data.qualityMeasuresDates);
+      }
+
+      console.log('✅ Tier 1 complete: Core data loaded via batch endpoint');
+      console.log(`📊 Batch performance: ${batchResult.performance?.cacheHitRate || 'N/A'} hit rate`);
+      setLoadingTier(2);
+
+      // If lazy loading is enabled, stop here and let quality measures load on demand
+      if (isLazyLoadingEnabled) {
+        console.log('⏸️ Lazy loading enabled - quality measures will load on demand');
+        setLoading(false);
+        return;
+      }
+
+      // Tier 2: Quality measures (only if not lazy loading)
+      if (batchResult.data.ccns?.length > 0) {
+        const ccnStrings = batchResult.data.ccns.map(row => row.ccn);
+        await fetchQualityMeasuresData(ccnStrings, 'latest');
+      }
+
+    } catch (err) {
+      console.error('Error in core data fetch:', err);
+      setError(err.message);
+      
+      // Fallback to individual requests if batch fails
+      console.log('🔄 Falling back to individual requests...');
+      await fetchCoreDataFallback();
+    } finally {
+      setLoading(false);
+    }
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, isLazyLoadingEnabled]);
+
+  // Fallback method for individual requests
+  const fetchCoreDataFallback = useCallback(async () => {
+    try {
+      console.log('🔄 Using fallback: individual requests');
+      
+      // Start providers and census immediately
+      const [providersResult, censusResult] = await Promise.all([
+        fetchProviders(),
+        fetchCensusData()
+      ]);
+
+      // Start CCNs and NPIs immediately after providers are available
+      const [ccnsResult, npisResult] = await Promise.all([
+        fetchCcns(providersResult),
+        fetchNpis(providersResult)
+      ]);
+
+      console.log('✅ Fallback complete: Core data loaded via individual requests');
+    } catch (err) {
+      console.error('Error in fallback data fetch:', err);
+      setError(err.message);
+    }
+  }, [fetchProviders, fetchCensusData, fetchCcns, fetchNpis]);
+
+  // Lazy load quality measures when needed
+  const fetchQualityMeasuresLazy = useCallback(async () => {
+    if (ccns.length === 0) return;
+    
+    setQualityMeasuresLoading(true);
+    try {
+      const ccnStrings = ccns.map(row => row.ccn);
+      const datesResult = await fetchQualityMeasuresDates(ccnStrings);
+      
+      if (datesResult && Object.keys(datesResult).length > 0) {
+        const mostRecentDate = Object.values(datesResult).sort().reverse()[0];
+        await fetchQualityMeasuresData(ccnStrings, mostRecentDate);
+      }
+    } catch (err) {
+      console.error('Error in lazy quality measures fetch:', err);
+      setQualityMeasuresError(err.message);
+    } finally {
+      setQualityMeasuresLoading(false);
+    }
+  }, [ccns]);
+
+  // Main effect for core data
   useEffect(() => {
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles) {
       setProviders([]);
@@ -495,6 +646,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
         availablePublishDates: [],
         currentPublishDate: null
       });
+      setLoadingTier(0);
       return;
     }
 
@@ -504,54 +656,14 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     }
     abortControllerRef.current = new AbortController();
 
-    setLoading(true);
-    setError(null);
-
-    const fetchAllData = async () => {
-      try {
-        // Fetch providers and census data in parallel
-        const [providersResult, censusResult] = await Promise.all([
-          fetchProviders(),
-          fetchCensusData()
-        ]);
-
-        // Fetch CCNs and NPIs after providers are loaded
-        const [ccnsResult, npisResult] = await Promise.all([
-          fetchCcns(providersResult),
-          fetchNpis(providersResult)
-        ]);
-
-        // Fetch quality measures dates after CCNs are loaded
-        if (ccnsResult && ccnsResult.length > 0) {
-          const ccnStrings = ccnsResult.map(row => row.ccn);
-          console.log('🔍 About to fetch quality measures dates with CCNs:', ccnStrings.length);
-          const datesResult = await fetchQualityMeasuresDates(ccnStrings);
-          
-          // Fetch quality measures data with the most recent date
-          if (datesResult && Object.keys(datesResult).length > 0) {
-            const mostRecentDate = Object.values(datesResult).sort().reverse()[0];
-            await fetchQualityMeasuresData(ccnStrings, mostRecentDate);
-          }
-        } else {
-          console.log('⚠️ No CCNs available for quality measures dates fetch');
-        }
-
-      } catch (err) {
-        console.error('Error in provider analysis data fetch:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
+    fetchCoreData();
 
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [provider?.latitude, provider?.longitude, radiusInMiles]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, fetchCoreData]);
 
   const value = {
     // Core data
@@ -572,6 +684,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     censusLoading,
     qualityMeasuresDatesLoading,
     qualityMeasuresLoading,
+    loadingTier,
     
     // Error states
     error,
@@ -588,6 +701,11 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     getAllNpis,
     getProviderDhcToCcns,
     getProviderDhcToNpis,
+    fetchQualityMeasuresLazy,
+    
+    // Progressive loading controls
+    isLazyLoadingEnabled,
+    setIsLazyLoadingEnabled,
     
     // Context info
     provider,

@@ -1,0 +1,157 @@
+/* Tagging Container */
+.taggingContainer {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tag Display */
+.tagDisplay {
+  display: flex;
+  align-items: center;
+}
+
+/* Tag Button */
+.tagButton {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+  box-sizing: border-box;
+  height: 24px;
+}
+
+.tagButton:hover:not(:disabled) {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.tagButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Tag Badge */
+.tagBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+  line-height: 1;
+  box-sizing: border-box;
+  height: 24px;
+}
+
+.tagBadge:hover {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+/* Tag Badge Variants */
+.meBadge {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+}
+
+.partnerBadge {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+}
+
+.competitorBadge {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+}
+
+.targetBadge {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+}
+
+.tagDefault {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+}
+
+/* Dropdown */
+.dropdown {
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 100px;
+  pointer-events: auto;
+}
+
+.dropdown .tagButton {
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 0.65rem;
+}
+
+.dropdown .tagButton:hover {
+  background: #f3f4f6;
+  transform: none;
+  box-shadow: none;
+}
+
+.dropdown .removeButton {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.dropdown .removeButton:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* Animation */
+.animatePulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
