@@ -333,6 +333,14 @@ router.post("/qm_combined", async (req, res) => {
   try {
     const { ccns, publish_date, measures } = req.body;
     
+    // Check cache first - create a cache key based on the request parameters
+    const cacheKey = `qm_combined_${ccns?.length || 0}_${publish_date}_${measures?.join('_') || 'all'}`;
+    const cachedData = cache.get(cacheKey, {});
+    if (cachedData) {
+      console.log('📦 Serving qm_combined from cache:', cacheKey);
+      return res.status(200).json({ success: true, data: cachedData });
+    }
+    
     console.log("🔍 qm_combined request:", { 
       ccnsCount: ccns?.length, 
       publish_date,
@@ -460,57 +468,135 @@ router.post("/qm_combined", async (req, res) => {
       });
     }
     
-    // Fetch all data in parallel with the actual publish date
-    const [measuresRows, providerRows, nationalRows] = await Promise.all([
-      // Measures
-      existingTables.includes('qm_dictionary') ? 
-        myBigQuery.query({
-          query: `SELECT code, label, direction, description, name, active, sort_order, setting FROM \`market-mover-464517.quality.qm_dictionary\` WHERE active = true ORDER BY sort_order`,
-          location: "US"
-        }) : Promise.resolve([[]]),
-      
-      // Provider data
-      myBigQuery.query({
-        query: `SELECT ccn, code, score, percentile_column FROM \`market-mover-464517.quality.qm_provider\` WHERE ccn IN UNNEST(@ccns) AND publish_date = @publish_date ORDER BY ccn, code LIMIT 10000`,
-        location: "US",
-        params: { ccns, publish_date: actualPublishDate }
-      }),
-      
-      // National averages
-      existingTables.includes('qm_post') ?
-        myBigQuery.query({
-          query: `SELECT code, national FROM \`market-mover-464517.quality.qm_post\` WHERE publish_date = @publish_date`,
-          location: "US",
-          params: { publish_date: actualPublishDate }
-        }) : Promise.resolve([[]])
-    ]);
-
-    // Process national averages
-    const nationalAverages = {};
-    nationalRows[0].forEach(row => {
-      nationalAverages[row.code] = {
-        score: row.national,
-        percentile: 0.5, // 50th percentile
-      };
+    // OPTIMIZATION: Use a single query to get all data at once instead of 3 separate queries
+    const combinedQuery = `
+      WITH measures AS (
+        SELECT code, label, direction, description, name, active, sort_order, setting 
+        FROM \`market-mover-464517.quality.qm_dictionary\` 
+        WHERE active = true
+      ),
+      provider_data AS (
+        SELECT ccn, code, score, percentile_column 
+        FROM \`market-mover-464517.quality.qm_provider\` 
+        WHERE ccn IN UNNEST(@ccns) 
+        AND publish_date = @publish_date
+      ),
+      national_data AS (
+        SELECT code, national 
+        FROM \`market-mover-464517.quality.qm_post\` 
+        WHERE publish_date = @publish_date
+      )
+      SELECT 
+        'measure' as data_type,
+        code,
+        label,
+        direction,
+        description,
+        name,
+        active,
+        sort_order,
+        setting,
+        NULL as ccn,
+        NULL as score,
+        NULL as percentile_column,
+        NULL as national
+      FROM measures
+      UNION ALL
+      SELECT 
+        'provider' as data_type,
+        code,
+        NULL as label,
+        NULL as direction,
+        NULL as description,
+        NULL as name,
+        NULL as active,
+        NULL as sort_order,
+        NULL as setting,
+        ccn,
+        score,
+        percentile_column,
+        NULL as national
+      FROM provider_data
+      UNION ALL
+      SELECT 
+        'national' as data_type,
+        code,
+        NULL as label,
+        NULL as direction,
+        NULL as description,
+        NULL as name,
+        NULL as active,
+        NULL as sort_order,
+        NULL as setting,
+        NULL as ccn,
+        NULL as score,
+        NULL as percentile_column,
+        national
+      FROM national_data
+      ORDER BY data_type, code
+    `;
+    
+    const [combinedRows] = await myBigQuery.query({
+      query: combinedQuery,
+      location: "US",
+      params: { ccns, publish_date: actualPublishDate }
     });
 
-    // availableDates is already processed above
+         // Process the combined results
+     const measuresData = [];
+     const providerData = [];
+     const nationalAverages = {};
 
-    console.log("✅ Combined endpoint returning:", {
-      measuresCount: measuresRows[0].length,
-      providerDataCount: providerRows[0].length,
+     combinedRows.forEach(row => {
+       if (row.data_type === 'measure') {
+         measuresData.push({
+           code: row.code,
+           label: row.label,
+           direction: row.direction,
+           description: row.description,
+           name: row.name,
+           active: row.active,
+           sort_order: row.sort_order,
+           setting: row.setting
+         });
+       } else if (row.data_type === 'provider') {
+         providerData.push({
+           ccn: row.ccn,
+           code: row.code,
+           score: row.score,
+           percentile_column: row.percentile_column
+         });
+       } else if (row.data_type === 'national') {
+         nationalAverages[row.code] = {
+           score: row.national,
+           percentile: 0.5 // 50th percentile
+         };
+       }
+     });
+
+     // Sort measures by sort_order
+     measuresData.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+    console.log("✅ Combined endpoint returning (optimized):", {
+      measuresCount: measuresData.length,
+      providerDataCount: providerData.length,
       nationalAveragesCount: Object.keys(nationalAverages).length,
       availableDatesCount: availableDates.length
     });
 
+    const responseData = {
+      measures: measuresData,
+      providerData,
+      nationalAverages,
+      availableDates
+    };
+
+    // Cache the result for 5 minutes
+    cache.set(cacheKey, {}, responseData, 300);
+
     res.status(200).json({ 
       success: true, 
-      data: {
-        measures: measuresRows[0],
-        providerData: providerRows[0],
-        nationalAverages,
-        availableDates
-      }
+      data: responseData
     });
   } catch (err) {
     console.error("❌ BigQuery qm_combined query error:", err);

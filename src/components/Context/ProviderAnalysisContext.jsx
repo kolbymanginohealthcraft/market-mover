@@ -54,7 +54,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
   // Refs for request management
   const abortControllerRef = useRef(null);
   const dataCacheRef = useRef(new Map());
-  
+
   // Progressive loading state
   const [loadingTier, setLoadingTier] = useState(0); // 0 = not started, 1 = core data, 2 = quality measures
   const [isLazyLoadingEnabled, setIsLazyLoadingEnabled] = useState(false);
