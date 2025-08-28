@@ -64,6 +64,9 @@
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.02em;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .breadcrumbItem {
@@ -73,6 +76,7 @@
 .breadcrumbSeparator {
   color: var(--gray-400);
   font-weight: 400;
+  flex-shrink: 0;
 }
 
 /* Default breadcrumb item types */
@@ -132,6 +136,8 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+  min-width: 100px;
 }
 
 .userSection {
@@ -148,6 +154,7 @@
 
 .userProfileContainer {
   position: relative;
+  flex-shrink: 0;
 }
 
 .userProfile {
@@ -177,6 +184,7 @@
   color: white;
   font-weight: 600;
   font-size: 0.875rem;
+  flex-shrink: 0;
 }
 
 .userName {
@@ -335,13 +343,51 @@
 @media (max-width: 768px) {
   .header {
     padding: 1rem;
+    align-items: flex-start;
   }
   
   .pageTitle {
     font-size: 1.5rem;
   }
   
+  .moduleIcon {
+    display: none;
+  }
+  
+  .headerLeft {
+    max-width: calc(100% - 80px);
+  }
+  
+  .headerRight {
+    align-self: flex-start;
+    margin-top: calc((1.5rem * 1.1 - 32px) / 2);
+  }
+  
+  .breadcrumb {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .breadcrumbItem {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+  
   .ctaButtons {
     gap: 0.5rem;
+  }
+  
+  .userName {
+    display: none;
   }
 }

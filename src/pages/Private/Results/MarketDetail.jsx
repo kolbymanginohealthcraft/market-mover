@@ -272,36 +272,38 @@ export default function MarketDetail() {
   // For all routes, render normally inside PageLayout
   return (
     <PageLayout>
-      <Routes key={location.pathname}>
-        <Route path="overview" element={<MarketOverview key={`overview-${marketId}`} market={market} providers={nearbyProviders} />} />
-        <Route path="provider-listing" element={<ProviderListingTab provider={marketProvider} radiusInMiles={radiusInMiles} providers={nearbyProviders} />} />
-        <Route path="provider-density" element={<ProviderDensityPage key={`provider-density-${marketId}`} radius={radiusInMiles} latitude={market?.latitude} longitude={market?.longitude} provider={marketProvider} />} />
-        <Route path="population" element={<PopulationTab key={`population-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} censusData={censusData} counties={counties} censusTracts={censusTracts} />} />
-        <Route path="claims" element={<ClaimsTab key={`claims-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
-        <Route path="cms-enrollment" element={<CMSEnrollmentTab key={`cms-enrollment-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} />} />
-        <Route path="storyteller/*" element={<Storyteller 
-          key={`storyteller-${marketId}`}
-          provider={marketProvider}
-          radiusInMiles={radiusInMiles}
-          nearbyProviders={nearbyProviders}
-          nearbyDhcCcns={nearbyDhcCcns}
-          mainProviderCcns={getProviderDhcToCcns(marketProvider?.dhc) || []}
-          prefetchedData={{
-            loading: qualityLoading,
-            measures: qualityMeasures,
-            data: qualityData,
-            marketAverages: qualityMarketAverages,
-            nationalAverages: qualityNationalAverages,
-            error: qualityError,
-            allProviders: qualityProviders,
-            providerTypes: qualityProviderTypes,
-            publishDates: qualityPublishDates,
-            currentDate: qualityCurrentDate,
-            qualityMeasuresDates
-          }}
-        />} />
-        <Route path="*" element={<Navigate to="overview" replace />} />
-      </Routes>
+      <ProviderAnalysisProvider provider={marketProvider} radiusInMiles={radiusInMiles}>
+        <Routes key={location.pathname}>
+          <Route path="overview" element={<MarketOverview key={`overview-${marketId}`} market={market} providers={nearbyProviders} />} />
+          <Route path="provider-listing" element={<ProviderListingTab provider={marketProvider} radiusInMiles={radiusInMiles} providers={nearbyProviders} />} />
+          <Route path="provider-density" element={<ProviderDensityPage key={`provider-density-${marketId}`} radius={radiusInMiles} latitude={market?.latitude} longitude={market?.longitude} provider={marketProvider} />} />
+          <Route path="population" element={<PopulationTab key={`population-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} censusData={censusData} counties={counties} censusTracts={censusTracts} />} />
+          <Route path="claims" element={<ClaimsTab key={`claims-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
+          <Route path="cms-enrollment" element={<CMSEnrollmentTab key={`cms-enrollment-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} />} />
+          <Route path="storyteller/*" element={<Storyteller 
+            key={`storyteller-${marketId}`}
+            provider={marketProvider}
+            radiusInMiles={radiusInMiles}
+            nearbyProviders={nearbyProviders}
+            nearbyDhcCcns={nearbyDhcCcns}
+            mainProviderCcns={getProviderDhcToCcns(marketProvider?.dhc) || []}
+            prefetchedData={{
+              loading: qualityLoading,
+              measures: qualityMeasures,
+              data: qualityData,
+              marketAverages: qualityMarketAverages,
+              nationalAverages: qualityNationalAverages,
+              error: qualityError,
+              allProviders: qualityProviders,
+              providerTypes: qualityProviderTypes,
+              publishDates: qualityPublishDates,
+              currentDate: qualityCurrentDate,
+              qualityMeasuresDates
+            }}
+          />} />
+          <Route path="*" element={<Navigate to="overview" replace />} />
+        </Routes>
+      </ProviderAnalysisProvider>
     </PageLayout>
   );
 }

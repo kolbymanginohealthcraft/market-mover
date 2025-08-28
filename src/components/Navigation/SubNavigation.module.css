@@ -16,6 +16,8 @@
   align-items: center;
   gap: 0;
   height: 48px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .navRight {
@@ -51,6 +53,8 @@
   border-bottom: 2px solid transparent;
   text-decoration: none;
   outline: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab:hover {
@@ -164,6 +168,24 @@
     padding: 0;
   }
   
+  .navLeft {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex: 1;
+  }
+  
+  .navLeft::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tab {
+    padding: 0 12px;
+    min-width: fit-content;
+  }
+  
   .tabContainer {
     overflow-x: auto;
     scrollbar-width: none;
@@ -172,10 +194,5 @@
   
   .tabContainer::-webkit-scrollbar {
     display: none;
-  }
-  
-  .tab {
-    padding: 0 12px;
-    min-width: fit-content;
   }
 }
