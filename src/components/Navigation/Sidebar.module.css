@@ -7,10 +7,87 @@
   left: 0;
   top: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+  padding: 24px 12px;
+  align-items: center;
+}
+
+/* Custom branded tooltip styles */
+.customTooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.tooltipContent {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 192, 139, 0.2);
+  color: #00514A;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 192, 139, 0.1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyboardShortcut {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 192, 139, 0.3);
+  color: #00514A;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  min-width: 16px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tooltipArrow {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border: 1px solid rgba(0, 192, 139, 0.2);
+  border-right: none;
+  border-bottom: none;
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: -2px 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
 }
 
 .brand {
@@ -19,6 +96,11 @@
   gap: 12px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--gray-200);
+}
+
+.sidebar.collapsed .brand {
+  gap: 0;
+  padding-bottom: 16px;
 }
 
 .logo {
@@ -33,11 +115,13 @@
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .brandText {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .brandName {
@@ -45,12 +129,18 @@
   font-weight: 700;
   color: var(--primary-teal-dark);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .companyName {
   font-size: 12px;
   color: var(--gray-500);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .section {
@@ -80,6 +170,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
 .navItem {
@@ -95,6 +186,16 @@
   transition: all 0.2s ease;
   border: 1px solid transparent;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sidebar.collapsed .navItem {
+  padding: 8px;
+  justify-content: center;
+  gap: 0;
 }
 
 .navItem svg {
@@ -127,6 +228,10 @@
   border-radius: 0 2px 2px 0;
 }
 
+.sidebar.collapsed .navItem.active::before {
+  left: -12px;
+}
+
 .navItem.disabled {
   color: var(--gray-400);
   cursor: not-allowed;
@@ -152,15 +257,58 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
+.collapseButton {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  color: var(--gray-600);
+}
 
+.collapseButton:hover {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  color: var(--primary-teal-dark);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.collapseButton:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.collapseButton svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
 
 /* Responsive Design */
 @media (max-width: 1024px) {
   .sidebar {
     width: 240px;
     padding: 20px 16px;
+  }
+  
+  .sidebar.collapsed {
+    width: 60px;
+    padding: 20px 12px;
   }
   
   .brandName {
@@ -174,10 +322,17 @@
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    position: relative;
-    height: auto;
-    padding: 16px;
+    width: 60px;
+    position: fixed;
+    height: 100vh;
+    padding: 16px 12px;
+    align-items: center;
+  }
+  
+  .sidebar.collapsed {
+    width: 60px;
+    padding: 16px 12px;
+    align-items: center;
   }
   
   .brand {
@@ -189,7 +344,19 @@
   }
   
   .navItem {
-    padding: 10px 12px;
-    font-size: 15px;
+    padding: 8px;
+    justify-content: center;
+    gap: 0;
+    font-size: 13px;
+  }
+  
+  .sidebar.collapsed .navItem {
+    padding: 8px;
+    justify-content: center;
+    gap: 0;
+  }
+  
+  .collapseButton {
+    display: none;
   }
 }

@@ -279,7 +279,7 @@ const Header = ({ currentView, selectedMarket }) => {
       ];
     } else if (currentPath.includes('/settings')) {
       return [
-        { text: 'Platform configuration and account settings', type: 'description' }
+        { text: 'Profile configuration and account settings', type: 'description' }
       ];
     } else if (currentPath.includes('/feedback')) {
       return [
