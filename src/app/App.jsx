@@ -46,6 +46,7 @@ import BillingHistory from "../pages/Private/Settings/Subscription/BillingHistor
 import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
+import AdvancedSearch from "../pages/Private/Search/AdvancedSearch";
 import ProviderDetail from "../pages/Private/Results/ProviderDetail";
 import MarketDetail from "../pages/Private/Results/MarketDetail";
 import MarketsList from "../pages/Private/Markets/MarketsList";
@@ -139,7 +140,9 @@ export default function App() {
             <Route path="/app" element={session ? <SidebarLayout /> : <Navigate to="/" />}>
               <Route index element={<Navigate to="dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="search" element={<ProviderSearch />} />
+              <Route path="search" element={<Navigate to="search/basic" />} />
+              <Route path="search/basic" element={<ProviderSearch />} />
+              <Route path="search/advanced" element={<AdvancedSearch />} />
               <Route path="explore" element={<Explore />} />
               <Route path="feedback" element={<Feedback />} />
               <Route path="provider/:dhc/*" element={<ProviderDetail />} />

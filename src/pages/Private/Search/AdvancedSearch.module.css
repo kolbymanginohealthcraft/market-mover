@@ -1,0 +1,84 @@
+/* Section Structure - matching settings pages */
+.section {
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.content {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--gray-200);
+  border-top: none;
+  overflow: visible;
+  padding: 24px;
+}
+
+/* Coming Soon Panel */
+.comingSoonPanel {
+  border-radius: 8px;
+}
+
+.comingSoonContent p {
+  color: #374151;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.comingSoonContent ul {
+  margin: 2rem 0;
+  padding-left: 2rem;
+  list-style: none;
+}
+
+.comingSoonContent li {
+  color: #4b5563;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  position: relative;
+  font-weight: 400;
+  padding-left: 1.5rem;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+  padding-left: 1.25rem;
+}
+
+.comingSoonContent li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #265947;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transform: translateX(-2px);
+  transition: transform 0.3s ease;
+}
+
+.comingSoonContent li:hover {
+  color: #1f2937;
+  transform: translateX(4px);
+  border-left-color: #265947;
+  background: linear-gradient(90deg, rgba(38, 89, 71, 0.05) 0%, transparent 100%);
+  padding-left: 1.5rem;
+  border-radius: 0 6px 6px 0;
+}
+
+.comingSoonContent li:hover::before {
+  transform: translateX(2px);
+  color: #1f4538;
+}
+
+/* CSS Variables for colors */
+:root {
+  --white: #ffffff;
+  --gray-50: #f9fafb;
+  --gray-200: #e5e7eb;
+  --gray-700: #374151;
+  --color-gold: #f1b62c;
+  --color-gold-light: #ffd85e;
+  --color-green: #265947;
+}

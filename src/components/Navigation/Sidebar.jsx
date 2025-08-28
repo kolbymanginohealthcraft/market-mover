@@ -89,7 +89,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             {!isCollapsed && 'Dashboard'}
           </Link>
           <Link 
-            to="/app/search" 
+            to="/app/search/basic" 
             className={`${styles.navItem} ${isActive('/search') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Search the Industry')}
             onMouseLeave={handleMouseLeave}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import classNames from 'classnames';
 import styles from './FAQPage.module.css';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
@@ -6,27 +6,15 @@ import ControlsRow from '../../../components/Layouts/ControlsRow';
 import SearchInput from '../../../components/Buttons/SearchInput';
 import faqSections from './faqData';
 
-const FAQPage = () => {
-  const [openItems, setOpenItems] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const toggleItem = (sectionIndex, itemIndex) => {
-    const key = `${sectionIndex}-${itemIndex}`;
-    setOpenItems(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  // Function to highlight search terms in text
-  const highlightText = (text, query) => {
-    if (!query.trim()) {
-      return text;
+// Memoized FAQ item component to prevent unnecessary re-renders
+const FAQItem = React.memo(({ faq, isOpen, onToggle, searchQuery, sectionIndex, itemIndex }) => {
+  // Memoize highlighted text to prevent recalculation
+  const highlightedQuestion = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return faq.question;
     }
-
-    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = text.split(regex);
-    
+    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = faq.question.split(regex);
     return parts.map((part, index) => 
       regex.test(part) ? (
         <mark key={index} className={styles.highlight}>{part}</mark>
@@ -34,15 +22,85 @@ const FAQPage = () => {
         part
       )
     );
-  };
+  }, [faq.question, searchQuery]);
+
+  const highlightedAnswer = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return faq.answer;
+    }
+    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = faq.answer.split(regex);
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <mark key={index} className={styles.highlight}>{part}</mark>
+      ) : (
+        part
+      )
+    );
+  }, [faq.answer, searchQuery]);
+
+  return (
+    <div className={styles.faqItem}>
+      <button
+        className={styles.faqQuestion}
+        onClick={() => onToggle(sectionIndex, itemIndex)}
+      >
+        <span className={styles.questionText}>
+          {highlightedQuestion}
+        </span>
+        <span className={styles.chevron}>
+          {isOpen ? <FaChevronUp /> : <FaChevronDown />}
+        </span>
+      </button>
+      <div className={classNames(styles.faqAnswer, {
+        [styles.open]: isOpen
+      })}>
+        <p>{highlightedAnswer}</p>
+      </div>
+    </div>
+  );
+});
+
+FAQItem.displayName = 'FAQItem';
+
+const FAQPage = () => {
+  const [openItems, setOpenItems] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const debounceTimeoutRef = useRef(null);
+
+  // Debounce search to prevent excessive filtering
+  useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 150);
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  const toggleItem = useCallback((sectionIndex, itemIndex) => {
+    const key = `${sectionIndex}-${itemIndex}`;
+    setOpenItems(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  }, []);
 
   // Filter FAQ sections and items based on search query
   const filteredFaqSections = useMemo(() => {
-    if (!searchQuery.trim()) {
+    if (!debouncedSearchQuery.trim()) {
       return faqSections;
     }
 
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     return faqSections.map(section => {
       const filteredItems = section.items.filter(item =>
         item.question.toLowerCase().includes(query) ||
@@ -54,7 +112,7 @@ const FAQPage = () => {
         items: filteredItems
       } : null;
     }).filter(Boolean);
-  }, [searchQuery]);
+  }, [debouncedSearchQuery]);
 
   const totalResults = useMemo(() => {
     return filteredFaqSections.reduce((total, section) => total + section.items.length, 0);
@@ -88,24 +146,15 @@ const FAQPage = () => {
                   const isOpen = openItems[key];
                   
                   return (
-                    <div key={itemIndex} className={styles.faqItem}>
-                      <button
-                        className={styles.faqQuestion}
-                        onClick={() => toggleItem(sectionIndex, itemIndex)}
-                      >
-                        <span className={styles.questionText}>
-                          {highlightText(faq.question, searchQuery)}
-                        </span>
-                        <span className={styles.chevron}>
-                          {isOpen ? <FaChevronUp /> : <FaChevronDown />}
-                        </span>
-                      </button>
-                      <div className={classNames(styles.faqAnswer, {
-                        [styles.open]: isOpen
-                      })}>
-                        <p>{highlightText(faq.answer, searchQuery)}</p>
-                      </div>
-                    </div>
+                    <FAQItem
+                      key={key}
+                      faq={faq}
+                      isOpen={isOpen}
+                      onToggle={toggleItem}
+                      searchQuery={debouncedSearchQuery}
+                      sectionIndex={sectionIndex}
+                      itemIndex={itemIndex}
+                    />
                   );
                 })}
               </div>

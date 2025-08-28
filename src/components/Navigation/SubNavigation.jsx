@@ -776,15 +776,15 @@ const SubNavigation = () => {
 
   // Handle search page
   if (location.pathname.includes('/search')) {
-    const searchTab = new URLSearchParams(location.search).get('tab') || 'basic';
+    const searchTab = location.pathname.includes('/advanced') ? 'advanced' : 'basic';
     
     const tabs = [
-      { id: "basic", label: "Search for a Provider", icon: Search, path: "/app/search?tab=basic" },
+      { id: "basic", label: "Search for a Provider", icon: Search, path: "/app/search/basic" },
       { 
         id: "advanced", 
         label: "Advanced Search", 
         icon: Settings, 
-        path: "/app/search?tab=advanced",
+        path: "/app/search/advanced",
         requiresTeam: true
       }
     ];
