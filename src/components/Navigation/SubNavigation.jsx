@@ -22,7 +22,8 @@ import {
   Activity,
   ShoppingCart,
   Lock,
-  TrendingUp
+  TrendingUp,
+  Target
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
@@ -238,6 +239,8 @@ const SubNavigation = () => {
       currentActiveTab = 'population';
     } else if (location.pathname.includes('/claims')) {
       currentActiveTab = 'claims';
+    } else if (location.pathname.includes('/catchment')) {
+      currentActiveTab = 'catchment';
     } else if (location.pathname.includes('/enrollment') || location.pathname.includes('/cms-enrollment')) {
       currentActiveTab = 'enrollment';
     } else if (location.pathname.includes('/storyteller')) {
@@ -252,6 +255,7 @@ const SubNavigation = () => {
       { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: !hasTeam },
       { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: !hasTeam },
       { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: !hasTeam },
       { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
       { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
     ];
@@ -455,6 +459,8 @@ const SubNavigation = () => {
       currentActiveTab = 'population';
     } else if (location.pathname.includes('/claims')) {
       currentActiveTab = 'claims';
+    } else if (location.pathname.includes('/catchment')) {
+      currentActiveTab = 'catchment';
     } else if (location.pathname.includes('/enrollment') || location.pathname.includes('/cms-enrollment')) {
       currentActiveTab = 'enrollment';
     } else if (location.pathname.includes('/storyteller')) {
@@ -469,6 +475,7 @@ const SubNavigation = () => {
       { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: !hasTeam },
       { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: !hasTeam },
       { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: !hasTeam },
       { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
       { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
     ];
