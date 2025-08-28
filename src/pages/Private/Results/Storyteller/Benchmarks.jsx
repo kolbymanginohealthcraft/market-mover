@@ -234,6 +234,7 @@ export default function Benchmarks({
                      selectedPublishDate={currentPublishDate}
                      providerTypeFilter={providerTypeFilter}
                      selectedMeasure={selectedMeasure}
+                     measuresLoading={measuresLoading}
                    />
                  </div>
         </div>

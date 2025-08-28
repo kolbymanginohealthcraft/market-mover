@@ -10,7 +10,8 @@ export default function BenchmarkChart({
   nearbyDhcCcns, 
   selectedPublishDate,
   providerTypeFilter,
-  selectedMeasure
+  selectedMeasure,
+  measuresLoading = false
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +29,11 @@ export default function BenchmarkChart({
       // Wait for selectedMeasure to be available before fetching data
       if (!selectedMeasure) {
         setLoading(false);
-        setError("No measure selected");
+        if (measuresLoading) {
+          setError("Loading measures...");
+        } else {
+          setError("No measure selected");
+        }
         return;
       }
 
@@ -211,10 +216,16 @@ export default function BenchmarkChart({
           <div className={styles.benchmarkContainer}>
             <div className={styles.chartHeader}>
               <h3 className={styles.metricTitle}>Quality Measure</h3>
-              <p className={styles.metricDescription}>Error loading measure data</p>
+              <p className={styles.metricDescription}>
+                {measuresLoading ? 'Loading measures...' : 'Error loading measure data'}
+              </p>
             </div>
             <div className={styles.chartContent}>
-              <div className={styles.errorMessage}>Error: {error}</div>
+              {measuresLoading ? (
+                <div className={styles.loadingMessage}>Loading quality measures...</div>
+              ) : (
+                <div className={styles.errorMessage}>Error: {error}</div>
+              )}
             </div>
           </div>
         );
