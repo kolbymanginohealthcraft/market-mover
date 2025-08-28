@@ -5,7 +5,7 @@ import styles from './MarketingSidebar.module.css';
 function MarketingSidebar() {
   return (
     <aside className={styles.sidebar}>
-      {/* Section 1: Campaign Highlights */}
+      {/* Section 1: Campaign Highlight */}
       <section className={styles.section}>
         <h2 className={styles.heading}>📈 Growth Opportunities</h2>
         <ul className={styles.bullets}>
