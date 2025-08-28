@@ -25,6 +25,13 @@ export default function BenchmarkChart({
         return;
       }
 
+      // Wait for selectedMeasure to be available before fetching data
+      if (!selectedMeasure) {
+        setLoading(false);
+        setError("No measure selected");
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -77,23 +84,16 @@ export default function BenchmarkChart({
 
         const { measures, providerData: allProviderData, nationalAverages } = result.data;
 
-        // 4. Find the selected measure or fall back to rehospitalization
+        // 4. Find the selected measure or fall back to first available measure
         let targetMeasure = null;
         
         if (selectedMeasure) {
           targetMeasure = measures.find(m => m.code === selectedMeasure);
         }
         
-        // Fall back to rehospitalization if selected measure not found
-        if (!targetMeasure) {
-          targetMeasure = measures.find(m => 
-            m.code && (
-              m.code.includes('REHOSP') || 
-              m.code.includes('READMISSION') ||
-              m.name?.toLowerCase().includes('rehospitalization') ||
-              m.name?.toLowerCase().includes('readmission')
-            )
-          );
+        // Fall back to first available measure if selected measure not found
+        if (!targetMeasure && measures.length > 0) {
+          targetMeasure = measures[0];
         }
 
         if (!targetMeasure) {

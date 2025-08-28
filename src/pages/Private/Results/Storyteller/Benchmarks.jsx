@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BenchmarkChart from './BenchmarkChart';
 import { apiUrl } from '../../../../utils/api';
+import useQualityMeasures from '../../../../hooks/useQualityMeasures';
 import styles from './Benchmarks.module.css';
 
 export default function Benchmarks({ 
@@ -15,10 +16,24 @@ export default function Benchmarks({
   setSelectedPublishDate,
   availableProviderTypes
 }) {
+  // Use the same quality measures hook to get consistent date handling
+  const {
+    currentPublishDate,
+    availablePublishDates
+  } = useQualityMeasures(
+    provider, 
+    nearbyProviders, 
+    nearbyDhcCcns, 
+    selectedPublishDate,
+    prefetchedData?.qualityMeasuresDates,
+    providerTypeFilter
+  );
+
   const [availableMeasures, setAvailableMeasures] = useState([]);
   const [selectedMeasure, setSelectedMeasure] = useState(null);
   const [measuresLoading, setMeasuresLoading] = useState(false);
   const [measuresError, setMeasuresError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   // Helper function for SelectInput component
   function SelectInput({ id, value, onChange, options, size = 'sm', formatOptions = false, ...props }) {
     return (
@@ -93,7 +108,19 @@ export default function Benchmarks({
     }
 
     fetchQualityMeasures();
-  }, [providerTypeFilter, selectedMeasure]);
+  }, [providerTypeFilter]);
+
+  // Filter measures based on search term
+  const filteredMeasures = availableMeasures.filter(measure => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      measure.name?.toLowerCase().includes(searchLower) ||
+      measure.description?.toLowerCase().includes(searchLower) ||
+      measure.code?.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className={styles.benchmarksContainer}>
@@ -102,7 +129,7 @@ export default function Benchmarks({
         <div className={styles.bannerLeft}>
           <strong>Current Data Period:</strong>
           <span className={styles.dateDisplay}>
-            {selectedPublishDate || 'Not set'}
+            {currentPublishDate || 'Not set'}
           </span>
           {providerTypeFilter && (
             <>
@@ -133,36 +160,68 @@ export default function Benchmarks({
           {/* Left Column - Measures List */}
           <div className={styles.measuresPanel}>
             <h3 className={styles.measuresTitle}>Quality Measures</h3>
-                         <div className={styles.measuresList}>
-               {measuresLoading ? (
-                 <div className={styles.loadingMessage}>Loading measures...</div>
-               ) : measuresError ? (
-                 <div className={styles.errorMessage}>Error: {measuresError}</div>
-               ) : availableMeasures.length === 0 ? (
-                 <div className={styles.noDataMessage}>
-                   {providerTypeFilter ? 'No measures available for this setting' : 'Select a measure setting to view available measures'}
-                 </div>
-               ) : (
-                 availableMeasures.map((measure) => (
-                   <div key={measure.code} className={styles.measureItem}>
-                     <label className={styles.measureRadio}>
-                       <input
-                         type="radio"
-                         name="selectedMeasure"
-                         value={measure.code}
-                         checked={selectedMeasure === measure.code}
-                         onChange={(e) => setSelectedMeasure(e.target.value)}
-                         className={styles.radioInput}
-                       />
-                       <div className={styles.measureContent}>
-                         <div className={styles.measureName}>{measure.name}</div>
-                         <div className={styles.measureDescription}>{measure.description}</div>
-                       </div>
-                     </label>
-                   </div>
-                 ))
-               )}
-             </div>
+            
+            {/* Search Bar */}
+            <div className={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search measures..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className={styles.clearSearch}
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            {/* Search Results Count */}
+            {searchTerm && !measuresLoading && !measuresError && availableMeasures.length > 0 && (
+              <div className={styles.searchResultsCount}>
+                {filteredMeasures.length} of {availableMeasures.length} measures
+              </div>
+            )}
+            
+            <div className={styles.measuresList}>
+              {measuresLoading ? (
+                <div className={styles.loadingMessage}>Loading measures...</div>
+              ) : measuresError ? (
+                <div className={styles.errorMessage}>Error: {measuresError}</div>
+              ) : availableMeasures.length === 0 ? (
+                <div className={styles.noDataMessage}>
+                  {providerTypeFilter ? 'No measures available for this setting' : 'Select a measure setting to view available measures'}
+                </div>
+              ) : filteredMeasures.length === 0 ? (
+                <div className={styles.noDataMessage}>
+                  No measures found matching "{searchTerm}"
+                </div>
+              ) : (
+                filteredMeasures.map((measure) => (
+                  <div key={measure.code} className={styles.measureItem}>
+                    <label className={styles.measureRadio}>
+                      <input
+                        type="radio"
+                        name="selectedMeasure"
+                        value={measure.code}
+                        checked={selectedMeasure === measure.code}
+                        onChange={(e) => setSelectedMeasure(e.target.value)}
+                        className={styles.radioInput}
+                      />
+                      <div className={styles.measureContent}>
+                        <div className={styles.measureName}>{measure.name}</div>
+                        <div className={styles.measureDescription}>{measure.description}</div>
+                      </div>
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
           
                            {/* Right Column - Chart */}
@@ -172,7 +231,7 @@ export default function Benchmarks({
                      radiusInMiles={radiusInMiles}
                      nearbyProviders={nearbyProviders}
                      nearbyDhcCcns={nearbyDhcCcns}
-                     selectedPublishDate={selectedPublishDate}
+                     selectedPublishDate={currentPublishDate}
                      providerTypeFilter={providerTypeFilter}
                      selectedMeasure={selectedMeasure}
                    />

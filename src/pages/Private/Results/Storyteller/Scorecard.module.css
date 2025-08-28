@@ -1,7 +1,7 @@
-/* Removed global overflow override for .main on the Scorecard page */
-/* // :global(.page) :global(.main) {
-//   overflow: hidden !important;
-// } */
+/* Global override for storyteller page to prevent double scrollbars */
+:global(body[data-page="storyteller"]) :global(.main) {
+  overflow: hidden !important;
+}
 
 /* Ensure the scorecard container takes full height and provides the first layer */
 .scorecardContainer {
