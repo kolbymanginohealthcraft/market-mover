@@ -4,8 +4,7 @@ import CMSEnrollmentPanel from "./CMSEnrollmentPanel";
 import MAEnrollmentPanel from "./MAEnrollmentPanel";
 import MAEnrollmentTrendChart from "./MAEnrollmentTrendChart";
 import useCMSEnrollmentData from "../../../../hooks/useCMSEnrollmentData";
-import { useCMSEnrollmentDataByLevel, useCMSEnrollmentYears } from "../../../../hooks/useCMSEnrollmentData";
-import useMAEnrollmentData, { useMAEnrollmentTrendData } from "../../../../hooks/useMAEnrollmentData";
+import useMAEnrollmentData from "../../../../hooks/useMAEnrollmentData";
 import { apiUrl } from "../../../../utils/api";
 
 import Button from "../../../../components/Buttons/Button";
@@ -19,9 +18,6 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
     setSelectedView(defaultView);
   }, [defaultView]);
 
-  const [selectedBenchmark, setSelectedBenchmark] = useState('national'); // 'national', 'state-XX', 'county-XXXXX'
-  const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
-  
   // MA Enrollment state
   const [publishDates, setPublishDates] = useState([]);
   const [loadingDates, setLoadingDates] = useState(true);
@@ -29,13 +25,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
   const [selectedType, setSelectedType] = useState("MA");
   
   // Fetch CMS enrollment data
-  const { data, loading, error, latestMonth, months } = useCMSEnrollmentData(provider, radiusInMiles);
-  
-  // Fetch available years
-  const { data: availableYears } = useCMSEnrollmentYears();
-  
-  // Get the latest year for benchmarks
-  const latestYear = availableYears && availableYears.length > 0 ? availableYears[0] : '2023';
+  const { data, loading, error, latestMonth } = useCMSEnrollmentData(provider, radiusInMiles);
 
   // Fetch MA enrollment dates
   useEffect(() => {
@@ -60,225 +50,12 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
 
   // MA Enrollment data
   const publishDate = publishDates[publishDates.length - 1];
-  const startDate = publishDates[0];
-  const endDate = publishDate;
   const { data: maData, loading: maLoading, error: maError } = useMAEnrollmentData(provider, radiusInMiles, publishDate, selectedType);
-  const { data: maTrendData, loading: maTrendLoading, error: maTrendError } = useMAEnrollmentTrendData(provider, radiusInMiles, startDate, endDate, selectedType);
   
-  // Helper functions for benchmark data
-  const getBenchmarkLevel = () => {
-    if (selectedBenchmark === 'national') return 'national';
-    if (selectedBenchmark.startsWith('state-')) return 'state';
-    if (selectedBenchmark.startsWith('county-')) return 'county';
-    return 'national';
-  };
-  
-  const getBenchmarkFips = () => {
-    if (selectedBenchmark === 'national') return null;
-    return selectedBenchmark.replace('state-', '').replace('county-', '');
-  };
-  
-  console.log('🔍 Hook parameters:', {
-    getBenchmarkLevel: getBenchmarkLevel(),
-    getBenchmarkFips: getBenchmarkFips(),
-    latestYear,
-    availableYears
-  });
-  
-  console.log('🔍 About to call useCMSEnrollmentDataByLevel...');
-  
-  // Fetch benchmark data based on selected benchmark
-  const { data: benchmarkData, error: benchmarkError } = useCMSEnrollmentDataByLevel(
-    getBenchmarkLevel(),
-    getBenchmarkFips(),
-    latestYear
-  );
-  
-  console.log('🔍 Hook called, benchmarkData:', benchmarkData?.length, 'benchmarkError:', benchmarkError);
   console.log('🔍 Main data sample:', data?.slice(0, 2));
   console.log('🔍 Latest month:', latestMonth);
 
-  // Get available states and counties from the main data
-  const getAvailableStates = () => {
-    if (!data) return [];
-    const states = [...new Set(data.map(r => r.state).filter(Boolean))];
-    return states;
-  };
 
-  const getAvailableCounties = () => {
-    if (!data) return [];
-    const counties = [...new Set(data.map(r => r.fips).filter(Boolean))];
-    return counties;
-  };
-
-  // Get display name for selected benchmark
-  const getSelectedBenchmarkDisplay = () => {
-    if (selectedBenchmark === 'national') {
-      return 'National';
-    } else if (selectedBenchmark.startsWith('state-')) {
-      const stateCode = selectedBenchmark.replace('state-', '');
-      return stateCode;
-    } else if (selectedBenchmark.startsWith('county-')) {
-      const countyFips = selectedBenchmark.replace('county-', '');
-      const countyData = data?.find(r => r.fips === countyFips);
-      return countyData ? `${countyData.county}, ${countyData.state}` : `County ${countyFips}`;
-    }
-    return 'National';
-  };
-
-  // Build benchmark options
-  const buildBenchmarkOptions = () => {
-    const options = [
-      { value: 'national', label: 'National' }
-    ];
-
-    // Add state options
-    const states = getAvailableStates();
-    states.forEach(stateCode => {
-      options.push({
-        value: `state-${stateCode}`,
-        label: stateCode
-      });
-    });
-
-    // Add county options
-    const counties = getAvailableCounties();
-    counties.forEach(countyFips => {
-      const countyData = data?.find(r => r.fips === countyFips);
-      if (countyData) {
-        options.push({
-          value: `county-${countyFips}`,
-          label: `${countyData.county}, ${countyData.state}`
-        });
-      }
-    });
-
-    return options;
-  };
-
-  // Helper function to get current benchmark data
-  const getCurrentBenchmark = () => {
-    console.log('🔍 Debugging benchmark data:', {
-      benchmarkData: benchmarkData?.length,
-      latestMonth,
-      selectedBenchmark,
-      getBenchmarkLevel: getBenchmarkLevel(),
-      getBenchmarkFips: getBenchmarkFips()
-    });
-    
-    if (!benchmarkData || !latestMonth) {
-      console.log('❌ No benchmark data or latest month');
-      return null;
-    }
-    
-    // For benchmark data, we want the same time period as the main data
-    // For National level, we might have 'Year' records instead of monthly data
-    let latestBenchmarkData;
-    if (selectedBenchmark === 'national') {
-      // For National benchmarks, look for 'Year' records if no monthly data is found
-      latestBenchmarkData = benchmarkData.filter(r => r.month === latestMonth);
-      if (latestBenchmarkData.length === 0) {
-        // Fallback to 'Year' records for National level
-        latestBenchmarkData = benchmarkData.filter(r => r.month === 'Year' || r.month_raw === 'Year');
-        console.log('📊 Using Year records for National benchmark:', latestBenchmarkData.length, 'records');
-      }
-    } else if (selectedBenchmark.startsWith('state-')) {
-      // For State benchmarks, look for any monthly data (not just the exact latest month)
-      // State data might have different month formats
-      latestBenchmarkData = benchmarkData.filter(r => r.month !== 'Year' && r.month_raw !== 'Year');
-      if (latestBenchmarkData.length === 0) {
-        // Fallback to 'Year' records for State level
-        latestBenchmarkData = benchmarkData.filter(r => r.month === 'Year' || r.month_raw === 'Year');
-        console.log('📊 Using Year records for State benchmark:', latestBenchmarkData.length, 'records');
-      } else {
-        console.log('📊 Using monthly records for State benchmark:', latestBenchmarkData.length, 'records');
-      }
-    } else {
-      latestBenchmarkData = benchmarkData.filter(r => r.month === latestMonth);
-    }
-    console.log('📊 Latest benchmark data:', latestBenchmarkData.length, 'records for month:', latestMonth);
-    console.log('📊 Sample benchmark record:', latestBenchmarkData[0]);
-    
-    if (latestBenchmarkData.length === 0) {
-      console.log('❌ No benchmark data for latest month:', latestMonth);
-      return null;
-    }
-    
-    // Aggregate the benchmark data
-    const totalBenes = latestBenchmarkData.reduce((sum, r) => sum + (r.total_benes || 0), 0);
-    const maOther = latestBenchmarkData.reduce((sum, r) => sum + (r.ma_and_other || 0), 0);
-    const originalMedicare = latestBenchmarkData.reduce((sum, r) => sum + (r.original_medicare || 0), 0);
-    const dualEligible = latestBenchmarkData.reduce((sum, r) => sum + (r.dual_total || 0), 0);
-    const agedTotal = latestBenchmarkData.reduce((sum, r) => sum + (r.aged_total || 0), 0);
-    const disabledTotal = latestBenchmarkData.reduce((sum, r) => sum + (r.disabled_total || 0), 0);
-    const drugTotal = latestBenchmarkData.reduce((sum, r) => sum + (r.prescription_drug_total || 0), 0);
-    const drugPdp = latestBenchmarkData.reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0);
-    const drugMapd = latestBenchmarkData.reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0);
-    
-    const benchmark = {
-      totalBenes,
-      maOther,
-      originalMedicare,
-      dualEligible,
-      agedTotal,
-      disabledTotal,
-      drugTotal,
-      drugPdp,
-      drugMapd,
-      maPercentage: totalBenes > 0 ? ((maOther / totalBenes) * 100) : 0,
-      originalMedicarePercentage: totalBenes > 0 ? ((originalMedicare / totalBenes) * 100) : 0,
-      dualPercentage: totalBenes > 0 ? ((dualEligible / totalBenes) * 100) : 0,
-      agedPercentage: totalBenes > 0 ? ((agedTotal / totalBenes) * 100) : 0,
-      disabledPercentage: totalBenes > 0 ? ((disabledTotal / totalBenes) * 100) : 0,
-      drugPercentage: totalBenes > 0 ? ((drugTotal / totalBenes) * 100) : 0,
-      pdpPercentage: totalBenes > 0 ? ((drugPdp / totalBenes) * 100) : 0,
-      mapdPercentage: totalBenes > 0 ? ((drugMapd / totalBenes) * 100) : 0
-    };
-    
-    console.log('📊 Calculated benchmark:', benchmark);
-    console.log('📊 Key benchmark percentages:', {
-      maPercentage: benchmark.maPercentage,
-      originalMedicarePercentage: benchmark.originalMedicarePercentage,
-      dualPercentage: benchmark.dualPercentage,
-      agedPercentage: benchmark.agedPercentage,
-      disabledPercentage: benchmark.disabledPercentage,
-      drugPercentage: benchmark.drugPercentage,
-      pdpPercentage: benchmark.pdpPercentage,
-      mapdPercentage: benchmark.mapdPercentage
-    });
-    
-    return benchmark;
-  };
-
-  // Helper function to render benchmark average
-  const renderBenchmarkAverage = (value, formatter = (val) => `${val?.toFixed(1)}%`) => {
-    console.log('🎯 Rendering benchmark for value:', value);
-    if (value === null || value === undefined) {
-      console.log('❌ Benchmark value is null/undefined, returning null');
-      return null;
-    }
-    
-    const formatted = formatter(value);
-    console.log('✅ Rendering benchmark with formatted value:', formatted);
-    return (
-      <span 
-        key={`${selectedBenchmark}-${value}`} 
-        className={styles.benchmarkAverage}
-      >
-        {formatted}
-      </span>
-    );
-  };
-
-  // Helper function to safely get benchmark value
-  const getBenchmarkValue = (property) => {
-    const benchmark = getCurrentBenchmark();
-    console.log('🔍 getBenchmarkValue called for:', property, 'benchmark:', benchmark);
-    if (!benchmark) return null;
-    const value = benchmark[property] || null;
-    console.log('🔍 Returning benchmark value:', value);
-    return value;
-  };
 
   // Calculate summary statistics for the main data
   const summaryStats = useMemo(() => {
@@ -297,8 +74,6 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
     const drugPdp = latestData.reduce((sum, r) => sum + (r.prescription_drug_pdp || 0), 0);
     const drugMapd = latestData.reduce((sum, r) => sum + (r.prescription_drug_mapd || 0), 0);
     
-    const benchmark = getCurrentBenchmark();
-    
     return {
       totalBenes,
       maOther,
@@ -316,10 +91,9 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
       disabledPercentage: totalBenes > 0 ? ((disabledTotal / totalBenes) * 100).toFixed(1) : '0.0',
       drugPercentage: totalBenes > 0 ? ((drugTotal / totalBenes) * 100).toFixed(1) : '0.0',
       pdpPercentage: totalBenes > 0 ? ((drugPdp / totalBenes) * 100).toFixed(1) : '0.0',
-      mapdPercentage: totalBenes > 0 ? ((drugMapd / totalBenes) * 100).toFixed(1) : '0.0',
-      benchmark
+      mapdPercentage: totalBenes > 0 ? ((drugMapd / totalBenes) * 100).toFixed(1) : '0.0'
     };
-  }, [data, latestMonth, selectedBenchmark, benchmarkData]);
+  }, [data, latestMonth]);
 
   // Calculate demographic data
   const demographicData = useMemo(() => {
@@ -382,42 +156,6 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
             loading={loading} 
             error={error}
             latestMonth={latestMonth}
-            benchmarkSelector={
-              <div className={styles.benchmarkControls}>
-                <div className={styles.benchmarkDropdown}>
-                  <label>Benchmark:</label>
-                  <div className={styles.dropdownContainer}>
-                    <button 
-                      className={styles.dropdownButton}
-                      onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
-                    >
-                      {getSelectedBenchmarkDisplay()} ▼
-                    </button>
-                    {showBenchmarkDropdown && (
-                      <div className={styles.dropdown}>
-                        {buildBenchmarkOptions().map(option => (
-                          <button
-                            key={option.value}
-                            className={`${styles.dropdownItem} ${selectedBenchmark === option.value ? styles.selected : ''}`}
-                            onClick={() => {
-                              setSelectedBenchmark(option.value);
-                              setShowBenchmarkDropdown(false);
-                            }}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {benchmarkError && (
-                  <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-                    Benchmark Error: {benchmarkError}
-                  </div>
-                )}
-              </div>
-            }
           />
         )}
 

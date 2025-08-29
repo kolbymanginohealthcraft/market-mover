@@ -1,22 +1,74 @@
 import React, { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts';
 import styles from "./CMSEnrollmentTrendChart.module.css";
 
-const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
+const CMSEnrollmentTrendChart = ({ data, nationalData, metric = 'ma_and_other', displayMode = 'count', displayModeToggle }) => {
   // Process data for Recharts
   const chartData = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return [];
 
     // Remove duplicates and sort by month
     const seen = new Set();
-    return data
+    const processedData = data
       .filter(d => d.month && !seen.has(d.month) && seen.add(d.month))
       .sort((a, b) => a.month.localeCompare(b.month))
-      .map(d => ({
-        month: d.month,
-        value: d[metric] || 0
-      }));
-  }, [data, metric]);
+      .map(d => {
+        let value;
+        if (displayMode === 'percentage') {
+          // Use percentage data if available, otherwise calculate it
+          value = d[`${metric}_percentage`] !== undefined ? 
+            d[`${metric}_percentage`] : 
+            (d.total_benes > 0 ? ((d[metric] || 0) / d.total_benes * 100) : 0);
+        } else {
+          value = d[metric] || 0;
+        }
+        
+        return {
+          month: d.month,
+          value: value
+        };
+      });
+
+    // Add national average data if available and in percentage mode
+    if (displayMode === 'percentage' && nationalData && Array.isArray(nationalData) && nationalData.length > 0) {
+      console.log('🔍 Processing national data for chart:', { nationalDataLength: nationalData.length, metric });
+      console.log('🔍 National data sample:', nationalData.slice(0, 2));
+      console.log('🔍 Local data months:', processedData.map(d => d.month));
+      console.log('🔍 National data months:', nationalData.map(d => d.month).slice(0, 10));
+      
+      const nationalSeen = new Set();
+      const nationalProcessed = nationalData
+        .filter(d => d.month && !nationalSeen.has(d.month) && nationalSeen.add(d.month))
+        .sort((a, b) => a.month.localeCompare(b.month))
+        .map(d => {
+          const nationalValue = d[`${metric}_percentage`] !== undefined ? 
+            d[`${metric}_percentage`] : 
+            (d.total_benes > 0 ? ((d[metric] || 0) / d.total_benes * 100) : 0);
+          
+          return {
+            month: d.month,
+            nationalValue: nationalValue
+          };
+        });
+
+      console.log('🔍 National processed data sample:', nationalProcessed.slice(0, 3));
+      console.log('🔍 National processed months:', nationalProcessed.map(d => d.month));
+
+      // Merge national data with local data
+      const mergedData = processedData.map(localPoint => {
+        const nationalPoint = nationalProcessed.find(n => n.month === localPoint.month);
+        return {
+          ...localPoint,
+          nationalValue: nationalPoint ? nationalPoint.nationalValue : null
+        };
+      });
+
+      console.log('🔍 Final chart data with national values sample:', mergedData.slice(0, 3));
+      return mergedData;
+    }
+
+    return processedData;
+  }, [data, nationalData, metric, displayMode]);
 
   // Get unique years for reference lines
   const yearStarts = useMemo(() => {
@@ -30,7 +82,6 @@ const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
     
     const years = [...new Set(chartData.map(d => d.month.split('-')[0]))].sort();
     return years.map(year => {
-      const yearData = chartData.filter(d => d.month.startsWith(year));
       const firstIndex = chartData.findIndex(d => d.month.startsWith(year));
       const lastIndex = chartData.findLastIndex(d => d.month.startsWith(year));
       
@@ -47,11 +98,16 @@ const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
   const yAxisDomain = useMemo(() => {
     if (chartData.length === 0) return [0, 100];
     
-    const values = chartData.map(d => d.value).filter(v => v !== null && v !== undefined);
-    if (values.length === 0) return [0, 100];
+    // Include both local and national values in domain calculation
+    const allValues = chartData.flatMap(d => [
+      d.value,
+      d.nationalValue
+    ]).filter(v => v !== null && v !== undefined);
     
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    if (allValues.length === 0) return [0, 100];
+    
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
     const range = max - min;
     
     // Add 20% padding above and below
@@ -62,14 +118,31 @@ const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+      const localValue = payload[0].value;
+      const nationalValue = payload[0].payload?.nationalValue;
+      
+      const formattedLocalValue = displayMode === 'percentage' ? 
+        `${localValue.toFixed(1)}%` : 
+        new Intl.NumberFormat().format(Math.round(localValue));
+      
+      const formattedNationalValue = nationalValue !== null && nationalValue !== undefined ? 
+        `${nationalValue.toFixed(1)}%` : null;
+      
       return (
         <div className={styles.tooltip}>
           <p className={styles.tooltipLabel}>
             <strong>{label}</strong>
           </p>
           <p className={styles.tooltipValue}>
-            {new Intl.NumberFormat().format(payload[0].value)}
+            <span className={styles.tooltipDot} style={{ backgroundColor: '#10B981' }}></span>
+            Local: {formattedLocalValue}
           </p>
+          {formattedNationalValue && (
+            <p className={styles.tooltipNationalValue}>
+              <span className={styles.tooltipDot} style={{ backgroundColor: '#6B7280' }}></span>
+              National: {formattedNationalValue}
+            </p>
+          )}
         </div>
       );
     }
@@ -105,7 +178,14 @@ const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
 
   return (
     <div className={styles.chartWrapper}>
-      <div className={styles.chartTitle}>Enrollment Trend</div>
+      <div className={styles.chartHeader}>
+        <div className={styles.chartTitle}>Enrollment Trend</div>
+        {displayModeToggle && (
+          <div className={styles.chartControls}>
+            {displayModeToggle}
+          </div>
+        )}
+      </div>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
@@ -116,16 +196,17 @@ const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
             bottom: 50,
           }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          {yearStarts.map((yearStart, index) => (
-            <ReferenceLine
-              key={yearStart}
-              x={yearStart}
-              stroke="#e5e7eb"
-              strokeWidth={2}
-              strokeDasharray="0"
-            />
-          ))}
+                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+           {displayMode === 'percentage' && <Legend verticalAlign="top" align="center" wrapperStyle={{ paddingBottom: '10px' }} />}
+           {yearStarts.map((yearStart) => (
+             <ReferenceLine
+               key={yearStart}
+               x={yearStart}
+               stroke="#e5e7eb"
+               strokeWidth={2}
+               strokeDasharray="0"
+             />
+           ))}
           <XAxis
             dataKey="month"
             axisLine={false}
@@ -162,22 +243,46 @@ const CMSEnrollmentTrendChart = ({ data, metric = 'ma_and_other' }) => {
                axisLine={false}
                tickLine={false}
                tick={{ fontSize: 12, fill: '#666' }}
-               tickFormatter={(value) => new Intl.NumberFormat().format(Math.round(value))}
+               tickFormatter={(value) => displayMode === 'percentage' ? 
+                 `${value.toFixed(1)}%` : 
+                 new Intl.NumberFormat().format(Math.round(value))}
                domain={yAxisDomain}
-               allowDecimals={false}
+               allowDecimals={displayMode === 'percentage'}
              />
-          <Tooltip content={<CustomTooltip />} />
-                                    <Line
-                 type="natural"
-                 dataKey="value"
-                 stroke="#10B981"
-                 strokeWidth={2.5}
-                 dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                 activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2, fill: '#fff' }}
-                 animationDuration={1000}
-                 animationEasing="ease-out"
-               />
-        </LineChart>
+                     <Tooltip 
+                       content={<CustomTooltip />} 
+                       cursor={{ stroke: '#10B981', strokeWidth: 1, strokeDasharray: '3 3' }}
+                       wrapperStyle={{ outline: 'none' }}
+                     />
+                       <Line
+              type="natural"
+              dataKey="value"
+              name="Local Data"
+              stroke="#10B981"
+              strokeWidth={2.5}
+              dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2, fill: '#fff' }}
+              animationDuration={1000}
+              animationEasing="ease-out"
+            />
+                       {displayMode === 'percentage' && (
+              <>
+                {console.log('🔍 Rendering national average line')}
+                <Line
+                  type="natural"
+                  dataKey="nationalValue"
+                  name="National Average"
+                  stroke="#6B7280"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  activeDot={{ r: 4, stroke: '#6B7280', strokeWidth: 2, fill: '#fff' }}
+                  animationDuration={1000}
+                  animationEasing="ease-out"
+                />
+              </>
+                         )}
+         </LineChart>
       </ResponsiveContainer>
     </div>
   );

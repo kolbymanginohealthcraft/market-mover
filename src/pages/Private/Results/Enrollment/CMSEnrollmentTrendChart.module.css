@@ -10,29 +10,39 @@
   min-height: 0;
 }
 
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .chartTitle {
   font-size: 1.5rem;
   font-weight: 600;
   color: #265947;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   text-align: left;
+}
+
+.chartControls {
+  display: flex;
+  align-items: center;
 }
 
 /* Tooltip Styling */
 .tooltip {
-  position: absolute;
-  pointer-events: none;
   background-color: #fff;
   border: 1px solid #ddd;
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 0.85rem;
   border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   color: #333;
-  opacity: 0;
-  transition: opacity 0.2s ease;
   white-space: nowrap;
-  z-index: 1000;
+  min-width: 120px;
 }
 
 .tooltipLabel {
@@ -48,6 +58,33 @@
   color: #333;
 }
 
+.tooltipNationalValue {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tooltipValue {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* No data state */
 .noData {
   display: flex;
@@ -57,6 +94,93 @@
   color: #6b7280;
   font-size: 1rem;
   font-weight: 500;
+}
+
+/* Legend styling */
+.legend {
+  font-size: 0.875rem;
+}
+
+.legendItem {
+  font-size: 0.875rem;
+}
+
+/* Override Recharts legend styles to ensure consistent sizing */
+:global(.recharts-legend-item) {
+  font-size: 1rem !important;
+  line-height: 1.4 !important;
+  margin: 0 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  padding: 0 !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+}
+
+:global(.recharts-legend-item-text) {
+  font-size: 1rem !important;
+  font-weight: normal !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+:global(.recharts-legend-item-symbol) {
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+:global(.recharts-legend-item-symbol-line) {
+  stroke-width: 3px !important;
+}
+
+:global(.recharts-legend-item-symbol-circle) {
+  r: 8px !important;
+}
+
+/* Target the actual icon elements more specifically */
+:global(.recharts-legend-item-symbol rect) {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+:global(.recharts-legend-item-symbol path) {
+  stroke-width: 3px !important;
+}
+
+:global(.recharts-legend-item-symbol circle) {
+  r: 8px !important;
+}
+
+/* Ensure SVG elements are properly sized and aligned */
+:global(.recharts-legend-item svg) {
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Force legend to be on one line */
+:global(.recharts-legend) {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
 }
 
 /* Responsive adjustments */

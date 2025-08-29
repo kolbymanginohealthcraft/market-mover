@@ -139,53 +139,60 @@ router.post("/cms-enrollment", async (req, res) => {
  * Body: { geoLevel: "National"|"State"|"County", fipsCode?: "string", year: "string" }
  * Returns: CMS enrollment data for the specified geographic level
  */
-router.post("/cms-enrollment-by-level", async (req, res) => {
-  console.log('🚀 CMS enrollment by-level endpoint hit!');
-  let { geoLevel, fipsCode, year } = req.body;
-  
-  console.log('🔍 CMS enrollment by-level request:', { geoLevel, fipsCode, year });
-  
-  if (!geoLevel || !year) {
-    console.log('❌ Missing required parameters');
-    return res.status(400).json({ 
-      success: false, 
-      error: "geoLevel and year are required" 
-    });
-  }
+ router.post("/cms-enrollment-by-level", async (req, res) => {
+   console.log('🚀 CMS enrollment by-level endpoint hit!');
+   let { geoLevel, fipsCode, year, years } = req.body;
+   
+   console.log('🔍 CMS enrollment by-level request:', { geoLevel, fipsCode, year, years });
+   
+   if (!geoLevel || (!year && !years)) {
+     console.log('❌ Missing required parameters');
+     return res.status(400).json({ 
+       success: false, 
+       error: "geoLevel and year (or years) are required" 
+     });
+   }
 
   try {
     // Get UUID dynamically
     const uuid = await getMedicareEnrollmentUUID();
     console.log('📋 Using UUID:', uuid);
 
-    // Use cache for repeated queries
-    const cacheKey = `cms_enrollment_${geoLevel}_${fipsCode || 'national'}_${year}`;
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      console.log('📦 Serving CMS enrollment by-level data from cache');
-      return res.json({ success: true, data: cached });
-    }
+         // Handle multiple years or single year
+     const yearsToFetch = years || [year];
+     const cacheKey = `cms_enrollment_${geoLevel}_${fipsCode || 'national'}_${yearsToFetch.join('_')}`;
+     const cached = cache.get(cacheKey);
+     if (cached) {
+       console.log('📦 Serving CMS enrollment by-level data from cache');
+       return res.json({ success: true, data: cached });
+     }
 
-    console.log(`🔍 Fetching CMS enrollment data for ${geoLevel} level, year ${year}...`);
-    if (fipsCode) {
-      console.log(`📍 FIPS code: ${fipsCode}`);
-    }
+     console.log(`🔍 Fetching CMS enrollment data for ${geoLevel} level, years: ${yearsToFetch.join(', ')}...`);
+     if (fipsCode) {
+       console.log(`📍 FIPS code: ${fipsCode}`);
+     }
 
-    // Build API URL based on geographic level
-    let apiUrl;
-    if (geoLevel === 'National') {
-      apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[YEAR]=${year}`;
-    } else if (geoLevel === 'State') {
-      apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_STATE_ABRVTN]=${fipsCode}&filter[YEAR]=${year}`;
-    } else if (geoLevel === 'County') {
-      apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_FIPS_CD]=${fipsCode}&filter[YEAR]=${year}`;
-    } else {
-      console.log('❌ Invalid geoLevel:', geoLevel);
-      return res.status(400).json({ 
-        success: false, 
-        error: "geoLevel must be 'National', 'State', or 'County'" 
-      });
-    }
+     // Build API URL based on geographic level
+     let apiUrl;
+     if (geoLevel === 'National') {
+       // For multiple years, use IN operator
+       if (yearsToFetch.length > 1) {
+         const yearFilter = yearsToFetch.map(y => `filter[YEAR][value][]=${y}`).join('&');
+         apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_GEO_LVL]=National&filter[YEAR][operator]=IN&${yearFilter}`;
+       } else {
+         apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_GEO_LVL]=National&filter[YEAR]=${yearsToFetch[0]}`;
+       }
+     } else if (geoLevel === 'State') {
+       apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_STATE_ABRVTN]=${fipsCode}&filter[YEAR]=${yearsToFetch[0]}`;
+     } else if (geoLevel === 'County') {
+       apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_FIPS_CD]=${fipsCode}&filter[YEAR]=${yearsToFetch[0]}`;
+     } else {
+       console.log('❌ Invalid geoLevel:', geoLevel);
+       return res.status(400).json({ 
+         success: false, 
+         error: "geoLevel must be 'National', 'State', or 'County'" 
+       });
+     }
 
     console.log(`📡 Calling CMS API: ${apiUrl}`);
     const response = await fetch(apiUrl);
@@ -209,15 +216,12 @@ router.post("/cms-enrollment-by-level", async (req, res) => {
       'Year': '12'
     };
     
-    // For National level, we might only have 'Year' records, so include them
-    const processedData = allData
-      .filter(record => {
-        // For National level, include 'Year' records if no monthly data is available
-        if (geoLevel === 'National') {
-          return true; // Include all records for National
-        }
-        return record.MONTH !== 'Year'; // Filter out yearly totals for State/County
-      })
+         // Process all data - we're only getting monthly records now
+     console.log(`🔍 Raw data sample for ${geoLevel}:`, allData.slice(0, 3));
+     console.log(`🔍 Unique MONTH values for ${geoLevel}:`, [...new Set(allData.map(r => r.MONTH))]);
+     console.log(`🔍 Unique YEAR values for ${geoLevel}:`, [...new Set(allData.map(r => r.YEAR))]);
+     
+     const processedData = allData
       .map(record => {
         const monthValue = record.MONTH || '';
         let monthNum = monthNameToNumber[monthValue] || (typeof monthValue === 'number' ? String(monthValue).padStart(2, '0') : '');

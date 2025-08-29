@@ -304,3 +304,89 @@ export function useCMSEnrollmentYears() {
 
   return { data, loading, error, refetch };
 } 
+
+/**
+ * useNationalCMSEnrollmentData
+ *
+ * Fetches CMS enrollment data for national level for multiple years (all months).
+ * Follows the same pattern as useCMSEnrollmentData but for national data.
+ *
+ * @returns {object} { data, loading, error, refetch }
+ */
+export function useNationalCMSEnrollmentData() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  const fetchNationalCMSEnrollmentData = async () => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Get available years
+      const yearsResp = await fetch(apiUrl('/api/cms-enrollment-years'), {
+        signal: abortControllerRef.current.signal
+      });
+      if (!yearsResp.ok) throw new Error(`Failed to fetch years: ${yearsResp.status}`);
+      const yearsResult = await yearsResp.json();
+      if (!yearsResult.success) throw new Error(yearsResult.error || 'Failed to fetch years');
+      const years = yearsResult.data;
+      if (!years || years.length === 0) throw new Error('No available years');
+
+                   // 2. Fetch CMS enrollment data for multiple recent years (last 3 years) in a single call
+             const yearsToFetch = years.slice(0, 3); // Get last 3 years
+             
+                           // Make a single API call for all years at once
+              const cmsResp = await fetch(apiUrl('/api/cms-enrollment-by-level'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  geoLevel: 'National',
+                  fipsCode: null,
+                  years: yearsToFetch // Pass multiple years
+                }),
+                signal: abortControllerRef.current.signal
+              });
+              if (!cmsResp.ok) throw new Error(`Failed to fetch national CMS enrollment data: ${cmsResp.status}`);
+              const cmsResult = await cmsResp.json();
+              if (!cmsResult.success) throw new Error(cmsResult.error || 'Failed to fetch national CMS enrollment data');
+              const allData = cmsResult.data;
+
+      // For National level, include 'Year' records since that's all we have
+      const filteredData = allData; // Include all records for National
+      console.log('✅ Setting National data for multiple years:', filteredData.length, 'records');
+      setData(filteredData);
+
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('❌ National CMS enrollment hook error:', err);
+      setError(err.message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNationalCMSEnrollmentData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const refetch = () => {
+    fetchNationalCMSEnrollmentData();
+  };
+
+  console.log('🔍 National hook returning:', { data: data?.length, loading, error });
+  return { data, loading, error, refetch };
+} 
