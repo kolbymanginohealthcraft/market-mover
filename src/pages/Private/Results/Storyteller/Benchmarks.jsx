@@ -172,35 +172,32 @@ export default function Benchmarks({
     <div className={styles.benchmarksContainer}>
       {/* Date Display Banner */}
       <div className={styles.dataPeriodBanner}>
-        <div className={styles.bannerLeft}>
-          <strong>Current Data Period:</strong>
-          <span className={styles.dateDisplay}>
-            {currentPublishDate || 'Not set'}
-          </span>
-          {providerTypeFilter && (
-            <>
-              <span>•</span>
-              <strong>Setting:</strong>
-              <span>{providerTypeFilter}</span>
-            </>
+        {/* Left side - Measure Setting and Current Data Period */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Measure Setting Filter */}
+          {typeof window !== 'undefined' && availableProviderTypes && availableProviderTypes.length > 0 && (
+            <div className={styles.filterGroup}>
+              <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
+              <SelectInput
+                id="provider-type-select"
+                value={providerTypeFilter || ''}
+                onChange={e => setProviderTypeFilter(e.target.value)}
+                options={availableProviderTypes}
+                size="sm"
+              />
+            </div>
           )}
+          
+                     {/* Current Data Period */}
+           <div className={styles.bannerLeft}>
+             <strong>Current Data Period:</strong>
+             <span className={styles.dateDisplay}>
+               {currentPublishDate || 'Not set'}
+             </span>
+           </div>
         </div>
         
-        {/* Measure Setting Filter */}
-        {typeof window !== 'undefined' && availableProviderTypes && availableProviderTypes.length > 0 && (
-          <div className={styles.filterGroup}>
-            <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
-            <SelectInput
-              id="provider-type-select"
-              value={providerTypeFilter || ''}
-              onChange={e => setProviderTypeFilter(e.target.value)}
-              options={availableProviderTypes}
-              size="sm"
-            />
-          </div>
-        )}
-        
-        {/* Export Button */}
+        {/* Export Button - Right side */}
         <ExportButton
           onExport={handleChartExport}
           disabled={!chartExportData}

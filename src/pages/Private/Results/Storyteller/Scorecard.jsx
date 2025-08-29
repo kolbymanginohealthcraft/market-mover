@@ -183,33 +183,20 @@ export default function Scorecard({
          color: '#495057',
          display: 'flex',
          alignItems: 'center',
-         justifyContent: 'space-between',
+         justifyContent: 'flex-start',
+         gap: '16px',
          flexShrink: 0
        }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-           <strong>Current Data Period:</strong>
-           <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
-             {finalCurrentDate || 'Not set'}
-           </span>
-           {providerTypeFilter && (
-             <>
-               <span>•</span>
-               <strong>Setting:</strong>
-               <span>{providerTypeFilter}</span>
-             </>
-           )}
-         </div>
-         
-                   {/* Measure Setting Filter - Right justified */}
-          {typeof window !== 'undefined' && (
+         {/* Measure Setting Filter - Left side */}
+         {typeof window !== 'undefined' && (
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
              <label htmlFor="provider-type-select" style={{ fontSize: '13px', fontWeight: '600', color: '#495057' }}>
                Measure Setting:
              </label>
-                           <select
-                id="provider-type-select"
-                value={providerTypeFilter || 'SNF'}
-                onChange={e => setProviderTypeFilter(e.target.value)}
+             <select
+               id="provider-type-select"
+               value={providerTypeFilter || 'SNF'}
+               onChange={e => setProviderTypeFilter(e.target.value)}
                style={{
                  fontSize: '13px',
                  padding: '4px 8px',
@@ -221,23 +208,31 @@ export default function Scorecard({
                  minWidth: '120px'
                }}
              >
-                               <option value="">All Settings</option>
-                {finalProviderTypes && finalProviderTypes.length > 0 ? (
-                  finalProviderTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))
-                ) : (
-                  <>
-                    <option value="SNF">SNF</option>
-                    <option value="HH">HH</option>
-                    <option value="Hospice">Hospice</option>
-                    <option value="IRF">IRF</option>
-                    <option value="Hospital">Hospital</option>
-                  </>
-                )}
+               <option value="">All Settings</option>
+               {finalProviderTypes && finalProviderTypes.length > 0 ? (
+                 finalProviderTypes.map(type => (
+                   <option key={type} value={type}>{type}</option>
+                 ))
+               ) : (
+                 <>
+                   <option value="SNF">SNF</option>
+                   <option value="HH">HH</option>
+                   <option value="Hospice">Hospice</option>
+                   <option value="IRF">IRF</option>
+                   <option value="Hospital">Hospital</option>
+                 </>
+               )}
              </select>
            </div>
          )}
+         
+                   {/* Current Data Period - Right after measure setting */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <strong>Current Data Period:</strong>
+            <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+              {finalCurrentDate || 'Not set'}
+            </span>
+          </div>
        </div>
       
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
