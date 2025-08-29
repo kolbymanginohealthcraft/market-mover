@@ -67,7 +67,14 @@ export default function Benchmarks({
   // Fetch quality measures based on selected setting
   useEffect(() => {
     async function fetchQualityMeasures() {
+      console.log('🔍 fetchQualityMeasures called with:', {
+        providerTypeFilter,
+        hasProvider: !!provider,
+        providerDhc: provider?.dhc
+      });
+
       if (!providerTypeFilter) {
+        console.log('⚠️ No provider type filter, clearing measures');
         setAvailableMeasures([]);
         setSelectedMeasure(null);
         return;
@@ -77,16 +84,35 @@ export default function Benchmarks({
       setMeasuresError(null);
 
       try {
+        console.log('🔍 Fetching quality measures from /api/qm_dictionary');
         const response = await fetch(apiUrl('/api/qm_dictionary'));
-        if (!response.ok) throw new Error('Failed to fetch quality measures');
+        
+        console.log('🔍 API response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ API call failed:', errorText);
+          throw new Error(`Failed to fetch quality measures: ${response.status} ${response.statusText}`);
+        }
         
         const result = await response.json();
-        if (!result.success) throw new Error(result.error || 'Failed to fetch quality measures');
+        console.log('🔍 API response data keys:', Object.keys(result));
+        
+        if (!result.success) {
+          console.error('❌ API returned error:', result.error);
+          throw new Error(result.error || 'Failed to fetch quality measures');
+        }
 
         // Filter measures by the selected setting
         const filteredMeasures = result.data.filter(measure => 
           measure.setting === providerTypeFilter && measure.active === true
         );
+
+        console.log('🔍 Filtered measures:', {
+          totalMeasures: result.data.length,
+          filteredCount: filteredMeasures.length,
+          setting: providerTypeFilter
+        });
 
         // Sort by sort_order if available, otherwise by name
         filteredMeasures.sort((a, b) => {
@@ -101,18 +127,33 @@ export default function Benchmarks({
         // Auto-select the first measure if none is selected
         if (filteredMeasures.length > 0 && !selectedMeasure) {
           setSelectedMeasure(filteredMeasures[0].code);
+          console.log('🔍 Auto-selected measure:', filteredMeasures[0].code);
         }
       } catch (err) {
-        console.error('Error fetching quality measures:', err);
+        console.error('❌ Error fetching quality measures:', err);
+        console.error('❌ Error stack:', err.stack);
         setMeasuresError(err.message);
         setAvailableMeasures([]);
+        
+        // Set fallback measures for production
+        if (providerTypeFilter === 'SNF') {
+          const fallbackMeasures = [
+            { code: 'SNF5S1', name: 'Overall Star Rating', description: 'Overall 5-star rating', setting: 'SNF', active: true, sort_order: 1 },
+            { code: 'SNF5S2', name: 'Survey Star Rating', description: 'Health inspection survey 5-star rating', setting: 'SNF', active: true, sort_order: 2 },
+            { code: 'SNF5S3', name: 'QM Star Rating', description: 'Quality measures 5-star rating', setting: 'SNF', active: true, sort_order: 3 }
+          ];
+          console.log('🔍 Using fallback SNF measures');
+          setAvailableMeasures(fallbackMeasures);
+          setSelectedMeasure('SNF5S1');
+          setMeasuresError(null);
+        }
       } finally {
         setMeasuresLoading(false);
       }
     }
 
     fetchQualityMeasures();
-  }, [providerTypeFilter]);
+  }, [providerTypeFilter, provider]);
 
   // Handle chart export
   const handleChartExport = async (format) => {

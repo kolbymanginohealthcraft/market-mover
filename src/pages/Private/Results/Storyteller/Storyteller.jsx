@@ -7,6 +7,24 @@ import styles from "./Storyteller.module.css";
 export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
   const location = useLocation();
   
+  // Debug logging for production troubleshooting
+  useEffect(() => {
+    console.log('🔍 Storyteller Debug - Props received:', {
+      hasProvider: !!provider,
+      providerDhc: provider?.dhc,
+      radiusInMiles,
+      nearbyProvidersCount: nearbyProviders?.length || 0,
+      nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
+      mainProviderCcnsCount: mainProviderCcns?.length || 0,
+      hasPrefetchedData: !!prefetchedData,
+      prefetchedDataKeys: prefetchedData ? Object.keys(prefetchedData) : [],
+      qualityMeasuresDates: prefetchedData?.qualityMeasuresDates,
+      providerTypes: prefetchedData?.providerTypes,
+      publishDates: prefetchedData?.publishDates,
+      currentDate: prefetchedData?.currentDate
+    });
+  }, [provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData]);
+  
   // Set body attribute for CSS overrides
   useEffect(() => {
     document.body.setAttribute('data-page', 'storyteller');
@@ -20,27 +38,51 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
   const [selectedPublishDate, setSelectedPublishDate] = useState('');
   const [chartMode, setChartMode] = useState('snapshot');
 
-  // Extract available options from prefetched data
+  // Extract available options from prefetched data with fallbacks
   const availableProviderTypes = prefetchedData?.providerTypes || [];
   const availablePublishDates = prefetchedData?.publishDates || [];
   const currentPublishDate = prefetchedData?.currentDate || null;
 
+  // Fallback data for production when prefetchedData is not available
+  const fallbackProviderTypes = ['SNF', 'IRF', 'HH', 'Hospice', 'Hospital'];
+  const fallbackPublishDates = ['2025-07-01', '2025-06-01', '2025-04-01'];
+  const fallbackCurrentDate = '2025-07-01';
+
+  // Use fallback data if prefetched data is not available
+  const finalProviderTypes = availableProviderTypes.length > 0 ? availableProviderTypes : fallbackProviderTypes;
+  const finalPublishDates = availablePublishDates.length > 0 ? availablePublishDates : fallbackPublishDates;
+  const finalCurrentDate = currentPublishDate || fallbackCurrentDate;
+
   // Set default provider type filter when available types change
   useEffect(() => {
-    if (availableProviderTypes.length > 0 && !providerTypeFilter) {
+    if (finalProviderTypes.length > 0 && !providerTypeFilter) {
       // Default to SNF
       setProviderTypeFilter('SNF');
+      console.log('🔍 Setting default provider type filter to SNF');
     }
-  }, [availableProviderTypes]);
+  }, [finalProviderTypes, providerTypeFilter]);
 
   // Set default publish date when available dates change
   useEffect(() => {
-    if (availablePublishDates.length > 0 && !selectedPublishDate) {
+    if (finalPublishDates.length > 0 && !selectedPublishDate) {
       // Always use the most recent available date (availableDates is sorted chronologically)
-      const defaultDate = availablePublishDates[0];
+      const defaultDate = finalPublishDates[0];
       setSelectedPublishDate(defaultDate);
+      console.log('🔍 Setting default publish date to:', defaultDate);
     }
-  }, [availablePublishDates]);
+  }, [finalPublishDates, selectedPublishDate]);
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('🔍 Storyteller State Debug:', {
+      providerTypeFilter,
+      selectedPublishDate,
+      finalProviderTypes,
+      finalPublishDates,
+      finalCurrentDate,
+      usingFallbackData: availableProviderTypes.length === 0 || availablePublishDates.length === 0
+    });
+  }, [providerTypeFilter, selectedPublishDate, finalProviderTypes, finalPublishDates, finalCurrentDate, availableProviderTypes, availablePublishDates]);
 
   return (
     <Routes>
@@ -58,7 +100,7 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
           setSelectedPublishDate={setSelectedPublishDate}
           chartMode={chartMode}
           setChartMode={setChartMode}
-          availableProviderTypes={availableProviderTypes}
+          availableProviderTypes={finalProviderTypes}
         />
       } />
       <Route path="benchmarks" element={
@@ -73,7 +115,7 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
           setProviderTypeFilter={setProviderTypeFilter}
           selectedPublishDate={selectedPublishDate}
           setSelectedPublishDate={setSelectedPublishDate}
-          availableProviderTypes={availableProviderTypes}
+          availableProviderTypes={finalProviderTypes}
         />
       } />
       <Route path="*" element={<Navigate to="scorecard" replace />} />

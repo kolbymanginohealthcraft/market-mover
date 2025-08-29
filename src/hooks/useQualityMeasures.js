@@ -46,6 +46,20 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   const [availablePublishDates, setAvailablePublishDates] = useState([]);
   const [currentPublishDate, setCurrentPublishDate] = useState(null);
 
+  // Debug logging for production troubleshooting
+  useEffect(() => {
+    console.log('🔍 useQualityMeasures Debug - Input params:', {
+      hasProvider: !!provider,
+      providerDhc: provider?.dhc,
+      nearbyProvidersCount: nearbyProviders?.length || 0,
+      nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
+      selectedPublishDate,
+      hasQualityMeasuresDates: !!qualityMeasuresDates,
+      qualityMeasuresDatesKeys: qualityMeasuresDates ? Object.keys(qualityMeasuresDates) : [],
+      currentMeasureSetting
+    });
+  }, [provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate, qualityMeasuresDates, currentMeasureSetting]);
+
   // Memoize dependencies to prevent infinite re-renders
   const memoizedNearbyProviders = useMemo(() => nearbyProviders, [JSON.stringify(nearbyProviders)]);
   const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns, [JSON.stringify(nearbyDhcCcns)]);
@@ -72,7 +86,15 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
   useEffect(() => {
     async function fetchMatrixData() {
+      console.log('🔍 fetchMatrixData called with:', {
+        hasProvider: !!provider,
+        providerDhc: provider?.dhc,
+        nearbyProvidersCount: memoizedNearbyProviders?.length || 0,
+        nearbyDhcCcnsCount: memoizedNearbyDhcCcns?.length || 0
+      });
+
       if (!provider) {
+        console.log('⚠️ No provider provided, clearing all data');
         setMatrixLoading(false);
         setMatrixMeasures([]);
         setMatrixData({});
@@ -87,7 +109,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         return;
       }
       
-             // Cache is cleared when measure setting changes, so we don't need to clear it here
+      // Cache is cleared when measure setting changes, so we don't need to clear it here
       
       setMatrixLoading(true);
       setMatrixError(null);
@@ -216,6 +238,12 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           // 9. Fetch all data in a single API call with the determined date
           console.log('🔍 Fetching quality measures data for', allCcns.length, 'CCNs with date:', publish_date);
           
+          console.log('🔍 Making API call to /api/qm_combined with:', {
+            ccnsCount: allCcns.length,
+            publish_date,
+            sampleCcns: allCcns.slice(0, 5)
+          });
+
           const combinedResponse = await fetch(apiUrl('/api/qm_combined'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -225,9 +253,22 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             })
           });
           
-          if (!combinedResponse.ok) throw new Error('Failed to fetch combined quality measure data');
+          console.log('🔍 API response status:', combinedResponse.status, combinedResponse.statusText);
+          
+          if (!combinedResponse.ok) {
+            const errorText = await combinedResponse.text();
+            console.error('❌ API call failed:', errorText);
+            throw new Error(`Failed to fetch combined quality measure data: ${combinedResponse.status} ${combinedResponse.statusText}`);
+          }
+          
           const combinedResult = await combinedResponse.json();
-          if (!combinedResult.success) throw new Error(combinedResult.error);
+          console.log('🔍 API response data keys:', Object.keys(combinedResult));
+          
+          if (!combinedResult.success) {
+            console.error('❌ API returned error:', combinedResult.error);
+            throw new Error(combinedResult.error || 'Unknown API error');
+          }
+          
           combinedData = combinedResult.data;
           
           // Cache the result
@@ -336,8 +377,27 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         setAllMatrixProviders(allProviders);
         setMatrixProviderIdToCcns(providerDhcToCcns);
       } catch (err) {
+        console.error('❌ Error in fetchMatrixData:', err);
+        console.error('❌ Error stack:', err.stack);
+        console.error('❌ Error details:', {
+          message: err.message,
+          name: err.name,
+          cause: err.cause
+        });
+        
         setMatrixError(err.message || 'Error loading matrix data');
         setMatrixLoading(false);
+        
+        // Set fallback data to prevent complete failure
+        setMatrixMeasures([]);
+        setMatrixData({});
+        setMatrixMarketAverages({});
+        setMatrixNationalAverages({});
+        setAllMatrixProviders([]);
+        setMatrixProviderIdToCcns({});
+        setAvailableProviderTypes([]);
+        setAvailablePublishDates([]);
+        setCurrentPublishDate(null);
       }
     }
     fetchMatrixData();
