@@ -100,12 +100,48 @@
   overflow: hidden;
 }
 
+/* Measures Header with Wins Filter */
+.measuresHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
 .measuresTitle {
   font-size: 1.25rem;
   font-weight: 600;
   color: #265947;
-  margin: 0 0 1rem 0;
-  flex-shrink: 0;
+  margin: 0;
+}
+
+/* Wins Filter Toggle */
+.winsFilter {
+  display: flex;
+  align-items: center;
+}
+
+.winsToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.winsCheckbox {
+  margin: 0;
+  accent-color: #3FB985;
+  width: 1rem;
+  height: 1rem;
+}
+
+.winsLabel {
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Search Container */
@@ -188,6 +224,8 @@
   box-shadow: 0 2px 8px rgba(59, 185, 133, 0.15);
 }
 
+
+
 .measureRadio {
   display: flex;
   align-items: flex-start;
@@ -210,17 +248,67 @@
   min-width: 0;
 }
 
+/* Measure Header with Win Badge */
+.measureHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
 .measureName {
   font-weight: 600;
   color: #374151;
-  margin-bottom: 0.25rem;
   font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Win Badge */
+.winBadge {
+  background: linear-gradient(135deg, #3FB985 0%, #2E8B57 100%);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(59, 185, 133, 0.3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .measureDescription {
   font-size: 0.8rem;
   color: #6b7280;
   line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+/* Measure Stats */
+.measureStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.02);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.statLabel {
+  font-weight: 500;
+  color: #374151;
+}
+
+.statValue {
+  font-family: monospace;
+  color: #059669;
+  font-weight: 600;
 }
 
 /* Right Column - Chart Panel */
@@ -247,7 +335,15 @@
     gap: 8px;
   }
   
-
+  .measuresHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .winsLabel {
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -257,5 +353,16 @@
   
   .measureRadio {
     padding: 0.75rem;
+  }
+  
+  .measureHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .measureStats {
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }

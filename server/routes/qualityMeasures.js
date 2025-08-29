@@ -46,7 +46,8 @@ router.get("/qm_dictionary", async (req, res) => {
         name, 
         active,
         sort_order,
-        setting
+        setting,
+        source
       FROM \`market-mover-464517.quality.qm_dictionary\`
       WHERE active = true
       ORDER BY sort_order
@@ -468,13 +469,13 @@ router.post("/qm_combined", async (req, res) => {
       });
     }
     
-    // OPTIMIZATION: Use a single query to get all data at once instead of 3 separate queries
-    const combinedQuery = `
-      WITH measures AS (
-        SELECT code, label, direction, description, name, active, sort_order, setting 
-        FROM \`market-mover-464517.quality.qm_dictionary\` 
-        WHERE active = true
-      ),
+         // OPTIMIZATION: Use a single query to get all data at once instead of 3 separate queries
+     const combinedQuery = `
+       WITH measures AS (
+         SELECT code, label, direction, description, name, active, sort_order, setting, source 
+         FROM \`market-mover-464517.quality.qm_dictionary\` 
+         WHERE active = true
+       ),
       provider_data AS (
         SELECT ccn, code, score, percentile_column 
         FROM \`market-mover-464517.quality.qm_provider\` 
@@ -486,53 +487,56 @@ router.post("/qm_combined", async (req, res) => {
         FROM \`market-mover-464517.quality.qm_post\` 
         WHERE publish_date = @publish_date
       )
-      SELECT 
-        'measure' as data_type,
-        code,
-        label,
-        direction,
-        description,
-        name,
-        active,
-        sort_order,
-        setting,
-        NULL as ccn,
-        NULL as score,
-        NULL as percentile_column,
-        NULL as national
-      FROM measures
+             SELECT 
+         'measure' as data_type,
+         code,
+         label,
+         direction,
+         description,
+         name,
+         active,
+         sort_order,
+         setting,
+         source,
+         NULL as ccn,
+         NULL as score,
+         NULL as percentile_column,
+         NULL as national
+       FROM measures
       UNION ALL
-      SELECT 
-        'provider' as data_type,
-        code,
-        NULL as label,
-        NULL as direction,
-        NULL as description,
-        NULL as name,
-        NULL as active,
-        NULL as sort_order,
-        NULL as setting,
-        ccn,
-        score,
-        percentile_column,
-        NULL as national
-      FROM provider_data
+             SELECT 
+         'provider' as data_type,
+         code,
+         NULL as label,
+         NULL as direction,
+         NULL as description,
+         NULL as name,
+         NULL as active,
+         NULL as sort_order,
+         NULL as setting,
+         NULL as source,
+         ccn,
+         score,
+         percentile_column,
+         NULL as national
+       FROM provider_data
       UNION ALL
-      SELECT 
-        'national' as data_type,
-        code,
-        NULL as label,
-        NULL as direction,
-        NULL as description,
-        NULL as name,
-        NULL as active,
-        NULL as sort_order,
-        NULL as setting,
-        NULL as ccn,
-        NULL as score,
-        NULL as percentile_column,
-        national
-      FROM national_data
+             SELECT 
+         'national' as data_type,
+         code,
+         NULL as label,
+         NULL as direction,
+         NULL as description,
+         NULL as name,
+         NULL as active,
+         NULL as sort_order,
+         NULL as setting,
+         NULL as source,
+         NULL as ccn,
+         NULL as score,
+         NULL as percentile_column,
+         national
+       FROM national_data
       ORDER BY data_type, code
     `;
     
@@ -547,18 +551,19 @@ router.post("/qm_combined", async (req, res) => {
      const providerData = [];
      const nationalAverages = {};
 
-     combinedRows.forEach(row => {
-       if (row.data_type === 'measure') {
-         measuresData.push({
-           code: row.code,
-           label: row.label,
-           direction: row.direction,
-           description: row.description,
-           name: row.name,
-           active: row.active,
-           sort_order: row.sort_order,
-           setting: row.setting
-         });
+           combinedRows.forEach(row => {
+        if (row.data_type === 'measure') {
+          measuresData.push({
+            code: row.code,
+            label: row.label,
+            direction: row.direction,
+            description: row.description,
+            name: row.name,
+            active: row.active,
+            sort_order: row.sort_order,
+            setting: row.setting,
+            source: row.source
+          });
        } else if (row.data_type === 'provider') {
          providerData.push({
            ccn: row.ccn,

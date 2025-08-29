@@ -110,8 +110,11 @@ export default function BenchmarkChart({
         // Store measure info for display
         setMeasureInfo({
           name: targetMeasure.name || 'Quality Measure',
-          description: targetMeasure.description || 'Quality measure performance'
+          description: targetMeasure.description || 'Quality measure performance',
+          source: targetMeasure.source || null
         });
+
+
 
         // 5. Get provider's measure rate
         const providerCcns = nearbyDhcCcns
@@ -146,11 +149,14 @@ export default function BenchmarkChart({
 
         // 8. Create chart data
         const chartData = [];
+        const isStarRating = targetMeasure.source === 'Ratings';
+        
+
         
         if (providerScore !== null) {
           chartData.push({
             name: 'Provider',
-            value: Math.round(providerScore * 100) / 100,
+            value: isStarRating ? providerScore : Math.round(providerScore * 100) / 100,
             fill: '#3FB985',
             stroke: '#2E8B57'
           });
@@ -159,7 +165,7 @@ export default function BenchmarkChart({
         if (marketAverage !== null) {
           chartData.push({
             name: 'Market Avg',
-            value: Math.round(marketAverage * 100) / 100,
+            value: isStarRating ? marketAverage : Math.round(marketAverage * 100) / 100,
             fill: '#6B7280',
             stroke: '#4B5563'
           });
@@ -168,7 +174,7 @@ export default function BenchmarkChart({
         if (nationalAverage !== null) {
           chartData.push({
             name: 'National Avg',
-            value: Math.round(nationalAverage * 100) / 100,
+            value: isStarRating ? nationalAverage : Math.round(nationalAverage * 100) / 100,
             fill: '#6B7280',
             stroke: '#4B5563'
           });
@@ -199,10 +205,14 @@ export default function BenchmarkChart({
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+      const isStarRating = measureInfo?.source === 'Ratings';
+      const value = payload[0].value;
+      const displayValue = isStarRating ? value.toFixed(1) : `${value.toFixed(1)}%`;
+      
       return (
         <div className={styles.customTooltip}>
           <p className={styles.tooltipLabel}>{`${label}`}</p>
-          <p className={styles.tooltipValue}>{`${payload[0].value}%`}</p>
+          <p className={styles.tooltipValue}>{displayValue}</p>
         </div>
       );
     }
@@ -291,25 +301,31 @@ export default function BenchmarkChart({
                tickLine={false}
                tick={{ fontSize: 14, fill: '#666', fontWeight: '500' }}
              />
-            <YAxis 
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickFormatter={(value) => `${value}%`}
-            />
+                         <YAxis 
+               axisLine={false}
+               tickLine={false}
+               tick={{ fontSize: 12, fill: '#666' }}
+               tickFormatter={(value) => {
+                 const isStarRating = measureInfo?.source === 'Ratings';
+                 return isStarRating ? value.toFixed(1) : `${value}%`;
+               }}
+             />
             <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="value" 
-              radius={[4, 4, 0, 0]}
-              strokeWidth={2}
-            >
-                             <LabelList 
-                 dataKey="value" 
-                 position="top" 
-                 formatter={(value) => `${value}%`}
-                 style={{ fontSize: '16px', fontWeight: '600', fill: '#374151' }}
-               />
-            </Bar>
+                         <Bar 
+               dataKey="value" 
+               radius={[4, 4, 0, 0]}
+               strokeWidth={2}
+             >
+                              <LabelList 
+                  dataKey="value" 
+                  position="top" 
+                  formatter={(value) => {
+                    const isStarRating = measureInfo?.source === 'Ratings';
+                    return isStarRating ? value.toFixed(1) : `${value}%`;
+                  }}
+                  style={{ fontSize: '16px', fontWeight: '600', fill: '#374151' }}
+                />
+             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

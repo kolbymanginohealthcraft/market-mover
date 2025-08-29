@@ -37,7 +37,10 @@ export default function Benchmarks({
   const [measuresError, setMeasuresError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [chartExportData, setChartExportData] = useState(null);
+  const [showWinsOnly, setShowWinsOnly] = useState(false);
+  const [winsData, setWinsData] = useState({});
   const chartRef = useRef(null);
+
   // Helper function for SelectInput component
   function SelectInput({ id, value, onChange, options, size = 'sm', formatOptions = false, ...props }) {
     return (
@@ -64,7 +67,24 @@ export default function Benchmarks({
     return `${year}-${month}`;
   };
 
-  // Fetch quality measures based on selected setting
+  // Function to determine if a measure is a "win" for the provider
+  const isWin = (measureCode, providerScore, marketAverage, nationalAverage, direction) => {
+    if (providerScore === null || marketAverage === null || nationalAverage === null) {
+      return false;
+    }
+
+    if (direction === 'Higher') {
+      // For "Higher is better" measures, provider score must be higher than both averages
+      return providerScore > marketAverage && providerScore > nationalAverage;
+    } else if (direction === 'Lower') {
+      // For "Lower is better" measures, provider score must be lower than both averages
+      return providerScore < marketAverage && providerScore < nationalAverage;
+    }
+    
+    return false;
+  };
+
+  // Fetch quality measures and calculate wins
   useEffect(() => {
     async function fetchQualityMeasures() {
       console.log('🔍 fetchQualityMeasures called with:', {
@@ -77,6 +97,7 @@ export default function Benchmarks({
         console.log('⚠️ No provider type filter, clearing measures');
         setAvailableMeasures([]);
         setSelectedMeasure(null);
+        setWinsData({});
         return;
       }
 
@@ -114,15 +135,113 @@ export default function Benchmarks({
           setting: providerTypeFilter
         });
 
-        // Sort by sort_order if available, otherwise by name
-        filteredMeasures.sort((a, b) => {
-          if (a.sort_order !== undefined && b.sort_order !== undefined) {
-            return a.sort_order - b.sort_order;
-          }
-          return (a.name || '').localeCompare(b.name || '');
-        });
+                 // Sort by sort_order if available, otherwise by name
+         filteredMeasures.sort((a, b) => {
+           if (a.sort_order !== undefined && b.sort_order !== undefined) {
+             return a.sort_order - b.sort_order;
+           }
+           return (a.name || '').localeCompare(b.name || '');
+         });
 
-        setAvailableMeasures(filteredMeasures);
+
+
+         setAvailableMeasures(filteredMeasures);
+
+        // Fetch quality measure data to calculate wins
+        if (provider && nearbyDhcCcns && nearbyDhcCcns.length > 0) {
+          const allCcns = nearbyDhcCcns.map(row => String(row.ccn)).filter(Boolean);
+          
+          if (allCcns.length > 0) {
+            // Determine publish date
+            let publishDate = currentPublishDate;
+            if (!publishDate) {
+              const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  ccns: allCcns, 
+                  publish_date: 'latest' 
+                })
+              });
+              
+              if (datesResponse.ok) {
+                const datesResult = await datesResponse.json();
+                if (datesResult.success) {
+                  const availableDates = datesResult.data.availableDates || [];
+                  if (availableDates.length > 0) {
+                    publishDate = availableDates[0];
+                  }
+                }
+              }
+            }
+
+            // Fetch quality measure data
+            const qmResponse = await fetch(apiUrl('/api/qm_combined'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                ccns: allCcns, 
+                publish_date: publishDate 
+              })
+            });
+
+            if (qmResponse.ok) {
+              const qmResult = await qmResponse.json();
+              if (qmResult.success) {
+                const { providerData: allProviderData, nationalAverages } = qmResult.data;
+
+                // Calculate wins for each measure
+                const wins = {};
+                filteredMeasures.forEach(measure => {
+                  // Get provider's score
+                  const providerCcns = nearbyDhcCcns
+                    .filter(row => row.dhc === provider.dhc)
+                    .map(row => String(row.ccn));
+                  
+                  const providerMeasureData = allProviderData.filter(d => 
+                    providerCcns.includes(d.ccn) && d.code === measure.code
+                  );
+
+                  let providerScore = null;
+                  if (providerMeasureData.length > 0) {
+                    providerScore = providerMeasureData.reduce((sum, d) => sum + (d.score || 0), 0) / providerMeasureData.length;
+                  }
+
+                  // Calculate market average (excluding the main provider)
+                  const marketCcns = nearbyDhcCcns
+                    .filter(row => row.dhc !== provider.dhc)
+                    .map(row => String(row.ccn));
+                  
+                  const marketData = allProviderData.filter(d => 
+                    marketCcns.includes(d.ccn) && d.code === measure.code
+                  );
+
+                  let marketAverage = null;
+                  if (marketData.length > 0) {
+                    marketAverage = marketData.reduce((sum, d) => sum + (d.score || 0), 0) / marketData.length;
+                  }
+
+                  // Get national average
+                  const nationalAverage = nationalAverages[measure.code]?.score || null;
+
+                  // Determine if this is a win
+                  const isWinResult = isWin(measure.code, providerScore, marketAverage, nationalAverage, measure.direction);
+                  
+                  wins[measure.code] = {
+                    isWin: isWinResult,
+                    providerScore,
+                    marketAverage,
+                    nationalAverage,
+                    direction: measure.direction
+                  };
+                });
+
+                setWinsData(wins);
+                console.log('🔍 Calculated wins:', wins);
+              }
+            }
+          }
+        }
         
         // Auto-select the first measure if none is selected
         if (filteredMeasures.length > 0 && !selectedMeasure) {
@@ -134,6 +253,7 @@ export default function Benchmarks({
         console.error('❌ Error stack:', err.stack);
         setMeasuresError(err.message);
         setAvailableMeasures([]);
+        setWinsData({});
         
         // Set fallback measures for production
         if (providerTypeFilter === 'SNF') {
@@ -153,7 +273,7 @@ export default function Benchmarks({
     }
 
     fetchQualityMeasures();
-  }, [providerTypeFilter, provider]);
+  }, [providerTypeFilter, provider, nearbyDhcCcns, currentPublishDate]);
 
   // Handle chart export
   const handleChartExport = async (format) => {
@@ -197,17 +317,31 @@ export default function Benchmarks({
     }
   };
 
-  // Filter measures based on search term
+  // Filter measures based on search term and wins filter
   const filteredMeasures = availableMeasures.filter(measure => {
-    if (!searchTerm) return true;
+    // First apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = (
+        measure.name?.toLowerCase().includes(searchLower) ||
+        measure.description?.toLowerCase().includes(searchLower) ||
+        measure.code?.toLowerCase().includes(searchLower)
+      );
+      if (!matchesSearch) return false;
+    }
     
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      measure.name?.toLowerCase().includes(searchLower) ||
-      measure.description?.toLowerCase().includes(searchLower) ||
-      measure.code?.toLowerCase().includes(searchLower)
-    );
+    // Then apply wins filter
+    if (showWinsOnly) {
+      const winData = winsData[measure.code];
+      return winData && winData.isWin;
+    }
+    
+    return true;
   });
+
+  // Count wins for display
+  const totalWins = Object.values(winsData).filter(win => win.isWin).length;
+  const totalMeasures = availableMeasures.length;
 
   return (
     <div className={styles.benchmarksContainer}>
@@ -229,13 +363,13 @@ export default function Benchmarks({
             </div>
           )}
           
-                     {/* Current Data Period */}
-           <div className={styles.bannerLeft}>
-             <strong>Current Data Period:</strong>
-             <span className={styles.dateDisplay}>
-               {currentPublishDate || 'Not set'}
-             </span>
-           </div>
+          {/* Current Data Period */}
+          <div className={styles.bannerLeft}>
+            <strong>Current Data Period:</strong>
+            <span className={styles.dateDisplay}>
+              {currentPublishDate || 'Not set'}
+            </span>
+          </div>
         </div>
         
         {/* Export Button - Right side */}
@@ -250,7 +384,24 @@ export default function Benchmarks({
         <div className={styles.benchmarksLayout}>
           {/* Left Column - Measures List */}
           <div className={styles.measuresPanel}>
-            <h3 className={styles.measuresTitle}>Quality Measures</h3>
+            <div className={styles.measuresHeader}>
+              <h3 className={styles.measuresTitle}>Quality Measures</h3>
+              
+              {/* Wins Filter Toggle */}
+              <div className={styles.winsFilter}>
+                <label className={styles.winsToggle}>
+                  <input
+                    type="checkbox"
+                    checked={showWinsOnly}
+                    onChange={(e) => setShowWinsOnly(e.target.checked)}
+                    className={styles.winsCheckbox}
+                  />
+                  <span className={styles.winsLabel}>
+                    Show Wins Only ({totalWins}/{totalMeasures})
+                  </span>
+                </label>
+              </div>
+            </div>
             
             {/* Search Bar */}
             <div className={styles.searchContainer}>
@@ -290,45 +441,85 @@ export default function Benchmarks({
                 </div>
               ) : filteredMeasures.length === 0 ? (
                 <div className={styles.noDataMessage}>
-                  No measures found matching "{searchTerm}"
+                  {showWinsOnly ? 'No wins found' : `No measures found matching "${searchTerm}"`}
                 </div>
               ) : (
-                filteredMeasures.map((measure) => (
-                  <div key={measure.code} className={styles.measureItem}>
-                    <label className={styles.measureRadio}>
-                      <input
-                        type="radio"
-                        name="selectedMeasure"
-                        value={measure.code}
-                        checked={selectedMeasure === measure.code}
-                        onChange={(e) => setSelectedMeasure(e.target.value)}
-                        className={styles.radioInput}
-                      />
-                      <div className={styles.measureContent}>
-                        <div className={styles.measureName}>{measure.name}</div>
-                        <div className={styles.measureDescription}>{measure.description}</div>
-                      </div>
-                    </label>
-                  </div>
-                ))
+                filteredMeasures.map((measure) => {
+                  const winData = winsData[measure.code];
+                  const isWin = winData && winData.isWin;
+                  
+                                     return (
+                     <div key={measure.code} className={styles.measureItem}>
+                      <label className={styles.measureRadio}>
+                        <input
+                          type="radio"
+                          name="selectedMeasure"
+                          value={measure.code}
+                          checked={selectedMeasure === measure.code}
+                          onChange={(e) => setSelectedMeasure(e.target.value)}
+                          className={styles.radioInput}
+                        />
+                        <div className={styles.measureContent}>
+                          <div className={styles.measureHeader}>
+                            <div className={styles.measureName}>{measure.name}</div>
+                            {isWin && (
+                              <div className={styles.winBadge} title="Provider outperforms both market and national averages">
+                                WIN
+                              </div>
+                            )}
+                          </div>
+                          <div className={styles.measureDescription}>{measure.description}</div>
+                                                     {winData && (
+                             <div className={styles.measureStats}>
+                               <span className={styles.statLabel}>Provider:</span>
+                               <span className={styles.statValue}>
+                                 {winData.providerScore !== null ? 
+                                   (measure.source === 'Ratings' ? 
+                                     winData.providerScore.toFixed(1) : 
+                                     `${winData.providerScore.toFixed(1)}%`) : 
+                                   'N/A'}
+                               </span>
+                               <span className={styles.statLabel}>Market:</span>
+                               <span className={styles.statValue}>
+                                 {winData.marketAverage !== null ? 
+                                   (measure.source === 'Ratings' ? 
+                                     winData.marketAverage.toFixed(1) : 
+                                     `${winData.marketAverage.toFixed(1)}%`) : 
+                                   'N/A'}
+                               </span>
+                               <span className={styles.statLabel}>National:</span>
+                               <span className={styles.statValue}>
+                                 {winData.nationalAverage !== null ? 
+                                   (measure.source === 'Ratings' ? 
+                                     winData.nationalAverage.toFixed(1) : 
+                                     `${winData.nationalAverage.toFixed(1)}%`) : 
+                                   'N/A'}
+                               </span>
+                             </div>
+                           )}
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
           
-                           {/* Right Column - Chart */}
-                 <div className={styles.chartPanel}>
-                   <BenchmarkChart 
-                     provider={provider}
-                     radiusInMiles={radiusInMiles}
-                     nearbyProviders={nearbyProviders}
-                     nearbyDhcCcns={nearbyDhcCcns}
-                     selectedPublishDate={currentPublishDate}
-                     providerTypeFilter={providerTypeFilter}
-                     selectedMeasure={selectedMeasure}
-                     measuresLoading={measuresLoading}
-                     onExport={setChartExportData}
-                   />
-                 </div>
+          {/* Right Column - Chart */}
+          <div className={styles.chartPanel}>
+            <BenchmarkChart 
+              provider={provider}
+              radiusInMiles={radiusInMiles}
+              nearbyProviders={nearbyProviders}
+              nearbyDhcCcns={nearbyDhcCcns}
+              selectedPublishDate={currentPublishDate}
+              providerTypeFilter={providerTypeFilter}
+              selectedMeasure={selectedMeasure}
+              measuresLoading={measuresLoading}
+              onExport={setChartExportData}
+            />
+          </div>
         </div>
       </div>
     </div>
