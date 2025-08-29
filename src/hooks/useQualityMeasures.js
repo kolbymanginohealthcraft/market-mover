@@ -122,6 +122,12 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 2. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
         const providerDhcToCcns = {};
         
+        console.log('🔍 Building CCN mapping from nearbyDhcCcns:', {
+          nearbyDhcCcnsLength: memoizedNearbyDhcCcns?.length || 0,
+          nearbyDhcCcns: memoizedNearbyDhcCcns,
+          providerDhc: provider?.dhc
+        });
+        
         (memoizedNearbyDhcCcns || []).forEach(row => {
           if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
           // Ensure CCN is a string
@@ -129,8 +135,11 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           providerDhcToCcns[row.dhc].push(ccnString);
         });
         
+        console.log('🔍 CCN mapping after processing nearbyDhcCcns:', providerDhcToCcns);
+        
         // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs (only for numeric DHCs)
         if (!providerDhcToCcns[provider.dhc] && !isNaN(parseInt(provider.dhc))) {
+          console.log('🔍 Main provider not in nearbyDhcCcns, fetching CCNs for:', provider.dhc);
           const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -143,6 +152,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
             providerDhcToCcns[row.dhc].push(row.ccn);
           });
+          console.log('🔍 CCN mapping after fetching main provider CCNs:', providerDhcToCcns);
         }
 
 
@@ -150,6 +160,13 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 4. Only include providers with at least one CCN
         const providersBeforeFilter = allProviders.length;
         allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
+        
+        console.log('🔍 Provider filtering results:', {
+          providersBeforeFilter,
+          providersAfterFilter: allProviders.length,
+          allProviders: allProviders.map(p => ({ dhc: p.dhc, name: p.name })),
+          providerDhcToCcns: providerDhcToCcns
+        });
         
         // 4b. Get unique measure settings for dropdown (instead of provider types)
         // This will be populated after we fetch the measures data
