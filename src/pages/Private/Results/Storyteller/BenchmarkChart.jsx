@@ -155,7 +155,7 @@ export default function BenchmarkChart({
         
         if (providerScore !== null) {
           chartData.push({
-            name: 'Provider',
+            name: provider?.name || 'Provider',
             value: isStarRating ? providerScore : Math.round(providerScore * 100) / 100,
             fill: '#3FB985',
             stroke: '#2E8B57'
@@ -273,9 +273,11 @@ export default function BenchmarkChart({
          <h3 className={styles.metricTitle}>
            {measureInfo?.name || 'Rehospitalization Rate'}
          </h3>
-         <p className={styles.metricDescription}>
-           {measureInfo?.description || 'Rate of patients readmitted to hospital within 30 days'}
-         </p>
+         {measureInfo?.source !== 'Ratings' && (
+           <p className={styles.metricDescription}>
+             {measureInfo?.description || 'Rate of patients readmitted to hospital within 30 days'}
+           </p>
+         )}
          <div className={styles.chartNotes}>
            <p className={styles.noteText}>
              <strong>Note:</strong> Lower scores indicate better performance. Data collection period: 1/1/2024 to 12/31/2024.
