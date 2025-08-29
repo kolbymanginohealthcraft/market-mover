@@ -110,6 +110,7 @@ export default function BenchmarkChart({
         // Store measure info for display
         setMeasureInfo({
           name: targetMeasure.name || 'Quality Measure',
+          label: targetMeasure.label || targetMeasure.name || 'Quality Measure',
           description: targetMeasure.description || 'Quality measure performance',
           source: targetMeasure.source || null
         });
@@ -271,7 +272,7 @@ export default function BenchmarkChart({
      <div className={styles.benchmarkContainer} ref={chartRef}>
        <div className={styles.chartHeader}>
          <h3 className={styles.metricTitle}>
-           {measureInfo?.name || 'Rehospitalization Rate'}
+           {measureInfo?.label || 'Rehospitalization Rate'}
          </h3>
          {measureInfo?.source !== 'Ratings' && (
            <p className={styles.metricDescription}>
