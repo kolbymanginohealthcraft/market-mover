@@ -149,23 +149,19 @@ const CMSEnrollmentTrendChart = ({ data, nationalData, metric = 'ma_and_other', 
     return null;
   };
 
-  // Create a more sophisticated tick formatter that shows years appropriately
+  // Create a year-only date axis formatter
   const formatXAxisTick = (tickItem) => {
     if (!tickItem) return '';
     
     const [year, month] = tickItem.split('-');
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const mIdx = parseInt(month, 10) - 1;
     
-    if (mIdx >= 0 && mIdx < 12) {
-      // Show year for January and July to help with multi-year data
-      if (mIdx === 0 || mIdx === 6) {
-        return `${monthNames[mIdx]} ${year}`;
-      }
-      // Show just month for other points
-      return monthNames[mIdx];
+    // Only show year for January of each year
+    if (mIdx === 0) {
+      return year;
     }
-    return `${year}-${month}`;
+    // Don't show any labels for other months
+    return '';
   };
 
   if (!chartData || chartData.length === 0) {
@@ -211,34 +207,14 @@ const CMSEnrollmentTrendChart = ({ data, nationalData, metric = 'ma_and_other', 
             dataKey="month"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: '#666', fontWeight: '500' }}
+            tick={{ fontSize: 14, fill: '#666', fontWeight: '600' }}
             tickFormatter={formatXAxisTick}
-            angle={-45}
-            textAnchor="end"
+            angle={0}
+            textAnchor="middle"
             height={60}
-            ticks={chartData.map(d => d.month)}
+            interval={11}
+            minTickGap={80}
           />
-          {/* Year labels underneath */}
-          {yearRanges.map(({ year, centerIndex }) => {
-            const centerMonth = chartData[centerIndex]?.month;
-            return (
-              <ReferenceLine
-                key={`year-label-${year}`}
-                x={centerMonth}
-                stroke="none"
-                label={{
-                  value: year,
-                  position: 'bottom',
-                  offset: 10,
-                  style: {
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    fill: '#374151'
-                  }
-                }}
-              />
-            );
-          })}
                                                                                        <YAxis
                axisLine={false}
                tickLine={false}

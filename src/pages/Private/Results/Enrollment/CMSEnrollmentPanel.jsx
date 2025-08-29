@@ -312,9 +312,14 @@ export default function CMSEnrollmentPanel({ data, loading, error, latestMonth }
     return (
     <div className={styles.twoColumnLayout}>
              {/* Left Column - Scrollable Metrics */}
-     <div className={styles.metricsColumn}>
-       <div className={styles.metricsListContainer}>
-         {METRIC_GROUPS.map(group => (
+           <div className={styles.metricsColumn}>
+        {latestMonth && (
+          <div className={styles.timeframeInfo}>
+            Latest data: {latestMonth}
+          </div>
+        )}
+        <div className={styles.metricsListContainer}>
+          {METRIC_GROUPS.map(group => (
            <div key={group.title} className={styles.metricGroup}>
              <h4 className={styles.groupTitle}>{group.title}</h4>
              <div className={styles.metricsList}>

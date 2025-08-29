@@ -296,13 +296,12 @@ router.get("/cms-enrollment-years", async (req, res) => {
       return res.json({ success: true, data: cached });
     }
     const uuid = await getMedicareEnrollmentUUID();
-    // Paginate through all results for a single FIPS to get all years
-    const fips = '48113';
+    // Get all years by querying National level data (which should have all years)
     let allData = [];
     let skip = 0;
     const pageSize = 1000;
     while (true) {
-      const apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_FIPS_CD]=${fips}&filter[MONTH]=Year&$top=${pageSize}&$skip=${skip}`;
+      const apiUrl = `https://data.cms.gov/data-api/v1/dataset/${uuid}/data?filter[BENE_GEO_LVL]=National&$top=${pageSize}&$skip=${skip}`;
       console.log(`📡 Calling CMS API for years: ${apiUrl}`);
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error(`CMS API error: ${response.status} ${response.statusText}`);

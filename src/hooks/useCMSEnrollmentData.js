@@ -70,8 +70,8 @@ export default function useCMSEnrollmentData(provider, radiusInMiles) {
       setLatestYear(mostRecentYear);
       if (!mostRecentYear) throw new Error('No available years');
 
-      // 3. Fetch CMS enrollment data for multiple recent years (last 3 years)
-      const yearsToFetch = years.slice(0, 3); // Get last 3 years
+      // 3. Fetch CMS enrollment data for all available years
+      const yearsToFetch = years; // Get all available years
       let allData = [];
       
       for (const year of yearsToFetch) {
@@ -340,8 +340,8 @@ export function useNationalCMSEnrollmentData() {
       const years = yearsResult.data;
       if (!years || years.length === 0) throw new Error('No available years');
 
-                   // 2. Fetch CMS enrollment data for multiple recent years (last 3 years) in a single call
-             const yearsToFetch = years.slice(0, 3); // Get last 3 years
+                   // 2. Fetch CMS enrollment data for all available years in a single call
+             const yearsToFetch = years; // Get all available years
              
                            // Make a single API call for all years at once
               const cmsResp = await fetch(apiUrl('/api/cms-enrollment-by-level'), {

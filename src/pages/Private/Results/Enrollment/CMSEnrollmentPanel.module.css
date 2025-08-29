@@ -97,6 +97,18 @@
 
 
 
+/* Timeframe Info */
+.timeframeInfo {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border-left: 3px solid #10B981;
+}
+
 /* Metrics List Container */
 .metricsListContainer {
   display: flex;
