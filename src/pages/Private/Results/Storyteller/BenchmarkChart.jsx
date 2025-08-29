@@ -156,7 +156,7 @@ export default function BenchmarkChart({
         
         if (providerScore !== null) {
           chartData.push({
-            name: provider?.name || 'Provider',
+            name: 'Provider',
             value: isStarRating ? providerScore : Math.round(providerScore * 100) / 100,
             fill: '#3FB985',
             stroke: '#2E8B57'
@@ -282,6 +282,9 @@ export default function BenchmarkChart({
          <div className={styles.chartNotes}>
            <p className={styles.noteText}>
              <strong>Note:</strong> Lower scores indicate better performance. Data collection period: 1/1/2024 to 12/31/2024.
+           </p>
+           <p className={styles.noteText}>
+             <strong>Provider:</strong> {provider?.name || 'N/A'}
            </p>
          </div>
        </div>
