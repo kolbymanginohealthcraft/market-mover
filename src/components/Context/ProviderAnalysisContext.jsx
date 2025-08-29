@@ -549,9 +549,21 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
       }
       
       if (batchResult.data.ccns && batchResult.data.npis) {
+        console.log('🔍 Setting CCNs from batch data:', {
+          ccnsCount: batchResult.data.ccns.length,
+          ccnsSample: batchResult.data.ccns.slice(0, 3),
+          npisCount: batchResult.data.npis.length
+        });
         setCcns(batchResult.data.ccns);
         setNpis(batchResult.data.npis);
         setProviderIdsCompleted(true);
+      } else {
+        console.log('⚠️ No CCNs or NPIs in batch result:', {
+          hasCcns: !!batchResult.data.ccns,
+          hasNpis: !!batchResult.data.npis,
+          ccnsLength: batchResult.data.ccns?.length || 0,
+          npisLength: batchResult.data.npis?.length || 0
+        });
       }
       
       if (batchResult.data.qualityMeasuresDates) {

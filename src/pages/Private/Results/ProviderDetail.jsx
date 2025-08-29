@@ -151,25 +151,37 @@ function ProviderDetailContent() {
         <Route path="cms-enrollment/*" element={<Enrollment provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} provider={provider} />} />
         <Route path="storyteller/*" element={
-          <Storyteller
-            provider={provider}
-            radiusInMiles={radiusInMiles}
-            nearbyProviders={nearbyProviders}
-            nearbyDhcCcns={nearbyDhcCcns}
-            prefetchedData={{
-              loading: qualityMeasuresLoading,
-              measures: qualityMeasuresData.measures,
-              data: qualityMeasuresData.providerData,
-              marketAverages: qualityMeasuresData.marketAverages,
-              nationalAverages: qualityMeasuresData.nationalAverages,
-              error: qualityMeasuresError,
-              allProviders: qualityMeasuresData.allProviders,
-              providerTypes: qualityMeasuresData.availableProviderTypes,
-              publishDates: qualityMeasuresData.availablePublishDates,
-              currentDate: qualityMeasuresData.currentPublishDate,
-              qualityMeasuresDates
-            }}
-          />
+          (() => {
+            console.log('🔍 ProviderDetail - Data being passed to Storyteller:', {
+              providerDhc: provider?.dhc,
+              nearbyProvidersCount: nearbyProviders?.length || 0,
+              nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
+              nearbyDhcCcnsSample: nearbyDhcCcns?.slice(0, 3),
+              hasQualityMeasuresDates: !!qualityMeasuresDates,
+              qualityMeasuresDatesKeys: qualityMeasuresDates ? Object.keys(qualityMeasuresDates) : []
+            });
+            return (
+              <Storyteller
+                provider={provider}
+                radiusInMiles={radiusInMiles}
+                nearbyProviders={nearbyProviders}
+                nearbyDhcCcns={nearbyDhcCcns}
+                prefetchedData={{
+                  loading: qualityMeasuresLoading,
+                  measures: qualityMeasuresData.measures,
+                  data: qualityMeasuresData.providerData,
+                  marketAverages: qualityMeasuresData.marketAverages,
+                  nationalAverages: qualityMeasuresData.nationalAverages,
+                  error: qualityMeasuresError,
+                  allProviders: qualityMeasuresData.allProviders,
+                  providerTypes: qualityMeasuresData.availableProviderTypes,
+                  publishDates: qualityMeasuresData.availablePublishDates,
+                  currentDate: qualityMeasuresData.currentPublishDate,
+                  qualityMeasuresDates
+                }}
+              />
+            );
+          })()
         } />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>
