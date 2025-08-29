@@ -90,9 +90,17 @@ router.post("/batch-data", async (req, res) => {
     if (dataTypes.includes('ccns') && provider.dhc) {
       try {
         results.ccns = await fetchWithCache('ccns', async () => {
+          console.log('🔍 Starting CCN fetch for provider:', provider.dhc);
+          
           // First get nearby providers to get all DHCs
           const providersResponse = await fetch(`${req.protocol}://${req.get('host')}/api/nearby-providers?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`);
           const providersResult = await providersResponse.json();
+          
+          console.log('🔍 Nearby providers response:', {
+            success: providersResult.success,
+            providersCount: providersResult.data?.length || 0,
+            error: providersResult.error
+          });
           
           if (!providersResult.success) {
             throw new Error('Failed to fetch nearby providers for CCN lookup');
@@ -106,7 +114,10 @@ router.post("/batch-data", async (req, res) => {
             }
           });
           
-          console.log('🔍 Fetching CCNs for all providers:', allProviderDhcs);
+          console.log('🔍 Fetching CCNs for all providers:', {
+            totalDhcs: allProviderDhcs.length,
+            dhcSample: allProviderDhcs.slice(0, 5)
+          });
           
           // Now fetch CCNs for all providers
           const response = await fetch(`${req.protocol}://${req.get('host')}/api/related-ccns`, {
@@ -115,9 +126,18 @@ router.post("/batch-data", async (req, res) => {
             body: JSON.stringify({ dhc_ids: allProviderDhcs })
           });
           const result = await response.json();
+          
+          console.log('🔍 CCNs response:', {
+            success: result.success,
+            ccnsCount: result.data?.length || 0,
+            error: result.error,
+            sampleCcns: result.data?.slice(0, 3)
+          });
+          
           return result.success ? result.data : [];
         });
       } catch (error) {
+        console.error('❌ Error fetching CCNs:', error);
         errors.ccns = error.message;
       }
     }
@@ -126,9 +146,17 @@ router.post("/batch-data", async (req, res) => {
     if (dataTypes.includes('npis') && provider.dhc) {
       try {
         results.npis = await fetchWithCache('npis', async () => {
+          console.log('🔍 Starting NPI fetch for provider:', provider.dhc);
+          
           // First get nearby providers to get all DHCs
           const providersResponse = await fetch(`${req.protocol}://${req.get('host')}/api/nearby-providers?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`);
           const providersResult = await providersResponse.json();
+          
+          console.log('🔍 Nearby providers response for NPIs:', {
+            success: providersResult.success,
+            providersCount: providersResult.data?.length || 0,
+            error: providersResult.error
+          });
           
           if (!providersResult.success) {
             throw new Error('Failed to fetch nearby providers for NPI lookup');
@@ -142,7 +170,10 @@ router.post("/batch-data", async (req, res) => {
             }
           });
           
-          console.log('🔍 Fetching NPIs for all providers:', allProviderDhcs);
+          console.log('🔍 Fetching NPIs for all providers:', {
+            totalDhcs: allProviderDhcs.length,
+            dhcSample: allProviderDhcs.slice(0, 5)
+          });
           
           // Now fetch NPIs for all providers
           const response = await fetch(`${req.protocol}://${req.get('host')}/api/related-npis`, {
@@ -151,9 +182,18 @@ router.post("/batch-data", async (req, res) => {
             body: JSON.stringify({ dhc_ids: allProviderDhcs })
           });
           const result = await response.json();
+          
+          console.log('🔍 NPIs response:', {
+            success: result.success,
+            npisCount: result.data?.length || 0,
+            error: result.error,
+            sampleNpis: result.data?.slice(0, 3)
+          });
+          
           return result.success ? result.data : [];
         });
       } catch (error) {
+        console.error('❌ Error fetching NPIs:', error);
         errors.npis = error.message;
       }
     }
