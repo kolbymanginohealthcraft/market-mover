@@ -184,7 +184,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 5b. Check if we have any CCNs before proceeding
         if (allCcns.length === 0) {
           console.log('⚠️ No CCNs found for any providers, skipping quality measures fetch');
-          setMatrixError("No CCNs found for providers in this market");
+          setMatrixError("No quality measure data available for providers in this market. This may be because the selected provider and nearby providers don't have CCNs in our database.");
           setMatrixLoading(false);
           return;
         }
