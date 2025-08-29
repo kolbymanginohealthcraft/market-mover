@@ -72,12 +72,17 @@
   min-width: 300px;
 }
 
+/* bump this container above neighbors when open */
+.multiSelectContainer.isOpen {
+  z-index: 10000;
+}
+
 .selectedSpecialties {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   padding: 6px 12px;
-  padding-right: 32px;
+  padding-right: 36px;
   border: 1px solid var(--gray-200);
   border-radius: 4px;
   background: var(--white);
@@ -86,6 +91,7 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
   box-sizing: border-box;
+  position: relative;
 }
 
 .placeholder {
@@ -113,28 +119,43 @@
   cursor: pointer;
   font-size: 1rem;
   font-weight: bold;
-  padding: 0;
+  padding: 2px;
   margin-left: 2px;
   line-height: 1;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
 }
 
 .removeTag:hover {
   color: #1DADBE;
+  background-color: rgba(29, 173, 190, 0.1);
+  transform: scale(1.1);
 }
 
 .clearAllButton {
   background: none;
   border: none;
-  color: #6b7280;
+  color: var(--gray-500);
   cursor: pointer;
   font-size: 0.8rem;
-  text-decoration: underline;
-  padding: 0;
+  font-weight: 500;
+  padding: 2px 6px;
   margin-left: 8px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  text-decoration: none;
 }
 
 .clearAllButton:hover {
-  color: #1DADBE;
+  color: var(--gray-700);
+  background-color: var(--gray-100);
+  transform: translateY(-1px);
 }
 
 .dropdownContainer {
@@ -145,23 +166,35 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 3px;
-  color: inherit;
-  font-size: 0.7rem;
-  transition: background-color 0.2s;
-  display: inline-flex;
+  padding: 6px;
+  border-radius: 4px;
+  color: var(--gray-500);
+  transition: all 0.2s ease;
+  display: flex;
   align-items: center;
   justify-content: center;
   position: absolute;
-  right: 8px;
+  right: 4px;
   top: 50%;
-  transform: translateY(-165%);
-  pointer-events: auto;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
 }
 
 .dropdownButton:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.dropdownButton:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.dropdownButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(29, 173, 190, 0.2);
 }
 
 .dropdown {
@@ -175,7 +208,7 @@
   border-radius: 0 0 6px 6px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 10001;                /* on top of everything */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 

@@ -9,7 +9,7 @@ import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Button from '../../../../components/Buttons/Button';
 import ControlsRow from '../../../../components/Layouts/ControlsRow';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
-import { Lock } from 'lucide-react';
+import { Lock, ChevronDown } from 'lucide-react';
 
 export default function ProviderDensityPage({ radius, latitude, longitude, provider }) {
   const { dhc } = useParams();
@@ -28,7 +28,7 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
 
   // Get provider info to use its location (only if dhc is available and no props provided)
   const { provider: providerInfo, loading: providerLoading } = useProviderInfo(dhc && !latitude && !longitude ? dhc : null);
-  
+
   // Use provided location props or fall back to provider info
   const lat = latitude || providerInfo?.latitude;
   const lon = longitude || providerInfo?.longitude;
@@ -103,7 +103,7 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
   // Sort filtered data
   const sortedData = useMemo(() => {
     if (!filteredData) return [];
-    
+
     return [...filteredData].sort((a, b) => {
       switch (sortBy) {
         case 'count':
@@ -163,12 +163,12 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
   const filteredProviders = useMemo(() => {
     const providers = selectedSpecialty ? detailsData : allProvidersData;
     if (!providers) return [];
-    
+
     return providers.filter(provider => {
       const searchTerm = providerSearch.toLowerCase();
       const name = (provider.provider_name || '').toLowerCase();
       const npi = provider.npi.toString();
-      
+
       return name.includes(searchTerm) || npi.includes(searchTerm);
     });
   }, [selectedSpecialty, detailsData, allProvidersData, providerSearch]);
@@ -207,7 +207,10 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
         leftContent={
           <div className={styles.controlGroup}>
             <label>Filter Specialties:</label>
-            <div className={styles.multiSelectContainer} ref={dropdownRef}>
+            <div
+              className={`${styles.multiSelectContainer} ${showDropdown ? styles.isOpen : ''}`}
+              ref={dropdownRef}
+            >
               <div className={styles.selectedSpecialties}>
                 {selectedSpecialties.length === 0 ? (
                   <span className={styles.placeholder}>All specialties</span>
@@ -216,7 +219,7 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
                     {selectedSpecialties.map(specialty => (
                       <span key={specialty} className={styles.selectedTag}>
                         {specialty}
-                        <button 
+                        <button
                           className={styles.removeTag}
                           onClick={() => handleSpecialtyFilterChange(specialty)}
                         >
@@ -224,7 +227,7 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
                         </button>
                       </span>
                     ))}
-                    <button 
+                    <button
                       className={styles.clearAllButton}
                       onClick={handleClearAll}
                     >
@@ -232,45 +235,44 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
                     </button>
                   </>
                 )}
-              </div>
-              <div className={styles.dropdownContainer}>
-                <button 
+                <button
                   className={styles.dropdownButton}
                   onClick={() => setShowDropdown(prev => !prev)}
                 >
-                  ▼
+                  <ChevronDown size={16} />
                 </button>
-                {showDropdown && (
-                  <div className={styles.dropdown}>
-                    <div className={styles.dropdownSearch}>
-                      <input
-                        type="text"
-                        placeholder="Search specialties..."
-                        value={dropdownSearch}
-                        onChange={(e) => setDropdownSearch(e.target.value)}
-                        className={styles.dropdownSearchInput}
-                        autoFocus
-                      />
-                    </div>
-                    {dropdownSpecialties.map(specialty => (
-                      <label key={specialty} className={styles.dropdownItem}>
-                        <input
-                          type="checkbox"
-                          checked={selectedSpecialties.includes(specialty)}
-                          onChange={() => handleSpecialtyFilterChange(specialty)}
-                        />
-                        <span>{specialty}</span>
-                      </label>
-                    ))}
-                    {dropdownSpecialties.length === 0 && (
-                      <div className={styles.noResults}>
-                        No specialties found
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
+
+              {showDropdown && (
+                <div className={styles.dropdown}>
+                  <div className={styles.dropdownSearch}>
+                    <input
+                      type="text"
+                      placeholder="Search specialties..."
+                      value={dropdownSearch}
+                      onChange={(e) => setDropdownSearch(e.target.value)}
+                      className={styles.dropdownSearchInput}
+                      autoFocus
+                    />
+                  </div>
+                  {dropdownSpecialties.map(specialty => (
+                    <label key={specialty} className={styles.dropdownItem}>
+                      <input
+                        type="checkbox"
+                        checked={selectedSpecialties.includes(specialty)}
+                        onChange={() => handleSpecialtyFilterChange(specialty)}
+                      />
+                      <span>{specialty}</span>
+                    </label>
+                  ))}
+                  {dropdownSpecialties.length === 0 && (
+                    <div className={styles.noResults}>No specialties found</div>
+                  )}
+                </div>
+              )}
             </div>
+
+
           </div>
         }
         rightContent={
@@ -288,8 +290,8 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
                 <div className={styles.leftSection}>
                   <span className={styles.headerTitle}>Provider Count by Specialty</span>
                 </div>
-                <button 
-                  className={styles.sortButton} 
+                <button
+                  className={styles.sortButton}
                   onClick={() => setSortBy(sortBy === 'count' ? 'name' : 'count')}
                 >
                   {sortBy === 'count' ? 'Sorted by Count' : 'Sorted by Specialty'}
@@ -370,7 +372,7 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
               <div className={styles.separator} />
             </div>
             <div className={styles.sectionContent}>
-              
+
               {(detailsLoading || allProvidersLoading) ? (
                 <div className={styles.loading}>Loading provider details...</div>
               ) : (detailsError || allProvidersError) ? (
@@ -393,7 +395,7 @@ export default function ProviderDensityPage({ radius, latitude, longitude, provi
                       ))}
                     </div>
                   </div>
-                  
+
                   {filteredProviders.length === 0 && (
                     <div className={styles.noData}>
                       {providerSearch ? 'No providers found matching your search' : 'No providers found'}
