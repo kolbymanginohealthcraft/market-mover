@@ -119,31 +119,26 @@ router.post("/batch-data", async (req, res) => {
             dhcSample: allProviderDhcs.slice(0, 5)
           });
           
-          // Use BigQuery directly instead of internal HTTP request
-          const dhcList = allProviderDhcs.map(dhc => `'${dhc}'`).join(',');
-          const query = `
-            SELECT DISTINCT dhc, ccn
-            FROM \`market-mover-464517.provider.ccn_mapping\`
-            WHERE dhc IN (${dhcList})
-            AND ccn IS NOT NULL
-            ORDER BY dhc, ccn
-          `;
+          // Use the working related-ccns endpoint but with proper URL construction
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? 'https://market-mover-backend-production.up.railway.app'
+            : `${req.protocol}://${req.get('host')}`;
           
-          console.log('🔍 Executing BigQuery CCN query for', allProviderDhcs.length, 'DHCs');
+          const response = await fetch(`${baseUrl}/api/related-ccns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dhc_ids: allProviderDhcs })
+          });
+          const result = await response.json();
           
-          const options = {
-            query,
-            location: "US",
-          };
-          
-          const [rows] = await myBigQueryClient.query(options);
-          
-          console.log('🔍 BigQuery CCN response:', {
-            rowsCount: rows.length,
-            sampleRows: rows.slice(0, 3)
+          console.log('🔍 CCNs response:', {
+            success: result.success,
+            ccnsCount: result.data?.length || 0,
+            error: result.error,
+            sampleCcns: result.data?.slice(0, 3)
           });
           
-          return rows;
+          return result.success ? result.data : [];
         });
       } catch (error) {
         console.error('❌ Error fetching CCNs:', error);
@@ -184,31 +179,26 @@ router.post("/batch-data", async (req, res) => {
             dhcSample: allProviderDhcs.slice(0, 5)
           });
           
-          // Use BigQuery directly instead of internal HTTP request
-          const dhcList = allProviderDhcs.map(dhc => `'${dhc}'`).join(',');
-          const query = `
-            SELECT DISTINCT dhc, npi
-            FROM \`market-mover-464517.provider.npi_mapping\`
-            WHERE dhc IN (${dhcList})
-            AND npi IS NOT NULL
-            ORDER BY dhc, npi
-          `;
+          // Use the working related-npis endpoint but with proper URL construction
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? 'https://market-mover-backend-production.up.railway.app'
+            : `${req.protocol}://${req.get('host')}`;
           
-          console.log('🔍 Executing BigQuery NPI query for', allProviderDhcs.length, 'DHCs');
+          const response = await fetch(`${baseUrl}/api/related-npis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dhc_ids: allProviderDhcs })
+          });
+          const result = await response.json();
           
-          const options = {
-            query,
-            location: "US",
-          };
-          
-          const [rows] = await myBigQueryClient.query(options);
-          
-          console.log('🔍 BigQuery NPI response:', {
-            rowsCount: rows.length,
-            sampleRows: rows.slice(0, 3)
+          console.log('🔍 NPIs response:', {
+            success: result.success,
+            npisCount: result.data?.length || 0,
+            error: result.error,
+            sampleNpis: result.data?.slice(0, 3)
           });
           
-          return rows;
+          return result.success ? result.data : [];
         });
       } catch (error) {
         console.error('❌ Error fetching NPIs:', error);
