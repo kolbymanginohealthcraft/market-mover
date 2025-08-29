@@ -3,6 +3,8 @@ import cache from "../utils/cache.js";
 import myBigQueryClient from "../utils/myBigQueryClient.js";
 import vendorBigQueryClient from "../utils/vendorBigQueryClient.js";
 
+
+
 const router = express.Router();
 
 /**
@@ -119,26 +121,43 @@ router.post("/batch-data", async (req, res) => {
             dhcSample: allProviderDhcs.slice(0, 5)
           });
           
-          // Use the working related-ccns endpoint but with proper URL construction
-          const baseUrl = process.env.NODE_ENV === 'production' 
-            ? 'https://market-mover-backend-production.up.railway.app'
-            : `${req.protocol}://${req.get('host')}`;
-          
-          const response = await fetch(`${baseUrl}/api/related-ccns`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dhc_ids: allProviderDhcs })
+          // Use the same BigQuery query as the working related-ccns endpoint
+          const query = `
+            SELECT
+              org_dhc.dhc,
+              org_ccn.ccn
+            FROM
+              \`market-mover-464517.providers.org_dhc\` AS org_dhc
+            JOIN
+              \`market-mover-464517.providers.org_dhc_npi\` AS org_dhc_npi
+              ON org_dhc.dhc = org_dhc_npi.dhc
+            JOIN
+              \`market-mover-464517.providers.org_npi\` AS org_npi
+              ON org_dhc_npi.npi = org_npi.npi
+            JOIN
+              \`market-mover-464517.providers.org_npi_ccn\` AS org_npi_ccn
+              ON org_npi.npi = org_npi_ccn.npi
+            JOIN
+              \`market-mover-464517.providers.org_ccn\` AS org_ccn
+              ON org_npi_ccn.ccn = org_ccn.ccn
+            WHERE
+              org_dhc.dhc IN UNNEST(@dhc_ids)
+          `;
+
+          const [rows] = await myBigQueryClient.query({
+            query,
+            location: "US",
+            params: { dhc_ids: allProviderDhcs },
           });
-          const result = await response.json();
-          
+
           console.log('🔍 CCNs response:', {
-            success: result.success,
-            ccnsCount: result.data?.length || 0,
-            error: result.error,
-            sampleCcns: result.data?.slice(0, 3)
+            success: true,
+            ccnsCount: rows.length,
+            error: null,
+            sampleCcns: rows.slice(0, 3)
           });
-          
-          return result.success ? result.data : [];
+
+          return rows;
         });
       } catch (error) {
         console.error('❌ Error fetching CCNs:', error);
@@ -179,26 +198,37 @@ router.post("/batch-data", async (req, res) => {
             dhcSample: allProviderDhcs.slice(0, 5)
           });
           
-          // Use the working related-npis endpoint but with proper URL construction
-          const baseUrl = process.env.NODE_ENV === 'production' 
-            ? 'https://market-mover-backend-production.up.railway.app'
-            : `${req.protocol}://${req.get('host')}`;
-          
-          const response = await fetch(`${baseUrl}/api/related-npis`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dhc_ids: allProviderDhcs })
+          // Use the same BigQuery query as the working related-npis endpoint
+          const query = `
+            SELECT
+              org_dhc.dhc,
+              org_npi.npi
+            FROM
+              \`market-mover-464517.providers.org_dhc\` AS org_dhc
+            JOIN
+              \`market-mover-464517.providers.org_dhc_npi\` AS org_dhc_npi
+              ON org_dhc.dhc = org_dhc_npi.dhc
+            JOIN
+              \`market-mover-464517.providers.org_npi\` AS org_npi
+              ON org_dhc_npi.npi = org_npi.npi
+            WHERE
+              org_dhc.dhc IN UNNEST(@dhc_ids)
+          `;
+
+          const [rows] = await myBigQueryClient.query({
+            query,
+            location: "US",
+            params: { dhc_ids: allProviderDhcs },
           });
-          const result = await response.json();
-          
+
           console.log('🔍 NPIs response:', {
-            success: result.success,
-            npisCount: result.data?.length || 0,
-            error: result.error,
-            sampleNpis: result.data?.slice(0, 3)
+            success: true,
+            npisCount: rows.length,
+            error: null,
+            sampleNpis: rows.slice(0, 3)
           });
-          
-          return result.success ? result.data : [];
+
+          return rows;
         });
       } catch (error) {
         console.error('❌ Error fetching NPIs:', error);
