@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Target, MapPin, Users, TrendingUp, Calendar, Filter, Download } from 'lucide-react';
+import { Target, MapPin, Users, TrendingUp, Calendar, Filter } from 'lucide-react';
 import { apiUrl } from '../../../../utils/api';
 import Spinner from '../../../../components/Buttons/Spinner';
 import Banner from '../../../../components/Buttons/Banner';
@@ -69,28 +69,6 @@ export default function CatchmentTab({ providerInfo, marketInfo }) {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const exportData = () => {
-    if (!catchmentData) return;
-    
-    const csvContent = [
-      ['ZIP Code', 'Total Cases', 'Total Days of Care', 'Total Charges'],
-      ...catchmentData.map(row => [
-        row.ZIP_CD_OF_RESIDENCE,
-        row.TOTAL_CASES,
-        row.TOTAL_DAYS_OF_CARE,
-        row.TOTAL_CHARGES
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `catchment-data-2024.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   if (loading) {
     return (
       <>
@@ -126,15 +104,12 @@ export default function CatchmentTab({ providerInfo, marketInfo }) {
     <>
       <Banner 
         title="Hospital Service Area Analysis"
-        description="Geographic distribution of patient discharges, days of care, and charges - Under Construction"
+        description="Geographic distribution of patient discharges, days of care, and charges"
         icon={Target}
       />
 
-      <div className={styles.controls}>
-        <button onClick={exportData} className={styles.exportButton} disabled={!catchmentData}>
-          <Download size={16} />
-          Export CSV
-        </button>
+      <div className={styles.constructionNote}>
+        <p>🚧 This page is currently under construction and will be available soon.</p>
       </div>
 
       {catchmentData && (
