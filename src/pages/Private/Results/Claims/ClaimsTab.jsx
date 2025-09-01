@@ -10,7 +10,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Helper function to format currency values
 function formatCurrency(value) {
-  if (value == null || value === undefined) return '$0.00';
+  if (value == null || value === undefined) return '$0';
   
   // Handle BigQuery Big objects
   let numValue;
@@ -20,13 +20,13 @@ function formatCurrency(value) {
     numValue = parseFloat(value);
   }
   
-  if (isNaN(numValue)) return '$0.00';
+  if (isNaN(numValue)) return '$0';
   
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(numValue);
 }
 
@@ -43,7 +43,7 @@ function getCachedNPIs(providerDhcs) {
   return null;
 }
 
-function setCachedNPIs(providerDhcs, npis) {
+function setCachedNPIsInCache(providerDhcs, npis) {
   const key = getCacheKey(providerDhcs);
   npiCache.set(key, {
     npis,
@@ -64,7 +64,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   const [claimsError, setClaimsError] = useState(null);
   
   // Filter state
-  const [tableName, setTableName] = useState("volume_diagnosis");
+  const [tableName, setTableName] = useState("volume_procedure");
   const [perspective, setPerspective] = useState("billing");
   const [aggregation, setAggregation] = useState("provider");
   const [filters, setFilters] = useState({});
@@ -149,7 +149,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
         }
 
         // Cache the NPIs
-        setCachedNPIs(allProviderDhcs, npis);
+        setCachedNPIsInCache(allProviderDhcs, npis);
         setCachedNPIs(npis);
         console.log(`✅ Cached ${npis.length} NPIs for reuse across tabs`);
 
@@ -375,80 +375,62 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           </div>
         </div>
 
-      {/* Filter Panel */}
+             {/* Compact Filter Panel */}
       {showFilters && (
         <div className={styles.filterPanel}>
-          <div className={styles.filterSection}>
-            <h4>Data Source</h4>
-            <div className={styles.filterGrid}>
-              <div className={styles.filterGroup}>
-                <label>Table</label>
+           <div className={styles.filterRow}>
+             <div className={styles.filterItem}>
+               <label>Data Source:</label>
                 <select
                   value={tableName}
                   onChange={(e) => setTableName(e.target.value)}
                   className={styles.select}
                 >
                   {Object.entries(AVAILABLE_TABLES).map(([key, value]) => (
-                    <optgroup key={key} label={value.type}>
-                      <option value={key}>{value.label}</option>
-                    </optgroup>
+                   <option key={key} value={key}>{value.label}</option>
                   ))}
                 </select>
           </div>
 
-              <div className={styles.filterGroup}>
-                <label>Provider Perspective</label>
+             <div className={styles.filterItem}>
+               <label>Perspective:</label>
                 <select
                   value={perspective}
                   onChange={(e) => setPerspective(e.target.value)}
                   className={styles.select}
                 >
                   {Object.entries(PROVIDER_PERSPECTIVES).map(([key, value]) => (
-                    <option key={key} value={key}>
-                      {value.label}
-                    </option>
+                   <option key={key} value={key}>{value.label}</option>
                   ))}
                 </select>
-        </div>
-
-              <div className={styles.filterGroup}>
-                <label>Aggregation</label>
-                <select
-                  value={aggregation}
-                  onChange={(e) => setAggregation(e.target.value)}
-                  className={styles.select}
-                >
-                  {Object.entries(AGGREGATION_TYPES).map(([key, value]) => (
-                    <option key={key} value={key}>
-                      {value.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
         </div>
       </div>
 
-          {/* Dynamic filters based on available data */}
+                     {/* Compact Dynamic Filters */}
           {Object.keys(availableFilters).length > 0 && (
             <>
-              {/* Service Hierarchy */}
-              {(availableFilters.serviceCategories?.length > 0 || availableFilters.serviceLines?.length > 0 || availableFilters.subServiceLines?.length > 0) && (
-                <div className={styles.filterSection}>
-                  <h4>Service Hierarchy</h4>
-                  <div className={styles.filterGrid}>
+               {/* Service Hierarchy Filters */}
+               <div className={styles.filterRow}>
                     {availableFilters.serviceCategories && availableFilters.serviceCategories.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Service Category</label>
+                   <div className={styles.filterItem}>
+                     <label>Service Category:</label>
                         <select
                           value={filters.serviceCategory || ''}
-                          onChange={(e) => setFilters(prev => ({
-                            ...prev,
-                            serviceCategory: e.target.value || undefined
-                          }))}
+                          onChange={(e) => {
+                            const selectedCategory = e.target.value;
+                            setFilters(prev => ({
+                              ...prev,
+                              serviceCategory: selectedCategory || undefined,
+                              // Clear dependent filters when parent changes
+                              serviceLine: undefined,
+                              subServiceLine: undefined,
+                              code: undefined
+                            }));
+                          }}
                           className={styles.select}
                         >
-                          <option value="">All Service Categories</option>
-                          {availableFilters.serviceCategories?.map((category, index) => (
+                       <option value="">All Service Categories</option>
+                       {availableFilters.serviceCategories.map((category, index) => (
                             <option key={`${category.code}-${index}`} value={category.code}>
                               {category.description}
                             </option>
@@ -458,18 +440,29 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                     )}
 
                     {availableFilters.serviceLines && availableFilters.serviceLines.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Service Line</label>
+                   <div className={styles.filterItem}>
+                     <label>Service Line:</label>
                         <select
                           value={filters.serviceLine || ''}
-                          onChange={(e) => setFilters(prev => ({
-                            ...prev,
-                            serviceLine: e.target.value || undefined
-                          }))}
+                          onChange={(e) => {
+                            const selectedServiceLine = e.target.value;
+                            setFilters(prev => ({
+                              ...prev,
+                              serviceLine: selectedServiceLine || undefined,
+                              // Clear dependent filters when parent changes
+                              subServiceLine: undefined,
+                              code: undefined
+                            }));
+                          }}
                           className={styles.select}
+                          disabled={!filters.serviceCategory}
                         >
-                          <option value="">All Service Lines</option>
-                          {availableFilters.serviceLines.map((serviceLine, index) => (
+                       <option value="">
+                         {filters.serviceCategory ? 'All Service Lines' : 'Select Service Category First'}
+                       </option>
+                       {availableFilters.serviceLines
+                         .filter(line => !filters.serviceCategory || line.parentCode === filters.serviceCategory)
+                         .map((serviceLine, index) => (
                             <option key={`${serviceLine.code}-${index}`} value={serviceLine.code}>
                               {serviceLine.description}
                             </option>
@@ -479,37 +472,97 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                     )}
 
                     {availableFilters.subServiceLines && availableFilters.subServiceLines.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Sub-Service Line</label>
+                   <div className={styles.filterItem}>
+                     <label>Sub-Service Line:</label>
                         <select
                           value={filters.subServiceLine || ''}
-                          onChange={(e) => setFilters(prev => ({
-                            ...prev,
-                            subServiceLine: e.target.value || undefined
-                          }))}
+                          onChange={(e) => {
+                            const selectedSubServiceLine = e.target.value;
+                            setFilters(prev => ({
+                              ...prev,
+                              subServiceLine: selectedSubServiceLine || undefined,
+                              // Clear dependent filters when parent changes
+                              code: undefined
+                            }));
+                          }}
                           className={styles.select}
+                          disabled={!filters.serviceLine}
                         >
-                          <option value="">All Sub-Service Lines</option>
-                          {availableFilters.subServiceLines.map((subService, index) => (
-                            <option key={`${subService.code}-${index}`} value={subService.code}>
-                              {subService.description}
+                       <option value="">
+                         {filters.serviceLine ? 'All Sub-Service Lines' : 'Select Service Line First'}
+                       </option>
+                       {availableFilters.subServiceLines
+                         .filter(subServiceLine => 
+                           (!filters.serviceCategory || subServiceLine.grandparentCode === filters.serviceCategory) &&
+                           (!filters.serviceLine || subServiceLine.parentCode === filters.serviceLine)
+                         )
+                         .map((subServiceLine, index) => (
+                         <option key={`${subServiceLine.code}-${index}`} value={subServiceLine.code}>
+                           {subServiceLine.description}
                             </option>
                           ))}
                         </select>
                       </div>
                     )}
+
+                    {availableFilters.codes && availableFilters.codes.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Procedure/Diagnosis Code:</label>
+                        <select
+                          value={filters.code || ''}
+                          onChange={(e) => setFilters(prev => ({
+                            ...prev,
+                            code: e.target.value || undefined
+                          }))}
+                          className={styles.select}
+                          disabled={!filters.subServiceLine}
+                        >
+                       <option value="">
+                         {filters.subServiceLine ? 'All Codes' : 'Select Sub-Service Line First'}
+                       </option>
+                       {availableFilters.codes
+                         .filter(code => 
+                           (!filters.serviceCategory || code.level1Code === filters.serviceCategory) &&
+                           (!filters.serviceLine || code.level2Code === filters.serviceLine) &&
+                           (!filters.subServiceLine || code.level3Code === filters.subServiceLine)
+                         )
+                         .slice(0, 1000) // Limit to first 1000 for performance
+                         .map((code, index) => (
+                           <option key={`${code.code}-${index}`} value={code.code}>
+                             {code.description}
+                           </option>
+                         ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
+
+               {/* Payor and Facility Filters */}
+               <div className={styles.filterRow}>
+                 {availableFilters.payorGroups && availableFilters.payorGroups.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Payor:</label>
+                     <select
+                       value={filters.payorGroup || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         payorGroup: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.payorGroups.map(payorGroup => (
+                         <option key={payorGroup} value={payorGroup}>
+                           {payorGroup}
+                         </option>
+                       ))}
+                     </select>
                 </div>
               )}
 
-              {/* Care Settings */}
-              {(availableFilters.placeOfService?.length > 0 || availableFilters.siteOfCare?.length > 0 || availableFilters.billFacilityType?.length > 0 || availableFilters.billClassificationType?.length > 0) && (
-                <div className={styles.filterSection}>
-                  <h4>Care Settings</h4>
-                  <div className={styles.filterGrid}>
                     {availableFilters.placeOfService && availableFilters.placeOfService.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Place of Service</label>
+                   <div className={styles.filterItem}>
+                     <label>Place of Service:</label>
                         <select
                           value={filters.placeOfService || ''}
                           onChange={(e) => setFilters(prev => ({
@@ -518,7 +571,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           }))}
                           className={styles.select}
                         >
-                          <option value="">All Places of Service</option>
+                       <option value="">All</option>
                           {availableFilters.placeOfService.map((pos, index) => (
                             <option key={`${pos.code}-${index}`} value={pos.code}>
                               {pos.description}
@@ -529,8 +582,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                     )}
 
                     {availableFilters.siteOfCare && availableFilters.siteOfCare.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Site of Care</label>
+                   <div className={styles.filterItem}>
+                     <label>Site of Care:</label>
                         <select
                           value={filters.siteOfCare || ''}
                           onChange={(e) => setFilters(prev => ({
@@ -539,7 +592,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           }))}
                           className={styles.select}
                         >
-                          <option value="">All Sites of Care</option>
+                       <option value="">All</option>
                           {availableFilters.siteOfCare.map((site, index) => (
                             <option key={`${site.code}-${index}`} value={site.code}>
                               {site.description}
@@ -548,10 +601,13 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                         </select>
                       </div>
                     )}
+               </div>
 
+               {/* Billing and Patient Filters */}
+               <div className={styles.filterRow}>
                     {availableFilters.billFacilityType && availableFilters.billFacilityType.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Bill Facility Type</label>
+                   <div className={styles.filterItem}>
+                     <label>Bill Facility Type:</label>
                         <select
                           value={filters.billFacilityType || ''}
                           onChange={(e) => setFilters(prev => ({
@@ -560,7 +616,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           }))}
                           className={styles.select}
                         >
-                          <option value="">All Facility Types</option>
+                       <option value="">All</option>
                           {availableFilters.billFacilityType.map((facility, index) => (
                             <option key={`${facility.code}-${index}`} value={facility.code}>
                               {facility.description}
@@ -571,37 +627,98 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                     )}
 
                     {availableFilters.billClassificationType && availableFilters.billClassificationType.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Bill Classification Type</label>
+                   <div className={styles.filterItem}>
+                     <label>Bill Classification:</label>
                         <select
-                          value={filters.billClassificationType || ''}
+                       value={filters.billClassificationDescription ? `${filters.billClassificationType}|${filters.billClassificationDescription}` : (filters.billClassificationType || '')}
+                       onChange={(e) => {
+                         const selectedValue = e.target.value;
+                         console.log('Bill Classification selected:', selectedValue);
+                         
+                         if (selectedValue === '') {
+                           setFilters(prev => ({
+                             ...prev,
+                             billClassificationType: undefined,
+                             billClassificationDescription: undefined
+                           }));
+                           return;
+                         }
+                         
+                         // Parse the combined value (code|description)
+                         const [code, description] = selectedValue.split('|');
+                         
+                         if (code && description) {
+                           console.log('Selected classification:', { code, description });
+                           setFilters(prev => ({
+                             ...prev,
+                             billClassificationType: code,
+                             billClassificationDescription: description
+                           }));
+                         } else {
+                           // Fallback for backward compatibility
+                           const selectedClassification = availableFilters.billClassificationType.find(
+                             c => c.code === selectedValue
+                           );
+                           
+                           if (selectedClassification) {
+                             console.log('Selected classification (fallback):', selectedClassification);
+                             setFilters(prev => ({
+                               ...prev,
+                               billClassificationType: selectedValue,
+                               billClassificationDescription: selectedClassification.description
+                             }));
+                           } else {
+                             setFilters(prev => ({
+                               ...prev,
+                               billClassificationType: selectedValue || undefined,
+                               billClassificationDescription: undefined
+                             }));
+                           }
+                         }
+                       }}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.billClassificationType.map((classification, index) => {
+                         const optionValue = `${classification.code}|${classification.description}`;
+                         const isSelected = filters.billClassificationDescription === classification.description;
+                         if (isSelected) {
+                           console.log('Selected classification:', classification);
+                         }
+                         return (
+                           <option key={`${classification.code}-${classification.description}-${index}`} value={optionValue}>
+                             {classification.description}
+                           </option>
+                         );
+                       })}
+                     </select>
+                   </div>
+                 )}
+
+                 {availableFilters.billFrequencyTypes && availableFilters.billFrequencyTypes.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Bill Frequency:</label>
+                     <select
+                       value={filters.billFrequencyType || ''}
                           onChange={(e) => setFilters(prev => ({
                             ...prev,
-                            billClassificationType: e.target.value || undefined
+                         billFrequencyType: e.target.value || undefined
                           }))}
                           className={styles.select}
                         >
-                          <option value="">All Classification Types</option>
-                          {availableFilters.billClassificationType.map((classification, index) => (
-                            <option key={`${classification.code}-${index}`} value={classification.code}>
-                              {classification.description}
+                       <option value="">All</option>
+                       {availableFilters.billFrequencyTypes.map((frequency, index) => (
+                         <option key={`${frequency.code}-${index}`} value={frequency.code}>
+                           {frequency.description}
                             </option>
                           ))}
                         </select>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
 
-              {/* Patient Demographics */}
-              {(availableFilters.patientGenders?.length > 0 || availableFilters.patientAgeBrackets?.length > 0) && (
-                <div className={styles.filterSection}>
-                  <h4>Patient Demographics</h4>
-                  <div className={styles.filterGrid}>
                     {availableFilters.patientGenders && availableFilters.patientGenders.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Patient Gender</label>
+                   <div className={styles.filterItem}>
+                     <label>Patient Gender:</label>
                         <select
                           value={filters.patientGender || ''}
                           onChange={(e) => setFilters(prev => ({
@@ -610,7 +727,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           }))}
                           className={styles.select}
                         >
-                          <option value="">All Genders</option>
+                       <option value="">All</option>
                           {availableFilters.patientGenders.map(gender => (
                             <option key={gender} value={gender}>
                               {gender}
@@ -621,8 +738,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                     )}
 
                     {availableFilters.patientAgeBrackets && availableFilters.patientAgeBrackets.length > 0 && (
-                      <div className={styles.filterGroup}>
-                        <label>Patient Age Bracket</label>
+                   <div className={styles.filterItem}>
+                     <label>Patient Age:</label>
                         <select
                           value={filters.patientAgeBracket || ''}
                           onChange={(e) => setFilters(prev => ({
@@ -631,7 +748,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           }))}
                           className={styles.select}
                         >
-                          <option value="">All Age Brackets</option>
+                       <option value="">All</option>
                           {availableFilters.patientAgeBrackets.map(ageBracket => (
                             <option key={ageBracket} value={ageBracket}>
                               {ageBracket}
@@ -641,35 +758,344 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                       </div>
                     )}
                   </div>
-                </div>
-              )}
 
-              {/* Payor Information */}
-              {availableFilters.payorGroups && availableFilters.payorGroups.length > 0 && (
-                <div className={styles.filterSection}>
-                  <h4>Payor Information</h4>
-                  <div className={styles.filterGrid}>
-                    <div className={styles.filterGroup}>
-                      <label>Payor Group</label>
+               {/* Patient Geographic Filters */}
+               <div className={styles.filterRow}>
+                 {availableFilters.patientUsRegions && availableFilters.patientUsRegions.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Patient US Region:</label>
                       <select
-                        value={filters.payorGroup || ''}
-                        onChange={(e) => setFilters(prev => ({
-                          ...prev,
-                          payorGroup: e.target.value || undefined
-                        }))}
+                       value={filters.patientUsRegion || ''}
+                        onChange={(e) => {
+                          const selectedRegion = e.target.value;
+                          setFilters(prev => ({
+                            ...prev,
+                            patientUsRegion: selectedRegion || undefined,
+                            // Clear dependent filters when parent changes
+                            patientUsDivision: undefined,
+                            patientState: undefined,
+                            patientZip3: undefined
+                          }));
+                        }}
                         className={styles.select}
                       >
-                        <option value="">All Payor Groups</option>
-                        {availableFilters.payorGroups.map(payorGroup => (
-                          <option key={payorGroup} value={payorGroup}>
-                            {payorGroup}
+                       <option value="">All US Regions</option>
+                       {availableFilters.patientUsRegions.map(region => (
+                         <option key={region} value={region}>
+                           {region}
                           </option>
                         ))}
                       </select>
                     </div>
+                 )}
+
+                 {availableFilters.patientUsDivisions && availableFilters.patientUsDivisions.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Patient US Division:</label>
+                     <select
+                       value={filters.patientUsDivision || ''}
+                       onChange={(e) => {
+                         const selectedDivision = e.target.value;
+                         setFilters(prev => ({
+                           ...prev,
+                           patientUsDivision: selectedDivision || undefined,
+                           // Clear dependent filters when parent changes
+                           patientState: undefined,
+                           patientZip3: undefined
+                         }));
+                       }}
+                       className={styles.select}
+                       disabled={!filters.patientUsRegion}
+                     >
+                       <option value="">
+                         {filters.patientUsRegion ? 'All US Divisions' : 'Select US Region First'}
+                       </option>
+                       {availableFilters.patientUsDivisions
+                         .filter(division => !filters.patientUsRegion || division.parentCode === filters.patientUsRegion)
+                         .map((division, index) => (
+                           <option key={`${division.code}-${index}`} value={division.code}>
+                             {division.description}
+                           </option>
+                         ))}
+                     </select>
                   </div>
+                 )}
+
+                 {availableFilters.patientStates && availableFilters.patientStates.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Patient State:</label>
+                     <select
+                       value={filters.patientState || ''}
+                       onChange={(e) => {
+                         const selectedState = e.target.value;
+                         setFilters(prev => ({
+                           ...prev,
+                           patientState: selectedState || undefined,
+                           // Clear dependent filters when parent changes
+                           patientZip3: undefined
+                         }));
+                       }}
+                       className={styles.select}
+                       disabled={!filters.patientUsDivision}
+                     >
+                       <option value="">
+                         {filters.patientUsDivision ? 'All States' : 'Select US Division First'}
+                       </option>
+                       {availableFilters.patientStates
+                         .filter(state => 
+                           (!filters.patientUsRegion || state.grandparentCode === filters.patientUsRegion) &&
+                           (!filters.patientUsDivision || state.parentCode === filters.patientUsDivision)
+                         )
+                         .map((state, index) => (
+                           <option key={`${state.code}-${index}`} value={state.code}>
+                             {state.description}
+                           </option>
+                         ))}
+                     </select>
                 </div>
               )}
+
+                 {availableFilters.patientZip3s && availableFilters.patientZip3s.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Patient ZIP3:</label>
+                     <select
+                       value={filters.patientZip3 || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         patientZip3: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                       disabled={!filters.patientState}
+                     >
+                       <option value="">
+                         {filters.patientState ? 'All ZIP3 Codes' : 'Select State First'}
+                       </option>
+                       {availableFilters.patientZip3s
+                         .filter(zip3 => 
+                           (!filters.patientUsRegion || zip3.level1Code === filters.patientUsRegion) &&
+                           (!filters.patientUsDivision || zip3.level2Code === filters.patientUsDivision) &&
+                           (!filters.patientState || zip3.level3Code === filters.patientState)
+                         )
+                         .slice(0, 500) // Limit to first 500 for performance
+                         .map((zip3, index) => (
+                           <option key={`${zip3.code}-${index}`} value={zip3.code}>
+                             {zip3.description}
+                           </option>
+                         ))}
+                     </select>
+                </div>
+              )}
+               </div>
+
+               {/* Claim and DRG Filters */}
+               <div className={styles.filterRow}>
+                 {availableFilters.claimTypes && availableFilters.claimTypes.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Claim Type:</label>
+                     <select
+                       value={filters.claimType || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         claimType: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.claimTypes.map((claimType, index) => (
+                         <option key={`${claimType}-${index}`} value={claimType}>
+                           {claimType}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+
+                 {availableFilters.drgMdcs && availableFilters.drgMdcs.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>DRG MDC:</label>
+                     <select
+                       value={filters.drgMdc || ''}
+                       onChange={(e) => {
+                         const selectedMdc = e.target.value;
+                         setFilters(prev => ({
+                           ...prev,
+                           drgMdc: selectedMdc || undefined,
+                           // Clear dependent filters when parent changes
+                           drgCode: undefined
+                         }));
+                       }}
+                       className={styles.select}
+                     >
+                       <option value="">All DRG MDCs</option>
+                       {availableFilters.drgMdcs.map((mdc, index) => (
+                         <option key={`${mdc.code}-${index}`} value={mdc.code}>
+                           {mdc.description}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+
+                 {availableFilters.drgCodes && availableFilters.drgCodes.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>DRG Code:</label>
+                     <select
+                       value={filters.drgCode || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         drgCode: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                       disabled={!filters.drgMdc}
+                     >
+                       <option value="">
+                         {filters.drgMdc ? 'All DRG Codes' : 'Select DRG MDC First'}
+                       </option>
+                       {availableFilters.drgCodes
+                         .filter(drg => !filters.drgMdc || drg.parentCode === filters.drgMdc)
+                         .map((drg, index) => (
+                           <option key={`${drg.code}-${index}`} value={drg.code}>
+                             {drg.description}
+                           </option>
+                         ))}
+                     </select>
+                   </div>
+                 )}
+
+                 {availableFilters.drgMedSurgs && availableFilters.drgMedSurgs.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>DRG Med/Surg:</label>
+                     <select
+                       value={filters.drgMedSurg || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         drgMedSurg: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.drgMedSurgs.map(medSurg => (
+                         <option key={medSurg} value={medSurg}>
+                           {medSurg}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+               </div>
+
+               {/* Procedure/Diagnosis Code Filters */}
+               <div className={styles.filterRow}>
+                 {availableFilters.codeSystems && availableFilters.codeSystems.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Code System:</label>
+                     <select
+                       value={filters.codeSystem || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         codeSystem: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.codeSystems.map((codeSystem, index) => (
+                         <option key={`${codeSystem}-${index}`} value={codeSystem}>
+                           {codeSystem}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+
+
+
+                 {availableFilters.codeSummaries && availableFilters.codeSummaries.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Code Summary:</label>
+                     <select
+                       value={filters.codeSummary || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         codeSummary: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.codeSummaries.map((codeSummary, index) => (
+                         <option key={`${codeSummary}-${index}`} value={codeSummary}>
+                           {codeSummary}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+
+                 {availableFilters.isSurgeries && availableFilters.isSurgeries.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Is Surgery:</label>
+                     <select
+                       value={filters.isSurgery !== undefined ? filters.isSurgery.toString() : ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         isSurgery: e.target.value === '' ? undefined : e.target.value === 'true'
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.isSurgeries.map(isSurgery => (
+                         <option key={isSurgery.toString()} value={isSurgery.toString()}>
+                           {isSurgery ? 'Yes' : 'No'}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+               </div>
+
+               {/* Revenue Code Filters */}
+               <div className={styles.filterRow}>
+                 {availableFilters.revenueCodes && availableFilters.revenueCodes.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Revenue Code:</label>
+                     <select
+                       value={filters.revenueCode || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         revenueCode: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.revenueCodes.map((revenue, index) => (
+                         <option key={`${revenue.code}-${index}`} value={revenue.code}>
+                           {revenue.description}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+
+                 {availableFilters.revenueCodeGroups && availableFilters.revenueCodeGroups.length > 0 && (
+                   <div className={styles.filterItem}>
+                     <label>Revenue Code Group:</label>
+                     <select
+                       value={filters.revenueCodeGroup || ''}
+                       onChange={(e) => setFilters(prev => ({
+                         ...prev,
+                         revenueCodeGroup: e.target.value || undefined
+                       }))}
+                       className={styles.select}
+                     >
+                       <option value="">All</option>
+                       {availableFilters.revenueCodeGroups.map(group => (
+                         <option key={group} value={group}>
+                           {group}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+               </div>
             </>
           )}
 
@@ -722,7 +1148,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           {/* Summary Stats */}
           <div className={styles.summaryStats}>
             <div className={styles.statCard}>
-              <h4>Total Claims</h4>
+               <h4>Total Procedures</h4>
               <p>{claimsSummary ? claimsSummary.grand_total_claims?.toLocaleString() : claimsData.reduce((sum, item) => sum + (item.total_claims || item.count || 0), 0).toLocaleString()}</p>
             </div>
             <div className={styles.statCard}>
@@ -741,7 +1167,23 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
 
           {/* Data Table */}
           <div className={styles.dataTable}>
+             <div className={styles.tableHeader}>
             <h3>Claims Data</h3>
+               <div className={styles.aggregationSelector}>
+                 <label>View by:</label>
+                 <select
+                   value={aggregation}
+                   onChange={(e) => setAggregation(e.target.value)}
+                   className={styles.select}
+                 >
+                   {Object.entries(AGGREGATION_TYPES).map(([key, value]) => (
+                     <option key={key} value={key}>
+                       {value.label}
+                     </option>
+                   ))}
+                 </select>
+               </div>
+             </div>
             <div className={styles.tableContainer}>
               <table>
                 <thead>

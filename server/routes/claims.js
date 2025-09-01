@@ -173,10 +173,98 @@ router.post("/claims-data", async (req, res) => {
         filterParams.billFacilityType = filters.billFacilityType;
       }
       
-      if (filters.billClassificationType) {
-        filterConditions.push(`c.bill_classification_type_code = @billClassificationType`);
-        filterParams.billClassificationType = filters.billClassificationType;
-      }
+             if (filters.billClassificationType) {
+         if (filters.billClassificationDescription) {
+           // Use both code and description for more precise filtering when duplicates exist
+           filterConditions.push(`c.bill_classification_type_code = @billClassificationType AND c.bill_classification_type = @billClassificationDescription`);
+           filterParams.billClassificationType = filters.billClassificationType;
+           filterParams.billClassificationDescription = filters.billClassificationDescription;
+         } else {
+           // Fallback to code-only filtering
+           filterConditions.push(`c.bill_classification_type_code = @billClassificationType`);
+           filterParams.billClassificationType = filters.billClassificationType;
+         }
+       }
+       
+       // Patient geographic filters
+       if (filters.patientZip3) {
+         filterConditions.push(`c.patient_zip3 = @patientZip3`);
+         filterParams.patientZip3 = filters.patientZip3;
+       }
+       
+       if (filters.patientState) {
+         filterConditions.push(`c.patient_state = @patientState`);
+         filterParams.patientState = filters.patientState;
+       }
+       
+       if (filters.patientUsRegion) {
+         filterConditions.push(`c.patient_us_region = @patientUsRegion`);
+         filterParams.patientUsRegion = filters.patientUsRegion;
+       }
+       
+       if (filters.patientUsDivision) {
+         filterConditions.push(`c.patient_us_division = @patientUsDivision`);
+         filterParams.patientUsDivision = filters.patientUsDivision;
+       }
+       
+       // Claim and DRG filters
+       if (filters.claimType) {
+         filterConditions.push(`c.claim_type_code = @claimType`);
+         filterParams.claimType = filters.claimType;
+       }
+       
+       if (filters.drgCode) {
+         filterConditions.push(`c.drg_code = @drgCode`);
+         filterParams.drgCode = filters.drgCode;
+       }
+       
+       if (filters.drgMdc) {
+         filterConditions.push(`c.drg_mdc = @drgMdc`);
+         filterParams.drgMdc = filters.drgMdc;
+       }
+       
+       if (filters.drgMedSurg) {
+         filterConditions.push(`c.drg_med_surg = @drgMedSurg`);
+         filterParams.drgMedSurg = filters.drgMedSurg;
+       }
+       
+       // Bill frequency type filter
+       if (filters.billFrequencyType) {
+         filterConditions.push(`c.bill_frequency_type_code = @billFrequencyType`);
+         filterParams.billFrequencyType = filters.billFrequencyType;
+       }
+       
+       // Procedure/diagnosis code filters
+       if (filters.code) {
+         filterConditions.push(`c.code = @code`);
+         filterParams.code = filters.code;
+       }
+       
+       if (filters.codeSystem) {
+         filterConditions.push(`c.code_system = @codeSystem`);
+         filterParams.codeSystem = filters.codeSystem;
+       }
+       
+       if (filters.codeSummary) {
+         filterConditions.push(`c.code_summary = @codeSummary`);
+         filterParams.codeSummary = filters.codeSummary;
+       }
+       
+       if (filters.isSurgery !== undefined) {
+         filterConditions.push(`c.is_surgery = @isSurgery`);
+         filterParams.isSurgery = filters.isSurgery;
+       }
+       
+       // Revenue code filters
+       if (filters.revenueCode) {
+         filterConditions.push(`c.revenue_code = @revenueCode`);
+         filterParams.revenueCode = filters.revenueCode;
+       }
+       
+       if (filters.revenueCodeGroup) {
+         filterConditions.push(`c.revenue_code_group = @revenueCodeGroup`);
+         filterParams.revenueCodeGroup = filters.revenueCodeGroup;
+       }
       
       return filterConditions.length > 0 ? `AND ${filterConditions.join(' AND ')}` : '';
     };
@@ -273,31 +361,9 @@ router.post("/claims-data", async (req, res) => {
 
       return; // Exit early since we handled the response
     } else if (aggregation === "service_line") {
-      // Build filter conditions
-      const filterConditions = [];
+      // Build filter conditions using helper function
       const filterParams = { npis, limit };
-      
-      if (filters.payorGroup) {
-        filterConditions.push(`c.${tableInfo.fields.payorGroupField} = @payorGroup`);
-        filterParams.payorGroup = filters.payorGroup;
-      }
-      
-      if (filters.serviceLine) {
-        filterConditions.push(`c.${tableInfo.fields.serviceLineField} = @serviceLine`);
-        filterParams.serviceLine = filters.serviceLine;
-      }
-      
-      if (filters.patientGender) {
-        filterConditions.push(`c.patient_gender = @patientGender`);
-        filterParams.patientGender = filters.patientGender;
-      }
-      
-      if (filters.patientAgeBracket) {
-        filterConditions.push(`c.patient_age_bracket = @patientAgeBracket`);
-        filterParams.patientAgeBracket = filters.patientAgeBracket;
-      }
-      
-      const filterClause = filterConditions.length > 0 ? `AND ${filterConditions.join(' AND ')}` : '';
+      const filterClause = buildFilterConditions(filters, filterParams);
 
       // Aggregate by service line
       query = `
@@ -318,31 +384,9 @@ router.post("/claims-data", async (req, res) => {
       `;
       params = filterParams;
     } else if (aggregation === "temporal") {
-      // Build filter conditions
-      const filterConditions = [];
+      // Build filter conditions using helper function
       const filterParams = { npis, limit };
-      
-      if (filters.payorGroup) {
-        filterConditions.push(`c.${tableInfo.fields.payorGroupField} = @payorGroup`);
-        filterParams.payorGroup = filters.payorGroup;
-      }
-      
-      if (filters.serviceLine) {
-        filterConditions.push(`c.${tableInfo.fields.serviceLineField} = @serviceLine`);
-        filterParams.serviceLine = filters.serviceLine;
-      }
-      
-      if (filters.patientGender) {
-        filterConditions.push(`c.patient_gender = @patientGender`);
-        filterParams.patientGender = filters.patientGender;
-      }
-      
-      if (filters.patientAgeBracket) {
-        filterConditions.push(`c.patient_age_bracket = @patientAgeBracket`);
-        filterParams.patientAgeBracket = filters.patientAgeBracket;
-      }
-      
-      const filterClause = filterConditions.length > 0 ? `AND ${filterConditions.join(' AND ')}` : '';
+      const filterClause = buildFilterConditions(filters, filterParams);
 
       // Aggregate by time period
       query = `
@@ -362,31 +406,9 @@ router.post("/claims-data", async (req, res) => {
       `;
       params = filterParams;
     } else if (aggregation === "geographic") {
-      // Build filter conditions
-      const filterConditions = [];
+      // Build filter conditions using helper function
       const filterParams = { npis, limit };
-      
-      if (filters.payorGroup) {
-        filterConditions.push(`c.${tableInfo.fields.payorGroupField} = @payorGroup`);
-        filterParams.payorGroup = filters.payorGroup;
-      }
-      
-      if (filters.serviceLine) {
-        filterConditions.push(`c.${tableInfo.fields.serviceLineField} = @serviceLine`);
-        filterParams.serviceLine = filters.serviceLine;
-      }
-      
-      if (filters.patientGender) {
-        filterConditions.push(`c.patient_gender = @patientGender`);
-        filterParams.patientGender = filters.patientGender;
-      }
-      
-      if (filters.patientAgeBracket) {
-        filterConditions.push(`c.patient_age_bracket = @patientAgeBracket`);
-        filterParams.patientAgeBracket = filters.patientAgeBracket;
-      }
-      
-      const filterClause = filterConditions.length > 0 ? `AND ${filterConditions.join(' AND ')}` : '';
+      const filterClause = buildFilterConditions(filters, filterParams);
 
       // Aggregate by geographic location using embedded provider location data
       // Note: Only billing providers have location data, performing providers don't
@@ -552,19 +574,7 @@ router.post("/claims-filters", async (req, res) => {
       ORDER BY ${tableInfo.fields.payorGroupField}
     `;
 
-    // Get available service lines
-    const serviceLineQuery = `
-      SELECT DISTINCT 
-        ${tableInfo.fields.serviceLineField} as service_line_code,
-        ${tableInfo.fields.serviceLineDescField} as service_line_description
-      FROM \`aegis_access.${tableName}\`
-      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
-        AND ${tableInfo.fields.serviceLineField} IS NOT NULL
-      ORDER BY ${tableInfo.fields.serviceLineDescField}
-    `;
-
-    // Get available service categories
+    // Get available service categories (top level)
     const serviceCategoryQuery = `
       SELECT DISTINCT 
         service_category_code as code,
@@ -576,16 +586,60 @@ router.post("/claims-filters", async (req, res) => {
       ORDER BY service_category_description
     `;
 
-    // Get available sub-service lines
+    // Get available service lines with their parent category
+    const serviceLineQuery = `
+      SELECT DISTINCT 
+        service_category_code as parent_code,
+        service_category_description as parent_description,
+        ${tableInfo.fields.serviceLineField} as service_line_code,
+        ${tableInfo.fields.serviceLineDescField} as service_line_description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND ${tableInfo.fields.serviceLineField} IS NOT NULL
+        AND service_category_code IS NOT NULL
+      ORDER BY service_category_description, ${tableInfo.fields.serviceLineDescField}
+    `;
+
+    // Get available sub-service lines with their parent service line
     const subServiceLineQuery = `
       SELECT DISTINCT 
+        service_category_code as grandparent_code,
+        service_category_description as grandparent_description,
+        ${tableInfo.fields.serviceLineField} as parent_code,
+        ${tableInfo.fields.serviceLineDescField} as parent_description,
         subservice_line_code as code,
         subservice_line_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
         AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
         AND subservice_line_code IS NOT NULL
-      ORDER BY subservice_line_description
+        AND ${tableInfo.fields.serviceLineField} IS NOT NULL
+        AND service_category_code IS NOT NULL
+      ORDER BY service_category_description, ${tableInfo.fields.serviceLineDescField}, subservice_line_description
+    `;
+
+    // Get available codes with their full hierarchy
+    const codeQuery = `
+      SELECT DISTINCT 
+        service_category_code as level1_code,
+        service_category_description as level1_description,
+        ${tableInfo.fields.serviceLineField} as level2_code,
+        ${tableInfo.fields.serviceLineDescField} as level2_description,
+        subservice_line_code as level3_code,
+        subservice_line_description as level3_description,
+        code as code,
+        code_description as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND code IS NOT NULL
+        AND code != ''
+        AND code_description IS NOT NULL
+        AND code_description != ''
+        AND ${tableInfo.fields.serviceLineField} IS NOT NULL
+        AND service_category_code IS NOT NULL
+      ORDER BY service_category_description, ${tableInfo.fields.serviceLineDescField}, subservice_line_description, code_description
     `;
 
     // Get available places of service (only for volume_procedure)
@@ -664,6 +718,197 @@ router.post("/claims-filters", async (req, res) => {
       ORDER BY patient_age_bracket
     `;
 
+    // Get available patient geographic data (hierarchical)
+    const patientUsRegionQuery = `
+      SELECT DISTINCT patient_us_region
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND patient_us_region IS NOT NULL
+        AND patient_us_region != ''
+      ORDER BY patient_us_region
+    `;
+
+    const patientUsDivisionQuery = `
+      SELECT DISTINCT 
+        patient_us_region as parent_code,
+        patient_us_division as code,
+        patient_us_division as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND patient_us_division IS NOT NULL
+        AND patient_us_division != ''
+        AND patient_us_region IS NOT NULL
+      ORDER BY patient_us_region, patient_us_division
+    `;
+
+    const patientStateQuery = `
+      SELECT DISTINCT 
+        patient_us_region as grandparent_code,
+        patient_us_division as parent_code,
+        patient_state as code,
+        patient_state as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND patient_state IS NOT NULL
+        AND patient_state != ''
+        AND patient_us_division IS NOT NULL
+        AND patient_us_region IS NOT NULL
+      ORDER BY patient_us_region, patient_us_division, patient_state
+    `;
+
+    const patientZip3Query = `
+      SELECT DISTINCT 
+        patient_us_region as level1_code,
+        patient_us_division as level2_code,
+        patient_state as level3_code,
+        patient_zip3 as code,
+        patient_zip3 as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND patient_zip3 IS NOT NULL
+        AND patient_zip3 != ''
+        AND patient_state IS NOT NULL
+        AND patient_us_division IS NOT NULL
+        AND patient_us_region IS NOT NULL
+      ORDER BY patient_us_region, patient_us_division, patient_state, patient_zip3
+    `;
+
+    // Get available claim and DRG data
+    const claimTypeQuery = `
+      SELECT DISTINCT claim_type_code
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND claim_type_code IS NOT NULL
+        AND claim_type_code != ''
+      ORDER BY claim_type_code
+    `;
+
+    // Get available DRG data (hierarchical)
+    const drgMdcQuery = `
+      SELECT DISTINCT 
+        drg_mdc as code,
+        drg_mdc_description as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND drg_mdc IS NOT NULL
+        AND drg_mdc != ''
+      ORDER BY drg_mdc_description
+    `;
+
+    const drgCodeQuery = `
+      SELECT DISTINCT 
+        drg_mdc as parent_code,
+        drg_mdc_description as parent_description,
+        drg_code as code,
+        drg_description as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND drg_code IS NOT NULL
+        AND drg_code != ''
+        AND drg_mdc IS NOT NULL
+      ORDER BY drg_mdc_description, drg_description
+    `;
+
+    const drgMedSurgQuery = `
+      SELECT DISTINCT drg_med_surg
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND drg_med_surg IS NOT NULL
+        AND drg_med_surg != ''
+      ORDER BY drg_med_surg
+    `;
+
+    // Get available bill frequency types
+    const billFrequencyTypeQuery = `
+      SELECT DISTINCT 
+        bill_frequency_type_code as code,
+        bill_frequency_type as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND bill_frequency_type_code IS NOT NULL
+        AND bill_frequency_type_code != ''
+      ORDER BY bill_frequency_type
+    `;
+
+    // Get available procedure/diagnosis codes (non-hierarchical)
+    const codeNonHierarchicalQuery = `
+      SELECT DISTINCT 
+        code as code,
+        code_description as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND code IS NOT NULL
+        AND code != ''
+        AND code_description IS NOT NULL
+        AND code_description != ''
+      ORDER BY code_description
+    `;
+
+    const codeSystemQuery = `
+      SELECT DISTINCT code_system
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND code_system IS NOT NULL
+        AND code_system != ''
+      ORDER BY code_system
+    `;
+
+    const codeSummaryQuery = `
+      SELECT DISTINCT code_summary
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND code_summary IS NOT NULL
+        AND code_summary != ''
+      ORDER BY code_summary
+    `;
+
+    // Get available surgery flag
+    const isSurgeryQuery = `
+      SELECT DISTINCT is_surgery
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND is_surgery IS NOT NULL
+      ORDER BY is_surgery
+    `;
+
+    // Get available revenue codes
+    const revenueCodeQuery = `
+      SELECT DISTINCT 
+        revenue_code as code,
+        revenue_code_description as description
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND revenue_code IS NOT NULL
+        AND revenue_code != ''
+        AND revenue_code_description IS NOT NULL
+        AND revenue_code_description != ''
+      ORDER BY revenue_code_description
+    `;
+
+    const revenueCodeGroupQuery = `
+      SELECT DISTINCT revenue_code_group
+      FROM \`aegis_access.${tableName}\`
+      WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND revenue_code_group IS NOT NULL
+        AND revenue_code_group != ''
+      ORDER BY revenue_code_group
+    `;
+
     // Get available date range
     const dateRangeQuery = `
         SELECT 
@@ -683,12 +928,28 @@ router.post("/claims-filters", async (req, res) => {
       vendorBigQueryClient.query({ query: serviceLineQuery, params }),
       vendorBigQueryClient.query({ query: serviceCategoryQuery, params }),
       vendorBigQueryClient.query({ query: subServiceLineQuery, params }),
+      vendorBigQueryClient.query({ query: codeQuery, params }),
       placeOfServiceQuery ? vendorBigQueryClient.query({ query: placeOfServiceQuery, params }) : Promise.resolve([[]]),
       siteOfCareQuery ? vendorBigQueryClient.query({ query: siteOfCareQuery, params }) : Promise.resolve([[]]),
       vendorBigQueryClient.query({ query: billFacilityTypeQuery, params }),
       vendorBigQueryClient.query({ query: billClassificationTypeQuery, params }),
       vendorBigQueryClient.query({ query: patientGenderQuery, params }),
       vendorBigQueryClient.query({ query: patientAgeQuery, params }),
+      vendorBigQueryClient.query({ query: patientZip3Query, params }),
+      vendorBigQueryClient.query({ query: patientStateQuery, params }),
+      vendorBigQueryClient.query({ query: patientUsRegionQuery, params }),
+      vendorBigQueryClient.query({ query: patientUsDivisionQuery, params }),
+      vendorBigQueryClient.query({ query: claimTypeQuery, params }),
+      vendorBigQueryClient.query({ query: drgCodeQuery, params }),
+      vendorBigQueryClient.query({ query: drgMdcQuery, params }),
+      vendorBigQueryClient.query({ query: drgMedSurgQuery, params }),
+      vendorBigQueryClient.query({ query: billFrequencyTypeQuery, params }),
+      vendorBigQueryClient.query({ query: codeNonHierarchicalQuery, params }),
+      vendorBigQueryClient.query({ query: codeSystemQuery, params }),
+      vendorBigQueryClient.query({ query: codeSummaryQuery, params }),
+      vendorBigQueryClient.query({ query: isSurgeryQuery, params }),
+      vendorBigQueryClient.query({ query: revenueCodeQuery, params }),
+      vendorBigQueryClient.query({ query: revenueCodeGroupQuery, params }),
       vendorBigQueryClient.query({ query: dateRangeQuery, params })
     ];
 
@@ -697,29 +958,67 @@ router.post("/claims-filters", async (req, res) => {
       serviceLines, 
       serviceCategories,
       subServiceLines,
+      hierarchicalCodes,
       placeOfService,
       siteOfCare,
       billFacilityType,
       billClassificationType,
       patientGenders, 
-      patientAges, 
+      patientAges,
+      patientZip3s,
+      patientStates,
+      patientUsRegions,
+      patientUsDivisions,
+      claimTypes,
+      drgCodes,
+      drgMdcs,
+      drgMedSurgs,
+      billFrequencyTypes,
+      codes,
+      codeSystems,
+      codeSummaries,
+      isSurgeries,
+      revenueCodes,
+      revenueCodeGroups,
       dateRange
     ] = await Promise.all(queries);
 
     // Extract the rows from each result
     filters.payorGroups = payorGroups[0].map(row => row.payor_group);
-    filters.serviceLines = serviceLines[0].map(row => ({
-      code: row.service_line_code,
-      description: row.service_line_description
-    }));
+    
+    // Service hierarchy data
     filters.serviceCategories = serviceCategories[0].map(row => ({
       code: row.code,
       description: row.description
     }));
+    
+    filters.serviceLines = serviceLines[0].map(row => ({
+      code: row.service_line_code,
+      description: row.service_line_description,
+      parentCode: row.parent_code,
+      parentDescription: row.parent_description
+    }));
+    
     filters.subServiceLines = subServiceLines[0].map(row => ({
       code: row.code,
-      description: row.description
+      description: row.description,
+      parentCode: row.parent_code,
+      parentDescription: row.parent_description,
+      grandparentCode: row.grandparent_code,
+      grandparentDescription: row.grandparent_description
     }));
+    
+    filters.codes = hierarchicalCodes[0].map(row => ({
+      code: row.code,
+      description: row.description,
+      level1Code: row.level1_code,
+      level1Description: row.level1_description,
+      level2Code: row.level2_code,
+      level2Description: row.level2_description,
+      level3Code: row.level3_code,
+      level3Description: row.level3_description
+    }));
+    
     filters.placeOfService = placeOfServiceQuery ? placeOfService[0].map(row => ({
       code: row.code,
       description: row.description
@@ -738,6 +1037,66 @@ router.post("/claims-filters", async (req, res) => {
     }));
     filters.patientGenders = patientGenders[0].map(row => row.patient_gender);
     filters.patientAgeBrackets = patientAges[0].map(row => row.patient_age_bracket);
+    
+    // Patient geographic hierarchy data
+    filters.patientUsRegions = patientUsRegions[0].map(row => row.patient_us_region);
+    
+    filters.patientUsDivisions = patientUsDivisions[0].map(row => ({
+      code: row.code,
+      description: row.description,
+      parentCode: row.parent_code
+    }));
+    
+    filters.patientStates = patientStates[0].map(row => ({
+      code: row.code,
+      description: row.description,
+      parentCode: row.parent_code,
+      grandparentCode: row.grandparent_code
+    }));
+    
+    filters.patientZip3s = patientZip3s[0].map(row => ({
+      code: row.code,
+      description: row.description,
+      level1Code: row.level1_code,
+      level2Code: row.level2_code,
+      level3Code: row.level3_code
+    }));
+    
+    // Claim and DRG hierarchy data
+    filters.claimTypes = claimTypes[0].map(row => row.claim_type_code);
+    
+    filters.drgMdcs = drgMdcs[0].map(row => ({
+      code: row.code,
+      description: row.description
+    }));
+    
+    filters.drgCodes = drgCodes[0].map(row => ({
+      code: row.code,
+      description: row.description,
+      parentCode: row.parent_code,
+      parentDescription: row.parent_description
+    }));
+    
+    filters.drgMedSurgs = drgMedSurgs[0].map(row => row.drg_med_surg);
+    
+    // Bill frequency types
+    filters.billFrequencyTypes = billFrequencyTypes[0].map(row => ({
+      code: row.code,
+      description: row.description
+    }));
+    
+    // Procedure/diagnosis codes (non-hierarchical)
+    filters.codeSystems = codeSystems[0].map(row => row.code_system);
+    filters.codeSummaries = codeSummaries[0].map(row => row.code_summary);
+    filters.isSurgeries = isSurgeries[0].map(row => row.is_surgery);
+    
+    // Revenue codes
+    filters.revenueCodes = revenueCodes[0].map(row => ({
+      code: row.code,
+      description: row.description
+    }));
+    filters.revenueCodeGroups = revenueCodeGroups[0].map(row => row.revenue_code_group);
+    
     filters.dateRange = {
       earliest: dateRange[0][0].earliest_date,
       latest: dateRange[0][0].latest_date
@@ -754,6 +1113,21 @@ router.post("/claims-filters", async (req, res) => {
       billClassificationType: filters.billClassificationType.length,
       patientGenders: filters.patientGenders.length,
       patientAgeBrackets: filters.patientAgeBrackets.length,
+      patientZip3s: filters.patientZip3s.length,
+      patientStates: filters.patientStates.length,
+      patientUsRegions: filters.patientUsRegions.length,
+      patientUsDivisions: filters.patientUsDivisions.length,
+      claimTypes: filters.claimTypes.length,
+      drgCodes: filters.drgCodes.length,
+      drgMdcs: filters.drgMdcs.length,
+      drgMedSurgs: filters.drgMedSurgs.length,
+      billFrequencyTypes: filters.billFrequencyTypes.length,
+      codes: filters.codes.length,
+      codeSystems: filters.codeSystems.length,
+      codeSummaries: filters.codeSummaries.length,
+      isSurgeries: filters.isSurgeries.length,
+      revenueCodes: filters.revenueCodes.length,
+      revenueCodeGroups: filters.revenueCodeGroups.length,
       dateRange: filters.dateRange
     });
 
@@ -763,6 +1137,19 @@ router.post("/claims-filters", async (req, res) => {
     }
     if (filters.billClassificationType.length > 0) {
       console.log("🔍 Sample bill classification filters:", filters.billClassificationType.slice(0, 5));
+      // Check for duplicate codes
+      const codes = filters.billClassificationType.map(f => f.code);
+      const uniqueCodes = [...new Set(codes)];
+      if (codes.length !== uniqueCodes.length) {
+        console.log("⚠️ WARNING: Duplicate bill classification codes found!");
+        const duplicates = codes.filter((code, index) => codes.indexOf(code) !== index);
+        console.log("Duplicate codes:", [...new Set(duplicates)]);
+        filters.billClassificationType.forEach(f => {
+          if (duplicates.includes(f.code)) {
+            console.log(`Code ${f.code}: "${f.description}"`);
+          }
+        });
+      }
     }
 
     // Cache the result for 5 minutes
