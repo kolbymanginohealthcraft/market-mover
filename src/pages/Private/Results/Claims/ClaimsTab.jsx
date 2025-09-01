@@ -353,68 +353,93 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
 
   return (
     <div className={styles.claimsContainer}>
-      {/* Header with summary */}
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h2>Claims Analysis</h2>
-          <p className={styles.subtitle}>
-            Analyzing {cachedNPIs.length} providers in {radiusInMiles}mi radius
-          </p>
-        </div>
-                 <div className={styles.headerRight}>
-           <div className={styles.dataSourceSelector}>
-             <label>Data Source:</label>
-             <select
-               value={tableName}
-               onChange={(e) => setTableName(e.target.value)}
-               className={styles.select}
-             >
-               {Object.entries(AVAILABLE_TABLES).map(([key, value]) => (
-                 <option key={key} value={key}>{value.label}</option>
-               ))}
-             </select>
-           </div>
-           <div className={styles.filterGroupButtons}>
-             <button
-               className={`${styles.filterButton} ${activeFilterGroup === 'service' ? styles.active : ''}`}
-               onClick={() => setActiveFilterGroup(activeFilterGroup === 'service' ? null : 'service')}
-             >
-               <BarChart3 size={16} />
-               Service
-               <ChevronDown size={16} className={activeFilterGroup === 'service' ? styles.rotated : ''} />
-             </button>
-             
-             <button
-               className={`${styles.filterButton} ${activeFilterGroup === 'billing' ? styles.active : ''}`}
-               onClick={() => setActiveFilterGroup(activeFilterGroup === 'billing' ? null : 'billing')}
-             >
-               <Users size={16} />
-               Billing
-               <ChevronDown size={16} className={activeFilterGroup === 'billing' ? styles.rotated : ''} />
-             </button>
-             
-             <button
-               className={`${styles.filterButton} ${activeFilterGroup === 'patient' ? styles.active : ''}`}
-               onClick={() => setActiveFilterGroup(activeFilterGroup === 'patient' ? null : 'patient')}
-             >
-               <Users size={16} />
-               Patient
-               <ChevronDown size={16} className={activeFilterGroup === 'patient' ? styles.rotated : ''} />
-             </button>
-             
-             
-             
-             <button
-               className={`${styles.filterButton} ${activeFilterGroup === 'clinical' ? styles.active : ''}`}
-               onClick={() => setActiveFilterGroup(activeFilterGroup === 'clinical' ? null : 'clinical')}
-             >
-               <Activity size={16} />
-               Clinical
-               <ChevronDown size={16} className={activeFilterGroup === 'clinical' ? styles.rotated : ''} />
-             </button>
-           </div>
+             {/* Header with summary */}
+       <div className={styles.header}>
+         <div className={styles.headerLeft}>
+           <h2>Claims Analysis</h2>
+           <p className={styles.subtitle}>
+             Analyzing {cachedNPIs.length} providers in {radiusInMiles}mi radius
+           </p>
+           
+           {/* Drill-down breadcrumb - Moved into header */}
+           {isDrilledDown && drillDownHistory.length > 0 && (
+             <div className={styles.drillDownBreadcrumb}>
+               <div className={styles.breadcrumbPath}>
+                 <button 
+                   className={styles.breadcrumbItem}
+                   onClick={() => clearDrillDown()}
+                 >
+                   All Data
+                 </button>
+                 {drillDownHistory.map((step, index) => (
+                   <div key={index} className={styles.breadcrumbStep}>
+                     <span className={styles.breadcrumbArrow}>→</span>
+                     <button 
+                       className={styles.breadcrumbItem}
+                       onClick={() => drillDownToStep(index)}
+                     >
+                       {step.label}
+                     </button>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           )}
          </div>
-        </div>
+                  <div className={styles.headerRight}>
+            <div className={styles.dataSourceSelector}>
+              <label>Data Source:</label>
+              <select
+                value={tableName}
+                onChange={(e) => setTableName(e.target.value)}
+                className={styles.select}
+              >
+                {Object.entries(AVAILABLE_TABLES).map(([key, value]) => (
+                  <option key={key} value={key}>{value.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.filterGroupButtons}>
+              <button
+                className={`${styles.filterButton} ${activeFilterGroup === 'service' ? styles.active : ''}`}
+                onClick={() => setActiveFilterGroup(activeFilterGroup === 'service' ? null : 'service')}
+              >
+                <BarChart3 size={16} />
+                Service
+                <ChevronDown size={16} className={activeFilterGroup === 'service' ? styles.rotated : ''} />
+              </button>
+              
+              <button
+                className={`${styles.filterButton} ${activeFilterGroup === 'billing' ? styles.active : ''}`}
+                onClick={() => setActiveFilterGroup(activeFilterGroup === 'billing' ? null : 'billing')}
+              >
+                <Users size={16} />
+                Billing
+                <ChevronDown size={16} className={activeFilterGroup === 'billing' ? styles.rotated : ''} />
+              </button>
+              
+              <button
+                className={`${styles.filterButton} ${activeFilterGroup === 'patient' ? styles.active : ''}`}
+                onClick={() => setActiveFilterGroup(activeFilterGroup === 'patient' ? null : 'patient')}
+              >
+                <Users size={16} />
+                Patient
+                <ChevronDown size={16} className={activeFilterGroup === 'patient' ? styles.rotated : ''} />
+              </button>
+              
+              
+              
+              <button
+                className={`${styles.filterButton} ${activeFilterGroup === 'clinical' ? styles.active : ''}`}
+                onClick={() => setActiveFilterGroup(activeFilterGroup === 'clinical' ? null : 'clinical')}
+              >
+                <Activity size={16} />
+                Clinical
+                <ChevronDown size={16} className={activeFilterGroup === 'clinical' ? styles.rotated : ''} />
+              </button>
+            </div>
+          </div>
+         </div>
 
                            {/* Compact Filter Panel */}
        {activeFilterGroup && (
@@ -1056,33 +1081,10 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
             </>
           )}
 
-          {/* Drill-down breadcrumb */}
-          {isDrilledDown && drillDownHistory.length > 0 && (
-            <div className={styles.drillDownBreadcrumb}>
-              <h4>Drill-down Path</h4>
-              <div className={styles.breadcrumbPath}>
-                <button 
-                  className={styles.breadcrumbItem}
-                  onClick={() => clearDrillDown()}
-                >
-                  All Data
-                </button>
-                {drillDownHistory.map((step, index) => (
-                  <div key={index} className={styles.breadcrumbStep}>
-                    <span className={styles.breadcrumbArrow}>→</span>
-                    <button 
-                      className={styles.breadcrumbItem}
-                      onClick={() => drillDownToStep(index)}
-                    >
-                      {step.label}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+                   </div>
+       )}
+
+       
 
       {/* Data Loading State */}
       {claimsLoading && (
