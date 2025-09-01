@@ -36,6 +36,12 @@
   gap: 12px;
 }
 
+.filterGroupButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .filterButton {
   display: flex;
   align-items: center;
