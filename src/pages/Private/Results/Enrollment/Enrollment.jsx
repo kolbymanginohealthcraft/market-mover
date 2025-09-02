@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, Routes, Route, Navigate } from "react-router-dom";
 import CMSEnrollmentTab from "./CMSEnrollmentTab";
-import styles from "./Enrollment.module.css";
 
 export default function Enrollment({ provider, radiusInMiles }) {
   const location = useLocation();

@@ -239,87 +239,7 @@
   margin: 0 0 20px 0;
 }
 
-.demographicsSection {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  padding: 24px;
-}
 
-.demographicsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
-}
-
-.demographicCard {
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 20px;
-  border: 1px solid #e5e7eb;
-}
-
-.demographicCard h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 16px 0;
-}
-
-.ageChart,
-.genderChart,
-.raceChart {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ageBar,
-.genderItem,
-.raceItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.ageLabel,
-.genderLabel,
-.raceLabel {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #374151;
-  min-width: 60px;
-}
-
-.ageBarContainer,
-.genderBar,
-.raceBar {
-  flex: 1;
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.ageBarFill,
-.genderBarFill,
-.raceBarFill {
-  height: 100%;
-  background: linear-gradient(90deg, #1DADBE 0%, #265947 100%);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.ageValue,
-.genderValue,
-.raceValue {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #6b7280;
-  min-width: 80px;
-  text-align: right;
-}
 
 .info {
   background: #f8fafc;
@@ -600,35 +520,7 @@
     padding: 16px;
   }
   
-  .demographicsGrid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .demographicCard {
-    padding: 16px;
-  }
-  
-  .ageBar,
-  .genderItem,
-  .raceItem {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  
-  .ageLabel,
-  .genderLabel,
-  .raceLabel {
-    min-width: auto;
-  }
-  
-  .ageValue,
-  .genderValue,
-  .raceValue {
-    text-align: left;
-    min-width: auto;
-  }
+
 }
 
  

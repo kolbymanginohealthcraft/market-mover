@@ -11,7 +11,7 @@ import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
 
 export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView = 'overview' }) {
-  const [selectedView, setSelectedView] = useState(defaultView); // 'overview', 'demographics', 'payers'
+  const [selectedView, setSelectedView] = useState(defaultView); // 'overview', 'payers'
   
   // Update selectedView when defaultView prop changes (URL navigation)
   useEffect(() => {
@@ -95,41 +95,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
     };
   }, [data, latestMonth]);
 
-  // Calculate demographic data
-  const demographicData = useMemo(() => {
-    if (!data || !latestMonth) return null;
-    
-    const latestData = data.filter(r => r.month === latestMonth);
-    if (latestData.length === 0) return null;
-    
-    const total = latestData.reduce((sum, r) => sum + (r.total_benes || 0), 0);
-    
-    if (total === 0) return null;
-    
-    return {
-      ageGroups: {
-        '65-69': latestData.reduce((sum, r) => sum + (r.age_65_to_69 || 0), 0),
-        '70-74': latestData.reduce((sum, r) => sum + (r.age_70_to_74 || 0), 0),
-        '75-79': latestData.reduce((sum, r) => sum + (r.age_75_to_79 || 0), 0),
-        '80-84': latestData.reduce((sum, r) => sum + (r.age_80_to_84 || 0), 0),
-        '85-89': latestData.reduce((sum, r) => sum + (r.age_85_to_89 || 0), 0),
-        '90-94': latestData.reduce((sum, r) => sum + (r.age_90_to_94 || 0), 0),
-        '95+': latestData.reduce((sum, r) => sum + (r.age_gt_94 || 0), 0),
-      },
-      gender: {
-        male: latestData.reduce((sum, r) => sum + (r.male_total || 0), 0),
-        female: latestData.reduce((sum, r) => sum + (r.female_total || 0), 0),
-      },
-      race: {
-        white: latestData.reduce((sum, r) => sum + (r.white_total || 0), 0),
-        black: latestData.reduce((sum, r) => sum + (r.black_total || 0), 0),
-        hispanic: latestData.reduce((sum, r) => sum + (r.hispanic_total || 0), 0),
-        api: latestData.reduce((sum, r) => sum + (r.api_total || 0), 0),
-        native: latestData.reduce((sum, r) => sum + (r.native_indian_total || 0), 0),
-        other: latestData.reduce((sum, r) => sum + (r.other_total || 0), 0),
-      }
-    };
-  }, [data, latestMonth]);
+
 
   if (loading) {
     return <Spinner message="Loading CMS enrollment data..." />;
@@ -161,93 +127,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
 
 
 
-        {selectedView === 'demographics' && (
-          <div className={styles.demographicsSection}>
-            <div className={styles.demographicGrid}>
-              <div className={styles.demographicCard}>
-                <h3>Age Distribution</h3>
-                <div className={styles.ageChart}>
-                  {Object.entries(demographicData?.ageGroups || {}).map(([age, count]) => {
-                    const percentage = summaryStats?.totalBenes > 0 ? ((count / summaryStats.totalBenes) * 100).toFixed(1) : 0;
-                    return (
-                      <div key={age} className={styles.ageItem}>
-                        <div className={styles.ageLabel}>{age}</div>
-                        <div className={styles.ageBar}>
-                          <div 
-                            className={styles.ageBarFill} 
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                        <div className={styles.ageValue}>
-                          {count.toLocaleString()} ({percentage}%)
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
-              <div className={styles.demographicCard}>
-                <h3>Gender Distribution</h3>
-                <div className={styles.genderChart}>
-                  <div className={styles.genderItem}>
-                    <div className={styles.genderLabel}>Male</div>
-                    <div className={styles.genderBar}>
-                      <div 
-                        className={styles.genderBarFill} 
-                        style={{ 
-                          width: `${summaryStats?.totalBenes > 0 ? (demographicData?.gender.male / summaryStats.totalBenes * 100) : 0}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <div className={styles.genderValue}>
-                      {demographicData?.gender.male.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className={styles.genderItem}>
-                    <div className={styles.genderLabel}>Female</div>
-                    <div className={styles.genderBar}>
-                      <div 
-                        className={styles.genderBarFill} 
-                        style={{ 
-                          width: `${summaryStats?.totalBenes > 0 ? (demographicData?.gender.female / summaryStats.totalBenes * 100) : 0}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <div className={styles.genderValue}>
-                      {demographicData?.gender.female.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.demographicCard}>
-                <h3>Race & Ethnicity</h3>
-                <div className={styles.raceChart}>
-                  {Object.entries(demographicData?.race || {}).map(([race, count]) => {
-                    const percentage = summaryStats?.totalBenes > 0 ? ((count / summaryStats.totalBenes) * 100).toFixed(1) : 0;
-                    return (
-                      <div key={race} className={styles.raceItem}>
-                        <div className={styles.raceLabel}>
-                          {race.charAt(0).toUpperCase() + race.slice(1)}
-                        </div>
-                        <div className={styles.raceBar}>
-                          <div 
-                            className={styles.raceBarFill} 
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                        <div className={styles.raceValue}>
-                          {count.toLocaleString()} ({percentage}%)
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {selectedView === 'payers' && (
           <>

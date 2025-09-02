@@ -559,15 +559,12 @@ const SubNavigation = () => {
        
        if (location.pathname.includes('/overview')) {
          currentEnrollmentTab = 'overview';
-       } else if (location.pathname.includes('/demographics')) {
-         currentEnrollmentTab = 'demographics';
        } else if (location.pathname.includes('/payers')) {
          currentEnrollmentTab = 'payers';
        }
 
        const enrollmentTabs = [
          { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview` },
-         { id: "demographics", label: "Demographics", icon: Users, path: `${basePath}/cms-enrollment/demographics` },
          { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers` }
        ];
 
