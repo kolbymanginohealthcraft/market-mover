@@ -55,7 +55,7 @@ import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarke
 import BannerTest from "../pages/Temp/BannerTest";
 import SpinnerDemo from "../pages/Temp/SpinnerDemo";
 import Network from "../pages/Private/Network/Network";
-import ServiceLineSearch from "../pages/Private/SupplierMode/ServiceLineSearch";
+
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
 import PaymentTest from "../pages/Auth/PaymentTest";
@@ -146,7 +146,7 @@ export default function App() {
               <Route path="explore" element={<Explore />} />
               <Route path="feedback" element={<Feedback />} />
               <Route path="provider/:dhc/*" element={<ProviderDetail />} />
-              <Route path="supplier/search" element={<ServiceLineSearch />} />
+
               <Route path="markets/*" element={<MarketsList />} />
               <Route path="market/:marketId/*" element={<MarketDetail />} />
               <Route path="market/create" element={<InteractiveMarketCreation />} />
