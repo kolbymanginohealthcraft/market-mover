@@ -23,7 +23,7 @@ import ProviderListingTab from "./Providers/ProviderListingTab";
 import ChartsTab from "./Storyteller/ChartDashboard";
 
 import ClaimsTab from "./Claims/ClaimsTab";
-import PopulationTab from "./Population/PopulationTab";
+import CensusDataPanel from "./Population/CensusDataPanel";
 
 import Enrollment from "./Enrollment/Enrollment";
 import ProviderDensityPage from "./Providers/ProviderDensityPage";
@@ -144,7 +144,7 @@ function ProviderDetailContent() {
 
         <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="catchment" element={<CatchmentTab providerInfo={provider} />} />
-        <Route path="population" element={<PopulationTab provider={provider} radiusInMiles={radiusInMiles} />} />
+        <Route path="population" element={<CensusDataPanel provider={provider} radiusInMiles={radiusInMiles} />} />
 
         <Route path="cms-enrollment/*" element={<Enrollment provider={provider} radiusInMiles={radiusInMiles} />} />
         <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} provider={provider} />} />
