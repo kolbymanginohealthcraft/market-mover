@@ -22,11 +22,10 @@ import useQualityMeasures from "../../../hooks/useQualityMeasures";
 import MarketOverview from "../Markets/MarketOverview";
 import ProviderListingTab from "./Providers/ProviderListingTab";
 import ChartsTab from "./Storyteller/ChartDashboard";
-import DiagnosesTab from "./Claims/DiagnosesTab";
-import ProceduresTab from "./Claims/ProceduresTab";
+
 import ClaimsTab from "./Claims/ClaimsTab";
 import PopulationTab from "./Population/PopulationTab";
-import ReferralsTab from "./Claims/ReferralsTab";
+
 import CMSEnrollmentTab from "./Enrollment/CMSEnrollmentTab";
 import ProviderDensityPage from "./Providers/ProviderDensityPage";
 import CatchmentTab from "./Catchment/CatchmentTab";

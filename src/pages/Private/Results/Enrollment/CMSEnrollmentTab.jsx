@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styles from "./CMSEnrollmentTab.module.css";
 import CMSEnrollmentPanel from "./CMSEnrollmentPanel";
 import MAEnrollmentPanel from "./MAEnrollmentPanel";
-import MAEnrollmentTrendChart from "./MAEnrollmentTrendChart";
+
 import useCMSEnrollmentData from "../../../../hooks/useCMSEnrollmentData";
 import useMAEnrollmentData from "../../../../hooks/useMAEnrollmentData";
 import { apiUrl } from "../../../../utils/api";
