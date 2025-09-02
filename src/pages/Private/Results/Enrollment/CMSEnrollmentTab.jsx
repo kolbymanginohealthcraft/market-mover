@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styles from "./CMSEnrollmentTab.module.css";
 import CMSEnrollmentPanel from "./CMSEnrollmentPanel";
-import MAEnrollmentPanel from "./MAEnrollmentPanel";
 
 import useCMSEnrollmentData from "../../../../hooks/useCMSEnrollmentData";
 import useMAEnrollmentData from "../../../../hooks/useMAEnrollmentData";
@@ -169,7 +168,7 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
                   </div>
                   
                   <div className={styles.summaryCards}>
-                    <MAEnrollmentPanel 
+                    <MAEnrollmentSummary 
                       data={maData} 
                       loading={maLoading} 
                       error={maError}
@@ -181,12 +180,11 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
                 {/* Right Panel - Organization List */}
                 <div className={styles.payersRightPanel}>
                   <div className={styles.organizationList}>
-                    <MAEnrollmentPanel 
+                    <MAEnrollmentTable 
                       data={maData} 
                       loading={maLoading} 
                       error={maError}
                       type={selectedType}
-                      showTableOnly={true}
                     />
                   </div>
                 </div>
@@ -194,6 +192,116 @@ export default function CMSEnrollmentTab({ provider, radiusInMiles, defaultView 
             )}
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// MA Enrollment Summary Component (formerly MAEnrollmentPanel)
+function MAEnrollmentSummary({ data, loading, error, type }) {
+  if (loading) return <div>Loading MA enrollment data...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!data || data.length === 0) return <div>No MA enrollment data available.</div>;
+
+  const getTypeLabel = (type) => {
+    switch (type) {
+      case "MA": return "Medicare Advantage";
+      case "PDP": return "Prescription Drug Plans";
+      case "ALL": return "All Plans";
+      default: return "All Plans";
+    }
+  };
+
+  // Group by parent organization
+  const orgGroups = {};
+  
+  data.forEach(row => {
+    const parentOrg = row.parent_org || 'Unknown';
+    
+    if (!orgGroups[parentOrg]) {
+      orgGroups[parentOrg] = {
+        parent_org: parentOrg,
+        total_enrollment: 0
+      };
+    }
+    
+    // Add enrollment from each plan
+    orgGroups[parentOrg].total_enrollment += row.enrollment || 0;
+  });
+
+  const orgList = Object.values(orgGroups)
+    .sort((a, b) => b.total_enrollment - a.total_enrollment);
+
+  const totalEnrollment = orgList.reduce((sum, org) => sum + org.total_enrollment, 0);
+
+  return (
+    <div className={styles.maPanel}>
+      <div className={styles.maHeader}>
+        <h3>Enrollment Data - {getTypeLabel(type)}</h3>
+      </div>
+
+      <div className={styles.maSummary}>
+        <div className={styles.maCard}>
+          <div className={styles.maCardValue}>{totalEnrollment.toLocaleString()}</div>
+          <div className={styles.maCardLabel}>Total Enrollment</div>
+        </div>
+        <div className={styles.maCard}>
+          <div className={styles.maCardValue}>{orgList.length}</div>
+          <div className={styles.maCardLabel}>Organizations</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// MA Enrollment Table Component
+function MAEnrollmentTable({ data, loading, error, type }) {
+  if (loading) return <div>Loading MA enrollment data...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!data || data.length === 0) return <div>No MA enrollment data available.</div>;
+
+  // Group by parent organization
+  const orgGroups = {};
+  
+  data.forEach(row => {
+    const parentOrg = row.parent_org || 'Unknown';
+    
+    if (!orgGroups[parentOrg]) {
+      orgGroups[parentOrg] = {
+        parent_org: parentOrg,
+        total_enrollment: 0
+      };
+    }
+    
+    // Add enrollment from each plan
+    orgGroups[parentOrg].total_enrollment += row.enrollment || 0;
+  });
+
+  const orgList = Object.values(orgGroups)
+    .sort((a, b) => b.total_enrollment - a.total_enrollment);
+
+  return (
+    <div className={styles.maPanel}>
+      <div className={styles.maHeader}>
+        <h3>Parent Organizations</h3>
+      </div>
+      <div className={styles.maTableContainer}>
+        <table className={styles.maTable}>
+          <thead>
+            <tr>
+              <th>Parent Organization</th>
+              <th>Enrollment</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orgList.map((org, index) => (
+              <tr key={index}>
+                <td>{org.parent_org || 'N/A'}</td>
+                <td>{org.total_enrollment.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

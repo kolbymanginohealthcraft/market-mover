@@ -479,6 +479,82 @@
   overflow-y: auto;
 }
 
+/* ===== MA ENROLLMENT PANEL STYLES ===== */
+.maPanel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.maHeader {
+  margin-bottom: 16px;
+}
+
+.maHeader h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 16px 0;
+}
+
+.maSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.maCard {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+}
+
+.maCardValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.maCardLabel {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.maTableContainer {
+  margin-top: 16px;
+}
+
+.maTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.maTable th,
+.maTable td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.maTable th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.maTable td {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
 
 
 /* Responsive Design */
