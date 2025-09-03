@@ -52,6 +52,33 @@ export default function StyleGuide() {
     );
   };
 
+  // Handle escape key to blur inputs
+  const handleEscapeKey = (e) => {
+    if (e.key === 'Escape') {
+      e.target.blur();
+    }
+  };
+
+  // Handle search bar escape key behavior
+  const [searchBarValue, setSearchBarValue] = useState('');
+  const [searchBarEscapeCount, setSearchBarEscapeCount] = useState(0);
+
+  const handleSearchBarEscape = (e) => {
+    if (e.key === 'Escape') {
+      if (searchBarValue && searchBarEscapeCount === 0) {
+        // First escape: clear the search
+        setSearchBarValue('');
+        setSearchBarEscapeCount(1);
+        // Reset the count after a short delay
+        setTimeout(() => setSearchBarEscapeCount(0), 100);
+      } else {
+        // Second escape (or first if no value): exit focus
+        e.target.blur();
+        setSearchBarEscapeCount(0);
+      }
+    }
+  };
+
   // Clear search when dropdown closes
   useEffect(() => {
     if (!dropdownOpen3) {
@@ -512,6 +539,207 @@ export default function StyleGuide() {
                     />
                     Show Hidden Items
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Search Bars Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Code size={16} />
+            Search Bars
+          </h2>
+          <p className={styles.sectionDescription}>
+            Standardized search input components with various states and configurations.
+          </p>
+
+          <div className={styles.uiComponentsGrid}>
+            {/* Search Bar with Icon */}
+            <div className={styles.subsection}>
+              <h3>Search Bar with Icon</h3>
+              <div className={styles.formControlExample}>
+                <div className={styles.searchBarContainer}>
+                  <div className={styles.searchIcon}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search with icon..."
+                    className={styles.searchInput}
+                    style={{ width: '300px', paddingLeft: '40px' }}
+                    value={searchBarValue}
+                    onChange={(e) => setSearchBarValue(e.target.value)}
+                    onKeyDown={handleSearchBarEscape}
+                  />
+                  {searchBarValue && (
+                    <button
+                      onClick={() => setSearchBarValue('')}
+                      className={`${styles.clearButton} ${styles.clearButtonHover}`}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: '1px solid transparent',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        padding: '0',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '20px',
+                        height: '20px',
+                        fontSize: '16px',
+                        lineHeight: '1',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Clear search"
+                    >
+                      <span style={{ fontSize: '16px', lineHeight: '1' }}>×</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Form Input Fields Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Code size={16} />
+            Form Input Fields
+          </h2>
+          <p className={styles.sectionDescription}>
+            Standardized form input components with labels and various input types.
+          </p>
+
+          <div className={styles.uiComponentsGrid}>
+            {/* Stacked Layout - Label above input */}
+            <div className={styles.subsection}>
+              <h3>Stacked Layout</h3>
+              <div className={styles.formControlExample}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="Enter your full name"
+                    className={styles.formInput}
+                    style={{ width: '300px' }}
+                    onKeyDown={handleEscapeKey}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    className={styles.formInput}
+                    style={{ width: '300px' }}
+                    onKeyDown={handleEscapeKey}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Description</label>
+                  <textarea
+                    placeholder="Enter a description..."
+                    className={styles.formTextarea}
+                    rows={3}
+                    style={{ width: '300px' }}
+                    onKeyDown={handleEscapeKey}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Inline Layout - Label and input on same line */}
+            <div className={styles.subsection}>
+              <h3>Inline Layout</h3>
+              <div className={styles.formControlExample}>
+                <div className={styles.inlineForm}>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>Username:</label>
+                    <input
+                      type="text"
+                      placeholder="Enter username"
+                      className={styles.inlineFormInput}
+                      onKeyDown={handleEscapeKey}
+                    />
+                  </div>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>Country:</label>
+                    <select className={styles.inlineFormSelect} onKeyDown={handleEscapeKey}>
+                      <option value="">Select country</option>
+                      <option value="us">United States</option>
+                      <option value="ca">Canada</option>
+                      <option value="uk">United Kingdom</option>
+                    </select>
+                  </div>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>Age:</label>
+                    <input
+                      type="number"
+                      placeholder="Enter age"
+                      min="0"
+                      max="120"
+                      className={styles.inlineFormInput}
+                      style={{ width: '100px' }}
+                      onKeyDown={handleEscapeKey}
+                    />
+                  </div>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>Birth Date:</label>
+                    <input
+                      type="date"
+                      className={styles.inlineFormInput}
+                      style={{ width: '140px' }}
+                      onKeyDown={handleEscapeKey}
+                    />
+                  </div>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>Opt In:</label>
+                    <div className={styles.inlineFormRadioGroup}>
+                      <label className={styles.inlineFormRadioLabel}>
+                        <input type="radio" name="optin" value="yes" className={styles.inlineFormRadio} />
+                        <span>Yes</span>
+                      </label>
+                      <label className={styles.inlineFormRadioLabel}>
+                        <input type="radio" name="optin" value="no" className={styles.inlineFormRadio} />
+                        <span>No</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>
+                      Password <span className={styles.required}>*</span>:
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter password"
+                      className={styles.inlineFormInput}
+                      required
+                      onKeyDown={handleEscapeKey}
+                    />
+                  </div>
+                  <div className={styles.inlineFormRow}>
+                    <label className={styles.inlineFormLabel}>
+                      Confirm Password <span className={styles.required}>*</span>:
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Confirm password"
+                      className={styles.inlineFormInput}
+                      required
+                      onKeyDown={handleEscapeKey}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
