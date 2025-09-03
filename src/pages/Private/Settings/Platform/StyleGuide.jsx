@@ -21,6 +21,7 @@ export default function StyleGuide() {
   // Multi-select dropdown state
   const [multiSelectItems, setMultiSelectItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSelectedItems, setShowSelectedItems] = useState(true);
 
   // Available options for the multi-select dropdown
   const availableOptions = [
@@ -261,8 +262,43 @@ export default function StyleGuide() {
                       >
                         <span>
                           {multiSelectItems.length > 0 ? (
-                            <span className={styles.multiSelectDisplay}>
-                              {multiSelectItems.length} selected
+                            <span className={styles.multiSelectDisplay} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>{multiSelectItems.length} selected</span>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowSelectedItems(!showSelectedItems);
+                                }}
+                                title={showSelectedItems ? "Hide selected items" : "Show selected items"}
+                                style={{
+                                  background: 'transparent',
+                                  border: '1px solid #d1d5db',
+                                  cursor: 'pointer',
+                                  color: '#6b7280',
+                                  fontSize: '10px',
+                                  fontWeight: '500',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  transition: 'all 0.15s ease',
+                                  height: '20px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                                                  onMouseEnter={(e) => {
+                                    e.target.style.background = '#e6f7f9';
+                                    e.target.style.borderColor = '#52bad7';
+                                    e.target.style.color = '#044563';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.background = 'transparent';
+                                    e.target.style.borderColor = '#d1d5db';
+                                    e.target.style.color = '#6b7280';
+                                  }}
+                              >
+                                {showSelectedItems ? 'Hide' : 'Show'}
+                              </button>
                             </span>
                           ) : (
                             'Multi-Select'
@@ -283,6 +319,7 @@ export default function StyleGuide() {
                         className={styles.searchInput}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus={dropdownOpen3}
                       />
                     </div>
                     
@@ -311,31 +348,91 @@ export default function StyleGuide() {
                     </div>
                   </Dropdown>
                   {multiSelectItems.length > 0 && (
-                    <button 
-                      className={`${styles.clearButton} ${styles.clearButtonHover}`}
-                      onClick={() => setMultiSelectItems([])}
-                      title="Clear all selections"
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid transparent',
-                        padding: '0',
-                        margin: '0',
-                        cursor: 'pointer',
-                        color: '#ef4444',
-                        borderRadius: '4px',
-                        transition: 'all 0.15s ease',
-                        width: '20px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}
-                    >
-                      <X size={12} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <button 
+                        className={`${styles.clearButton} ${styles.clearButtonHover}`}
+                        onClick={() => setMultiSelectItems([])}
+                        title="Clear all selections"
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid transparent',
+                          padding: '0',
+                          margin: '0',
+                          cursor: 'pointer',
+                          color: '#ef4444',
+                          borderRadius: '4px',
+                          transition: 'all 0.15s ease',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
                   )}
                 </div>
+                
+                {/* Selected items as removable tags */}
+                {multiSelectItems.length > 0 && showSelectedItems && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    marginTop: '8px'
+                  }}>
+                    {multiSelectItems.map(item => (
+                      <span key={item} style={{
+                        background: '#e6f7f9',
+                        color: '#265947',
+                        padding: '4px 8px',
+                        borderRadius: '16px',
+                        fontSize: '11px',
+                        border: '1px solid #d1f2f5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        {item}
+                        <button 
+                          onClick={() => handleMultiSelectChange(item)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#265947',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            padding: '0',
+                            margin: '0',
+                            lineHeight: '1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#d1f2f5';
+                            e.target.style.color = '#044563';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#265947';
+                          }}
+                          title={`Remove ${item}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
