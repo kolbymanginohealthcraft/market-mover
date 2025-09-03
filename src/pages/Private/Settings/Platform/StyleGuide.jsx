@@ -211,68 +211,70 @@ export default function StyleGuide() {
 
               <div className={styles.dropdownExample}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Dropdown
-                    trigger={
-                      <button 
-                        className={styles.sectionHeaderButton}
-                        style={{ 
-                          minWidth: '200px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <span>
-                          {multiSelectItems.length > 0 ? (
-                            <span className={styles.multiSelectDisplay} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span>{multiSelectItems.length} selected</span>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowSelectedItems(!showSelectedItems);
-                                }}
-                                title={showSelectedItems ? "Hide selected items" : "Show selected items"}
-                                style={{
-                                  background: 'transparent',
-                                  border: '1px solid #d1d5db',
-                                  cursor: 'pointer',
-                                  color: '#6b7280',
-                                  fontSize: '10px',
-                                  fontWeight: '500',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  transition: 'all 0.15s ease',
-                                  height: '20px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  whiteSpace: 'nowrap'
-                                }}
-                                                                  onMouseEnter={(e) => {
-                                    e.target.style.background = '#e6f7f9';
-                                    e.target.style.borderColor = '#52bad7';
-                                    e.target.style.color = '#044563';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.background = 'transparent';
-                                    e.target.style.borderColor = '#d1d5db';
-                                    e.target.style.color = '#6b7280';
-                                  }}
-                              >
-                                {showSelectedItems ? 'Hide' : 'Show'}
-                              </button>
-                            </span>
-                          ) : (
-                            'Multi-Select'
-                          )}
-                        </span>
-                        <ChevronDown size={10} />
-                      </button>
-                    }
-                    isOpen={dropdownOpen3}
-                    onToggle={setDropdownOpen3}
-                    className={styles.dropdownMenu}
-                  >
+                                     <Dropdown
+                     trigger={
+                       <button 
+                         className={styles.sectionHeaderButton}
+                         style={{ 
+                           minWidth: '200px',
+                           display: 'flex',
+                           justifyContent: 'space-between',
+                           alignItems: 'center'
+                         }}
+                       >
+                         <span>
+                           {multiSelectItems.length > 0 ? (
+                             <span className={styles.multiSelectDisplay} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                               <span>{multiSelectItems.length} selected</span>
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setShowSelectedItems(!showSelectedItems);
+                                 }}
+                                 title={showSelectedItems ? "Hide selected items" : "Show selected items"}
+                                 style={{
+                                   background: 'transparent',
+                                   border: '1px solid #d1d5db',
+                                   cursor: 'pointer',
+                                   color: '#6b7280',
+                                   fontSize: '10px',
+                                   fontWeight: '500',
+                                   padding: '2px 6px',
+                                   borderRadius: '4px',
+                                   transition: 'all 0.15s ease',
+                                   height: '20px',
+                                   display: 'flex',
+                                   alignItems: 'center',
+                                   justifyContent: 'center',
+                                   whiteSpace: 'nowrap'
+                                 }}
+                                                                   onMouseEnter={(e) => {
+                                     e.target.style.background = '#e6f7f9';
+                                     e.target.style.borderColor = '#52bad7';
+                                     e.target.style.color = '#044563';
+                                   }}
+                                   onMouseLeave={(e) => {
+                                     e.target.style.background = 'transparent';
+                                     e.target.style.borderColor = '#d1d5db';
+                                     e.target.style.color = '#6b7280';
+                                   }}
+                               >
+                                 {showSelectedItems ? 'Hide' : 'Show'}
+                               </button>
+                             </span>
+                           ) : (
+                             'Multi-Select'
+                           )}
+                         </span>
+                         <ChevronDown size={10} />
+                       </button>
+                     }
+                     isOpen={dropdownOpen3}
+                     onToggle={setDropdownOpen3}
+                     className={styles.dropdownMenu}
+                     searchQuery={searchQuery}
+                     onSearchClear={setSearchQuery}
+                   >
                     {/* Search and Clear All at the top */}
                                          <div className={styles.dropdownHeader}>
                        <div style={{ position: 'relative', width: '100%' }}>

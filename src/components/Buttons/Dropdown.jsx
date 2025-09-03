@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const Dropdown = ({ 
-  trigger, 
-  children, 
-  isOpen, 
-  onToggle, 
+const Dropdown = ({
+  trigger,
+  children,
+  isOpen,
+  onToggle,
   className = '',
-  style = {}
+  style = {},
+  searchQuery = '',
+  onSearchClear = null
 }) => {
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -18,7 +20,7 @@ const Dropdown = ({
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const estimatedDropdownHeight = 200;
-      
+
       // Check if there's enough space below
       const hasSpaceBelow = triggerRect.bottom + estimatedDropdownHeight < viewportHeight;
       setShouldOpenUp(!hasSpaceBelow);
@@ -40,7 +42,19 @@ const Dropdown = ({
 
     const handleEscapeKey = (event) => {
       if (event.key === 'Escape' && isOpen) {
-        onToggle(false);
+        // If there's a search query and a search clear function, clear search first
+        if (searchQuery && searchQuery.trim() !== '' && onSearchClear) {
+          onSearchClear('');
+          // Focus the search input to unfocus it (this will blur it)
+          const searchInput = dropdownRef.current?.querySelector('input[type="text"]');
+          if (searchInput) {
+            searchInput.focus();
+            searchInput.blur();
+          }
+        } else {
+          // No search query or no search clear function, close dropdown immediately
+          onToggle(false);
+        }
       }
     };
 
@@ -53,7 +67,7 @@ const Dropdown = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [isOpen, onToggle]);
+  }, [isOpen, onToggle, searchQuery, onSearchClear]);
 
   const handleTriggerClick = (e) => {
     e.stopPropagation();
@@ -65,9 +79,9 @@ const Dropdown = ({
       <div ref={triggerRef} onClick={handleTriggerClick}>
         {trigger}
       </div>
-      
+
       {isOpen && (
-        <div 
+        <div
           ref={dropdownRef}
           className={className}
           style={{
