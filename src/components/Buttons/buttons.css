@@ -266,20 +266,40 @@ button:focus-visible {
 
 /* ===== Filter Buttons ===== */
 .filter-button {
-  padding: 0.5rem 1rem;
-  background-color: #f5f5f5;
-  border: 1px solid #ccc;
-  color: var(--color-green);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
 }
+
 .filter-button:hover {
-  background-color: #e0e0e0;
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
 }
+
 .filter-button.active {
-  background-color: var(--color-gold);
-  color: var(--color-green);
+  background: var(--primary-teal);
+  border-color: var(--primary-teal);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 192, 139, 0.2);
 }
+
 .filter-button.active:hover {
-  background-color: #dca518;
+  background: var(--primary-teal-dark);
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.3);
 }
 
 /* ===== Dark Background Filter Buttons ===== */

@@ -421,12 +421,6 @@ export default function AnalyticsDashboard() {
             Platform analytics and user insights
         </p>
         </div>
-        <div className={styles.actions}>
-          <Button onClick={fetchAnalytics} variant="accent" size="sm">
-            <RefreshCw size={16} />
-            Refresh Data
-          </Button>
-        </div>
       </div>
 
              <div className={styles.analyticsGrid}>

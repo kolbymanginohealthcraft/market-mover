@@ -76,6 +76,14 @@
   overflow: hidden;
 }
 
+/* Override filter button font-family to remove Work Sans */
+.providerListingContainer button,
+.providerListingContainer .filter-button,
+.dropdownContainer button,
+.dropdownContainer .filter-button {
+  font-family: inherit !important;
+}
+
 /* --- Split View Layout --- */
 .splitView {
   display: flex;
