@@ -1,23 +1,17 @@
 import React, { useState } from 'react';
-import { Palette, Type, ChevronDown, Eye, Code, Trash2, Plus, Edit } from 'lucide-react';
+import { Palette, ChevronDown, Code, Trash2, Plus, Edit, ExternalLink } from 'lucide-react';
 
 import Dropdown from '../../../../components/Buttons/Dropdown';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
 import styles from './StyleGuide.module.css';
 
 export default function StyleGuide() {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen1, setDropdownOpen1] = useState(false);
+  const [dropdownOpen2, setDropdownOpen2] = useState(false);
 
 
 
-  const typographyExamples = [
-    { element: 'h1', label: 'Heading 1', class: 'h1' },
-    { element: 'h2', label: 'Heading 2', class: 'h2' },
-    { element: 'h3', label: 'Heading 3', class: 'h3' },
-    { element: 'h4', label: 'Heading 4', class: 'h4' },
-    { element: 'p', label: 'Body Text', class: 'body' },
-    { element: 'span', label: 'Small Text', class: 'small' }
-  ];
+
 
   const colorTokens = [
     { name: 'Primary Teal', variable: '--primary-teal', value: '#00c08b' },
@@ -39,240 +33,181 @@ export default function StyleGuide() {
         showEditButton={false}
       />
       
-      <div className={styles.content}>
-        {/* Buttons Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Eye size={16} />
-            Buttons
-          </h2>
-          <p className={styles.sectionDescription}>
-            The standardized Section Header Action Button style used throughout the platform.
-          </p>
-          
-          {/* Section Header Action Button Style */}
-          <div className={styles.subsection}>
-            <h3>Section Header Action Buttons</h3>
-            <p>Compact buttons used in section headers (like the dashboard clear all button)</p>
-            <div className={styles.buttonExample}>
-              <button className={styles.sectionHeaderButton}>
-                <Trash2 size={14} />
-                <span>Clear All</span>
-              </button>
-              <button className={styles.sectionHeaderButton}>
-                <Plus size={14} />
-                <span>Add New</span>
-              </button>
-              <button className={styles.sectionHeaderButton}>
-                <Edit size={14} />
-                <span>Edit</span>
-              </button>
-            </div>
-          </div>
-          
-
-                 </section>
-
-         {/* Form Controls Section */}
+             <div className={styles.content}>
+         {/* UI Components Section */}
          <section className={styles.section}>
            <h2 className={styles.sectionTitle}>
              <Code size={16} />
-             Form Controls
+             UI Components
            </h2>
            <p className={styles.sectionDescription}>
-             Checkboxes, radio buttons, and other form input elements used throughout the platform.
+             Standardized UI elements used throughout the platform including buttons, form controls, and dropdowns.
            </p>
            
-                       {/* Checkboxes */}
-            <div className={styles.subsection}>
-              <h3>Checkboxes</h3>
-              <div className={styles.formControlExample}>
-                <div className={styles.checkboxGroup}>
-                  <label className={styles.checkboxLabel}>
-                    <input type="checkbox" className={styles.checkbox} />
-                    <span className={styles.checkboxText}>Option 1</span>
-                  </label>
-                  <label className={styles.checkboxLabel}>
-                    <input type="checkbox" className={styles.checkbox} />
-                    <span className={styles.checkboxText}>Option 2</span>
-                  </label>
-                  <label className={styles.checkboxLabel}>
-                    <input type="checkbox" className={styles.checkbox} />
-                    <span className={styles.checkboxText}>Option 3</span>
-                  </label>
-                  <label className={styles.checkboxLabel}>
-                    <input type="checkbox" className={styles.checkbox} disabled />
-                    <span className={styles.checkboxText}>Option 4 (Disabled)</span>
-                  </label>
+                       <div className={styles.uiComponentsGrid}>
+                             {/* Section Header Action Buttons */}
+               <div className={styles.subsection}>
+                 <h3>Action Buttons</h3>
+                 <div className={styles.buttonExample}>
+                  <button className={styles.sectionHeaderButton}>
+                    <Trash2 size={14} />
+                    <span>Clear All</span>
+                  </button>
+                  <button className={styles.sectionHeaderButton}>
+                    <Plus size={14} />
+                    <span>Add New</span>
+                  </button>
+                  <button className={styles.sectionHeaderButton}>
+                    <Edit size={14} />
+                    <span>Edit</span>
+                  </button>
+                  <button className={styles.sectionHeaderButton}>
+                    <ExternalLink size={14} />
+                    <span>Open New Window</span>
+                  </button>
                 </div>
-                <code className={styles.code}>Checkbox group with disabled option</code>
               </div>
-            </div>
-            
-            {/* Radio Buttons */}
-            <div className={styles.subsection}>
-              <h3>Radio Buttons</h3>
-              <div className={styles.formControlExample}>
-                <div className={styles.radioGroup}>
-                  <label className={styles.radioLabel}>
-                    <input type="radio" name="radio-group" className={styles.radio} />
-                    <span className={styles.radioText}>Option 1</span>
-                  </label>
-                  <label className={styles.radioLabel}>
-                    <input type="radio" name="radio-group" className={styles.radio} />
-                    <span className={styles.radioText}>Option 2</span>
-                  </label>
-                  <label className={styles.radioLabel}>
-                    <input type="radio" name="radio-group" className={styles.radio} />
-                    <span className={styles.radioText}>Option 3</span>
-                  </label>
-                  <label className={styles.radioLabel}>
-                    <input type="radio" name="radio-group" className={styles.radio} disabled />
-                    <span className={styles.radioText}>Option 4 (Disabled)</span>
-                  </label>
+              
+              {/* Checkboxes */}
+              <div className={styles.subsection}>
+                <h3>Checkboxes</h3>
+                <div className={styles.formControlExample}>
+                  <div className={styles.checkboxGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" className={styles.checkbox} />
+                      <span className={styles.checkboxText}>Option 1 which might be very very very long and take up a lot of space</span>
+                    </label>
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" className={styles.checkbox} />
+                      <span className={styles.checkboxText}>Option 2</span>
+                    </label>
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" className={styles.checkbox} />
+                      <span className={styles.checkboxText}>Option 3</span>
+                    </label>
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" className={styles.checkbox} disabled />
+                      <span className={styles.checkboxText}>Option 4 (Disabled)</span>
+                    </label>
+                  </div>
                 </div>
-                <code className={styles.code}>Radio button group with disabled option</code>
               </div>
+              
+              {/* Radio Buttons */}
+              <div className={styles.subsection}>
+                <h3>Radio Buttons</h3>
+                <div className={styles.formControlExample}>
+                  <div className={styles.radioGroup}>
+                    <label className={styles.radioLabel}>
+                      <input type="radio" name="radio-group" className={styles.radio} />
+                      <span className={styles.radioText}>Option 1</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input type="radio" name="radio-group" className={styles.radio} />
+                      <span className={styles.radioText}>Option 2</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input type="radio" name="radio-group" className={styles.radio} />
+                      <span className={styles.radioText}>Option 3</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input type="radio" name="radio-group" className={styles.radio} disabled />
+                      <span className={styles.radioText}>Option 4 (Disabled)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+                                            {/* Dropdowns */}
+               <div className={styles.subsection}>
+                 <h3>Dropdowns</h3>
+                 <div className={styles.dropdownExample}>
+                   <Dropdown
+                     trigger={
+                       <button className={styles.sectionHeaderButton}>
+                         Open Dropdown
+                         <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                       </button>
+                     }
+                     isOpen={dropdownOpen1}
+                     onToggle={setDropdownOpen1}
+                     className={styles.dropdownMenu}
+                   >
+                     <div className={styles.dropdownItem}>Option 1</div>
+                     <div className={styles.dropdownItem}>Option 2</div>
+                     <div className={styles.dropdownItem}>Option 3</div>
+                     <div className={styles.dropdownItem}>Option 4</div>
+                   </Dropdown>
+                 </div>
+                 
+                 <div className={styles.dropdownExample}>
+                   <Dropdown
+                     trigger={
+                       <button className={styles.sectionHeaderButton}>
+                         Multi-Select
+                         <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                       </button>
+                     }
+                     isOpen={dropdownOpen2}
+                     onToggle={setDropdownOpen2}
+                     className={styles.dropdownMenu}
+                   >
+                     <div className={styles.dropdownItem}>
+                       <label className={styles.checkboxLabel}>
+                         <input type="checkbox" className={styles.checkbox} />
+                         <span className={styles.checkboxText}>Option 1</span>
+                       </label>
+                     </div>
+                     <div className={styles.dropdownItem}>
+                       <label className={styles.checkboxLabel}>
+                         <input type="checkbox" className={styles.checkbox} />
+                         <span className={styles.checkboxText}>Option 2</span>
+                       </label>
+                     </div>
+                     <div className={styles.dropdownItem}>
+                       <label className={styles.checkboxLabel}>
+                         <input type="checkbox" className={styles.checkbox} />
+                         <span className={styles.checkboxText}>Option 3</span>
+                       </label>
+                     </div>
+                     <div className={styles.dropdownItem}>
+                       <label className={styles.checkboxLabel}>
+                         <input type="checkbox" className={styles.checkbox} />
+                         <span className={styles.checkboxText}>Option 4</span>
+                       </label>
+                     </div>
+                   </Dropdown>
+                 </div>
+               </div>
             </div>
          </section>
 
-         {/* Typography Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Type size={16} />
-            Typography
-          </h2>
-          <p className={styles.sectionDescription}>
-            Font families, sizes, and weights used throughout the platform.
-          </p>
-          
-          <div className={styles.typographyGrid}>
-            {typographyExamples.map(({ element, label, class: className }) => (
-              <div key={className} className={styles.typographyExample}>
-                <div className={styles.typographyPreview}>
-                  {element === 'h1' && <h1 className={styles[className]}>Heading 1</h1>}
-                  {element === 'h2' && <h2 className={styles[className]}>Heading 2</h2>}
-                  {element === 'h3' && <h3 className={styles[className]}>Heading 3</h3>}
-                  {element === 'h4' && <h4 className={styles[className]}>Heading 4</h4>}
-                  {element === 'p' && <p className={styles[className]}>This is body text with a longer example to show how it flows and wraps naturally.</p>}
-                  {element === 'span' && <span className={styles[className]}>Small text example</span>}
+                  {/* Color Tokens Section */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>
+              <Palette size={16} />
+              Color Tokens
+            </h2>
+            <p className={styles.sectionDescription}>
+              CSS custom properties and color values used throughout the platform.
+            </p>
+            
+            <div className={styles.colorGrid}>
+              {colorTokens.map(({ name, variable, value }) => (
+                <div key={variable} className={styles.colorToken}>
+                  <div 
+                    className={styles.colorSwatch} 
+                    style={{ backgroundColor: value }}
+                  />
+                  <div className={styles.colorInfo}>
+                    <h4>{name}</h4>
+                    <code className={styles.code}>{variable}</code>
+                    <code className={styles.code}>{value}</code>
+                  </div>
                 </div>
-                <div className={styles.typographyInfo}>
-                  <h4>{label}</h4>
-                  <code className={styles.code}>{className}</code>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.fontInfo}>
-            <h3>Font Family</h3>
-            <p>Primary: <code>Work Sans</code></p>
-            <p>Fallback: <code>-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif</code></p>
-          </div>
-        </section>
-
-        {/* Dropdowns Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <ChevronDown size={16} />
-            Dropdowns
-          </h2>
-          <p className={styles.sectionDescription}>
-            Interactive dropdown components with positioning and accessibility features.
-          </p>
-          
-          <div className={styles.dropdownExample}>
-                         <Dropdown
-               trigger={
-                 <button className={styles.sectionHeaderButton}>
-                   Open Dropdown
-                   <ChevronDown size={10} style={{ marginLeft: '8px' }} />
-                 </button>
-               }
-              isOpen={dropdownOpen}
-              onToggle={setDropdownOpen}
-              className={styles.dropdownMenu}
-            >
-              <div className={styles.dropdownItem}>Option 1</div>
-              <div className={styles.dropdownItem}>Option 2</div>
-              <div className={styles.dropdownItem}>Option 3</div>
-              <div className={styles.dropdownItem}>Option 4</div>
-            </Dropdown>
-            <code className={styles.code}>Dropdown component with custom trigger</code>
-          </div>
-        </section>
-
-        {/* Color Tokens Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Palette size={16} />
-            Color Tokens
-          </h2>
-          <p className={styles.sectionDescription}>
-            CSS custom properties and color values used throughout the platform.
-          </p>
-          
-          <div className={styles.colorGrid}>
-            {colorTokens.map(({ name, variable, value }) => (
-              <div key={variable} className={styles.colorToken}>
-                <div 
-                  className={styles.colorSwatch} 
-                  style={{ backgroundColor: value }}
-                />
-                <div className={styles.colorInfo}>
-                  <h4>{name}</h4>
-                  <code className={styles.code}>{variable}</code>
-                  <code className={styles.code}>{value}</code>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Spacing & Layout Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Code size={16} />
-            Spacing & Layout
-          </h2>
-          <p className={styles.sectionDescription}>
-            Standard spacing units and layout patterns.
-          </p>
-          
-          <div className={styles.spacingGrid}>
-            <div className={styles.spacingExample}>
-              <div className={styles.spacingBox} style={{ padding: '8px' }}>
-                <span>8px</span>
-              </div>
-              <code className={styles.code}>--spacing-xs</code>
+              ))}
             </div>
-            <div className={styles.spacingExample}>
-              <div className={styles.spacingBox} style={{ padding: '16px' }}>
-                <span>16px</span>
-              </div>
-              <code className={styles.code}>--spacing-sm</code>
-            </div>
-            <div className={styles.spacingExample}>
-              <div className={styles.spacingBox} style={{ padding: '24px' }}>
-                <span>24px</span>
-              </div>
-              <code className={styles.code}>--spacing-md</code>
-            </div>
-            <div className={styles.spacingExample}>
-              <div className={styles.spacingBox} style={{ padding: '32px' }}>
-                <span>32px</span>
-              </div>
-              <code className={styles.code}>--spacing-lg</code>
-            </div>
-            <div className={styles.spacingExample}>
-              <div className={styles.spacingBox} style={{ padding: '48px' }}>
-                <span>48px</span>
-              </div>
-              <code className={styles.code}>--spacing-xl</code>
-            </div>
-          </div>
-        </section>
+          </section>
       </div>
     </>
   );
