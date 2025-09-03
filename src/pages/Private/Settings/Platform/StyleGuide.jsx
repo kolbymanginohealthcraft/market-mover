@@ -99,6 +99,9 @@ export default function StyleGuide() {
     { name: 'Warning Orange', variable: '--warning-orange', value: '#f59e0b' }
   ];
 
+  const [showBottomPopout, setShowBottomPopout] = useState(true);
+  const [showRightDrawer, setShowRightDrawer] = useState(false);
+
   return (
     <>
       <SectionHeader
@@ -552,13 +555,12 @@ export default function StyleGuide() {
             Search Bars
           </h2>
           <p className={styles.sectionDescription}>
-            Standardized search input components with various states and configurations.
+            Standardized search input components with double-escape behavior (first escape clears, second exits focus), clear button functionality, and consistent styling across the platform.
           </p>
 
           <div className={styles.uiComponentsGrid}>
             {/* Search Bar with Icon */}
             <div className={styles.subsection}>
-              <h3>Search Bar with Icon</h3>
               <div className={styles.formControlExample}>
                 <div className={styles.searchBarContainer}>
                   <div className={styles.searchIcon}>
@@ -569,7 +571,7 @@ export default function StyleGuide() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search with icon..."
+                    placeholder="Search the industry..."
                     className={styles.searchInput}
                     style={{ width: '300px', paddingLeft: '40px' }}
                     value={searchBarValue}
@@ -745,6 +747,126 @@ export default function StyleGuide() {
             </div>
           </div>
         </section>
+
+        {/* Overlay Components Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Code size={16} />
+            Overlay Components
+          </h2>
+          <p className={styles.sectionDescription}>
+            Standardized overlay components including bottom drawers and right-side panels for user interactions.
+          </p>
+
+          {/* Toggle Controls */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button 
+                className={styles.toggleButton}
+                onClick={() => setShowBottomPopout(!showBottomPopout)}
+              >
+                {showBottomPopout ? 'Hide' : 'Show'} Bottom Drawer
+              </button>
+              <button 
+                className={styles.toggleButton}
+                onClick={() => setShowRightDrawer(!showRightDrawer)}
+              >
+                {showRightDrawer ? 'Close' : 'Open'} Right Drawer
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Drawer Overlay */}
+          {showBottomPopout && (
+            <div className={styles.bottomPopout}>
+              <div className={styles.popoutContent}>
+                <div className={styles.popoutText}>
+                  <h4>Unsaved Changes</h4>
+                  <p>You have unsaved changes to your profile information. If you cancel, all changes will be lost.</p>
+                </div>
+                <div className={styles.popoutActions}>
+                  <button className={styles.cancelButton}>
+                    Cancel
+                  </button>
+                  <button className={styles.saveButton}>
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Right Drawer Overlay */}
+        {showRightDrawer && (
+          <>
+            <div className={styles.drawerOverlay} onClick={() => setShowRightDrawer(false)} />
+            <div 
+              className={`${styles.rightDrawer} ${showRightDrawer ? styles.drawerOpen : ''}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowRightDrawer(false);
+                }
+              }}
+            >
+              <div className={styles.drawerHeader}>
+                <h3>Add Custom Color</h3>
+                <button 
+                  className={styles.drawerCloseButton}
+                  onClick={() => setShowRightDrawer(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div 
+                className={styles.drawerContent}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setShowRightDrawer(false);
+                  }
+                }}
+                tabIndex={-1}
+              >
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Color Name</label>
+                  <input
+                    type="text"
+                    placeholder="Enter color name"
+                    className={styles.formInput}
+                    onKeyDown={handleEscapeKey}
+                    autoFocus
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Hex Value</label>
+                  <input
+                    type="text"
+                    placeholder="#000000"
+                    className={styles.formInput}
+                    onKeyDown={handleEscapeKey}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Description</label>
+                  <textarea
+                    placeholder="Describe this color's usage..."
+                    className={styles.formTextarea}
+                    rows={3}
+                    onKeyDown={handleEscapeKey}
+                  />
+                </div>
+                <div className={styles.drawerActions}>
+                  <button className={styles.cancelButton}>
+                    Cancel
+                  </button>
+                  <button className={styles.saveButton}>
+                    Add Color
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Color Tokens Section */}
         <section className={styles.section}>
