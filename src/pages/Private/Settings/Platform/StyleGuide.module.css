@@ -609,6 +609,13 @@
   background: #dc2626;
 }
 
+/* Clear Button Hover Effect */
+.clearButtonHover:hover {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
 /* Dropdown Header with Search and Clear All */
 .dropdownHeader {
   display: flex;

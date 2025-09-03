@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 const Dropdown = ({ 
   trigger, 
@@ -11,58 +10,20 @@ const Dropdown = ({
 }) => {
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
-  const [dropdownStyle, setDropdownStyle] = useState({});
+  const [shouldOpenUp, setShouldOpenUp] = useState(false);
 
+  // Check if dropdown should open upward when it opens
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      const updatePosition = () => {
-        const triggerRect = triggerRef.current.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const estimatedDropdownHeight = 200;
-        
-        // Check if dropdown should go up instead of down
-        const shouldGoUp = triggerRect.bottom + estimatedDropdownHeight > viewportHeight;
-        
-        // Calculate position relative to viewport
-        let top, left;
-        
-        if (shouldGoUp) {
-          top = triggerRect.top - estimatedDropdownHeight;
-        } else {
-          top = triggerRect.bottom;
-        }
-        
-        left = triggerRect.left;
-        
-        // Ensure dropdown doesn't go off-screen
-        if (shouldGoUp && top < 10) {
-          top = 10;
-        } else if (!shouldGoUp && top + estimatedDropdownHeight > viewportHeight) {
-          top = viewportHeight - estimatedDropdownHeight - 10;
-        }
-        
-        setDropdownStyle({
-          position: 'fixed',
-          top: `${top}px`,
-          left: `${left}px`,
-          zIndex: 9999,
-          ...style
-        });
-      };
-
-      // Position after a small delay to ensure the portal is rendered
-      setTimeout(updatePosition, 10);
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const estimatedDropdownHeight = 200;
       
-      // Update position on scroll and resize
-      window.addEventListener('scroll', updatePosition, true);
-      window.addEventListener('resize', updatePosition);
-      
-      return () => {
-        window.removeEventListener('scroll', updatePosition, true);
-        window.removeEventListener('resize', updatePosition);
-      };
+      // Check if there's enough space below
+      const hasSpaceBelow = triggerRect.bottom + estimatedDropdownHeight < viewportHeight;
+      setShouldOpenUp(!hasSpaceBelow);
     }
-  }, [isOpen, style]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -105,15 +66,22 @@ const Dropdown = ({
         {trigger}
       </div>
       
-      {isOpen && createPortal(
+      {isOpen && (
         <div 
           ref={dropdownRef}
           className={className}
-          style={dropdownStyle}
+          style={{
+            position: 'absolute',
+            left: 0,
+            zIndex: 9999,
+            // Intelligent positioning: down by default, up when needed
+            top: shouldOpenUp ? 'auto' : '110%',
+            bottom: shouldOpenUp ? '110%' : 'auto',
+            ...style
+          }}
         >
           {children}
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );
