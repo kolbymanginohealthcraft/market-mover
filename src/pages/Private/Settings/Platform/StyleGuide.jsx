@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Palette, ChevronDown, Code, Trash2, X, Plus, Edit, ExternalLink } from 'lucide-react';
 
 import Dropdown from '../../../../components/Buttons/Dropdown';
@@ -45,15 +45,19 @@ export default function StyleGuide() {
 
   // Handle multi-select checkbox changes
   const handleMultiSelectChange = (item) => {
-    setMultiSelectItems(prev =>
-      prev.includes(item)
+    setMultiSelectItems(prev => 
+      prev.includes(item) 
         ? prev.filter(i => i !== item)
         : [...prev, item]
     );
   };
 
-
-
+  // Clear search when dropdown closes
+  useEffect(() => {
+    if (!dropdownOpen3) {
+      setSearchQuery('');
+    }
+  }, [dropdownOpen3]);
 
 
   const colorTokens = [
