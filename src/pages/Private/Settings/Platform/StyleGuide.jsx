@@ -274,33 +274,76 @@ export default function StyleGuide() {
                     className={styles.dropdownMenu}
                   >
                     {/* Search and Clear All at the top */}
-                    <div className={styles.dropdownHeader}>
-                      <input
-                        type="text"
-                        placeholder="Search options..."
-                        className={styles.searchInput}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        autoFocus={dropdownOpen3}
-                      />
-                    </div>
+                                         <div className={styles.dropdownHeader}>
+                       <div style={{ position: 'relative', width: '100%' }}>
+                         <input
+                           type="text"
+                           placeholder="Search options..."
+                           className={styles.searchInput}
+                           value={searchQuery}
+                           onChange={(e) => setSearchQuery(e.target.value)}
+                           autoFocus={dropdownOpen3}
+                           style={{ width: '100%' }}
+                         />
+                                                   {searchQuery && (
+                            <button
+                              onClick={() => setSearchQuery('')}
+                              className={`${styles.clearButton} ${styles.clearButtonHover}`}
+                              style={{
+                                position: 'absolute',
+                                right: '6px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'transparent',
+                                border: '1px solid transparent',
+                                cursor: 'pointer',
+                                color: '#ef4444',
+                                padding: '0',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 1,
+                                width: '20px',
+                                height: '20px',
+                                fontSize: '16px',
+                                lineHeight: '1',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title="Clear search"
+                            >
+                              <span style={{ fontSize: '16px', lineHeight: '1' }}>×</span>
+                            </button>
+                          )}
+                       </div>
+                     </div>
                     
                     {/* Scrollable content container */}
                     <div className={styles.dropdownContent}>
                       {/* Filtered options */}
-                      {filteredOptions.map((option) => (
-                        <div key={option} className={styles.dropdownItem}>
-                          <label className={styles.checkboxLabel}>
-                            <input 
-                              type="checkbox" 
-                              className={styles.checkbox}
-                              checked={multiSelectItems.includes(option)}
-                              onChange={() => handleMultiSelectChange(option)}
-                            />
-                            <span className={styles.checkboxText}>{option}</span>
-                          </label>
-                        </div>
-                      ))}
+                                             {filteredOptions.map((option) => (
+                         <div key={option} className={styles.dropdownItem} style={{ padding: '0 !important', margin: '0 !important' }}>
+                           <label className={styles.checkboxLabel} style={{ 
+                             margin: '0 !important', 
+                             padding: '4px 8px !important', 
+                             minHeight: 'auto !important',
+                             lineHeight: '1.2 !important',
+                             display: 'flex',
+                             alignItems: 'center',
+                             gap: '8px',
+                             width: '100%'
+                           }}>
+                             <input 
+                               type="checkbox" 
+                               className={styles.checkbox}
+                               checked={multiSelectItems.includes(option)}
+                               onChange={() => handleMultiSelectChange(option)}
+                               style={{ margin: '0 !important' }}
+                             />
+                             <span className={styles.checkboxText} style={{ margin: '0 !important', padding: '0 !important' }}>{option}</span>
+                           </label>
+                         </div>
+                       ))}
                       
                       {filteredOptions.length === 0 && (
                         <div className={styles.noResults}>
