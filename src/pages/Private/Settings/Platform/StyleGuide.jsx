@@ -6,9 +6,8 @@ import SectionHeader from '../../../../components/Layouts/SectionHeader';
 import styles from './StyleGuide.module.css';
 
 export default function StyleGuide() {
-  const [dropdownOpen1, setDropdownOpen1] = useState(false);
-  const [dropdownOpen2, setDropdownOpen2] = useState(false);
-  const [dropdownOpen3, setDropdownOpen3] = useState(false);
+     const [dropdownOpen1, setDropdownOpen1] = useState(false);
+   const [dropdownOpen3, setDropdownOpen3] = useState(false);
 
   // Filter button states
   const [statusFilter, setStatusFilter] = useState('All');
@@ -21,7 +20,7 @@ export default function StyleGuide() {
   // Multi-select dropdown state
   const [multiSelectItems, setMultiSelectItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSelectedItems, setShowSelectedItems] = useState(true);
+     const [showSelectedItems, setShowSelectedItems] = useState(false);
 
   // Available options for the multi-select dropdown
   const availableOptions = [
@@ -208,44 +207,7 @@ export default function StyleGuide() {
                 </Dropdown>
               </div>
 
-              <div className={styles.dropdownExample}>
-                <Dropdown
-                  trigger={
-                    <button className={styles.sectionHeaderButton}>
-                      Multi-Select
-                      <ChevronDown size={10} style={{ marginLeft: '8px' }} />
-                    </button>
-                  }
-                  isOpen={dropdownOpen2}
-                  onToggle={setDropdownOpen2}
-                  className={styles.dropdownMenu}
-                >
-                  <div className={styles.dropdownItem}>
-                    <label className={styles.checkboxLabel}>
-                      <input type="checkbox" className={styles.checkbox} />
-                      <span className={styles.checkboxText}>Option 1</span>
-                    </label>
-                  </div>
-                  <div className={styles.dropdownItem}>
-                    <label className={styles.checkboxLabel}>
-                      <input type="checkbox" className={styles.checkbox} />
-                      <span className={styles.checkboxText}>Option 2</span>
-                    </label>
-                  </div>
-                  <div className={styles.dropdownItem}>
-                    <label className={styles.checkboxLabel}>
-                      <input type="checkbox" className={styles.checkbox} />
-                      <span className={styles.checkboxText}>Option 3</span>
-                    </label>
-                  </div>
-                  <div className={styles.dropdownItem}>
-                    <label className={styles.checkboxLabel}>
-                      <input type="checkbox" className={styles.checkbox} />
-                      <span className={styles.checkboxText}>Option 4</span>
-                    </label>
-                  </div>
-                </Dropdown>
-              </div>
+              
 
               <div className={styles.dropdownExample}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
