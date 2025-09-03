@@ -82,6 +82,19 @@ export default function PlatformTab() {
           </Button>
         </div>
 
+        <div className={`${styles.toolCard} ${styles.styleGuide}`}>
+          <h3>Style Guide</h3>
+          <p>View and test all platform UI components, colors, and typography</p>
+          <Button
+            variant="blue"
+            size="md"
+            onClick={() => navigate("/app/settings/platform/style-guide")}
+            className={styles.button}
+          >
+            View Style Guide
+          </Button>
+        </div>
+
         {/* Temp Section */}
         <div className={`${styles.toolCard} ${styles.temp}`}>
           <h3>Development Tools</h3>
@@ -95,14 +108,7 @@ export default function PlatformTab() {
             >
               Banner Test
             </Button>
-            <Button
-              variant="red"
-              size="sm"
-              onClick={() => navigate("/playground")}
-              className={styles.tempButton}
-            >
-              Button Playground
-            </Button>
+
             <Button
               variant="red"
               size="sm"
@@ -135,6 +141,15 @@ export default function PlatformTab() {
               className={styles.tempButton}
             >
               Payment Test
+            </Button>
+            
+            <Button
+              variant="blue"
+              size="sm"
+              onClick={() => navigate("/app/settings/platform/style-guide")}
+              className={styles.tempButton}
+            >
+              Style Guide
             </Button>
           </div>
         </div>

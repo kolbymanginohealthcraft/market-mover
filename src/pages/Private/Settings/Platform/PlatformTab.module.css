@@ -108,6 +108,10 @@
 }
 
 .toolCard:nth-child(6) h3::before {
+  content: '🎨';
+}
+
+.toolCard:nth-child(7) h3::before {
   content: '🧪';
 }
 
@@ -130,6 +134,10 @@
 
 .toolCard.legal {
   border-left: 4px solid #ef4444;
+}
+
+.toolCard.styleGuide {
+  border-left: 4px solid #8b5cf6;
 }
 
 .toolCard.temp {

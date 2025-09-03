@@ -53,12 +53,36 @@
   
   /* Legacy support */
   --highlight-selected-provider: #fff8cc;
+  
+  /* Icon Sizing */
+  --icon-size-sm: 14px;
+  --icon-size-md: 16px;
+  --icon-size-lg: 20px;
+  --icon-size-xl: 24px;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Global Icon Sizing - Prevents oversized lucide icons */
+[data-lucide] {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  flex-shrink: 0;
+}
+
+/* Allow explicit size overrides when needed */
+[data-lucide][style*="width"] {
+  width: auto;
+  height: auto;
+}
+
+[data-lucide][style*="height"] {
+  width: auto;
+  height: auto;
 }
 
 html,

@@ -686,24 +686,27 @@ const SubNavigation = () => {
 
     // If we're on a platform sub-page, render both navigation levels
     if (location.pathname.includes('/settings/platform/')) {
-      // Determine the correct active platform sub-tab
-      let currentPlatformTab = "analytics"; // Default to analytics
-      
-      if (location.pathname.includes('/analytics')) {
-        currentPlatformTab = 'analytics';
-      } else if (location.pathname.includes('/announcements')) {
-        currentPlatformTab = 'announcements';
-      } else if (location.pathname.includes('/feedback')) {
-        currentPlatformTab = 'feedback';
-      } else if (location.pathname.includes('/policies')) {
-        currentPlatformTab = 'policies';
-      }
+             // Determine the correct active platform sub-tab
+       let currentPlatformTab = "analytics"; // Default to analytics
+       
+       if (location.pathname.includes('/analytics')) {
+         currentPlatformTab = 'analytics';
+       } else if (location.pathname.includes('/announcements')) {
+         currentPlatformTab = 'announcements';
+       } else if (location.pathname.includes('/feedback')) {
+         currentPlatformTab = 'feedback';
+       } else if (location.pathname.includes('/policies')) {
+         currentPlatformTab = 'policies';
+       } else if (location.pathname.includes('/style-guide')) {
+         currentPlatformTab = 'style-guide';
+       }
 
       const platformTabs = [
         { id: "analytics", label: "Analytics Dashboard", icon: BarChart3, path: "/app/settings/platform/analytics" },
         { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/settings/platform/announcements" },
         { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/settings/platform/feedback" },
-        { id: "policies", label: "Policy Management", icon: FileText, path: "/app/settings/platform/policies" }
+        { id: "policies", label: "Policy Management", icon: FileText, path: "/app/settings/platform/policies" },
+        { id: "style-guide", label: "Style Guide", icon: Palette, path: "/app/settings/platform/style-guide" }
       ];
 
              return (
@@ -853,6 +856,8 @@ const SubNavigation = () => {
       </nav>
     );
   }
+
+
 
   // Handle pricing page
   if (location.pathname.includes('/pricing')) {

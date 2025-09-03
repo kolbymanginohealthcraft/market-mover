@@ -13,7 +13,7 @@ import ScrollToTop from "../components/Navigation/ScrollToTop";
 import Layout from "../components/Layouts/Layout";
 import SidebarLayout from "../components/Layouts/SidebarLayout";
 import PublicSidebarLayout from "../components/Layouts/PublicSidebarLayout";
-import ButtonPlayground from "../pages/Temp/ButtonPlayground";
+
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
 
 // Pages
@@ -36,6 +36,7 @@ import Settings from "../pages/Private/Settings/Settings";
 import ManageAnnouncements from "../pages/Private/Settings/Platform/ManageAnnouncements";
 import ManageFeedback from "../pages/Private/Settings/Platform/ManageFeedback";
 import AnalyticsDashboard from "../pages/Private/Settings/Platform/AnalyticsDashboard";
+import StyleGuide from "../pages/Private/Settings/Platform/StyleGuide";
 // import CompleteProfile from "../pages/Private/Settings/CompleteProfile";
 import LegalContentEditor from "../pages/Private/Settings/Platform/LegalContentEditor";
 import PolicyManagement from "../pages/Private/Settings/Platform/PolicyManagement";
@@ -127,7 +128,7 @@ export default function App() {
 
               <Route path="select-plan" element={<SelectPlan />} />
               {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
-              <Route path="/playground" element={<ButtonPlayground />} />
+
               <Route path="/auth/paymenttest" element={<PaymentTest />} />
               <Route path="/payment-flow" element={<PaymentFlow />} />
               <Route path="/success" element={<Success />} />
@@ -163,6 +164,7 @@ export default function App() {
               <Route path="billing-history" element={<BillingHistory />} />
               <Route path="legal-content-editor" element={<LegalContentEditor />} />
               <Route path="policy-management" element={<PolicyManagement />} />
+              <Route path="style-guide" element={<StyleGuide />} />
               <Route path="network/*" element={<Network />} />
               
 

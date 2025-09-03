@@ -13,6 +13,7 @@ import AnalyticsDashboard from './AnalyticsDashboard';
 import ManageAnnouncements from './ManageAnnouncements';
 import ManageFeedback from './ManageFeedback';
 import PolicyManagement from './PolicyManagement';
+import StyleGuide from './StyleGuide';
 import styles from './PlatformLayout.module.css';
 
 export default function PlatformLayout() {
@@ -60,6 +61,7 @@ export default function PlatformLayout() {
         <Route path="announcements" element={<ManageAnnouncements />} />
         <Route path="feedback" element={<ManageFeedback />} />
         <Route path="policies" element={<PolicyManagement />} />
+        <Route path="style-guide" element={<StyleGuide />} />
         <Route path="*" element={<Navigate to="analytics" replace />} />
       </Routes>
     </div>
