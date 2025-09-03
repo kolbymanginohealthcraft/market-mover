@@ -8,6 +8,49 @@ import styles from './StyleGuide.module.css';
 export default function StyleGuide() {
   const [dropdownOpen1, setDropdownOpen1] = useState(false);
   const [dropdownOpen2, setDropdownOpen2] = useState(false);
+  const [dropdownOpen3, setDropdownOpen3] = useState(false);
+  
+  // Filter button states
+  const [statusFilter, setStatusFilter] = useState('All');
+  
+  // Boolean filter states
+  const [showArchived, setShowArchived] = useState(false);
+  const [includeDrafts, setIncludeDrafts] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
+  
+  // Multi-select dropdown state
+  const [multiSelectItems, setMultiSelectItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Available options for the multi-select dropdown
+  const availableOptions = [
+    'Option 1',
+    'Option 2', 
+    'Option 3',
+    'Option 4',
+    'Advanced Analytics',
+    'Data Export',
+    'User Management',
+    'System Settings',
+    'API Integration',
+    'Custom Reports',
+    'Audit Logs',
+    'Backup & Restore'
+  ];
+  
+  // Filtered options based on search query
+  const filteredOptions = availableOptions.filter(option =>
+    option.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  // Handle multi-select checkbox changes
+  const handleMultiSelectChange = (item) => {
+    setMultiSelectItems(prev => 
+      prev.includes(item) 
+        ? prev.filter(i => i !== item)
+        : [...prev, item]
+    );
+  };
 
 
 
@@ -140,44 +183,180 @@ export default function StyleGuide() {
                    </Dropdown>
                  </div>
                  
-                 <div className={styles.dropdownExample}>
-                   <Dropdown
-                     trigger={
-                       <button className={styles.sectionHeaderButton}>
-                         Multi-Select
-                         <ChevronDown size={10} style={{ marginLeft: '8px' }} />
-                       </button>
-                     }
-                     isOpen={dropdownOpen2}
-                     onToggle={setDropdownOpen2}
-                     className={styles.dropdownMenu}
-                   >
-                     <div className={styles.dropdownItem}>
-                       <label className={styles.checkboxLabel}>
-                         <input type="checkbox" className={styles.checkbox} />
-                         <span className={styles.checkboxText}>Option 1</span>
-                       </label>
-                     </div>
-                     <div className={styles.dropdownItem}>
-                       <label className={styles.checkboxLabel}>
-                         <input type="checkbox" className={styles.checkbox} />
-                         <span className={styles.checkboxText}>Option 2</span>
-                       </label>
-                     </div>
-                     <div className={styles.dropdownItem}>
-                       <label className={styles.checkboxLabel}>
-                         <input type="checkbox" className={styles.checkbox} />
-                         <span className={styles.checkboxText}>Option 3</span>
-                       </label>
-                     </div>
-                     <div className={styles.dropdownItem}>
-                       <label className={styles.checkboxLabel}>
-                         <input type="checkbox" className={styles.checkbox} />
-                         <span className={styles.checkboxText}>Option 4</span>
-                       </label>
-                     </div>
-                   </Dropdown>
-                 </div>
+                                   <div className={styles.dropdownExample}>
+                    <Dropdown
+                      trigger={
+                        <button className={styles.sectionHeaderButton}>
+                          Multi-Select
+                          <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                        </button>
+                      }
+                      isOpen={dropdownOpen2}
+                      onToggle={setDropdownOpen2}
+                      className={styles.dropdownMenu}
+                    >
+                      <div className={styles.dropdownItem}>
+                        <label className={styles.checkboxLabel}>
+                          <input type="checkbox" className={styles.checkbox} />
+                          <span className={styles.checkboxText}>Option 1</span>
+                        </label>
+                      </div>
+                      <div className={styles.dropdownItem}>
+                        <label className={styles.checkboxLabel}>
+                          <input type="checkbox" className={styles.checkbox} />
+                          <span className={styles.checkboxText}>Option 2</span>
+                        </label>
+                      </div>
+                      <div className={styles.dropdownItem}>
+                        <label className={styles.checkboxLabel}>
+                          <input type="checkbox" className={styles.checkbox} />
+                          <span className={styles.checkboxText}>Option 3</span>
+                        </label>
+                      </div>
+                      <div className={styles.dropdownItem}>
+                        <label className={styles.checkboxLabel}>
+                          <input type="checkbox" className={styles.checkbox} />
+                          <span className={styles.checkboxText}>Option 4</span>
+                        </label>
+                      </div>
+                    </Dropdown>
+                  </div>
+                  
+                                    <div className={styles.dropdownExample}>
+                    <Dropdown
+                      trigger={
+                        <button className={styles.sectionHeaderButton}>
+                          {multiSelectItems.length > 0 ? (
+                            <span className={styles.multiSelectDisplay}>
+                              {multiSelectItems.length} selected
+                            </span>
+                          ) : (
+                            'Multi-Select with Display'
+                          )}
+                          <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                        </button>
+                      }
+                      isOpen={dropdownOpen3}
+                      onToggle={setDropdownOpen3}
+                      className={styles.dropdownMenu}
+                    >
+                      {/* Search and Clear All at the top */}
+                      <div className={styles.dropdownHeader}>
+                        <input
+                          type="text"
+                          placeholder="Search options..."
+                          className={styles.searchInput}
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {multiSelectItems.length > 0 && (
+                          <button 
+                            className={styles.clearAllButton}
+                            onClick={() => setMultiSelectItems([])}
+                          >
+                            Clear All
+                          </button>
+                        )}
+                      </div>
+                      
+                                             {/* Scrollable content container */}
+                       <div className={styles.dropdownContent}>
+                         {/* Filtered options */}
+                         {filteredOptions.map((option) => (
+                           <div key={option} className={styles.dropdownItem}>
+                             <label className={styles.checkboxLabel}>
+                               <input 
+                                 type="checkbox" 
+                                 className={styles.checkbox}
+                                 checked={multiSelectItems.includes(option)}
+                                 onChange={() => handleMultiSelectChange(option)}
+                               />
+                               <span className={styles.checkboxText}>{option}</span>
+                             </label>
+                           </div>
+                         ))}
+                         
+                         {filteredOptions.length === 0 && (
+                           <div className={styles.noResults}>
+                             No options match your search
+                           </div>
+                         )}
+                       </div>
+                    </Dropdown>
+                  </div>
+               </div>
+               
+               {/* Filter Buttons */}
+               <div className={styles.subsection}>
+                 <h3>Filter Buttons</h3>
+                 <div className={styles.formControlExample}>
+                                       <div className={styles.filterButtonGroup}>
+                      <button 
+                        className={`${styles.filterButton} ${statusFilter === 'All' ? styles.filterButtonActive : ''}`}
+                        onClick={() => setStatusFilter('All')}
+                      >
+                        All
+                      </button>
+                      <button 
+                        className={`${styles.filterButton} ${statusFilter === 'Active' ? styles.filterButtonActive : ''}`}
+                        onClick={() => setStatusFilter('Active')}
+                      >
+                        Active
+                      </button>
+                      <button 
+                        className={`${styles.filterButton} ${statusFilter === 'Inactive' ? styles.filterButtonActive : ''}`}
+                        onClick={() => setStatusFilter('Inactive')}
+                      >
+                        Inactive
+                      </button>
+                                          <button 
+                      className={`${styles.filterButton} ${statusFilter === 'Archived' ? styles.filterButtonActive : ''}`}
+                      onClick={() => setStatusFilter('Archived')}
+                    >
+                      Archived
+                    </button>
+                  </div>
+                  
+                  <h4>Boolean Filter Buttons</h4>
+                  <div className={styles.booleanFilterGroup}>
+                    <button
+                      className={`${styles.booleanFilterButton} ${showArchived ? styles.booleanFilterButtonActive : ''}`}
+                      onClick={() => setShowArchived(!showArchived)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={showArchived}
+                        onChange={() => setShowArchived(!showArchived)}
+                        className={styles.booleanFilterCheckbox}
+                      />
+                      Show Archived
+                    </button>
+                    <button
+                      className={`${styles.booleanFilterButton} ${includeDrafts ? styles.booleanFilterButtonActive : ''}`}
+                      onClick={() => setIncludeDrafts(!includeDrafts)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={includeDrafts}
+                        onChange={() => setIncludeDrafts(!includeDrafts)}
+                        className={styles.booleanFilterCheckbox}
+                      />
+                      Include Drafts
+                    </button>
+                    <button
+                      className={`${styles.booleanFilterButton} ${showHidden ? styles.booleanFilterButtonActive : ''}`}
+                      onClick={() => setShowHidden(!showHidden)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={showHidden}
+                        onChange={() => setShowHidden(!showHidden)}
+                        className={styles.booleanFilterCheckbox}
+                      />
+                      Show Hidden Items
+                    </button>
+                  </div>
+               </div>
                </div>
             </div>
          </section>

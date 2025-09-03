@@ -261,7 +261,7 @@
   margin: 0;
   width: 14px;
   height: 14px;
-  accent-color: #1DADBE;
+  /* accent-color: #1DADBE; */
   flex-shrink: 0;
 }
 
@@ -564,9 +564,8 @@
   font-size: 1rem;
 }
 
-.providerList {
-  /* Removed margin-top to align with specialty table */
-}
+/* .providerList {
+} */
 
 .providerTable {
   border: 1px solid #e2e8f0;
