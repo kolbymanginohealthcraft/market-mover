@@ -12,6 +12,7 @@ import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
 import { getTagColor, getTagLabel } from '../../../utils/tagColors';
+import { ProviderTagBadge } from '../../../components/Tagging/ProviderTagBadge';
 import {
   Search,
   MapPin,
@@ -852,99 +853,18 @@ export default function ProviderSearch() {
                           </div>
                           <div className={styles.cardRight}>
                             <div className={styles.cardActions}>
-                              {/* Consolidated Tag Display */}
-                              {getProviderTags(provider.dhc).length > 0 ? (
-                                // Show existing tags
-                                getProviderTags(provider.dhc).map(tagType => (
-                                  <span
-                                    key={tagType}
-                                    className={styles.tag}
-                                    style={{
-                                      backgroundColor: getTagColor(tagType)
-                                    }}
-                                  >
-                                    {getTagLabel(tagType)}
-                                    <button
-                                      className={styles.tagRemove}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeTeamProviderTag(provider.dhc, tagType);
-                                      }}
-                                      aria-label={`Remove ${tagType} tag`}
-                                    >
-                                      ×
-                                    </button>
-                                  </span>
-                                ))
-                              ) : (
-                                // Show tag button if no tags
-                                <div className={styles.tagDropdown}>
-                                  <button
-                                    className={`${styles.tagButton} ${!hasTeam ? styles.disabled : ''}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (hasTeam) {
-                                        handleTagButtonClick(provider.dhc, e);
-                                      }
-                                    }}
-                                    disabled={!hasTeam}
-                                    title={!hasTeam ? "Join or create a team to tag providers" : ""}
-                                  >
-                                    Tag
-                                    {!hasTeam && <Lock size={10} style={{ marginLeft: '4px' }} />}
-                                  </button>
-                                  {taggingProviderId === provider.dhc && (
-                                    <div
-                                      className={styles.dropdown}
-                                      style={{
-                                        top: `${dropdownPosition.top}px`,
-                                        left: `${dropdownPosition.left}px`
-                                      }}
-                                    >
-                                      <button
-                                        className={styles.glassmorphismButton}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          addTeamProviderTag(provider.dhc, 'me');
-                                          setTaggingProviderId(null);
-                                        }}
-                                      >
-                                        Me
-                                      </button>
-                                      <button
-                                        className={styles.glassmorphismButton}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          addTeamProviderTag(provider.dhc, 'partner');
-                                          setTaggingProviderId(null);
-                                        }}
-                                      >
-                                        Partner
-                                      </button>
-                                      <button
-                                        className={styles.glassmorphismButton}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          addTeamProviderTag(provider.dhc, 'competitor');
-                                          setTaggingProviderId(null);
-                                        }}
-                                      >
-                                        Competitor
-                                      </button>
-                                      <button
-                                        className={styles.glassmorphismButton}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          addTeamProviderTag(provider.dhc, 'target');
-                                          setTaggingProviderId(null);
-                                        }}
-                                      >
-                                        Target
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                              <ProviderTagBadge
+                                providerId={provider.dhc}
+                                hasTeam={hasTeam}
+                                teamLoading={false}
+                                primaryTag={getProviderTags(provider.dhc)[0] || null}
+                                isSaving={false}
+                                onAddTag={addTeamProviderTag}
+                                onRemoveTag={removeTeamProviderTag}
+                                size="medium"
+                                variant="default"
+                                showRemoveOption={true}
+                              />
                             </div>
                           </div>
                         </div>

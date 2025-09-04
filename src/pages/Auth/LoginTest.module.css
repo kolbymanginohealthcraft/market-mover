@@ -16,6 +16,13 @@ input.form-input:focus {
   box-shadow: 0 0 0 2px rgba(53, 153, 184, 0.2) !important;
 }
 
+/* Make form-input fields taller on this auth page */
+.form-input {
+  height: 48px !important;
+  padding: 16px 20px !important;
+  box-sizing: border-box;
+}
+
 /* Button group layout for side-by-side buttons */
 .buttonGroup {
   display: flex;

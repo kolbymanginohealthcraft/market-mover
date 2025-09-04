@@ -25,6 +25,8 @@
   box-sizing: border-box;
   height: auto;
   min-height: 28px;
+  /* Global border between items */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .dropdownItem:hover {
@@ -38,6 +40,8 @@
 
 .dropdownItem:last-child {
   border-radius: 0 0 8px 8px;
+  /* Remove border from last item */
+  border-bottom: none;
 }
 
 .dropdownDivider {

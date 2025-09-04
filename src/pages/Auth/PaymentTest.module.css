@@ -19,6 +19,8 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 1rem;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .formRow {
@@ -33,6 +35,8 @@
 
 .formRow input {
   width: 4rem;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .amountInput {

@@ -1,0 +1,318 @@
+/* Provider Tag Badge - Global Standardized Component */
+
+/* Container */
+.taggingContainer {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tag Display */
+.tagDisplay {
+  display: flex;
+  align-items: center;
+}
+
+/* Base Tag Button Styles */
+.tagButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  color: var(--gray-700);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.tagButton:hover:not(:disabled) {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tagButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  background: var(--disabled-bg);
+  color: var(--disabled-color);
+  border-color: var(--disabled-border);
+}
+
+/* Size Variants */
+.sizeSmall {
+  padding: 3px 8px;
+  font-size: 11px;
+  height: 20px;
+}
+
+.sizeMedium {
+  padding: 4px 10px;
+  font-size: 12px;
+  height: 24px;
+}
+
+.sizeLarge {
+  padding: 6px 12px;
+  font-size: 13px;
+  height: 28px;
+}
+
+/* Visual Variants */
+.variantDefault {
+  /* Default styling - already applied above */
+}
+
+.variantCompact {
+  padding-left: 6px;
+  padding-right: 6px;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.variantInline {
+  background: transparent;
+  border: none;
+  padding: 2px 6px;
+  height: auto;
+}
+
+.variantInline:hover:not(:disabled) {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  transform: none;
+}
+
+/* Tag Badge (when tag is applied) */
+.tagBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  color: white;
+  line-height: 1;
+  box-sizing: border-box;
+  font-family: inherit;
+  border: none;
+}
+
+.tagBadge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tagBadge.sizeSmall {
+  padding: 3px 8px;
+  font-size: 11px;
+  height: 20px;
+}
+
+.tagBadge.sizeMedium {
+  padding: 4px 10px;
+  font-size: 12px;
+  height: 24px;
+}
+
+.tagBadge.sizeLarge {
+  padding: 6px 12px;
+  font-size: 13px;
+  height: 28px;
+}
+
+.tagBadge.variantCompact {
+  padding-left: 6px;
+  padding-right: 6px;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.tagBadge.variantInline {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 2px 6px;
+  height: auto;
+}
+
+.tagBadge.variantInline:hover {
+  background: var(--gray-50) !important;
+  border: 1px solid var(--gray-200);
+  transform: none;
+}
+
+/* Constrained Icon Sizing */
+.icon,
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+/* Icon sizes based on badge size */
+.sizeSmall .icon,
+.sizeSmall .chevron {
+  width: 10px;
+  height: 10px;
+}
+
+.sizeMedium .icon,
+.sizeMedium .chevron {
+  width: 12px;
+  height: 12px;
+}
+
+.sizeLarge .icon,
+.sizeLarge .chevron {
+  width: 14px;
+  height: 14px;
+}
+
+/* Chevron Icon Hover Effect */
+.tagButton:hover .chevron,
+.tagBadge:hover .chevron {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu - Standardized Styling */
+.dropdown {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Ensure dropdown is always on top */
+  z-index: 10000;
+  /* Additional properties to ensure visibility above containers */
+  pointer-events: auto;
+  /* Force hardware acceleration for smooth rendering */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Dropdown Items - Standardized Styling */
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #374151;
+  font-weight: 500;
+  line-height: 1.2;
+  font-family: inherit;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownItem:hover:not(:disabled) {
+  background: rgba(0, 192, 139, 0.1);
+  color: #006d5b;
+}
+
+.dropdownItem:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.dropdownItem:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.dropdownItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Tag Color Dots in Dropdown */
+.tagColorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Remove Option Styling */
+.removeOption {
+  color: var(--red-500);
+  border-top: 1px solid var(--gray-100);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+.removeOption:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Dropdown Divider - Standardized Styling */
+.dropdownDivider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 4px 0;
+}
+
+/* Disabled State */
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--disabled-bg);
+  color: var(--disabled-color);
+  border-color: var(--disabled-border);
+}
+
+.disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--disabled-bg);
+  border-color: var(--disabled-border);
+}
+
+/* Saving State */
+.saving {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.saving:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .dropdown {
+    min-width: 100px;
+    padding: 4px;
+  }
+  
+  .dropdownItem {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  
+  .tagColorDot {
+    width: 6px;
+    height: 6px;
+  }
+}

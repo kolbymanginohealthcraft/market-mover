@@ -6,7 +6,7 @@ import { supabase } from "../../../../app/supabaseClient";
 import Spinner from "../../../../components/Buttons/Spinner";
 import Button from "../../../../components/Buttons/Button";
 import ControlsRow from "../../../../components/Layouts/ControlsRow";
-import { InlineTagging } from "../../../../components/Tagging/InlineTagging";
+import { ProviderTagBadge } from "../../../../components/Tagging/ProviderTagBadge";
 import styles from "./ProviderListingTab.module.css";
 import controlsStyles from "../../../../components/Layouts/ControlsRow.module.css";
 import { useDropdownClose } from "../../../../hooks/useDropdownClose";
@@ -52,6 +52,7 @@ export default function ProviderListingTab({
   const [ccnProviderIds, setCcnProviderIds] = useState(new Set());
   const [popup, setPopup] = useState(null);
   const [mapReady, setMapReady] = useState(false);
+  const [lastClickedMarker, setLastClickedMarker] = useState(null);
   
   // Team functionality
   const { hasTeam, loading: teamLoading } = useUserTeam();
@@ -89,6 +90,41 @@ export default function ProviderListingTab({
       };
     }
   }, [searchQuery]);
+
+  // Enhanced popup closing behavior (escape key and click outside)
+  useEffect(() => {
+    if (!popup) return;
+
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        closePopup();
+      }
+    };
+
+    const handleClickOutside = (e) => {
+      // Check if click is outside the popup and not on a map marker
+      if (popup && !e.target.closest('.maplibregl-popup') && !e.target.closest('.maplibregl-marker')) {
+        closePopup();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [popup]);
+
+  // Function to close popup
+  const closePopup = useCallback(() => {
+    if (popup) {
+      popup.remove();
+      setPopup(null);
+      setLastClickedMarker(null);
+    }
+  }, [popup]);
 
   // Calculate map bounds to include the full circle radius
   const calculateMapBounds = () => {
@@ -589,7 +625,15 @@ export default function ProviderListingTab({
             if (e.features.length > 0) {
               const feature = e.features[0];
               const [longitude, latitude] = feature.geometry.coordinates;
+              const markerId = feature.properties.id;
               
+              // Check if clicking the same marker - toggle behavior
+              if (lastClickedMarker === markerId && popup) {
+                closePopup();
+                return;
+              }
+              
+              // Close existing popup if any
               if (popup) popup.remove();
               
               const tagColor = getTagColor(feature.properties.tag);
@@ -624,6 +668,7 @@ export default function ProviderListingTab({
               
               newPopup.addTo(map.current);
               setPopup(newPopup);
+              setLastClickedMarker(markerId);
             }
           });
 
@@ -879,19 +924,18 @@ export default function ProviderListingTab({
                       <td>{p.type || "Unknown"}</td>
                       <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
                       <td onClick={(e) => e.stopPropagation()}>
-                                                 <InlineTagging
-                           providerId={p.dhc}
-                           hasTeam={hasTeam}
-                           teamLoading={teamLoading}
-                           taggingProviderId={taggingProviderId}
-                           dropdownPosition={dropdownPosition}
-                           primaryTag={getPrimaryTag(p.dhc)}
-                           isSaving={addingTag || removingTag}
-                           onOpenDropdown={openTaggingDropdown}
-                           onCloseDropdown={closeTaggingDropdown}
-                           onAddTag={handleAddTag}
-                           onRemoveTag={handleRemoveTag}
-                         />
+                        <ProviderTagBadge
+                          providerId={p.dhc}
+                          hasTeam={hasTeam}
+                          teamLoading={teamLoading}
+                          primaryTag={getPrimaryTag(p.dhc)}
+                          isSaving={addingTag || removingTag}
+                          onAddTag={handleAddTag}
+                          onRemoveTag={handleRemoveTag}
+                          size="medium"
+                          variant="compact"
+                          showRemoveOption={true}
+                        />
                       </td>
                     </tr>
                   ))}

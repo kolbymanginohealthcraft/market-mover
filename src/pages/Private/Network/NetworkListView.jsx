@@ -9,9 +9,11 @@ import Dropdown from '../../../components/Buttons/Dropdown';
 import useTaggedProviders from '../../../hooks/useTaggedProviders';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { getTagColor, getTagLabel } from '../../../utils/tagColors';
+import { ProviderTagBadge } from '../../../components/Tagging/ProviderTagBadge';
 import styles from './Network.module.css';
-
+import dropdownStyles from '../../../components/Buttons/Dropdown.module.css';
 import controlsStyles from '../../../components/Layouts/ControlsRow.module.css';
+
 
 export default function NetworkListView() {
   const navigate = useNavigate();
@@ -339,53 +341,57 @@ export default function NetworkListView() {
               }
               isOpen={filterTagDropdownOpen}
               onToggle={setFilterTagDropdownOpen}
-              className={styles.dropdownMenu}
+              className={dropdownStyles.dropdown}
             >
-              <div 
-                className={styles.dropdownItem}
+              <button 
+                className={dropdownStyles.dropdownItem}
                 onClick={() => {
                   handleTagFilterChange('all');
                   setFilterTagDropdownOpen(false);
                 }}
               >
                 All Tags
-              </div>
-              <div 
-                className={styles.dropdownItem}
+              </button>
+              <button 
+                className={dropdownStyles.dropdownItem}
                 onClick={() => {
                   handleTagFilterChange('me');
                   setFilterTagDropdownOpen(false);
                 }}
               >
-                Me
-              </div>
-              <div 
-                className={styles.dropdownItem}
+                <span className={styles.tagColorDot} style={{ backgroundColor: getTagColor('me') }}></span>
+                {getTagLabel('me')}
+              </button>
+              <button 
+                className={dropdownStyles.dropdownItem}
                 onClick={() => {
                   handleTagFilterChange('partner');
                   setFilterTagDropdownOpen(false);
                 }}
               >
-                Partner
-              </div>
-              <div 
-                className={styles.dropdownItem}
+                <span className={styles.tagColorDot} style={{ backgroundColor: getTagColor('partner') }}></span>
+                {getTagLabel('partner')}
+              </button>
+              <button 
+                className={dropdownStyles.dropdownItem}
                 onClick={() => {
                   handleTagFilterChange('competitor');
                   setFilterTagDropdownOpen(false);
                 }}
               >
-                Competitor
-              </div>
-              <div 
-                className={styles.dropdownItem}
+                <span className={styles.tagColorDot} style={{ backgroundColor: getTagColor('competitor') }}></span>
+                {getTagLabel('competitor')}
+              </button>
+              <button 
+                className={dropdownStyles.dropdownItem}
                 onClick={() => {
                   handleTagFilterChange('target');
                   setFilterTagDropdownOpen(false);
                 }}
               >
-                Target
-              </div>
+                <span className={styles.tagColorDot} style={{ backgroundColor: getTagColor('target') }}></span>
+                {getTagLabel('target')}
+              </button>
             </Dropdown>
           </>
         }
@@ -478,68 +484,18 @@ export default function NetworkListView() {
                       </div>
                     </td>
                     <td>
-                      {provider.tags.length > 0 ? (
-                        <div className={styles.tagsContainer}>
-                          {provider.tags.map(tag => (
-                            <div key={tag} className={styles.tagWrapper}>
-                              <Dropdown
-                                trigger={
-                                  <span 
-                                    className={styles.tag} 
-                                    style={{ backgroundColor: getTagColor(tag) }}
-                                  >
-                                    {getTagLabel(tag)}
-                                  </span>
-                                }
-                                isOpen={editingTag?.providerDhc === provider.provider_dhc && editingTag?.currentTag === tag}
-                                onToggle={(isOpen) => {
-                                  if (isOpen) {
-                                    handleTagClick(provider.provider_dhc, tag);
-                                  } else {
-                                    setEditingTag(null);
-                                  }
-                                }}
-                                className={styles.dropdownMenu}
-                                key={`${provider.provider_dhc}-${tag}`}
-                              >
-                                <div 
-                                  className={styles.dropdownItem}
-                                  onClick={() => handleTagChange(provider.provider_dhc, 'me')}
-                                >
-                                  Me
-                                </div>
-                                <div 
-                                  className={styles.dropdownItem}
-                                  onClick={() => handleTagChange(provider.provider_dhc, 'partner')}
-                                >
-                                  Partner
-                                </div>
-                                <div 
-                                  className={styles.dropdownItem}
-                                  onClick={() => handleTagChange(provider.provider_dhc, 'competitor')}
-                                >
-                                  Competitor
-                                </div>
-                                <div 
-                                  className={styles.dropdownItem}
-                                  onClick={() => handleTagChange(provider.provider_dhc, 'target')}
-                                >
-                                  Target
-                                </div>
-                                <div className={styles.dropdownDivider}></div>
-                                <div 
-                                  className={styles.dropdownItem}
-                                  onClick={() => handleTagChange(provider.provider_dhc, 'remove')}
-                                >
-                                  Remove
-                                </div>
-                              </Dropdown>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className={styles.noTags}>No tags</span>
-                      )}
+                      <ProviderTagBadge
+                        providerId={provider.provider_dhc}
+                        hasTeam={hasTeam}
+                        teamLoading={false}
+                        primaryTag={provider.tags[0] || null}
+                        isSaving={removingTag}
+                        onAddTag={changeProviderTag}
+                        onRemoveTag={removeAllProviderTags}
+                        size="medium"
+                        variant="default"
+                        showRemoveOption={true}
+                      />
                     </td>
                     <td>{provider.type}</td>
                     <td>{provider.network}</td>
