@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/Buttons/Button';
-import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import MarkdownEditor from './MarkdownEditor';
 import styles from './LegalContentEditor.module.css';
 
@@ -135,13 +134,17 @@ const LegalContentEditor = () => {
       <div className={styles.container}>
         <div className={styles.sidebar}>
           <h3>Select Document</h3>
-          <ButtonGroup
-            options={legalTypes.map(t => t.value)}
-            selected={selectedType}
-            onSelect={setSelectedType}
-            size="sm"
-            variant="blue"
-          />
+          <div className={styles.filterButtonGroup}>
+            {legalTypes.map(t => (
+              <button
+                key={t.value}
+                className={`${styles.filterButton} ${selectedType === t.value ? styles.filterButtonActive : ''}`}
+                onClick={() => setSelectedType(t.value)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
           <div className={styles.importExport}>
             <h3>Import/Export</h3>

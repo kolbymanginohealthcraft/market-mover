@@ -1,7 +1,9 @@
+/* Settings Navbar - Migrated to Global Design System */
+
 .tabs {
   display: flex;
-  background: #e6f0ec;
-  border-bottom: 1px solid #d1d5db;
+  background: rgba(0, 192, 139, 0.1);
+  border-bottom: 1px solid var(--gray-300);
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0 1rem;
@@ -15,7 +17,7 @@
   border: none;
   font-size: 1rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--gray-500);
   cursor: pointer;
   transition: all 0.2s ease;
   border-bottom: 3px solid transparent;
@@ -23,14 +25,14 @@
 }
 
 .tab:hover {
-  background: #d9ede7;
-  color: #374151;
+  background: rgba(0, 192, 139, 0.15);
+  color: var(--gray-700);
 }
 
 .tab.active {
-  background: #f8fdfb;
-  color: #265947;
-  border-bottom-color: #265947;
+  background: rgba(0, 192, 139, 0.05);
+  color: var(--dark-green);
+  border-bottom-color: var(--dark-green);
 }
 
 /* Responsive Design */
@@ -49,6 +51,6 @@
   
   .tab.active {
     border-bottom-color: transparent;
-    border-right-color: #265947;
+    border-right-color: var(--dark-green);
   }
 } 

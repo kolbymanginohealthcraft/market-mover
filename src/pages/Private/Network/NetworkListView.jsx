@@ -1,20 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Network as NetworkIcon, Lock } from 'lucide-react';
+import { Network as NetworkIcon, Lock, Search, X, ChevronDown } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
-import ButtonGroup from '../../../components/Buttons/ButtonGroup';
 import Spinner from '../../../components/Buttons/Spinner';
 import SectionHeader from '../../../components/Layouts/SectionHeader';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import useTaggedProviders from '../../../hooks/useTaggedProviders';
 import { useUserTeam } from '../../../hooks/useUserTeam';
+import { getTagColor, getTagLabel } from '../../../utils/tagColors';
 import styles from './Network.module.css';
-import dropdownStyles from '../../../components/Buttons/Dropdown.module.css';
+
 import controlsStyles from '../../../components/Layouts/ControlsRow.module.css';
 
 export default function NetworkListView() {
   const navigate = useNavigate();
+  const searchInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterTag, setFilterTag] = useState('all');
@@ -27,6 +28,9 @@ export default function NetworkListView() {
   const [bulkMessage, setBulkMessage] = useState('');
   const [bulkMessageType, setBulkMessageType] = useState('');
   const [footerVisible, setFooterVisible] = useState(false);
+  const [filterTypeDropdownOpen, setFilterTypeDropdownOpen] = useState(false);
+  const [filterTagDropdownOpen, setFilterTagDropdownOpen] = useState(false);
+  const [bulkEditDropdownOpen, setBulkEditDropdownOpen] = useState(false);
   const {
     taggedProviders,
     loading,
@@ -56,6 +60,28 @@ export default function NetworkListView() {
       return () => clearTimeout(timer);
     }
   }, [selectedProviders.size, bulkMessage]);
+
+  // Handle global search behavior integration
+  useEffect(() => {
+    if (searchInputRef.current) {
+      const handleInputChange = (e) => {
+        // Sync with global script changes
+        if (e.target.value !== searchTerm) {
+          setSearchTerm(e.target.value);
+        }
+      };
+      
+      searchInputRef.current.addEventListener('input', handleInputChange);
+      
+      return () => {
+        if (searchInputRef.current) {
+          searchInputRef.current.removeEventListener('input', handleInputChange);
+        }
+      };
+    }
+  }, [searchTerm]);
+
+
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
   const handleFilterChange = (e) => setFilterType(e.target.value);
@@ -241,26 +267,7 @@ export default function NetworkListView() {
     return Array.from(types).sort();
   };
 
-  // Helper functions for tag display
-  const getTagColor = (tagType) => {
-    switch (tagType) {
-      case 'me': return '#265947'; // Green from palette
-      case 'partner': return '#3599b8'; // Blue from palette
-      case 'competitor': return '#d64550'; // Red from palette
-      case 'target': return '#f1b62c'; // Gold from palette
-      default: return '#5f6b6d'; // Gray from palette
-    }
-  };
 
-  const getTagLabel = (tagType) => {
-    switch (tagType) {
-      case 'me': return 'Me';
-      case 'partner': return 'Partner';
-      case 'competitor': return 'Competitor';
-      case 'target': return 'Target';
-      default: return tagType;
-    }
-  };
 
   if (loading) return <Spinner message="Loading your network..." />;
 
@@ -269,29 +276,117 @@ export default function NetworkListView() {
       {/* Controls Row */}
       <ControlsRow
         leftContent={
-          <>
-            <input
-              type="text"
-              placeholder="Search providers in this list..."
-              value={searchTerm}
-              onChange={handleSearch}
-              className={controlsStyles.searchInput}
-            />
-          
-            <select value={filterType} onChange={handleFilterChange} className={controlsStyles.filterSelect}>
-              <option value="all">All Types</option>
-              {getUniqueTypes().map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+                    <>
+            <div className="searchBarContainer">
+              <div className="searchIcon">
+                <Search size={16} />
+              </div>
+                                           <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search providers in this list..."
+                value={searchTerm}
+                onChange={handleSearch}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchTerm('');
+                  }
+                }}
+                className="searchInput"
+              />
+            </div>
             
-            <select value={filterTag} onChange={(e) => handleTagFilterChange(e.target.value)} className={controlsStyles.filterSelect}>
-              <option value="all">All Tags</option>
-              <option value="me">Me</option>
-              <option value="partner">Partner</option>
-              <option value="competitor">Competitor</option>
-              <option value="target">Target</option>
-            </select>
+            <Dropdown
+              trigger={
+                <button className="sectionHeaderButton">
+                  {filterType === 'all' ? 'All Types' : filterType}
+                  <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                </button>
+              }
+              isOpen={filterTypeDropdownOpen}
+              onToggle={setFilterTypeDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleFilterChange({ target: { value: 'all' } });
+                  setFilterTypeDropdownOpen(false);
+                }}
+              >
+                All Types
+              </div>
+              {getUniqueTypes().map(type => (
+                <div 
+                  key={type} 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleFilterChange({ target: { value: type } });
+                    setFilterTypeDropdownOpen(false);
+                  }}
+                >
+                  {type}
+                </div>
+              ))}
+            </Dropdown>
+            
+            <Dropdown
+              trigger={
+                <button className="sectionHeaderButton">
+                  {filterTag === 'all' ? 'All Tags' : getTagLabel(filterTag)}
+                  <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                </button>
+              }
+              isOpen={filterTagDropdownOpen}
+              onToggle={setFilterTagDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagFilterChange('all');
+                  setFilterTagDropdownOpen(false);
+                }}
+              >
+                All Tags
+              </div>
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagFilterChange('me');
+                  setFilterTagDropdownOpen(false);
+                }}
+              >
+                Me
+              </div>
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagFilterChange('partner');
+                  setFilterTagDropdownOpen(false);
+                }}
+              >
+                Partner
+              </div>
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagFilterChange('competitor');
+                  setFilterTagDropdownOpen(false);
+                }}
+              >
+                Competitor
+              </div>
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagFilterChange('target');
+                  setFilterTagDropdownOpen(false);
+                }}
+              >
+                Target
+              </div>
+            </Dropdown>
           </>
         }
         rightContent={
@@ -404,40 +499,40 @@ export default function NetworkListView() {
                                     setEditingTag(null);
                                   }
                                 }}
-                                className={dropdownStyles.dropdown}
+                                className={styles.dropdownMenu}
                                 key={`${provider.provider_dhc}-${tag}`}
                               >
-                                <button 
-                                  className={dropdownStyles.dropdownItem}
+                                <div 
+                                  className={styles.dropdownItem}
                                   onClick={() => handleTagChange(provider.provider_dhc, 'me')}
                                 >
                                   Me
-                                </button>
-                                <button 
-                                  className={dropdownStyles.dropdownItem}
+                                </div>
+                                <div 
+                                  className={styles.dropdownItem}
                                   onClick={() => handleTagChange(provider.provider_dhc, 'partner')}
                                 >
                                   Partner
-                                </button>
-                                <button 
-                                  className={dropdownStyles.dropdownItem}
+                                </div>
+                                <div 
+                                  className={styles.dropdownItem}
                                   onClick={() => handleTagChange(provider.provider_dhc, 'competitor')}
                                 >
                                   Competitor
-                                </button>
-                                <button 
-                                  className={dropdownStyles.dropdownItem}
+                                </div>
+                                <div 
+                                  className={styles.dropdownItem}
                                   onClick={() => handleTagChange(provider.provider_dhc, 'target')}
                                 >
                                   Target
-                                </button>
-                                <div className={dropdownStyles.dropdownDivider}></div>
-                                <button 
-                                  className={dropdownStyles.dropdownItem}
+                                </div>
+                                <div className={styles.dropdownDivider}></div>
+                                <div 
+                                  className={styles.dropdownItem}
                                   onClick={() => handleTagChange(provider.provider_dhc, 'remove')}
                                 >
                                   Remove
-                                </button>
+                                </div>
                               </Dropdown>
                             </div>
                           ))}
@@ -459,15 +554,15 @@ export default function NetworkListView() {
 
         {/* Bulk Actions Footer */}
         {footerVisible && (
-          <div className={`${styles.footer} ${footerVisible ? styles.footerVisible : ''}`}>
-            <div className={styles.footerContent}>
-              <div className={styles.footerLeft}>
+          <div className={`${styles.bottomDrawer} ${footerVisible ? styles.drawerVisible : ''}`}>
+            <div className={styles.drawerContent}>
+              <div className={styles.drawerLeft}>
                 <span className={styles.selectionCount}>
                   {selectedProviders.size} provider{selectedProviders.size !== 1 ? 's' : ''} selected
                 </span>
               </div>
               
-              <div className={styles.footerRight}>
+              <div className={styles.drawerRight}>
                 {bulkMessage && (
                   <div className={`${styles.bulkMessage} ${styles[bulkMessageType]}`}>
                     {bulkMessage}
@@ -476,32 +571,72 @@ export default function NetworkListView() {
                 
                 {selectedProviders.size > 0 && hasTeam && (
                   <div className={styles.bulkActions}>
-                    <select 
-                      value={bulkEditTag} 
-                      onChange={(e) => setBulkEditTag(e.target.value)}
-                      className={styles.bulkEditSelect}
+                    <Dropdown
+                      trigger={
+                        <button className="sectionHeaderButton">
+                          {bulkEditTag ? getTagLabel(bulkEditTag) : 'Change tag to...'}
+                          <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                        </button>
+                      }
+                      isOpen={bulkEditDropdownOpen}
+                      onToggle={setBulkEditDropdownOpen}
+                      className={styles.dropdownMenu}
                     >
-                      <option value="">Change tag to...</option>
-                      <option value="me">Me</option>
-                      <option value="partner">Partner</option>
-                      <option value="competitor">Competitor</option>
-                      <option value="target">Target</option>
-                    </select>
+                      <div 
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setBulkEditTag('me');
+                          setBulkEditDropdownOpen(false);
+                        }}
+                      >
+                        Me
+                      </div>
+                      <div 
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setBulkEditTag('partner');
+                          setBulkEditDropdownOpen(false);
+                        }}
+                      >
+                        Partner
+                      </div>
+                      <div 
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setBulkEditTag('competitor');
+                          setBulkEditDropdownOpen(false);
+                        }}
+                      >
+                        Competitor
+                      </div>
+                      <div 
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setBulkEditTag('target');
+                          setBulkEditDropdownOpen(false);
+                        }}
+                      >
+                        Target
+                      </div>
+                    </Dropdown>
                     
-                    <Button 
+                    <button 
+                      className={styles.cancelButton}
+                      onClick={() => {
+                        setSelectedProviders(new Set());
+                        setBulkEditTag('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    
+                    <button 
+                      className={styles.saveButton}
                       onClick={handleBulkEdit}
                       disabled={!bulkEditTag}
-                      variant="green"
                     >
                       Apply
-                    </Button>
-                    
-                    <Button 
-                      onClick={handleBulkDelete}
-                      variant="red"
-                    >
-                      Remove All Tags
-                    </Button>
+                    </button>
                   </div>
                 )}
                 {selectedProviders.size > 0 && !hasTeam && (

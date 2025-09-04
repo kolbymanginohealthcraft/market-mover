@@ -139,24 +139,7 @@
   font-size: 0.9rem;
 }
 
-.addButton {
-  padding: 10px 20px;
-  background: #265947;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-.addButton:hover {
-  background: #1f4538;
-  transform: translateY(-1px);
-}
 
 .colorsGrid {
   display: grid;
@@ -445,6 +428,29 @@
   font-weight: 500;
 }
 
+
+
+/* Color picker styling - minimal custom styling for unique HTML element */
+.colorPicker {
+  width: 60px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.colorPicker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colorPicker::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .twoColumnLayout {
@@ -481,6 +487,11 @@
   
   .sectionHeader h3 {
     font-size: 1.3rem;
+  }
+  
+  .formActions {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 

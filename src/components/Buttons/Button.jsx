@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import './buttons.css';
+import './new-button-styles.css';
 
 /**
- * Flexible Button components with color, size, and style modifiers.
+ * Flexible Button components with new modern styles.
  *
  * Props:
  * - variant: "green" | "gold" | "accent" | "red" | "teal" | "blue" | "aqua" | "gray"
@@ -12,7 +12,6 @@ import './buttons.css';
  * - isActive: boolean (applies to active filter buttons)
  * - outline: boolean (outline button)
  * - ghost: boolean (ghost button)
- * - darkBg: boolean (dark background variant)
  * - banner: boolean (banner button style)
  * - bannerVariant: "default" | "active" | "primary" (for banner buttons)
  * - className: additional custom class names
@@ -25,7 +24,6 @@ export default function Button({
   isActive = false,
   outline = false,
   ghost = false,
-  darkBg = false,
   banner = false,
   bannerVariant = 'default',
   className = '',
@@ -38,29 +36,53 @@ export default function Button({
   if (banner) {
     classList.push('banner-button', bannerVariant);
   } else if (isFilter) {
-    classList.push('filter-button');
+    classList.push('filterButton');
+    if (isActive) classList.push('filterButtonActive');
   } else {
-    classList.push('button');
-  }
+    // Map old variants to new button classes
+    switch (variant) {
+      case 'glassmorphism':
+        classList.push('glassmorphismButton');
+        break;
+      case 'blue':
+        classList.push('primaryButton');
+        break;
+      case 'green':
+        classList.push('successButton');
+        break;
+      case 'red':
+        classList.push('dangerButton');
+        break;
+      case 'gray':
+        classList.push('secondaryButton');
+        break;
+      case 'teal':
+        classList.push('primaryButton');
+        break;
+      case 'accent':
+        classList.push('primaryButton');
+        break;
+      case 'aqua':
+        classList.push('primaryButton');
+        break;
+      case 'gold':
+        classList.push('successButton');
+        break;
+      default:
+        classList.push('primaryButton');
+    }
 
-  // Dark background modifier
-  if (darkBg) classList.push('dark-bg');
-
-  // Style modifiers (only for non-banner buttons)
-  if (!banner && !isFilter && outline) {
-    classList.push('button-outline', variant);
-  } else if (!banner && !isFilter && ghost) {
-    classList.push('button-ghost', variant);
-  } else if (!banner && !isFilter) {
-    classList.push(variant);
+    // Handle outline and ghost variants
+    if (outline) {
+      classList.push('secondaryButton');
+    } else if (ghost) {
+      classList.push('actionButton');
+    }
   }
 
   // Size modifiers
-  if (size === 'sm') classList.push('button-sm');
-  if (size === 'lg') classList.push('button-lg');
-
-  // Filter active state
-  if (isFilter && isActive) classList.push('active');
+  if (size === 'sm') classList.push('buttonSmall');
+  if (size === 'lg') classList.push('buttonLarge');
 
   // Custom className prop
   if (className) classList.push(className);
@@ -74,14 +96,13 @@ export default function Button({
 
 Button.propTypes = {
   variant: PropTypes.oneOf([
-    'green', 'gold', 'accent', 'red', 'teal', 'blue', 'aqua', 'gray'
+    'glassmorphism', 'green', 'gold', 'accent', 'red', 'teal', 'blue', 'aqua', 'gray'
   ]),
   size: PropTypes.oneOf(['sm', 'md', 'lg']),
   isFilter: PropTypes.bool,
   isActive: PropTypes.bool,
   outline: PropTypes.bool,
   ghost: PropTypes.bool,
-  darkBg: PropTypes.bool,
   banner: PropTypes.bool,
   bannerVariant: PropTypes.oneOf(['default', 'active', 'primary']),
   className: PropTypes.string,

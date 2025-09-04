@@ -11,6 +11,7 @@ import { trackProviderSearch } from '../../../utils/activityTracker';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
+import { getTagColor, getTagLabel } from '../../../utils/tagColors';
 import {
   Search,
   MapPin,
@@ -615,24 +616,29 @@ export default function ProviderSearch() {
                 </div>
               }
             >
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (lastTrackedSearch.current !== queryText.trim()) {
-                    lastTrackedSearch.current = "";
-                  }
-                  handleSearch();
-                }}
-                style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1 }}
-              >
-                <input
-                  className={styles.searchInput}
-                  type="text"
-                  placeholder="Search by name, address, network, etc."
-                  value={queryText}
-                  onChange={(e) => setQueryText(e.target.value)}
-                  ref={searchInputRef}
-                />
+                             <form
+                 onSubmit={(e) => {
+                   e.preventDefault();
+                   if (lastTrackedSearch.current !== queryText.trim()) {
+                     lastTrackedSearch.current = "";
+                   }
+                   handleSearch();
+                 }}
+                 style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1 }}
+               >
+                 <div className="searchBarContainer">
+                   <div className="searchIcon">
+                     <Search size={16} />
+                   </div>
+                   <input
+                     className="searchInput"
+                     type="text"
+                     placeholder="Search by name, address, network, etc."
+                     value={queryText}
+                     onChange={(e) => setQueryText(e.target.value)}
+                     ref={searchInputRef}
+                   />
+                 </div>
                 <button
                   type="submit"
                   className={styles.glassmorphismButton}
@@ -854,16 +860,10 @@ export default function ProviderSearch() {
                                     key={tagType}
                                     className={styles.tag}
                                     style={{
-                                      backgroundColor: tagType === 'me' ? '#265947' :
-                                        tagType === 'partner' ? '#3599b8' :
-                                          tagType === 'competitor' ? '#d64550' :
-                                            tagType === 'target' ? '#f1b62c' : '#5f6b6d'
+                                      backgroundColor: getTagColor(tagType)
                                     }}
                                   >
-                                    {tagType === 'me' ? 'Me' :
-                                      tagType === 'partner' ? 'Partner' :
-                                        tagType === 'competitor' ? 'Competitor' :
-                                          tagType === 'target' ? 'Target' : tagType}
+                                    {getTagLabel(tagType)}
                                     <button
                                       className={styles.tagRemove}
                                       onClick={(e) => {

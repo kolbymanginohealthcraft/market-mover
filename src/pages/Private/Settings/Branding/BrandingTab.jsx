@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Palette } from "lucide-react";
+import { Palette, Plus, Copy, Edit3, Trash2 } from "lucide-react";
 import useTeamCustomColors from "../../../../hooks/useTeamCustomColors";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
-import SidePanel from "../../../../components/Overlays/SidePanel";
+import RightDrawer from "../../../../components/Overlays/RightDrawer";
 import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import styles from "./BrandingTab.module.css";
 
@@ -197,13 +197,13 @@ export default function BrandingTab() {
                   <h3>Color Palette</h3>
                   <p>Manage your brand colors for charts and visualizations</p>
                 </div>
-                <Button
-                  variant="green"
-                  size="sm"
-                  onClick={openAddPanel}
-                >
-                  + Add Color
-                </Button>
+                                 <button 
+                                       className="sectionHeaderButton"
+                   onClick={openAddPanel}
+                 >
+                   <Plus size={14} />
+                   <span>Add Color</span>
+                 </button>
               </div>
             
             <div className={styles.sectionContent}>
@@ -227,35 +227,32 @@ export default function BrandingTab() {
                           <p className={styles.colorHex}>{color.color_hex}</p>
                         </div>
                       </div>
-                      <div className={styles.colorActions}>
-                        <Button
-                          variant="gray"
-                          size="sm"
-                          ghost
-                          onClick={() => copyHexToClipboard(color.color_hex)}
-                          disabled={updatingColor || deletingColor}
-                        >
-                          Copy
-                        </Button>
-                        <Button
-                          variant="blue"
-                          size="sm"
-                          ghost
-                          onClick={() => startEditing(color)}
-                          disabled={updatingColor || deletingColor}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="red"
-                          size="sm"
-                          ghost
-                          onClick={() => handleDeleteColor(color.id)}
-                          disabled={updatingColor || deletingColor}
-                        >
-                          {deletingColor ? 'Deleting...' : 'Delete'}
-                        </Button>
-                      </div>
+                                                                     <div className={styles.colorActions}>
+                          <button
+                            onClick={() => copyHexToClipboard(color.color_hex)}
+                            className="actionButton"
+                            disabled={updatingColor || deletingColor}
+                          >
+                            <Copy size={14} />
+                            Copy
+                          </button>
+                          <button
+                            onClick={() => startEditing(color)}
+                            className="actionButton"
+                            disabled={updatingColor || deletingColor}
+                          >
+                            <Edit3 size={14} />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteColor(color.id)}
+                            className="actionButton"
+                            disabled={updatingColor || deletingColor}
+                          >
+                            <Trash2 size={14} />
+                            {deletingColor ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
                     </div>
                   ))}
                 </div>
@@ -498,71 +495,74 @@ export default function BrandingTab() {
       </div>
       </div>
 
-      {/* Add/Edit Color Sidebar */}
-      <SidePanel 
-        isOpen={showAddPanel} 
-        onClose={() => setShowAddPanel(false)}
-        title={editingColor ? 'Edit Color' : 'Add New Color'}
-      >
-        <div>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              Color Name
-            </label>
-            <input
-              ref={colorNameInputRef}
-              type="text"
-              value={editingColor ? editColorName : newColorName}
-              onChange={(e) => editingColor ? setEditColorName(e.target.value) : setNewColorName(e.target.value)}
-              placeholder="e.g., Primary Blue, Accent Red"
-              maxLength={50}
-              required
-              className="form-input"
-            />
-          </div>
+             {/* Add/Edit Color Right Drawer */}
+       <RightDrawer 
+         isOpen={showAddPanel} 
+         onClose={() => setShowAddPanel(false)}
+         title={editingColor ? 'Edit Color' : 'Add New Color'}
+       >
+         <div>
+           <div className="form-group">
+             <label className="form-label">
+               Color Name
+             </label>
+             <input
+               ref={colorNameInputRef}
+               type="text"
+               className="form-input"
+               value={editingColor ? editColorName : newColorName}
+               onChange={(e) => editingColor ? setEditColorName(e.target.value) : setNewColorName(e.target.value)}
+               placeholder="e.g., Primary Blue, Accent Red"
+               maxLength={50}
+               required
+             />
+           </div>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              Color
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input
-                type="color"
-                value={editingColor ? editColorHex : newColorHex}
-                onChange={(e) => editingColor ? setEditColorHex(e.target.value) : setNewColorHex(e.target.value)}
-                required
-                style={{
-                  width: '60px',
-                  height: '40px',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              />
-              <input
-                type="text"
-                value={editingColor ? editColorHex : newColorHex}
-                onChange={(e) => editingColor ? setEditColorHex(e.target.value) : setNewColorHex(e.target.value)}
-                placeholder="#3B82F6"
-                pattern="^#[0-9A-Fa-f]{6}$"
-                required
-                className="form-input"
-                style={{ flex: 1 }}
-              />
-            </div>
-          </div>
+           <div className="form-group">
+             <label className="form-label">
+               Color
+             </label>
+             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+               <input
+                 type="color"
+                 value={editingColor ? editColorHex : newColorHex}
+                 onChange={(e) => editingColor ? setEditColorHex(e.target.value) : setNewColorHex(e.target.value)}
+                 required
+                 className={styles.colorPicker}
+               />
+               <input
+                 type="text"
+                 className="form-input"
+                 value={editingColor ? editColorHex : newColorHex}
+                 onChange={(e) => editingColor ? setEditColorHex(e.target.value) : setNewColorHex(e.target.value)}
+                 placeholder="#3B82F6"
+                 pattern="^#[0-9A-Fa-f]{6}$"
+                 required
+               />
+             </div>
+           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-            <Button 
-              onClick={editingColor ? handleEditColor : handleAddColor}
-              disabled={addingColor || updatingColor || !(editingColor ? editColorName : newColorName).trim()}
-            >
-              {addingColor || updatingColor ? 'Saving...' : (editingColor ? 'Update Color' : 'Add Color')}
+                       <div>
+              <Button 
+                variant="green"
+                size="md"
+                onClick={editingColor ? handleEditColor : handleAddColor}
+                disabled={addingColor || updatingColor || !(editingColor ? editColorName : newColorName).trim()}
+              >
+                {addingColor || updatingColor ? 'Saving...' : (editingColor ? 'Update Color' : 'Add Color')}
+              </Button>
+              <Button 
+                variant="gray" 
+                size="md" 
+                outline 
+                onClick={() => setShowAddPanel(false)}
+                disabled={addingColor || updatingColor}
+              >
+                Cancel
             </Button>
-            <Button outline onClick={() => setShowAddPanel(false)}>Cancel</Button>
-          </div>
-        </div>
-      </SidePanel>
+            </div>
+         </div>
+       </RightDrawer>
     </div>
   );
 } 

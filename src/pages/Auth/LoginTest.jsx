@@ -129,35 +129,37 @@ const LoginTest = () => {
                  />
               </div>
 
-              <Button
-                type="submit"
-                variant="blue"
-                size="lg"
-                style={{ marginTop: '8px' }}
-              >
-                Sign In
-              </Button>
+                             <Button
+                 type="submit"
+                 variant="blue"
+                 size="lg"
+                 className={styles.primaryButton}
+                 style={{ marginTop: '8px' }}
+               >
+                 Sign In
+               </Button>
             </form>
 
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Button
-                variant="blue"
-                ghost
-                size="sm"
-                onClick={handleForgotPassword}
-                style={{ marginRight: '16px' }}
-              >
-                Forgot Password?
-              </Button>
-                             <Button
+                         <div className={styles.buttonGroup}>
+               <Button
+                 variant="blue"
+                 ghost
+                 size="sm"
+                 onClick={handleForgotPassword}
+                 className={styles.secondaryButton}
+               >
+                 Forgot Password?
+               </Button>
+               <Button
                  variant="blue"
                  ghost
                  size="sm"
                  onClick={() => navigate('/signup')}
+                 className={styles.secondaryButton}
                >
-                 Create Account
-               </Button>
-            </div>
+                                  Create Account
+                 </Button>
+             </div>
 
             {status && (
               <p style={{

@@ -76,8 +76,13 @@ const Dropdown = ({
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
-      <div ref={triggerRef} onClick={handleTriggerClick}>
-        {trigger}
+      <div 
+        ref={triggerRef} 
+        onClick={handleTriggerClick}
+      >
+        {React.cloneElement(trigger, {
+          className: `${trigger.props.className || ''} ${isOpen ? 'dropdown-trigger-open' : ''}`.trim()
+        })}
       </div>
 
       {isOpen && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, ChevronDown, Code, Trash2, X, Plus, Edit, ExternalLink } from 'lucide-react';
+import { Palette, ChevronDown, Code, Trash2, X, Plus, Edit, ExternalLink, Search } from 'lucide-react';
 
 import Dropdown from '../../../../components/Buttons/Dropdown';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
@@ -99,7 +99,8 @@ export default function StyleGuide() {
     { name: 'Warning Orange', variable: '--warning-orange', value: '#f59e0b' }
   ];
 
-  const [showBottomPopout, setShowBottomPopout] = useState(true);
+  // Toggle states for testing components
+  const [showBottomPopout, setShowBottomPopout] = useState(false);
   const [showRightDrawer, setShowRightDrawer] = useState(false);
 
   return (
@@ -146,19 +147,19 @@ export default function StyleGuide() {
             <div className={styles.subsection}>
               <h3>Action Buttons</h3>
               <div className={styles.buttonExample}>
-                <button className={styles.sectionHeaderButton}>
+                <button className="sectionHeaderButton">
                   <Trash2 size={14} />
                   <span>Clear All</span>
                 </button>
-                <button className={styles.sectionHeaderButton}>
+                <button className="sectionHeaderButton">
                   <Plus size={14} />
                   <span>Add New</span>
                 </button>
-                <button className={styles.sectionHeaderButton}>
+                <button className="sectionHeaderButton">
                   <Edit size={14} />
                   <span>Edit</span>
                 </button>
-                <button className={styles.sectionHeaderButton}>
+                <button className="sectionHeaderButton">
                   <ExternalLink size={14} />
                   <span>Open New Window</span>
                 </button>
@@ -221,7 +222,7 @@ export default function StyleGuide() {
               <div className={styles.dropdownExample}>
                 <Dropdown
                   trigger={
-                    <button className={styles.sectionHeaderButton}>
+                    <button className="sectionHeaderButton">
                       Open Dropdown
                       <ChevronDown size={10} style={{ marginLeft: '8px' }} />
                     </button>
@@ -244,7 +245,7 @@ export default function StyleGuide() {
                                      <Dropdown
                      trigger={
                        <button 
-                         className={styles.sectionHeaderButton}
+                         className="sectionHeaderButton"
                          style={{ 
                            minWidth: '200px',
                            display: 'flex',
@@ -301,52 +302,24 @@ export default function StyleGuide() {
                      }
                      isOpen={dropdownOpen3}
                      onToggle={setDropdownOpen3}
-                     className={styles.dropdownMenu}
+                     className={`${styles.dropdownMenu} dropdown`}
                      searchQuery={searchQuery}
                      onSearchClear={setSearchQuery}
                    >
                     {/* Search and Clear All at the top */}
                                          <div className={styles.dropdownHeader}>
-                       <div style={{ position: 'relative', width: '100%' }}>
+                                              <div className="searchBarContainer" style={{ width: '100%' }}>
+                         <div className="searchIcon">
+                           <Search size={16} />
+                         </div>
                          <input
                            type="text"
                            placeholder="Search options..."
-                           className={styles.searchInput}
+                           className="searchInput"
                            value={searchQuery}
                            onChange={(e) => setSearchQuery(e.target.value)}
                            autoFocus={dropdownOpen3}
-                           style={{ width: '100%' }}
                          />
-                                                   {searchQuery && (
-                            <button
-                              onClick={() => setSearchQuery('')}
-                              className={`${styles.clearButton} ${styles.clearButtonHover}`}
-                              style={{
-                                position: 'absolute',
-                                right: '6px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'transparent',
-                                border: '1px solid transparent',
-                                cursor: 'pointer',
-                                color: '#ef4444',
-                                padding: '0',
-                                borderRadius: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 1,
-                                width: '20px',
-                                height: '20px',
-                                fontSize: '16px',
-                                lineHeight: '1',
-                                transition: 'all 0.15s ease'
-                              }}
-                              title="Clear search"
-                            >
-                              <span style={{ fontSize: '16px', lineHeight: '1' }}>×</span>
-                            </button>
-                          )}
                        </div>
                      </div>
                     
@@ -562,18 +535,15 @@ export default function StyleGuide() {
             {/* Search Bar with Icon */}
             <div className={styles.subsection}>
               <div className={styles.formControlExample}>
-                <div className={styles.searchBarContainer}>
-                  <div className={styles.searchIcon}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"/>
-                      <path d="m21 21-4.35-4.35"/>
-                    </svg>
+                <div className="searchBarContainer">
+                  <div className="searchIcon">
+                    <Search size={16} />
                   </div>
                   <input
                     type="text"
                     placeholder="Search the industry..."
-                    className={styles.searchInput}
-                    style={{ width: '300px', paddingLeft: '40px' }}
+                    className="searchInput"
+                    style={{ width: '300px' }}
                     value={searchBarValue}
                     onChange={(e) => setSearchBarValue(e.target.value)}
                     onKeyDown={handleSearchBarEscape}
@@ -581,30 +551,10 @@ export default function StyleGuide() {
                   {searchBarValue && (
                     <button
                       onClick={() => setSearchBarValue('')}
-                      className={`${styles.clearButton} ${styles.clearButtonHover}`}
-                      style={{
-                        position: 'absolute',
-                        right: '8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent',
-                        border: '1px solid transparent',
-                        cursor: 'pointer',
-                        color: '#ef4444',
-                        padding: '0',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '20px',
-                        height: '20px',
-                        fontSize: '16px',
-                        lineHeight: '1',
-                        transition: 'all 0.15s ease'
-                      }}
+                      className="clearButton"
                       title="Clear search"
                     >
-                      <span style={{ fontSize: '16px', lineHeight: '1' }}>×</span>
+                      <X size={16} />
                     </button>
                   )}
                 </div>

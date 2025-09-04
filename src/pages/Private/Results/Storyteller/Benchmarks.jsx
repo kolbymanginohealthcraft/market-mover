@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 import BenchmarkChart from './BenchmarkChart';
 import ExportButton from '../../../../components/Buttons/ExportButton';
 import { exportChart } from '../../../../utils/chartExport';
@@ -40,6 +41,27 @@ export default function Benchmarks({
   const [showWinsOnly, setShowWinsOnly] = useState(false);
   const [winsData, setWinsData] = useState({});
   const chartRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Handle global search behavior integration
+  useEffect(() => {
+    if (searchInputRef.current) {
+      const handleInputChange = (e) => {
+        // Sync with global script changes
+        if (e.target.value !== searchTerm) {
+          setSearchTerm(e.target.value);
+        }
+      };
+      
+      searchInputRef.current.addEventListener('input', handleInputChange);
+      
+      return () => {
+        if (searchInputRef.current) {
+          searchInputRef.current.removeEventListener('input', handleInputChange);
+        }
+      };
+    }
+  }, [searchTerm]);
 
   // Helper function for SelectInput component
   function SelectInput({ id, value, onChange, options, size = 'sm', formatOptions = false, ...props }) {
@@ -404,23 +426,23 @@ export default function Benchmarks({
             </div>
             
             {/* Search Bar */}
-            <div className={styles.searchContainer}>
+            <div className="searchBarContainer">
+              <div className="searchIcon">
+                <Search size={16} />
+              </div>
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search measures..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={styles.searchInput}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchTerm('');
+                  }
+                }}
+                className="searchInput"
               />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className={styles.clearSearch}
-                  title="Clear search"
-                >
-                  ×
-                </button>
-              )}
             </div>
             
             {/* Search Results Count */}

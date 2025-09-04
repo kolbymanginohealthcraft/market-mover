@@ -1,19 +1,14 @@
-/* CSS Variables */
-:root {
-  --color-green: #265947;
-  --color-gray: #5f6b6d;
-  --gray-50: #f9fafb;
-  --gray-200: #e5e7eb;
-  --gray-700: #374151;
-}
+/* Users Tab Styling - Migrated to Global Design System */
 
-/* Team Tab Styling */
+
+
+/* Team Tab Styling - Use global section utilities */
 .section {
   margin-bottom: 32px;
 }
 
 .content {
-  background: white;
+  background: var(--white);
   border-radius: 0 0 8px 8px;
   border: 1px solid var(--gray-200);
   border-top: none;
@@ -21,22 +16,20 @@
   padding: 24px;
 }
 
-
-
 /* Team Name Section */
 .teamNameSection {
-  background: white;
+  background: var(--white);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
   margin-bottom: 24px;
 }
 
 .subsectionTitle {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
   margin: 0 0 16px 0;
 }
 
@@ -49,7 +42,7 @@
 .teamName {
   font-size: 1.6rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
 }
 
 .teamNameEdit {
@@ -63,7 +56,7 @@
   flex: 1;
   min-width: 200px;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--gray-300);
   border-radius: 6px;
   font-size: 1rem;
   transition: all 0.2s ease;
@@ -71,8 +64,8 @@
 
 .teamNameInput:focus {
   outline: none;
-  border-color: #265947;
-  box-shadow: 0 0 0 2px rgba(38, 89, 71, 0.1);
+  border-color: var(--dark-green);
+  box-shadow: 0 0 0 2px rgba(8, 73, 56, 0.1);
 }
 
 .teamNameActions {
@@ -84,7 +77,7 @@
   margin-left: 8px;
 }
 
-/* Message Styling */
+/* Message Styling - Use global status utilities */
 .message {
   padding: 12px 16px;
   border-radius: 6px;
@@ -96,18 +89,18 @@
 }
 
 .message.success {
-  background: #d1fae5;
-  border: 1px solid #10b981;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--success-green);
+  color: var(--success-green);
 }
 
 .message.error {
-  background: #fef2f2;
-  border: 1px solid #f87171;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error-red);
+  color: var(--error-red);
 }
 
-/* Info Cards */
+/* Info Cards - Use global info card utilities */
 .infoCards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -116,22 +109,22 @@
 }
 
 .infoCard {
-  background: #f8fafc;
+  background: var(--gray-50);
   border-radius: 8px;
   padding: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--gray-200);
   transition: all 0.2s ease;
 }
 
 .infoCard:hover {
-  background: #f1f5f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--gray-100);
+  box-shadow: var(--shadow-sm);
 }
 
 .infoLabel {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--gray-500);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
@@ -140,16 +133,16 @@
 .infoValue {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
 }
 
 /* Invite Section */
 .inviteSection {
-  background: white;
+  background: var(--white);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
   margin-bottom: 24px;
 }
 
@@ -164,7 +157,7 @@
   flex: 1;
   min-width: 250px;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--gray-300);
   border-radius: 6px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
@@ -172,33 +165,31 @@
 
 .emailInput:focus {
   outline: none;
-  border-color: #265947;
-  box-shadow: 0 0 0 2px rgba(38, 89, 71, 0.1);
+  border-color: var(--dark-green);
+  box-shadow: 0 0 0 2px rgba(8, 73, 56, 0.1);
 }
 
 .emailInput:disabled {
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--gray-100);
+  color: var(--gray-400);
   cursor: not-allowed;
 }
 
 .warning {
   margin-top: 12px;
-  color: #dc2626;
+  color: var(--error-red);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
-
-
 /* Members Section */
 .membersSection {
-  background: white;
+  background: var(--white);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
-  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+  overflow: visible;
 }
 
 .membersHeader {
@@ -207,7 +198,7 @@
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .headerLeft {
@@ -233,13 +224,13 @@
 .teamName {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
 }
 
 .memberCount {
   font-size: 0.9rem;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--gray-500);
+  background: var(--gray-100);
   padding: 4px 10px;
   border-radius: 12px;
   font-weight: 500;
@@ -258,24 +249,24 @@
 }
 
 .membersTable th {
-  background: #f8fafc;
+  background: var(--gray-50);
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #374151;
+  color: var(--gray-700);
   font-size: 0.9rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .membersTable td {
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gray-100);
   font-size: 0.9rem;
-  color: #374151;
+  color: var(--gray-700);
 }
 
 .membersTable tr:hover {
-  background: #f8fafc;
+  background: var(--gray-50);
 }
 
 .membersTable tr:last-child td {
@@ -291,7 +282,7 @@
 
 .editableRoleBadge:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .editableRoleBadge:active {
@@ -325,55 +316,27 @@
 }
 
 .roleBadge.admin {
-  background: #f0f9f6;
-  color: #265947;
-  border-color: #d1e7dd;
+  background: rgba(0, 192, 139, 0.1);
+  color: var(--dark-green);
+  border-color: rgba(0, 192, 139, 0.3);
 }
 
 .roleBadge.member {
-  background: #f8f9fa;
-  color: #6c757d;
-  border-color: #e9ecef;
+  background: var(--gray-50);
+  color: var(--gray-600);
+  border-color: var(--gray-200);
 }
 
 .roleBadge.platformAdmin {
-  background: #fff3cd;
-  color: #856404;
-  border-color: #ffeaa7;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-orange);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 .roleBadge.platformSupport {
-  background: #d1ecf1;
-  color: #0c5460;
-  border-color: #bee5eb;
-}
-
-/* Role Dropdown */
-.roleDropdown {
-  background: white;
-  border: 1px solid var(--gray-200);
-  border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  padding: 0.25rem 0;
-  min-width: 140px;
-  z-index: 1000;
-}
-
-.dropdownItem {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 1rem;
-  text-align: left;
-  background: none;
-  border: none;
-  font-size: 0.875rem;
-  color: var(--gray-700);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.dropdownItem:hover {
-  background-color: var(--gray-50);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary-blue);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 /* Loading State */
@@ -382,7 +345,7 @@
   justify-content: center;
   align-items: center;
   padding: 40px 20px;
-  color: #6b7280;
+  color: var(--gray-500);
   font-size: 1rem;
 }
 
@@ -390,7 +353,7 @@
 .noTeam {
   text-align: center;
   padding: 40px 20px;
-  color: #6b7280;
+  color: var(--gray-500);
 }
 
 .noTeam p {

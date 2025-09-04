@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Users, Plus, Trash2 } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
-import SidePanel from "../../../../components/Overlays/SidePanel";
+import RightDrawer from "../../../../components/Overlays/RightDrawer";
 import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import Dropdown from "../../../../components/Buttons/Dropdown";
 import { isTeamAdmin, isPlatformAdmin, getRoleDisplayName } from "../../../../utils/roleHelpers";
@@ -406,14 +406,14 @@ export default function UsersTab() {
             </div>
             <div className={styles.headerRight}>
               {userIsTeamAdmin && (
-                <Button
-                  variant="green"
-                  size="sm"
+                <button
+                                      className="sectionHeaderButton"
                   onClick={() => setShowInvitePanel(true)}
                   disabled={licensesMaxedOut}
                 >
-                  + Invite Users
-                </Button>
+                  <Plus size={14} />
+                  <span>Invite Users</span>
+                </button>
               )}
             </div>
           </div>
@@ -457,11 +457,11 @@ export default function UsersTab() {
                            setEditingRole(isOpen ? member.id : null);
                          }
                        }}
-                       className={styles.roleDropdown}
+                       className="dropdown-menu"
                      >
                        {isPlatformAdmin(profile.role) && (
                          <button
-                           className={styles.dropdownItem}
+                           className="dropdown-item"
                            onClick={(e) => {
                              e.stopPropagation();
                              handleRoleUpdate(member, 'Platform Admin');
@@ -472,7 +472,7 @@ export default function UsersTab() {
                        )}
                        {isPlatformAdmin(profile.role) && (
                          <button
-                           className={styles.dropdownItem}
+                           className="dropdown-item"
                            onClick={(e) => {
                              e.stopPropagation();
                              handleRoleUpdate(member, 'Platform Support');
@@ -482,7 +482,7 @@ export default function UsersTab() {
                          </button>
                        )}
                        <button
-                         className={styles.dropdownItem}
+                         className="dropdown-item"
                          onClick={(e) => {
                            e.stopPropagation();
                            handleRoleUpdate(member, 'Team Admin');
@@ -491,7 +491,7 @@ export default function UsersTab() {
                          Team Admin
                        </button>
                        <button
-                         className={styles.dropdownItem}
+                         className="dropdown-item"
                          onClick={(e) => {
                            e.stopPropagation();
                            handleRoleUpdate(member, 'Team Member');
@@ -506,15 +506,14 @@ export default function UsersTab() {
                 {userIsTeamAdmin && (
                   <td>
                     {member.id !== currentUserId && (
-                      <Button
-                        size="sm"
-                        variant="red"
-                        ghost
+                      <button
+                        className="actionButton"
                         onClick={() => onDeleteMember(member)}
                         disabled={removing === member.id}
                       >
+                        <Trash2 size={14} />
                         {removing === member.id ? 'Removing...' : 'Remove'}
-                      </Button>
+                      </button>
                     )}
                   </td>
                 )}
@@ -525,12 +524,12 @@ export default function UsersTab() {
       </div>
       </div>
 
-      {/* Invite Team Members Sidebar */}
-      <SidePanel 
-        isOpen={showInvitePanel} 
-        onClose={() => setShowInvitePanel(false)}
-        title="Invite Team Members"
-      >
+             {/* Invite Team Members Right Drawer */}
+       <RightDrawer 
+         isOpen={showInvitePanel} 
+         onClose={() => setShowInvitePanel(false)}
+         title="Invite Team Members"
+       >
         <div>
           <p>Send an invitation to join your team. The recipient will receive an email with instructions to join.</p>
           
@@ -597,8 +596,8 @@ export default function UsersTab() {
               <p>Please upgrade your subscription to invite more team members.</p>
             </div>
           )}
-        </div>
-      </SidePanel>
+                 </div>
+       </RightDrawer>
     </div>
   );
 } 

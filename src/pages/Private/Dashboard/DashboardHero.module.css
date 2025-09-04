@@ -1,24 +1,26 @@
+/* Dashboard Hero - Migrated to Global Design System */
+
 .heroBox {
-  background: linear-gradient(90deg, #3fb985, #34a475);
-  color: white;
+  background: linear-gradient(90deg, var(--primary-teal), var(--primary-teal-dark));
+  color: var(--white);
   padding: 0px 24px;
   border-radius: 12px;
   margin-bottom: 24px;
-  border: 2px solid #3fb985;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  border: 2px solid var(--primary-teal);
+  box-shadow: var(--shadow-sm);
 }
 
 .hero {
   font-size: 2rem;
   font-weight: 700;
-  color: white;
+  color: var(--white);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .subtext {
   font-size: 1.05rem;
   opacity: 0.95;
-  color: white;
+  color: var(--white);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 

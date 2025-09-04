@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
-import styles from "./LoginTest.module.css";
+import styles from "./ResetPassword.module.css";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -204,36 +204,27 @@ const ResetPassword = () => {
                 variant="blue"
                 size="lg"
                 disabled={!isValidSession || isResetting}
+                className={styles.primaryButton}
                 style={{ marginTop: '8px' }}
               >
                 {isResetting ? 'Updating Password...' : 'Update Password'}
               </Button>
             </form>
 
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Button
-                variant="blue"
-                ghost
-                size="sm"
-                onClick={() => navigate('/login')}
-                disabled={isResetting}
-              >
-                Back to Login
-              </Button>
-              {!isValidSession && (
-                <div style={{ marginTop: '12px' }}>
-                  <Button
-                    variant="blue"
-                    ghost
-                    size="sm"
-                    onClick={() => navigate('/forgot-password')}
-                    disabled={isResetting}
-                  >
-                    Request New Reset Link
-                  </Button>
-                </div>
-              )}
-            </div>
+                         <div className={styles.buttonGroup}>
+               {!isValidSession && (
+                 <Button
+                   variant="blue"
+                   ghost
+                   size="sm"
+                   onClick={() => navigate('/forgot-password')}
+                   disabled={isResetting}
+                   className={styles.secondaryButton}
+                 >
+                   Request New Reset Link
+                 </Button>
+               )}
+             </div>
           </div>
         </div>
 

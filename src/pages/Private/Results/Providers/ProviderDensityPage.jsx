@@ -5,7 +5,6 @@ import useProviderInfo from '../../../../hooks/useProviderInfo';
 import { useUserTeam } from '../../../../hooks/useUserTeam';
 import styles from './ProviderDensityPage.module.css';
 import Banner from '../../../../components/Buttons/Banner';
-import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Button from '../../../../components/Buttons/Button';
 import ControlsRow from '../../../../components/Layouts/ControlsRow';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';

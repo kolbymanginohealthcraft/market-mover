@@ -1,3 +1,5 @@
+/* Advanced Search - Migrated to Global Design System */
+
 /* Section Structure - matching settings pages */
 .section {
   margin-bottom: 32px;
@@ -5,7 +7,7 @@
 }
 
 .content {
-  background: white;
+  background: var(--white);
   border-radius: 0 0 8px 8px;
   border: 1px solid var(--gray-200);
   border-top: none;
@@ -19,7 +21,7 @@
 }
 
 .comingSoonContent p {
-  color: #374151;
+  color: var(--gray-700);
   font-size: 1rem;
   margin-bottom: 1.5rem;
   line-height: 1.7;
@@ -35,7 +37,7 @@
 }
 
 .comingSoonContent li {
-  color: #4b5563;
+  color: var(--gray-600);
   font-size: 0.95rem;
   margin-bottom: 1rem;
   line-height: 1.6;
@@ -51,7 +53,7 @@
   content: "→";
   position: absolute;
   left: 0;
-  color: #265947;
+  color: var(--dark-green);
   font-weight: bold;
   font-size: 1.1rem;
   transform: translateX(-2px);
@@ -59,26 +61,15 @@
 }
 
 .comingSoonContent li:hover {
-  color: #1f2937;
+  color: var(--gray-800);
   transform: translateX(4px);
-  border-left-color: #265947;
-  background: linear-gradient(90deg, rgba(38, 89, 71, 0.05) 0%, transparent 100%);
+  border-left-color: var(--dark-green);
+  background: linear-gradient(90deg, rgba(8, 73, 56, 0.05) 0%, transparent 100%);
   padding-left: 1.5rem;
   border-radius: 0 6px 6px 0;
 }
 
 .comingSoonContent li:hover::before {
   transform: translateX(2px);
-  color: #1f4538;
-}
-
-/* CSS Variables for colors */
-:root {
-  --white: #ffffff;
-  --gray-50: #f9fafb;
-  --gray-200: #e5e7eb;
-  --gray-700: #374151;
-  --color-gold: #f1b62c;
-  --color-gold-light: #ffd85e;
-  --color-green: #265947;
+  color: var(--dark-green);
 }

@@ -5,6 +5,7 @@ import Spinner from '../../../components/Buttons/Spinner';
 import SectionHeader from '../../../components/Layouts/SectionHeader';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import useTaggedProviders from '../../../hooks/useTaggedProviders';
+import { getTagColor, getTagLabel, getMapboxTagColorsWithProperty } from '../../../utils/tagColors';
 import styles from './Network.module.css';
 import controlsStyles from '../../../components/Layouts/ControlsRow.module.css';
 
@@ -28,26 +29,7 @@ export default function NetworkMapView() {
     error,
   } = useTaggedProviders();
 
-  // Helper functions for tag display
-  const getTagColor = (tagType) => {
-    switch (tagType) {
-      case 'me': return '#265947'; // Green from palette
-      case 'partner': return '#3599b8'; // Blue from palette
-      case 'competitor': return '#d64550'; // Red from palette
-      case 'target': return '#f1b62c'; // Gold from palette
-      default: return '#5f6b6d'; // Gray from palette
-    }
-  };
 
-  const getTagLabel = (tagType) => {
-    switch (tagType) {
-      case 'me': return 'Me';
-      case 'partner': return 'Partner';
-      case 'competitor': return 'Competitor';
-      case 'target': return 'Target';
-      default: return 'Untagged';
-    }
-  };
 
   // Calculate map bounds based on provider locations
   const calculateMapBounds = () => {
@@ -223,14 +205,7 @@ export default function NetworkMapView() {
               source: 'network-providers',
               paint: {
                 'circle-radius': 8,
-                'circle-color': [
-                  'case',
-                  ['==', ['get', 'primaryTag'], 'me'], '#265947',
-                  ['==', ['get', 'primaryTag'], 'partner'], '#3599b8',
-                  ['==', ['get', 'primaryTag'], 'competitor'], '#d64550',
-                  ['==', ['get', 'primaryTag'], 'target'], '#f1b62c',
-                  '#5f6b6d' // default/untagged
-                ],
+                'circle-color': getMapboxTagColorsWithProperty('primaryTag'),
                 'circle-stroke-color': '#ffffff',
                 'circle-stroke-width': 2,
                 'circle-opacity': 0.9

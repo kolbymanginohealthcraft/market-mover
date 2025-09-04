@@ -1,0 +1,461 @@
+/* ===== New Button Styles - Safe Migration from buttons.css ===== */
+
+/* CSS Variables for consistent theming - Scoped to buttons only */
+:root {
+  --button-primary-teal: #00c08b;
+  --button-primary-teal-dark: #00a87a;
+  --button-primary-teal-light: #00d4a0;
+  --button-white: #ffffff;
+  --button-gray-50: #f9fafb;
+  --button-gray-100: #f3f4f6;
+  --button-gray-200: #e5e7eb;
+  --button-gray-300: #d1d5db;
+  --button-gray-400: #9ca3af;
+  --button-gray-500: #6b7280;
+  --button-gray-600: #4b5563;
+  --button-gray-700: #374151;
+  --button-gray-800: #1f2937;
+  --button-gray-900: #111827;
+  --button-red-500: #ef4444;
+  --button-red-600: #dc2626;
+  --button-green-600: #059669;
+  --button-green-700: #047857;
+  --button-blue-600: #2563eb;
+  --button-blue-700: #1d4ed8;
+}
+
+/* ===== Filter Button Styles ===== */
+.filterButtonGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filterButton {
+  padding: 6px 12px;
+  background: var(--button-white);
+  border: 1px solid var(--button-gray-200);
+  border-radius: 6px;
+  color: var(--button-gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filterButton:hover {
+  background: var(--button-gray-50);
+  border-color: var(--button-primary-teal);
+  transform: translateY(-1px);
+}
+
+.filterButton:active {
+  transform: translateY(0);
+}
+
+.filterButtonActive {
+  background: #e6f7f9;
+  border-color: var(--button-primary-teal);
+  border-width: 2px;
+  color: #265947;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 192, 139, 0.15);
+}
+
+.filterButtonActive:hover {
+  background: #d1f2f5;
+  border-color: var(--button-primary-teal);
+  border-width: 2px;
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.2);
+}
+
+/* ===== Boolean Filter Button Styles ===== */
+.booleanFilterGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.booleanFilterButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--button-white);
+  border: 1px solid var(--button-gray-200);
+  border-radius: 6px;
+  color: var(--button-gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+}
+
+.booleanFilterButton:hover {
+  background: var(--button-gray-50);
+  border-color: var(--button-primary-teal);
+  transform: none !important;
+}
+
+.booleanFilterButtonActive {
+  background: #e6f7f9;
+  border-color: var(--button-primary-teal);
+  border-width: 2px;
+  color: #265947;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 192, 139, 0.15);
+}
+
+.booleanFilterButtonActive:hover {
+  background: #d1f2f5;
+  border-color: var(--button-primary-teal);
+  border-width: 2px;
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.2);
+  transform: none !important;
+}
+
+.booleanFilterCheckbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* ===== Action Button Styles ===== */
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--button-white);
+  border: 1px solid var(--button-gray-200);
+  border-radius: 4px;
+  color: var(--button-gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+}
+
+.actionButton:hover {
+  background: var(--button-gray-50);
+  border-color: var(--button-primary-teal);
+  transform: translateY(-1px);
+}
+
+.actionButton:active {
+  transform: scale(0.97);
+}
+
+
+
+/* ===== Primary Button Styles ===== */
+.primaryButton {
+  padding: 8px 16px;
+  background: var(--button-primary-teal);
+  border: 1px solid var(--button-primary-teal);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.primaryButton:hover {
+  background: var(--button-primary-teal-dark);
+  border-color: var(--button-primary-teal-dark);
+  transform: translateY(-1px);
+}
+
+.primaryButton:active {
+  transform: translateY(0);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== Secondary Button Styles ===== */
+.secondaryButton {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid var(--button-gray-300);
+  border-radius: 6px;
+  color: var(--button-gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.secondaryButton:hover {
+  background: var(--button-gray-50);
+  border-color: var(--button-gray-400);
+  transform: translateY(-1px);
+}
+
+.secondaryButton:active {
+  transform: translateY(0);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== Danger Button Styles ===== */
+.dangerButton {
+  padding: 8px 16px;
+  background: var(--button-red-500);
+  border: 1px solid var(--button-red-500);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dangerButton:hover {
+  background: var(--button-red-600);
+  border-color: var(--button-red-600);
+  transform: translateY(-1px);
+}
+
+.dangerButton:active {
+  transform: translateY(0);
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== Success Button Styles ===== */
+.successButton {
+  padding: 8px 16px;
+  background: var(--button-green-600);
+  border: 1px solid var(--button-green-600);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.successButton:hover {
+  background: var(--button-green-700);
+  border-color: var(--button-green-700);
+  transform: translateY(-1px);
+}
+
+.successButton:active {
+  transform: translateY(0);
+}
+
+.successButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== Button Size Variants ===== */
+.buttonSmall {
+  padding: 4px 8px;
+  font-size: 12px;
+  height: 24px;
+}
+
+.buttonMedium {
+  padding: 8px 16px;
+  font-size: 14px;
+  height: 32px;
+}
+
+.buttonLarge {
+  padding: 12px 24px;
+  font-size: 16px;
+  height: 40px;
+}
+
+/* ===== Button with Icon Styles ===== */
+.buttonWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.buttonWithIcon svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ===== Clear All Button Styles ===== */
+.clearAllButton {
+  padding: 4px 8px;
+  background: var(--button-red-500);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.clearAllButton:hover {
+  background: var(--button-red-600);
+}
+
+/* ===== Toggle Button Styles ===== */
+.toggleButton {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid var(--button-gray-300);
+  border-radius: 6px;
+  color: var(--button-gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  background: var(--button-gray-50);
+  border-color: var(--button-gray-400);
+}
+
+/* ===== Close Button Styles ===== */
+.closeButton {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--button-gray-500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background: var(--button-gray-100);
+  color: var(--button-gray-700);
+}
+
+.closeButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ===== Responsive Button Adjustments ===== */
+@media (max-width: 768px) {
+  .filterButtonGroup,
+  .booleanFilterGroup {
+    gap: 6px;
+  }
+  
+  .filterButton,
+  .booleanFilterButton {
+    padding: 4px 8px;
+    font-size: 11px;
+    height: 24px;
+  }
+  
+  .primaryButton,
+  .secondaryButton,
+  .dangerButton,
+  .successButton {
+    padding: 6px 12px;
+    font-size: 13px;
+    height: 28px;
+  }
+}
+
+/* ===== Banner Button Styles (Legacy Support) ===== */
+.banner-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Work Sans", sans-serif;
+}
+
+.banner-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.banner-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.banner-button.default {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.banner-button.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+}
+
+.banner-button.primary {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}

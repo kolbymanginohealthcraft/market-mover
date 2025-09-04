@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Network, Lock } from 'lucide-react';
 import Button from '../../../../components/Buttons/Button';
-import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import Spinner from '../../../../components/Buttons/Spinner';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
 import Dropdown from '../../../../components/Buttons/Dropdown';
 import useTaggedProviders from '../../../../hooks/useTaggedProviders';
 import { useUserTeam } from '../../../../hooks/useUserTeam';
+import { getTagColor, getTagLabel } from '../../../../utils/tagColors';
 import styles from './NetworkTab.module.css';
 import dropdownStyles from '../../../../components/Buttons/Dropdown.module.css';
 
@@ -241,26 +241,7 @@ export default function NetworkTab() {
     return Array.from(types).sort();
   };
 
-  // Helper functions for tag display
-  const getTagColor = (tagType) => {
-    switch (tagType) {
-      case 'me': return '#265947'; // Green from palette
-      case 'partner': return '#3599b8'; // Blue from palette
-      case 'competitor': return '#d64550'; // Red from palette
-      case 'target': return '#f1b62c'; // Gold from palette
-      default: return '#5f6b6d'; // Gray from palette
-    }
-  };
 
-  const getTagLabel = (tagType) => {
-    switch (tagType) {
-      case 'me': return 'Me';
-      case 'partner': return 'Partner';
-      case 'competitor': return 'Competitor';
-      case 'target': return 'Target';
-      default: return tagType;
-    }
-  };
 
   if (loading) return <Spinner message="Loading your network..." />;
 

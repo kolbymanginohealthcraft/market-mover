@@ -9,7 +9,7 @@ Markets/
 ├── components/
 │   ├── LocationSearch.jsx      # Search header with input and buttons
 │   ├── MarketMap.jsx           # Interactive map with circle controls
-│   ├── SaveMarketSidebar.jsx   # Sidebar for saving market details
+
 │   └── index.js                # Component exports
 ├── hooks/
 │   ├── useMarketCreation.js    # Main state and logic hook
@@ -35,10 +35,7 @@ Handles all map-related functionality including initialization, circle dragging,
 - **Props**: `center`, `radius`, `onCenterChange`, `onRadiusChange`, `mapContainerRef`
 - **Features**: Interactive map, draggable circle, radius slider, touch support
 
-### SaveMarketSidebar
-Handles the market saving functionality and sidebar display.
-- **Props**: `showSaveSidebar`, `setShowSaveSidebar`, `marketName`, `setMarketName`, `resolvedLocation`, `radius`, `center`, `savingMarket`, `error`, `onSaveMarket`
-- **Features**: Market details display, name input, save/cancel actions
+
 
 ## Hooks
 
@@ -84,7 +81,13 @@ export default function InteractiveMarketCreation() {
     <div className={styles.container}>
       <LocationSearch {...searchProps} />
       <MarketMap {...mapProps} />
-      <SaveMarketSidebar {...sidebarProps} />
+      <RightDrawer
+        isOpen={showSaveSidebar}
+        onClose={() => setShowSaveSidebar(false)}
+        title="Save Market"
+      >
+        {/* Market saving form content */}
+      </RightDrawer>
     </div>
   );
 }

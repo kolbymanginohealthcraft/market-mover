@@ -20,8 +20,7 @@ export const useMarketCreation = () => {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setError('Please enter a location to search');
-      return;
+      return; // Don't show error, just return early
     }
 
     setLoading(true);

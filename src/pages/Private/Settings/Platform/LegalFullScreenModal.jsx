@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import Button from "../../../../components/Buttons/Button";
-import ButtonGroup from "../../../../components/Buttons/ButtonGroup";
 import DynamicLegalContent from "./DynamicLegalContent";
 import { getAllApprovedPolicies } from "../../../../utils/legalContent";
 import { jsPDF } from "jspdf";
@@ -348,16 +347,20 @@ const LegalFullScreenModal = ({ isOpen, onClose, initialTab = "terms" }) => {
         </div>
 
         <div className={styles.tabsContainer}>
-          <ButtonGroup
-            options={policyOptions}
-            selected={selectedPolicy?.slug}
-            onSelect={(slug) => {
-              const policy = policies.find(p => p.slug === slug);
-              setSelectedPolicy(policy);
-            }}
-            size="sm"
-            variant="blue"
-          />
+          <div className={styles.filterButtonGroup}>
+            {policyOptions.map(policy => (
+              <button
+                key={policy.value}
+                className={`${styles.filterButton} ${selectedPolicy?.slug === policy.value ? styles.filterButtonActive : ''}`}
+                onClick={() => {
+                  const foundPolicy = policies.find(p => p.slug === policy.value);
+                  setSelectedPolicy(foundPolicy);
+                }}
+              >
+                {policy.label}
+              </button>
+            ))}
+          </div>
           <div className={styles.actions}>
             <Button variant="blue" size="sm" onClick={exportToPDF}>
               Export PDF

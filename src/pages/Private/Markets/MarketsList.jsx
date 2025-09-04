@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './MarketsList.module.css';
-import Button from '../../../components/Buttons/Button';
+
 import Spinner from '../../../components/Buttons/Spinner';
 import InteractiveMarketCreation from './InteractiveMarketCreation';
 import MarketMap from './components/MarketMap';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
 import { useUserTeam } from '../../../hooks/useUserTeam';
-import { Lock } from 'lucide-react';
+import { Lock, ExternalLink, Trash2 } from 'lucide-react';
 
 export default function MarketsList() {
   const [markets, setMarkets] = useState([]);
@@ -120,19 +120,19 @@ export default function MarketsList() {
               <div className={styles.tableCell}>
                 <div className={styles.actions}>
                   <Link to={`/app/market/${market.id}/overview`}>
-                    <Button variant="blue" size="sm">
-                      View
-                    </Button>
+                    <button className="sectionHeaderButton">
+                      <ExternalLink size={14} />
+                      <span>View</span>
+                    </button>
                   </Link>
-                  <Button
-                    variant="red"
-                    size="sm"
-                    outline
+                  <button
+                    className="sectionHeaderButton"
                     onClick={() => handleDeleteMarket(market.id)}
                     disabled={deletingMarket === market.id}
                   >
-                    {deletingMarket === market.id ? 'Deleting...' : 'Delete'}
-                  </Button>
+                    <Trash2 size={14} />
+                    <span>{deletingMarket === market.id ? 'Deleting...' : 'Delete'}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -278,20 +278,20 @@ export default function MarketsList() {
                  id: `market-circle-${market.id}`,
                  type: 'fill',
                  source: `market-${market.id}`,
-                 paint: {
-                   'fill-color': '#1DADBE',
-                   'fill-opacity': 0.3
-                 }
+                                   paint: {
+                    'fill-color': '#52bad7',
+                    'fill-opacity': 0.3
+                  }
                });
 
                newMap.addLayer({
                  id: `market-border-${market.id}`,
                  type: 'line',
                  source: `market-${market.id}`,
-                 paint: {
-                   'line-color': '#1DADBE',
-                   'line-width': 2
-                 }
+                                   paint: {
+                    'line-color': '#52bad7',
+                    'line-width': 2
+                  }
                });
 
                // Add center marker for each market
@@ -311,12 +311,12 @@ export default function MarketsList() {
                  id: `market-center-marker-${market.id}`,
                  type: 'circle',
                  source: `market-center-${market.id}`,
-                 paint: {
-                   'circle-radius': 3,
-                   'circle-color': '#1DADBE',
-                   'circle-stroke-color': 'white',
-                   'circle-stroke-width': 1
-                 }
+                                   paint: {
+                    'circle-radius': 3,
+                    'circle-color': '#52bad7',
+                    'circle-stroke-color': '#ffffff',
+                    'circle-stroke-width': 1
+                  }
                });
 
                // Add click handler for each market
@@ -411,8 +411,8 @@ export default function MarketsList() {
              <h3>No Markets Yet</h3>
              <p>You haven't created any markets yet. Create your first market to get started.</p>
              <Link to="/app/markets/create">
-               <Button variant="gold" size="lg">
-                 Create Your First Market
+               <Button variant="teal" size="lg">
+                 <span>Create Your First Market</span>
                </Button>
              </Link>
            </div>
@@ -440,11 +440,12 @@ export default function MarketsList() {
                    <p>{tooltip.market.city}, {tooltip.market.state}</p>
                    <p>{tooltip.market.radius_miles} mile radius</p>
                    <Button 
-                     variant="blue" 
+                     ghost
                      size="sm"
                      onClick={() => navigate(`/app/market/${tooltip.market.id}/overview`)}
                    >
-                     View Market
+                     <ExternalLink size={14} />
+                     <span>View Market</span>
                    </Button>
                  </div>
                </div>
@@ -468,7 +469,7 @@ export default function MarketsList() {
       <div className={styles.error}>
         <h2>Error Loading Markets</h2>
         <p>{error}</p>
-        <Button onClick={fetchMarkets}>Try Again</Button>
+                 <Button ghost onClick={fetchMarkets}>Try Again</Button>
       </div>
     );
   }
@@ -484,14 +485,14 @@ export default function MarketsList() {
           <h3>Team Required</h3>
           <p>Join or create a team to access markets and network features.</p>
           <p>These features help you collaborate with your team and manage geographic market intelligence.</p>
-          <div className={styles.teamRequiredActions}>
-            <Button variant="gold" size="lg" onClick={() => navigate('/app/settings/company')}>
-              Create Team
-            </Button>
-            <Button variant="blue" size="lg" outline onClick={() => navigate('/app/settings/users')}>
-              Join Team
-            </Button>
-          </div>
+                     <div className={styles.teamRequiredActions}>
+             <Button variant="teal" size="lg" onClick={() => navigate('/app/settings/company')}>
+               <span>Create Team</span>
+             </Button>
+             <Button variant="blue" size="lg" outline onClick={() => navigate('/app/settings/users')}>
+               <span>Join Team</span>
+             </Button>
+           </div>
         </div>
       </div>
     );
@@ -506,8 +507,8 @@ export default function MarketsList() {
               <h3>No Markets Yet</h3>
               <p>You haven't created any markets yet. Create your first market to get started.</p>
                              <Link to="/app/markets/create">
-                 <Button variant="gold" size="lg">
-                   Create Your First Market
+                 <Button variant="teal" size="lg">
+                   <span>Create Your First Market</span>
                  </Button>
                </Link>
             </div>

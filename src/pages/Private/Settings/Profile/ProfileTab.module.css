@@ -1,11 +1,13 @@
-/* Profile Tab Styling - Updated for SectionHeader */
+/* Profile Tab Styling - Migrated to Global Design System */
+
+/* Use global utility classes for common patterns */
 .section {
   margin-bottom: 32px;
   position: relative;
 }
 
 .content {
-  background: white;
+  background: var(--white);
   border-radius: 0 0 8px 8px;
   border: 1px solid var(--gray-200);
   border-top: none;
@@ -13,7 +15,7 @@
   padding: 24px;
 }
 
-/* Two Column Layout */
+/* Two Column Layout - Use global utilities */
 .twoColumnLayout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -33,15 +35,15 @@
 
 /* Personal Information Panel */
 .personalInfo {
-  background: white;
+  background: var(--white);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
   height: fit-content;
 }
 
-/* Enhanced Form Styling */
+/* Enhanced Form Styling - Use global utilities */
 .formRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -59,7 +61,7 @@
 .formGroup label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--gray-700);
   min-width: 80px;
   flex-shrink: 0;
 }
@@ -67,22 +69,20 @@
 .formGroup input {
   flex: 1;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--gray-300);
   border-radius: 6px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
-  /* background: #fafafa; */
 }
 
 .formGroup input:focus {
   outline: none;
-  /* border-color: #265947; */
-  /* background: white; */
-  box-shadow: 0 0 0 2px rgba(38, 89, 71, 0.1);
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 2px rgba(0, 192, 139, 0.1);
 }
 
 .formGroup input::placeholder {
-  color: #9ca3af;
+  color: var(--gray-400);
 }
 
 .formActions {
@@ -91,17 +91,17 @@
 
 /* Account Info Section */
 .accountInfo {
-  background: white;
+  background: var(--white);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
 }
 
 .subsectionTitle {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
   margin: 0 0 20px 0;
 }
 
@@ -112,22 +112,22 @@
 }
 
 .infoCard {
-  background: #f8fafc;
+  background: var(--gray-50);
   border-radius: 6px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--gray-200);
   transition: all 0.2s ease;
 }
 
 .infoCard:hover {
-  background: #f1f5f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--gray-100);
+  box-shadow: var(--shadow-sm);
 }
 
 .infoLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--gray-500);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
@@ -136,22 +136,20 @@
 .infoValue {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
 }
 
 /* Subscription Box (Right Column) */
 .subscriptionBox {
-  background: #ffffff;
+  background: var(--white);
   border-radius: 12px;
   padding: 24px 28px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px solid #e0eaea;
+  border: 1px solid var(--gray-200);
 }
-
-
 
 /* Tier Box Grid (Always Visible) */
 .tierGrid {
@@ -165,8 +163,8 @@
   min-width: 180px;
   padding: 18px 20px;
   border-radius: 12px;
-  background: #f7fdfc;
-  border: 2px solid #ccc;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-300);
   text-align: left;
   position: relative;
   pointer-events: none;
@@ -176,51 +174,46 @@
   margin: 0 0 8px;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #265947;
+  color: var(--dark-green);
 }
 
 .tierOption p {
   margin: 0;
   font-size: 0.9rem;
-  color: #5f6b6d;
+  color: var(--gray-500);
   line-height: 1.4;
 }
 
 .tierOption.active {
-  background-color: #ffffff;
-  border: 3px solid #3FB985;
-  box-shadow: 0 0 0 2px rgba(63, 185, 133, 0.2);
+  background-color: var(--white);
+  border: 3px solid var(--primary-teal);
+  box-shadow: 0 0 0 2px rgba(0, 192, 139, 0.2);
 }
 
 .tierBadge {
   position: absolute;
   top: -10px;
   right: -10px;
-  background-color: #3FB985;
-  color: white;
+  background-color: var(--primary-teal);
+  color: var(--white);
   font-size: 0.7rem;
   font-weight: 700;
   padding: 5px 8px;
   border-radius: 6px;
   text-transform: uppercase;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow);
 }
-
-/* Join/Create Options (Only visible if not on a team) */
-/* .tierDivider {
-  border-top: 1px solid #e2eeee;
-} */
 
 .tierIntro {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1a2e2a;
+  color: var(--dark-green);
   margin: 0 0 20px 0;
   text-align: left;
   padding: 12px 16px;
-  background: #f8fafc;
+  background: var(--gray-50);
   border-radius: 8px;
-  border-left: 4px solid #3fb985;
+  border-left: 4px solid var(--primary-teal);
 }
 
 .tierActions {
@@ -231,9 +224,9 @@
 
 .tierCard {
   flex: 1;
-  border: 1px solid #b3e5e0;
+  border: 1px solid var(--secondary-blue-light);
   border-radius: 10px;
-  background: #f7fdfc;
+  background: var(--gray-50);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -244,21 +237,21 @@
 .optionLabel {
   font-size: 1rem;
   font-weight: 700;
-  color: #3599b8;
+  color: var(--secondary-blue);
   margin-bottom: 6px;
 }
 
 .tierCard input {
   padding: 10px;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--gray-300);
   font-size: 0.95rem;
 }
 
 .tierCard button {
   padding: 10px 14px;
-  background-color: #1dae9f;
-  color: white;
+  background-color: var(--primary-teal);
+  color: var(--white);
   border: none;
   border-radius: 6px;
   font-weight: 600;
@@ -268,16 +261,16 @@
 }
 
 .tierCard button:hover {
-  background-color: #159183;
+  background-color: var(--primary-teal-dark);
 }
 
 /* Meta Info (Team Name, Role) */
 .metaInfo {
-  background: #f9fafb;
-  border-left: 4px solid #3fb985;
+  background: var(--gray-50);
+  border-left: 4px solid var(--primary-teal);
   padding: 12px 16px;
   font-size: 0.9rem;
-  color: #5f6b6d;
+  color: var(--gray-500);
   border-radius: 6px;
   line-height: 1.4;
   margin-bottom: 8px;
@@ -296,10 +289,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: #f8fafc;
+  background: var(--gray-50);
   border-radius: 8px;
   padding: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--gray-200);
 }
 
 /* Message Styling */
@@ -314,15 +307,15 @@
 }
 
 .message.success {
-  background: #d1fae5;
-  border: 1px solid #10b981;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--success-green);
+  color: var(--success-green);
 }
 
 .message.error {
-  background: #fef2f2;
-  border: 1px solid #f87171;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error-red);
+  color: var(--error-red);
 }
 
 /* Loading State */
@@ -331,7 +324,7 @@
   justify-content: center;
   align-items: center;
   padding: 40px 20px;
-  color: #6b7280;
+  color: var(--gray-500);
   font-size: 1rem;
 }
 
@@ -341,8 +334,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
-  border-top: 1px solid #e5e7eb;
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   padding: 16px 24px;
@@ -366,15 +359,15 @@
 }
 
 .footerMessage.success {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .footerMessage.error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 @keyframes slideUp {

@@ -74,37 +74,7 @@
   margin: 0;
 }
 
-/* Section Header Action Button Style */
-.sectionHeaderButton {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: 4px;
-  color: var(--gray-700);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  line-height: 1;
-  flex-shrink: 0;
-  box-sizing: border-box;
-  height: 28px;
-}
 
-.sectionHeaderButton:hover {
-  background: var(--gray-50);
-  border-color: var(--primary-teal);
-  transform: translateY(-1px);
-}
-
-.sectionHeaderButton svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
 
 .code {
   background: #f3f4f6;
@@ -849,12 +819,7 @@
   background: #dc2626;
 }
 
-/* Clear Button Hover Effect */
-.clearButtonHover:hover {
-  background: #fef2f2 !important;
-  border-color: #fecaca !important;
-  color: #dc2626 !important;
-}
+
 
 /* Dropdown Header with Search and Clear All */
 .dropdownHeader {
@@ -866,24 +831,7 @@
   align-items: center;
 }
 
-.searchInput {
-  flex: 1;
-  padding: 4px 8px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
 
-.searchInput:focus {
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 2px rgba(0, 192, 139, 0.1);
-}
-
-.searchInput::placeholder {
-  color: #9ca3af;
-}
 
 /* No Results Message */
 .noResults {
@@ -922,21 +870,7 @@
 
 /* Clean default browser styling - no custom colors or overlays */
 
-/* Search Bar Styles */
-.searchBarContainer {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
 
-.searchIcon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6b7280;
-  z-index: 1;
-}
 
 /* Form Input Field Styles */
 .formField {

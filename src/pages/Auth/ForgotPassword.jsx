@@ -123,23 +123,14 @@ const ForgotPassword = () => {
                 variant="blue"
                 size="lg"
                 disabled={isProcessing}
+                className={styles.primaryButton}
                 style={{ marginTop: '8px' }}
               >
                 {isProcessing ? 'Sending...' : 'Reset Password'}
               </Button>
             </form>
 
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Button
-                variant="blue"
-                ghost
-                size="sm"
-                onClick={() => navigate('/login')}
-                disabled={isProcessing}
-              >
-                Back to Login
-              </Button>
-            </div>
+            {/* Back to Login button removed - users will be redirected via email link */}
 
             {status && (
               <div style={{

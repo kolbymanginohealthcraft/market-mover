@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import maplibregl from "maplibre-gl";
+import { Search } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Spinner from "../../../../components/Buttons/Spinner";
 import Button from "../../../../components/Buttons/Button";
@@ -12,6 +13,7 @@ import { useDropdownClose } from "../../../../hooks/useDropdownClose";
 import { apiUrl } from '../../../../utils/api';
 import { useProviderTagging } from "../../../../hooks/useProviderTagging";
 import { useUserTeam } from "../../../../hooks/useUserTeam";
+import { getTagColor, getTagLabel, getMapboxTagColors } from "../../../../utils/tagColors";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
@@ -57,13 +59,36 @@ export default function ProviderListingTab({
   const [layersReady, setLayersReady] = useState(false);
   const [layersAdded, setLayersAdded] = useState(false);
   const [dataReady, setDataReady] = useState(false);
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const [hoveredMarker, setHoveredMarker] = useState(null);
 
   const mapContainer = useRef(null);
   const map = useRef(null);
   const dropdownRef = useRef();
+  const searchInputRef = useRef(null);
   const navigate = useNavigate();
   const marketId = new URLSearchParams(window.location.search).get("marketId");
   const layersTimeoutRef = useRef(null);
+
+  // Handle global search behavior integration
+  useEffect(() => {
+    if (searchInputRef.current) {
+      const handleInputChange = (e) => {
+        // Sync with global script changes
+        if (e.target.value !== searchQuery) {
+          setSearchQuery(e.target.value);
+        }
+      };
+      
+      searchInputRef.current.addEventListener('input', handleInputChange);
+      
+      return () => {
+        if (searchInputRef.current) {
+          searchInputRef.current.removeEventListener('input', handleInputChange);
+        }
+      };
+    }
+  }, [searchQuery]);
 
   // Calculate map bounds to include the full circle radius
   const calculateMapBounds = () => {
@@ -343,13 +368,15 @@ export default function ProviderListingTab({
   
   console.log("✅ Rendering ProviderListingTab component");
 
-  const allTypes = Array.from(
-    new Set(
-      providers
-        .filter((p) => !showOnlyCCNs || ccnProviderIds.has(p.dhc))
-        .map((p) => p.type || "Unknown")
-    )
-  ).sort();
+  const allTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        providers
+          .filter((p) => !showOnlyCCNs || ccnProviderIds.has(p.dhc))
+          .map((p) => p.type || "Unknown")
+      )
+    ).sort();
+  }, [providers, showOnlyCCNs, ccnProviderIds]);
 
   const toggleType = (type) => {
     setSelectedTypes((prev) =>
@@ -361,41 +388,46 @@ export default function ProviderListingTab({
 
   // Debug: Log the actual DHCs in ccnProviderIds and compare to providers
   console.log("[CCN DEBUG] ccnProviderIds (DHCs with CCN):", Array.from(ccnProviderIds));
-  const providerDhcs = providers.map(p => p.dhc);
+  const providerDhcs = useMemo(() => providers.map(p => p.dhc), [providers]);
   console.log("[CCN DEBUG] Providers (DHCs):", providerDhcs);
-  const matchingDhcs = providerDhcs.filter(dhc => ccnProviderIds.has(dhc));
+  const matchingDhcs = useMemo(() => providerDhcs.filter(dhc => ccnProviderIds.has(dhc)), [providerDhcs, ccnProviderIds]);
   console.log("[CCN DEBUG] Providers with CCN (intersection):", matchingDhcs);
 
   // Ensure the filter logic matches on p.dhc
-  const filteredResults = providers
-    .filter(
-      (p) =>
-        selectedTypes.length === 0 ||
-        selectedTypes.includes(p.type || "Unknown")
-    )
-    .filter(
-      (p) =>
-        searchQuery === "" ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter((p) => !showOnlyCCNs || ccnProviderIds.has(p.dhc))
-    .sort((a, b) => a.distance - b.distance);
+  const filteredResults = useMemo(() => {
+    return providers
+      .filter(
+        (p) =>
+          selectedTypes.length === 0 ||
+          selectedTypes.includes(p.type || "Unknown")
+      )
+      .filter(
+        (p) =>
+          searchQuery === "" ||
+          p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .filter((p) => !showOnlyCCNs || ccnProviderIds.has(p.dhc))
+      .sort((a, b) => a.distance - b.distance);
+  }, [providers, selectedTypes, searchQuery, showOnlyCCNs, ccnProviderIds]);
 
-  const uniqueResults = [];
-  const seen = new Set();
-  for (const p of filteredResults) {
-    if (!seen.has(p.dhc)) {
-      const providerWithDistance = p.dhc === provider.dhc 
-        ? { ...p, distance: 0 }
-        : p;
-      uniqueResults.push(providerWithDistance);
-      seen.add(p.dhc);
+  const uniqueResults = useMemo(() => {
+    const results = [];
+    const seen = new Set();
+    for (const p of filteredResults) {
+      if (!seen.has(p.dhc)) {
+        const providerWithDistance = p.dhc === provider.dhc 
+          ? { ...p, distance: 0 }
+          : p;
+        results.push(providerWithDistance);
+        seen.add(p.dhc);
+      }
     }
-  }
+    return results;
+  }, [filteredResults, provider.dhc]);
 
   console.log(filteredResults.map(p => ({ name: p.name, distance: p.distance, type: typeof p.distance })));
 
-  const providerCount = filteredResults.length.toLocaleString();
+  const providerCount = useMemo(() => filteredResults.length.toLocaleString(), [filteredResults]);
 
   // Track when data is ready (moved here after uniqueResults is defined)
   useEffect(() => {
@@ -519,32 +551,38 @@ export default function ProviderListingTab({
             data: providerGeoJSON
           });
 
-                     map.current.addLayer({
-             id: 'providers',
-             type: 'circle',
-             source: 'providers',
-             paint: {
-                               'circle-radius': [
-                  'case',
-                  ['==', ['get', 'tag'], 'me'], 10,
-                  ['==', ['get', 'tag'], 'partner'], 10,
-                  ['==', ['get', 'tag'], 'competitor'], 10,
-                  ['==', ['get', 'tag'], 'target'], 10,
-                  6
-                ],
-                               'circle-color': [
-                  'case',
-                  ['==', ['get', 'tag'], 'me'], '#265947',
-                  ['==', ['get', 'tag'], 'partner'], '#3599b8',
-                  ['==', ['get', 'tag'], 'competitor'], '#d64550',
-                  ['==', ['get', 'tag'], 'target'], '#f1b62c',
-                  '#5f6b6d'
-                ],
-                               'circle-stroke-color': '#ffffff',
-                'circle-stroke-width': 1,
-               'circle-opacity': 0.8
-             }
-           });
+          map.current.addLayer({
+            id: 'providers',
+            type: 'circle',
+            source: 'providers',
+            paint: {
+              'circle-radius': [
+                'case',
+                ['==', ['get', 'id'], hoveredMarker], 14,
+                ['==', ['get', 'tag'], 'me'], 10,
+                ['==', ['get', 'tag'], 'partner'], 10,
+                ['==', ['get', 'tag'], 'competitor'], 10,
+                ['==', ['get', 'tag'], 'target'], 10,
+                6
+              ],
+              'circle-color': getMapboxTagColors(),
+              'circle-stroke-color': [
+                'case',
+                ['==', ['get', 'id'], hoveredMarker], '#265947',
+                '#ffffff'
+              ],
+              'circle-stroke-width': [
+                'case',
+                ['==', ['get', 'id'], hoveredMarker], 3,
+                1
+              ],
+              'circle-opacity': [
+                'case',
+                ['==', ['get', 'id'], hoveredMarker], 1,
+                0.8
+              ]
+            }
+          });
 
           // Add click handler for provider markers
           map.current.on('click', 'providers', (e) => {
@@ -554,38 +592,35 @@ export default function ProviderListingTab({
               
               if (popup) popup.remove();
               
-                             const tagColor = feature.properties.tag === 'me' ? '#265947' : 
-                               feature.properties.tag === 'partner' ? '#3599b8' : 
-                               feature.properties.tag === 'competitor' ? '#d64550' : 
-                               feature.properties.tag === 'target' ? '#f1b62c' : '#5f6b6d';
+              const tagColor = getTagColor(feature.properties.tag);
                
-                               const tagDisplay = feature.properties.tag ? 
-                  `<span style="background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: capitalize;">${feature.properties.tag}</span>` : 
-                  '<span style="background-color: #5f6b6d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Untagged</span>';
+              const tagDisplay = feature.properties.tag ? 
+                `<span style="background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: capitalize;">${feature.properties.tag}</span>` : 
+                '<span style="background-color: #5f6b6d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Untagged</span>';
                
-               const newPopup = new maplibregl.Popup({ offset: 25 })
-                 .setLngLat([longitude, latitude])
-                 .setHTML(`
-                   <div style="padding: 8px;">
-                     <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
-                       ${feature.properties.name}
-                     </h4>
-                     <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-                       ${feature.properties.type}
-                     </p>
-                     ${feature.properties.network ? `
-                       <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-                         Network: ${feature.properties.network}
-                       </p>
-                     ` : ''}
-                     <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-                       Distance: ${feature.properties.distance.toFixed(2)} miles
-                     </p>
-                     <p style="margin: 0; font-size: 12px;">
-                       Tag: ${tagDisplay}
-                     </p>
-                   </div>
-                 `);
+              const newPopup = new maplibregl.Popup({ offset: 25 })
+                .setLngLat([longitude, latitude])
+                .setHTML(`
+                  <div style="padding: 8px;">
+                    <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
+                      ${feature.properties.name}
+                    </h4>
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+                      ${feature.properties.type}
+                    </p>
+                    ${feature.properties.network ? `
+                      <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+                        Network: ${feature.properties.network}
+                      </p>
+                    ` : ''}
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+                      Distance: ${feature.properties.distance.toFixed(2)} miles
+                    </p>
+                    <p style="margin: 0; font-size: 12px;">
+                      Tag: ${tagDisplay}
+                    </p>
+                  </div>
+                `);
               
               newPopup.addTo(map.current);
               setPopup(newPopup);
@@ -602,46 +637,90 @@ export default function ProviderListingTab({
           });
         }
         
-                 console.log("🗺️ Custom layers added successfully");
-         setLayersAdded(true);
-         
-         // Fit the map to show the full circle radius
-         setTimeout(() => {
-           const bounds = calculateMapBounds();
-           map.current.fitBounds(bounds.bounds, {
-             padding: 20, // Add some padding around the bounds
-             maxZoom: 15, // Don't zoom in too much
-             duration: 300 // Very short, subtle animation
-           });
-         }, 100); // Small delay to ensure all layers are rendered
-       } catch (error) {
-         console.error("🗺️ Error adding custom layers:", error);
-       }
-     }, 300); // 300ms debounce
-  }, [layersReady, dataReady, provider, radiusInMiles]); // Added dataReady dependency
+        console.log("🗺️ Custom layers added successfully");
+        setLayersAdded(true);
+        
+        // Fit the map to show the full circle radius
+        setTimeout(() => {
+          const bounds = calculateMapBounds();
+          map.current.fitBounds(bounds.bounds, {
+            padding: 20, // Add some padding around the bounds
+            maxZoom: 15, // Don't zoom in too much
+            duration: 300 // Very short, subtle animation
+          });
+        }, 100); // Small delay to ensure all layers are rendered
+      } catch (error) {
+        console.error("🗺️ Error adding custom layers:", error);
+      }
+    }, 300); // 300ms debounce
+  }, [layersReady, dataReady, provider, radiusInMiles]); // Removed hoveredMarker dependency
+
+  // Function to update only the hover state without re-adding layers
+  const updateHoverState = useCallback(() => {
+    if (!map.current || !layersAdded || !map.current.getLayer('providers')) {
+      return;
+    }
+
+    // Update only the paint properties for the providers layer
+    map.current.setPaintProperty('providers', 'circle-radius', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], 14,
+      ['==', ['get', 'tag'], 'me'], 10,
+      ['==', ['get', 'tag'], 'partner'], 10,
+      ['==', ['get', 'tag'], 'competitor'], 10,
+      ['==', ['get', 'tag'], 'target'], 10,
+      6
+    ]);
+
+    map.current.setPaintProperty('providers', 'circle-stroke-color', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], '#265947',
+      '#ffffff'
+    ]);
+
+    map.current.setPaintProperty('providers', 'circle-stroke-width', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], 3,
+      1
+    ]);
+
+    map.current.setPaintProperty('providers', 'circle-opacity', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], 1,
+      0.8
+    ]);
+  }, [hoveredMarker, layersAdded]);
 
   // Update layers when both map and data are ready
-  useEffect(() => {
-    console.log("🗺️ Layer addition effect:", {
-      layersReady,
-      dataReady,
-      layersAdded,
-      uniqueResultsLength: uniqueResults.length,
-      provider: !!provider
-    });
-    
-    if (layersReady && dataReady && !layersAdded) {
-      console.log("🗺️ Map and data ready, adding layers");
-      addCustomLayers();
-    } else {
-      console.log("🗺️ Layer addition conditions not met:", {
-        layersReady,
-        dataReady,
-        layersAdded,
-        hasData: uniqueResults.length > 0
-      });
-    }
-  }, [layersReady, dataReady, layersAdded, addCustomLayers]);
+   useEffect(() => {
+     console.log("🗺️ Layer addition effect:", {
+       layersReady,
+       dataReady,
+       layersAdded,
+       uniqueResultsLength: uniqueResults.length,
+       provider: !!provider
+     });
+     
+     if (layersReady && dataReady && !layersAdded) {
+       console.log("🗺️ Map and data ready, adding layers");
+       addCustomLayers();
+     } else {
+       console.log("🗺️ Layer addition conditions not met:", {
+         layersReady,
+         dataReady,
+         layersAdded,
+         hasData: uniqueResults.length > 0
+       });
+     }
+   }, [layersReady, dataReady, layersAdded, addCustomLayers]);
+
+   // Update layers when hover state changes (after initial setup)
+   useEffect(() => {
+     if (layersAdded && layersReady && dataReady) {
+       console.log("🗺️ Hover state changed, updating hover state");
+       updateHoverState();
+     }
+   }, [hoveredMarker, layersAdded, layersReady, dataReady, updateHoverState]);
 
   // Handle data updates (CCNs, tags) without causing initial jumping
   useEffect(() => {
@@ -673,7 +752,9 @@ export default function ProviderListingTab({
       // Update the source data without removing the layer
       map.current.getSource('providers').setData(providerGeoJSON);
     }
-  }, [layersAdded, uniqueResults, ccnProviderIds, teamProviderTags, provider]);
+     }, [layersAdded, uniqueResults, ccnProviderIds, teamProviderTags, provider]);
+
+
 
 
 
@@ -739,13 +820,24 @@ export default function ProviderListingTab({
             </span>
           }
         >
-          <input
-            type="text"
-            placeholder="Search providers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={controlsStyles.searchInput}
-          />
+          <div className="searchBarContainer">
+            <div className="searchIcon">
+              <Search size={16} />
+            </div>
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search providers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setSearchQuery('');
+                }
+              }}
+              className="searchInput"
+            />
+          </div>
         </ControlsRow>
 
         <div className={styles.splitView}>
@@ -754,9 +846,8 @@ export default function ProviderListingTab({
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Name</th>
+                    <th>Provider</th>
                     <th>Network</th>
-                    <th>Address</th>
                     <th>Type</th>
                     <th>Distance</th>
                     <th>Tag</th>
@@ -766,14 +857,25 @@ export default function ProviderListingTab({
                   {uniqueResults.map((p) => (
                     <tr
                       key={p.dhc}
-                      className={`${styles.clickableRow} ${
+                      className={`${
                         p.dhc === provider.dhc ? styles.highlightedRow : ""
                       }`}
-                      onClick={() => navigate(`/app/provider/${p.dhc}/overview`)}
+                      onMouseEnter={() => {
+                        setHoveredRow(p.dhc);
+                        setHoveredMarker(p.dhc);
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredRow(null);
+                        setHoveredMarker(null);
+                      }}
                     >
-                      <td>{p.name}</td>
+                      <td>
+                        <div className={styles.providerInfo}>
+                          <div className={styles.providerName}>{p.name}</div>
+                          <div className={styles.providerAddress}>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</div>
+                        </div>
+                      </td>
                       <td>{p.network || "—"}</td>
-                      <td>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</td>
                       <td>{p.type || "Unknown"}</td>
                       <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
                       <td onClick={(e) => e.stopPropagation()}>

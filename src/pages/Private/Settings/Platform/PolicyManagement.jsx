@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../../app/supabaseClient';
 import Button from '../../../../components/Buttons/Button';
-import ButtonGroup from '../../../../components/Buttons/ButtonGroup';
 import MarkdownEditor from './MarkdownEditor';
 import styles from './PolicyManagement.module.css';
 import { marked } from 'marked';

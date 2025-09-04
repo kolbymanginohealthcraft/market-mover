@@ -19,7 +19,7 @@ import { ProviderAnalysisProvider } from '../../../components/Context/ProviderAn
 import useMarketAnalysis from "../../../hooks/useMarketAnalysis";
 import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
-import MarketOverview from "../Markets/MarketOverview";
+import OverviewTab from "./Overview/OverviewTab";
 import ProviderListingTab from "./Providers/ProviderListingTab";
 import ChartsTab from "./Storyteller/ChartDashboard";
 
@@ -158,6 +158,8 @@ export default function MarketDetail() {
       longitude: market.longitude,
       city: market.city,
       state: market.state,
+      street: `${market.city}, ${market.state}`,
+      zip: market.radius_miles ? `${market.radius_miles} mile radius` : '',
       type: 'Market Center',
       network: 'Market Analysis'
     } : null;
@@ -272,7 +274,7 @@ export default function MarketDetail() {
     <PageLayout>
       <ProviderAnalysisProvider provider={marketProvider} radiusInMiles={radiusInMiles}>
         <Routes key={location.pathname}>
-          <Route path="overview" element={<MarketOverview key={`overview-${marketId}`} market={market} providers={nearbyProviders} />} />
+          <Route path="overview" element={<OverviewTab key={`overview-${marketId}`} provider={marketProvider} />} />
           <Route path="provider-listing" element={<ProviderListingTab provider={marketProvider} radiusInMiles={radiusInMiles} providers={nearbyProviders} />} />
           <Route path="provider-density" element={<ProviderDensityPage key={`provider-density-${marketId}`} radius={radiusInMiles} latitude={market?.latitude} longitude={market?.longitude} provider={marketProvider} />} />
           <Route path="population" element={<CensusDataPanel key={`population-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} censusData={censusData} counties={counties} censusTracts={censusTracts} />} />

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import Button from '../../../../components/Buttons/Button';
+import { Search, X } from 'lucide-react';
 import styles from '../InteractiveMarketCreation.module.css';
 
 export default function LocationSearch({
@@ -15,7 +15,7 @@ export default function LocationSearch({
   const searchInputRef = useRef(null);
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && searchQuery.trim()) {
       onSearch();
     }
   };
@@ -31,23 +31,37 @@ export default function LocationSearch({
     <div className={styles.controlsStrip}>
       <div className={styles.controlsLeft}>
         <div className={styles.searchSection}>
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className={styles.searchInput}
-          />
-          <Button 
+          <div className="searchBarContainer">
+            <div className="searchIcon">
+              <Search size={16} />
+            </div>
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="searchInput"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="clearButton"
+                title="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <button 
             onClick={onSearch}
-            variant="blue"
-            size="sm"
-            disabled={loading}
+            className="sectionHeaderButton"
+            disabled={loading || !searchQuery.trim()}
           >
-            Search
-          </Button>
+            <Search size={14} />
+            <span>Search</span>
+          </button>
         </div>
       </div>
 
@@ -67,14 +81,13 @@ export default function LocationSearch({
           />
         </div>
         <div className={styles.saveSection}>
-          <Button 
+          <button 
             onClick={onSaveMarket}
-            variant="gold"
-            size="sm"
+            className="sectionHeaderButton primary"
             disabled={loading}
           >
             {loading ? 'Saving...' : 'Save Market'}
-          </Button>
+          </button>
         </div>
       </div>
 

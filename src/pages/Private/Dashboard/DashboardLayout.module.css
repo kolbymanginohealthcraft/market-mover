@@ -1,3 +1,5 @@
+/* Dashboard Layout - Migrated to Global Design System */
+
 .welcomeSection {
   width: 100%;
   margin-bottom: 24px;
@@ -13,15 +15,15 @@
 .section {
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--white);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow);
   border: 1px solid var(--gray-200);
 }
 
 .content {
-  background: white;
+  background: var(--white);
   border-radius: 0 0 8px 8px;
   border: 1px solid var(--gray-200);
   border-top: none;

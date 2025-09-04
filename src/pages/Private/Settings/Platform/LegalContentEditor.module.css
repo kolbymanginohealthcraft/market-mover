@@ -157,4 +157,53 @@
   .mainContent {
     order: 1;
   }
+}
+
+/* Filter Button Styles */
+.filterButtonGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+}
+
+.filterButton:hover {
+  background: var(--gray-50);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.filterButton:active {
+  transform: scale(0.97);
+}
+
+.filterButtonActive {
+  background: var(--primary-teal);
+  border-color: var(--primary-teal);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 192, 139, 0.2);
+}
+
+.filterButtonActive:hover {
+  background: var(--primary-teal-dark);
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.3);
 } 
