@@ -3,8 +3,8 @@ import classNames from 'classnames';
 import styles from './FAQPage.module.css';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
-import SearchInput from '../../../components/Buttons/SearchInput';
 import faqSections from './faqData';
+import { Search } from 'lucide-react'; // Added import for Search icon
 
 // Memoized FAQ item component to prevent unnecessary re-renders
 const FAQItem = React.memo(({ faq, isOpen, onToggle, searchQuery, sectionIndex, itemIndex }) => {
@@ -68,6 +68,14 @@ const FAQPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const debounceTimeoutRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Auto-focus search input on page load
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
 
   // Debounce search to prevent excessive filtering
   useEffect(() => {
@@ -118,15 +126,53 @@ const FAQPage = () => {
     return filteredFaqSections.reduce((total, section) => total + section.items.length, 0);
   }, [filteredFaqSections]);
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery('');
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      if (searchQuery) {
+        handleSearchClear();
+      } else {
+        e.target.blur();
+      }
+    }
+  };
+
   return (
     <div className={styles.page}>
       {/* Controls Row with Search */}
       <ControlsRow>
-        <SearchInput
-          placeholder="Search FAQ..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <div className={styles.searchContainer}>
+          <Search className={styles.searchIcon} />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search FAQ..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
+            className={styles.searchInput}
+          />
+          {searchQuery && (
+            <button
+              className={styles.clearButton}
+              onClick={handleSearchClear}
+              type="button"
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
         {searchQuery && (
           <span className={styles.resultsCount}>
             {totalResults} result{totalResults !== 1 ? 's' : ''}

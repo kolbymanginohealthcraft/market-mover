@@ -16,6 +16,78 @@
   line-height: 1;
 }
 
+/* Global Search Input Styles */
+.searchContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+  width: 16px;
+  height: 16px;
+  z-index: 1;
+}
+
+.searchInput {
+  padding: 6px 12px 6px 40px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background: var(--white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-width: 300px;
+  height: 28px;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary-teal);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
+
+.searchInput:focus + .searchIcon {
+  color: var(--primary-teal);
+}
+
+.searchInput::placeholder {
+  color: var(--gray-400);
+}
+
+.clearButton {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--error-red);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 2px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clearButton:hover {
+  color: var(--error-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Highlight styles for search terms */
 .highlight {
   background: linear-gradient(120deg, #ffeb3b 0%, #ffc107 100%);
@@ -222,6 +294,11 @@
   
   .faqAnswer.open {
     padding: 0 20px 16px;
+  }
+  
+  .searchInput {
+    min-width: 100%;
+    max-width: none;
   }
 }
 
