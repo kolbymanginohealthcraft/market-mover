@@ -17,6 +17,8 @@
   background: var(--white);
   width: calc(100vw - 280px);
   transition: margin-left 0.3s ease, width 0.3s ease;
+  will-change: margin-left, width;
+  contain: layout;
 }
 
 .contentArea.sidebarCollapsed {

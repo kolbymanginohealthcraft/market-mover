@@ -52,6 +52,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .section {
@@ -89,16 +90,39 @@
 
 
 
-/* Table Styling */
+/* Table Panel - matches provider listing structure */
+.tablePanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.tableScroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Legacy table container - keeping for compatibility */
 .tableContainer {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  contain: layout;
 }
 
 .providersTable {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  contain: layout style;
 }
 
 .providersTable th {
@@ -109,6 +133,9 @@
   color: #374151;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .providersTable td {
@@ -123,6 +150,91 @@
 
 .providersTable tr.activeRow {
   background: #eff6ff;
+}
+
+.providersTable tr {
+  contain: layout style;
+}
+
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 16px;
+}
+
+.paginationTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  background: #f9fafb;
+  border-radius: 8px 8px 0 0;
+  flex-shrink: 0;
+}
+
+.paginationInfo {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pageSizeSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.pageSizeSelector label {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.pageSizeSelect {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.paginationButton {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationPage {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
 }
 
 .checkboxHeader {

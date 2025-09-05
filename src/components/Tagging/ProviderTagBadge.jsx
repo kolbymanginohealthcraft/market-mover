@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo, useCallback } from 'react';
 import { Lock, ChevronDown } from 'lucide-react';
 import { getTagColor, getTagLabel } from '../../utils/tagColors';
 import styles from './ProviderTagBadge.module.css';
 
-export const ProviderTagBadge = ({
+const ProviderTagBadgeComponent = ({
   providerId,
   hasTeam,
   teamLoading = false,
@@ -82,21 +82,21 @@ export const ProviderTagBadge = ({
     }
   }, [isDropdownOpen]);
 
-  const handleButtonClick = (e) => {
+  const handleButtonClick = useCallback((e) => {
     if (disabled || !hasTeam || teamLoading) return;
     
     e.stopPropagation();
     setIsDropdownOpen(!isDropdownOpen);
-  };
+  }, [disabled, hasTeam, teamLoading, isDropdownOpen]);
 
-  const handleTagAction = async (action, tagType) => {
+  const handleTagAction = useCallback(async (action, tagType) => {
     if (action === 'add') {
       await onAddTag(providerId, tagType);
     } else if (action === 'remove') {
       await onRemoveTag(providerId, primaryTag);
     }
     setIsDropdownOpen(false);
-  };
+  }, [onAddTag, onRemoveTag, providerId, primaryTag]);
 
   const getSizeClasses = () => {
     switch (size) {
@@ -250,3 +250,20 @@ export const ProviderTagBadge = ({
     </div>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+export const ProviderTagBadge = memo(ProviderTagBadgeComponent, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.providerId === nextProps.providerId &&
+    prevProps.hasTeam === nextProps.hasTeam &&
+    prevProps.teamLoading === nextProps.teamLoading &&
+    prevProps.primaryTag === nextProps.primaryTag &&
+    prevProps.isSaving === nextProps.isSaving &&
+    prevProps.size === nextProps.size &&
+    prevProps.variant === nextProps.variant &&
+    prevProps.showRemoveOption === nextProps.showRemoveOption &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.className === nextProps.className
+  );
+});

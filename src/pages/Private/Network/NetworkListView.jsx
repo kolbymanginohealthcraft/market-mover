@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Network as NetworkIcon, Lock, Search, X, ChevronDown } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
@@ -33,6 +33,8 @@ export default function NetworkListView() {
   const [filterTypeDropdownOpen, setFilterTypeDropdownOpen] = useState(false);
   const [filterTagDropdownOpen, setFilterTagDropdownOpen] = useState(false);
   const [bulkEditDropdownOpen, setBulkEditDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50); // Show 50 providers at a time
   const {
     taggedProviders,
     loading,
@@ -85,17 +87,17 @@ export default function NetworkListView() {
 
 
 
-  const handleSearch = (e) => setSearchTerm(e.target.value);
-  const handleFilterChange = (e) => setFilterType(e.target.value);
-  const handleTagFilterChange = (tagType) => setFilterTag(tagType);
-  const handleColumnSort = (column) => {
+  const handleSearch = useCallback((e) => setSearchTerm(e.target.value), []);
+  const handleFilterChange = useCallback((e) => setFilterType(e.target.value), []);
+  const handleTagFilterChange = useCallback((tagType) => setFilterTag(tagType), []);
+  const handleColumnSort = useCallback((column) => {
     if (sortBy === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(column);
       setSortDirection('asc');
     }
-  };
+  }, [sortBy, sortDirection]);
 
   const handleRemoveProvider = async (providerDhc) => {
     if (window.confirm('Remove all tags for this provider?')) {
@@ -222,52 +224,69 @@ export default function NetworkListView() {
     alert('Edit network functionality coming soon!');
   };
 
-  // Filter and sort providers
-  const filteredAndSortedProviders = taggedProviders
-    .filter(provider => {
-      if (searchTerm && !provider.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filterType !== 'all' && provider.type !== filterType) return false;
-      if (filterTag !== 'all' && !provider.tags.includes(filterTag)) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      let aValue, bValue;
-      switch (sortBy) {
-        case 'name': 
-          aValue = a.name || ''; 
-          bValue = b.name || ''; 
-          break;
-        case 'type': 
-          aValue = a.type || ''; 
-          bValue = b.type || ''; 
-          break;
-        case 'network': 
-          aValue = a.network || ''; 
-          bValue = b.network || ''; 
-          break;
-        case 'location': 
-          aValue = `${a.city || ''} ${a.state || ''}`; 
-          bValue = `${b.city || ''} ${b.state || ''}`; 
-          break;
-        case 'date': 
-          aValue = new Date(a.created_at); 
-          bValue = new Date(b.created_at); 
-          break;
-        default: 
-          aValue = a.name || ''; 
-          bValue = b.name || '';
-      }
-      if (sortDirection === 'asc') return aValue > bValue ? 1 : -1;
-      else return aValue < bValue ? 1 : -1;
-    });
+  // Filter and sort providers with useMemo for performance
+  const filteredAndSortedProviders = useMemo(() => {
+    return taggedProviders
+      .filter(provider => {
+        if (searchTerm && !provider.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        if (filterType !== 'all' && provider.type !== filterType) return false;
+        if (filterTag !== 'all' && !provider.tags.includes(filterTag)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        let aValue, bValue;
+        switch (sortBy) {
+          case 'name': 
+            aValue = a.name || ''; 
+            bValue = b.name || ''; 
+            break;
+          case 'type': 
+            aValue = a.type || ''; 
+            bValue = b.type || ''; 
+            break;
+          case 'network': 
+            aValue = a.network || ''; 
+            bValue = b.network || ''; 
+            break;
+          case 'location': 
+            aValue = `${a.city || ''} ${a.state || ''}`; 
+            bValue = `${b.city || ''} ${b.state || ''}`; 
+            break;
+          case 'date': 
+            aValue = new Date(a.created_at); 
+            bValue = new Date(b.created_at); 
+            break;
+          default: 
+            aValue = a.name || ''; 
+            bValue = b.name || '';
+        }
+        if (sortDirection === 'asc') return aValue > bValue ? 1 : -1;
+        else return aValue < bValue ? 1 : -1;
+      })
+      .map(provider => ({
+        ...provider,
+        formattedDate: new Date(provider.created_at).toLocaleDateString()
+      }));
+  }, [taggedProviders, searchTerm, filterType, filterTag, sortBy, sortDirection]);
 
-  const getUniqueTypes = () => {
+  const getUniqueTypes = useMemo(() => {
     const types = new Set();
     taggedProviders.forEach(provider => {
       if (provider.type) types.add(provider.type);
     });
     return Array.from(types).sort();
-  };
+  }, [taggedProviders]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAndSortedProviders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProviders = filteredAndSortedProviders.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, filterTag, sortBy, sortDirection]);
 
 
 
@@ -318,7 +337,7 @@ export default function NetworkListView() {
               >
                 All Types
               </div>
-              {getUniqueTypes().map(type => (
+              {getUniqueTypes.map(type => (
                 <div 
                   key={type} 
                   className={styles.dropdownItem}
@@ -402,111 +421,156 @@ export default function NetworkListView() {
         }
       />
 
+      <>
+        {/* Main Content Area */}
+        <div className={styles.content}>
+          {error && <div className={styles.error}>{error}</div>}
 
-
-      {/* Content Container */}
-      <div className={styles.content}>
-        {error && <div className={styles.error}>{error}</div>}
-
-        {filteredAndSortedProviders.length === 0 ? (
-          <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>🏥</div>
-            <h3>No providers found</h3>
-            <p>Try adjusting your search or filters to find providers in your network.</p>
-          </div>
-        ) : (
-          <div className={styles.tableContainer}>
-            <table className={styles.providersTable}>
-              <thead>
-                <tr>
-                  <th className={styles.checkboxHeader}>
-                    <input
-                      type="checkbox"
-                      checked={selectedProviders.size === filteredAndSortedProviders.length && filteredAndSortedProviders.length > 0}
-                      onChange={handleSelectAll}
-                      className={styles.selectAllCheckbox}
-                    />
-                  </th>
-                  <th 
-                    className={styles.sortableHeader}
-                    onClick={() => handleColumnSort('name')}
+          {filteredAndSortedProviders.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>🏥</div>
+              <h3>No providers found</h3>
+              <p>Try adjusting your search or filters to find providers in your network.</p>
+            </div>
+          ) : (
+            <div className={styles.tablePanel}>
+              {/* Top Pagination Controls */}
+              <div className={styles.paginationTop}>
+                <div className={styles.paginationInfo}>
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredAndSortedProviders.length)} of {filteredAndSortedProviders.length} providers
+                </div>
+                <div className={styles.paginationControls}>
+                  <div className={styles.pageSizeSelector}>
+                    <label htmlFor="pageSize">Show:</label>
+                    <select 
+                      id="pageSize"
+                      value={itemsPerPage} 
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className={styles.pageSizeSelect}
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200</option>
+                    </select>
+                  </div>
+                  <button 
+                    className={styles.paginationButton}
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
                   >
-                    Provider Name {sortBy === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th>Tags</th>
-                  <th 
-                    className={styles.sortableHeader}
-                    onClick={() => handleColumnSort('type')}
+                    Previous
+                  </button>
+                  <span className={styles.paginationPage}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    className={styles.paginationButton}
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
                   >
-                    Type {sortBy === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th 
-                    className={styles.sortableHeader}
-                    onClick={() => handleColumnSort('network')}
-                  >
-                    Network {sortBy === 'network' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th 
-                    className={styles.sortableHeader}
-                    onClick={() => handleColumnSort('location')}
-                  >
-                    Location {sortBy === 'location' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th 
-                    className={styles.sortableHeader}
-                    onClick={() => handleColumnSort('date')}
-                  >
-                    Date Added {sortBy === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedProviders.map(provider => (
-                  <tr 
-                    key={provider.provider_dhc}
-                    className={editingTag?.providerDhc === provider.provider_dhc ? styles.activeRow : ''}
-                  >
-                    <td className={styles.checkboxCell}>
+                    Next
+                  </button>
+                </div>
+              </div>
+              
+              <div className={styles.tableScroll}>
+                <table className={styles.providersTable}>
+                <thead>
+                  <tr>
+                    <th className={styles.checkboxHeader}>
                       <input
                         type="checkbox"
-                        checked={selectedProviders.has(provider.provider_dhc)}
-                        onChange={() => handleSelectProvider(provider.provider_dhc)}
-                        className={styles.rowCheckbox}
+                        checked={selectedProviders.size === filteredAndSortedProviders.length && filteredAndSortedProviders.length > 0}
+                        onChange={handleSelectAll}
+                        className={styles.selectAllCheckbox}
                       />
-                    </td>
-                    <td>
-                      <div 
-                        className={styles.providerName}
-                        onClick={() => handleViewProvider(provider.provider_dhc)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {provider.name}
-                      </div>
-                    </td>
-                    <td>
-                      <ProviderTagBadge
-                        providerId={provider.provider_dhc}
-                        hasTeam={hasTeam}
-                        teamLoading={false}
-                        primaryTag={provider.tags[0] || null}
-                        isSaving={removingTag}
-                        onAddTag={changeProviderTag}
-                        onRemoveTag={removeAllProviderTags}
-                        size="medium"
-                        variant="default"
-                        showRemoveOption={true}
-                      />
-                    </td>
-                    <td>{provider.type}</td>
-                    <td>{provider.network}</td>
-                    <td>{provider.city}, {provider.state}</td>
-                    <td>{new Date(provider.created_at).toLocaleDateString()}</td>
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleColumnSort('name')}
+                    >
+                      Provider Name {sortBy === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th>Tags</th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleColumnSort('type')}
+                    >
+                      Type {sortBy === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleColumnSort('network')}
+                    >
+                      Network {sortBy === 'network' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleColumnSort('location')}
+                    >
+                      Location {sortBy === 'location' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th 
+                      className={styles.sortableHeader}
+                      onClick={() => handleColumnSort('date')}
+                    >
+                      Date Added {sortBy === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {paginatedProviders.map(provider => (
+                    <tr 
+                      key={provider.provider_dhc}
+                      className={editingTag?.providerDhc === provider.provider_dhc ? styles.activeRow : ''}
+                    >
+                      <td className={styles.checkboxCell}>
+                        <input
+                          type="checkbox"
+                          checked={selectedProviders.has(provider.provider_dhc)}
+                          onChange={() => handleSelectProvider(provider.provider_dhc)}
+                          className={styles.rowCheckbox}
+                        />
+                      </td>
+                      <td>
+                        <div 
+                          className={styles.providerName}
+                          onClick={() => handleViewProvider(provider.provider_dhc)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {provider.name}
+                        </div>
+                      </td>
+                      <td>
+                        <ProviderTagBadge
+                          providerId={provider.provider_dhc}
+                          hasTeam={hasTeam}
+                          teamLoading={false}
+                          primaryTag={provider.tags[0] || null}
+                          isSaving={removingTag}
+                          onAddTag={changeProviderTag}
+                          onRemoveTag={removeAllProviderTags}
+                          size="medium"
+                          variant="default"
+                          showRemoveOption={true}
+                        />
+                      </td>
+                      <td>{provider.type}</td>
+                      <td>{provider.network}</td>
+                      <td>{provider.city}, {provider.state}</td>
+                      <td>{provider.formattedDate}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Bulk Actions Footer */}
         {footerVisible && (
@@ -607,7 +671,7 @@ export default function NetworkListView() {
             </div>
           </div>
         )}
-      </div>
+      </>
     </div>
   );
 }
