@@ -39,9 +39,6 @@ router.post("/ma-enrollment", async (req, res) => {
         e.fips,
         e.plan_id,
         e.enrollment,
-        p.eligibles,
-        p.enrolled,
-        ROUND(p.enrolled / p.eligibles * 100, 2) as penetration_pct,
         pl.name as plan_name,
         pl.snp_type,
         c.name as contract_name,
@@ -52,8 +49,6 @@ router.post("/ma-enrollment", async (req, res) => {
         ON e.plan_id = pl.plan_id
       LEFT JOIN \`market-mover-464517.payers.ma_contract\` c 
         ON pl.contract_id = c.contract_id
-      LEFT JOIN \`market-mover-464517.payers.ma_penetration\` p 
-        ON e.fips = p.fips AND e.publish_date = p.publish_date AND c.type = p.type
       WHERE e.fips IN (${fipsList.map(fips => `'${fips}'`).join(', ')})
         AND e.publish_date = @publishDate
         ${typeFilter}

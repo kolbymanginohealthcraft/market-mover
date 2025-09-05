@@ -16,10 +16,6 @@ ALTER TABLE public.policy_approvals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.license_add_ons ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.plan_pricing ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.price_books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_announcements ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
@@ -343,61 +339,7 @@ CREATE POLICY "Platform admins can manage all payments" ON public.payments
         )
     );
 
-CREATE POLICY "Team members can view their team's license add-ons" ON public.license_add_ons
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles p
-            JOIN public.subscriptions s ON s.team_id = p.team_id
-            WHERE p.id = auth.uid()
-            AND s.id = license_add_ons.subscription_id
-        )
-    );
 
-CREATE POLICY "Platform admins can manage all license add-ons" ON public.license_add_ons
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('Platform Admin', 'Platform Support')
-        )
-    );
-
--- Plans and pricing policies (read-only for most users)
-CREATE POLICY "Users can view plans" ON public.plans
-    FOR SELECT USING (true);
-
-CREATE POLICY "Platform admins can manage plans" ON public.plans
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('Platform Admin', 'Platform Support')
-        )
-    );
-
-CREATE POLICY "Users can view plan pricing" ON public.plan_pricing
-    FOR SELECT USING (true);
-
-CREATE POLICY "Platform admins can manage plan pricing" ON public.plan_pricing
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('Platform Admin', 'Platform Support')
-        )
-    );
-
-CREATE POLICY "Users can view price books" ON public.price_books
-    FOR SELECT USING (true);
-
-CREATE POLICY "Platform admins can manage price books" ON public.price_books
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('Platform Admin', 'Platform Support')
-        )
-    );
 
 -- System announcements policies
 CREATE POLICY "Users can view system announcements" ON public.system_announcements

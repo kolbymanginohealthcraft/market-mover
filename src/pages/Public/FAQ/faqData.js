@@ -102,12 +102,12 @@ const faqSections = [
       {
         question: 'How can I upgrade or downgrade my subscription?',
         answer:
-          'Monthly subscribers can upgrade or downgrade anytime. Annual plans allow upgrades anytime, but downgrades take effect at the end of the billing period.',
+          'Please contact info@healthcraftcreative.com to discuss subscription changes.',
       },
       {
-        question: 'I don’t want to pay by credit card. Are there other options?',
+        question: "I don't want to pay by credit card. Are there other options?",
         answer:
-          'Yes. We support ACH transfers for Enterprise and custom plans. Contact info@healthcraftcreative.com to set this up.',
+          'Yes. We support ACH transfers for Enterprise subscriptions. Contact info@healthcraftcreative.com to set this up.',
       },
       {
         question: 'How do I download my credit card receipts?',

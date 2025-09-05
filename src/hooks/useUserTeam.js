@@ -38,11 +38,19 @@ export const useUserTeam = () => {
       // Get team information
       const { data: team, error: teamError } = await supabase
         .from('teams')
-        .select('id, name, tier')
+        .select('id, name')
         .eq('id', profile.team_id)
         .single();
 
-      if (teamError || !team) {
+      if (teamError) {
+        console.error('Team query error:', teamError);
+        setHasTeam(false);
+        setLoading(false);
+        return;
+      }
+
+      if (!team) {
+        console.error('Team not found for team_id:', profile.team_id);
         setHasTeam(false);
         setLoading(false);
         return;

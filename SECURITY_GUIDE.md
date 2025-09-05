@@ -33,9 +33,6 @@ Row Level Security is a PostgreSQL feature that restricts which rows users can a
 - **License Add-ons**: Team members can only view their team's license add-ons
 
 #### Public Data (Read-Only)
-- **Plans**: All users can view available plans
-- **Plan Pricing**: All users can view pricing information
-- **Price Books**: All users can view price book information
 - **System Announcements**: All users can view system announcements
 - **Feature Requests**: All users can view and create feature requests
 - **Policy Definitions**: All users can view policy definitions

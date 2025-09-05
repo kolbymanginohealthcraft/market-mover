@@ -60,7 +60,7 @@ const TeamOnboarding = () => {
       // Get team information
       const { data: teamData, error: teamError } = await supabase
         .from("teams")
-        .select("name, tier, max_users")
+        .select("name, max_users")
         .eq("id", profileData.team_id)
         .single();
 
@@ -74,7 +74,6 @@ const TeamOnboarding = () => {
       setTeamInfo({
         id: profileData.team_id,
         name: teamData.name,
-        tier: teamData.tier,
         max_users: teamData.max_users,
       });
 
@@ -336,7 +335,6 @@ const TeamOnboarding = () => {
             </h3>
             <div style={{ color: '#0c4a6e', fontSize: '14px', lineHeight: '1.5' }}>
               <div><strong>Team:</strong> {teamInfo.name}</div>
-              <div><strong>Plan:</strong> {teamInfo.tier.charAt(0).toUpperCase() + teamInfo.tier.slice(1)}</div>
               <div><strong>Your Role:</strong> Team Member</div>
             </div>
           </div>

@@ -158,8 +158,6 @@ const Header = ({ currentView, selectedMarket }) => {
     if (isPublicPage) {
       if (location.pathname === '/') {
         return 'Welcome to Market Mover';
-      } else if (location.pathname === '/pricing') {
-        return 'Pricing Options';
       } else if (location.pathname === '/faq') {
         return 'Frequently Asked Questions';
       } else if (location.pathname === '/legal') {
@@ -201,10 +199,6 @@ const Header = ({ currentView, selectedMarket }) => {
       if (location.pathname === '/') {
         return [
           { text: 'Find your next healthcare partnership', type: 'description' }
-        ];
-      } else if (location.pathname === '/pricing') {
-        return [
-          { text: 'Flexible plans for teams of all sizes', type: 'description' }
         ];
       } else if (location.pathname === '/faq') {
         return [
@@ -298,8 +292,6 @@ const Header = ({ currentView, selectedMarket }) => {
     if (isPublicPage) {
       if (location.pathname === '/') {
         return <Home size={18} />;
-      } else if (location.pathname === '/pricing') {
-        return <DollarSign size={18} />;
       } else if (location.pathname === '/faq') {
         return <HelpCircle size={18} />;
       } else if (location.pathname === '/legal') {

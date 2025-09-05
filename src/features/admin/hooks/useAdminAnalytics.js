@@ -181,7 +181,6 @@ export const useAdminAnalytics = () => {
         .select(`
           id,
           name,
-          tier,
           max_users,
           created_at,
           profiles(count)
@@ -220,7 +219,6 @@ export const useAdminAnalytics = () => {
       const teamAnalytics = teams?.map(team => ({
         id: team.id,
         name: team.name,
-        tier: team.tier,
         maxUsers: team.max_users,
         currentUsers: team.profiles?.[0]?.count || 0,
         createdAt: team.created_at,
@@ -230,10 +228,6 @@ export const useAdminAnalytics = () => {
 
       return {
         totalTeams: teamAnalytics.length,
-        teamsByTier: teamAnalytics.reduce((acc, team) => {
-          acc[team.tier] = (acc[team.tier] || 0) + 1;
-          return acc;
-        }, {}),
         teamAnalytics: teamAnalytics.sort((a, b) => b.activityCount - a.activityCount)
       };
     } catch (err) {

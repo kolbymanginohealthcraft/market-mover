@@ -56,7 +56,7 @@ export const useAdminData = () => {
       if (profileData.team_id) {
         const { data: team, error: teamError } = await supabase
           .from("teams")
-          .select("name, tier, max_users, created_at")
+          .select("name, max_users, created_at")
           .eq("id", profileData.team_id)
           .single();
 
@@ -69,7 +69,6 @@ export const useAdminData = () => {
         setTeamInfo({
           id: profileData.team_id,
           name: team.name,
-          tier: team.tier,
           maxUsers: team.max_users,
           createdAt: team.created_at,
         });

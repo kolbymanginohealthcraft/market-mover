@@ -43,7 +43,7 @@
 - [ ] Users cannot access other users' profiles
 - [ ] Users cannot access other teams' data
 - [ ] Users cannot modify data they shouldn't have access to
-- [ ] Public data (plans, announcements) is readable by all
+- [ ] Public data (announcements) is readable by all
 
 ## Security Monitoring
 

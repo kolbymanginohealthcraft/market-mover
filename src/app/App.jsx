@@ -25,13 +25,10 @@ import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import TeamOnboarding from "../pages/Auth/TeamOnboarding";
 import SetPassword from "../pages/Auth/SetPassword";
-import PricingPage from "../pages/Public/Pricing/PricingPage";
-import NewPricingPage from "../pages/Private/Settings/NewPricingPage";
 import FAQPage from "../pages/Public/FAQ/FAQPage";
 import LegalPage from "../pages/Public/Legal/LegalPage";
 
 
-import SelectPlan from "../pages/Public/SelectPlan";
 
 import Settings from "../pages/Private/Settings/Settings";
 import ManageAnnouncements from "../pages/Private/Settings/Platform/ManageAnnouncements";
@@ -44,7 +41,6 @@ import PolicyManagement from "../pages/Private/Settings/Platform/PolicyManagemen
 
 import TermsAndConditions from "../pages/Public/Legal/TermsAndConditions";
 import PrivacyPolicy from "../pages/Public/Legal/PrivacyPolicy";
-import BillingHistory from "../pages/Private/Settings/Subscription/BillingHistory";
 import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
@@ -60,10 +56,6 @@ import Network from "../pages/Private/Network/Network";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
-import PaymentTest from "../pages/Auth/PaymentTest";
-import PaymentFlow from "../pages/Auth/PaymentFlow";
-import Success from "../pages/Auth/Success";
-import PaymentForm from "../pages/Private/Payment/PaymentForm";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -127,12 +119,8 @@ export default function App() {
       
 
 
-              <Route path="select-plan" element={<SelectPlan />} />
               {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
 
-              <Route path="/auth/paymenttest" element={<PaymentTest />} />
-              <Route path="/payment-flow" element={<PaymentFlow />} />
-              <Route path="/success" element={<Success />} />
             </Route>
 
             {/* Legal */}
@@ -154,16 +142,10 @@ export default function App() {
               <Route path="market/create" element={<InteractiveMarketCreation />} />
               <Route path="banner-test" element={<BannerTest />} />
               <Route path="spinner-demo" element={<SpinnerDemo />} />
-              <Route path="billing" element={<BillingHistory />} />
-
               <Route path="settings/*" element={<Settings />} />
-              <Route path="pricing" element={<PricingPage />} />
-              <Route path="new-pricing" element={<NewPricingPage />} />
-              <Route path="payment" element={<PaymentForm />} />
               <Route path="manage-announcements" element={<ManageAnnouncements />} />
               <Route path="manage-feedback" element={<ManageFeedback />} />
               <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
-              <Route path="billing-history" element={<BillingHistory />} />
               <Route path="legal-content-editor" element={<LegalContentEditor />} />
               <Route path="policy-management" element={<PolicyManagement />} />
               <Route path="style-guide" element={<StyleGuide />} />

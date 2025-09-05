@@ -195,7 +195,6 @@ CREATE INDEX IF NOT EXISTS idx_policy_permissions_user_id ON public.policy_permi
 CREATE INDEX IF NOT EXISTS idx_subscriptions_team_id ON public.subscriptions(team_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_subscription_id ON public.invoices(subscription_id);
 CREATE INDEX IF NOT EXISTS idx_payments_invoice_id ON public.payments(invoice_id);
-CREATE INDEX IF NOT EXISTS idx_license_add_ons_subscription_id ON public.license_add_ons(subscription_id);
 
 -- Create a view for security monitoring
 CREATE OR REPLACE VIEW security_events AS

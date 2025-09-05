@@ -34,7 +34,7 @@ const MarketingPage = () => {
       <section className={styles.ctaSection}>
         <div className={styles.container}>
           <h2>Ready to Explore?</h2>
-          <Link to="/pricing">
+          <Link to="/signup">
             <Button variant="accent" size="lg">
               Get Started
             </Button>

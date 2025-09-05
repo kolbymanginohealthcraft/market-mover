@@ -6,7 +6,8 @@ const SectionHeader = ({
   title, 
   icon: Icon, 
   actionButton,
-  showActionButton = true 
+  showActionButton = true,
+  customElement
 }) => {
   // Default icon mapping for common actions
   const getActionIcon = (actionType) => {
@@ -29,12 +30,14 @@ const SectionHeader = ({
           {Icon && <Icon size={16} className={styles.headerIcon} />}
           <span className={styles.headerTitle}>{title}</span>
         </div>
-        {showActionButton && actionButton && (
+        {customElement ? (
+          customElement
+        ) : showActionButton && actionButton ? (
           <button className={styles.actionButton} onClick={actionButton.onClick}>
             <ActionIcon size={14} />
             <span>{actionButton.text}</span>
           </button>
-        )}
+        ) : null}
       </div>
       <div className={styles.separator} />
     </div>

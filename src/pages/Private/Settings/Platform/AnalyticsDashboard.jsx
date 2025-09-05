@@ -218,7 +218,6 @@ export default function AnalyticsDashboard() {
         .select(`
           id,
           name,
-          tier,
           max_users,
           created_at,
           profiles(count)
@@ -242,7 +241,6 @@ export default function AnalyticsDashboard() {
         const teamAnalytics = teams?.map(team => ({
           id: team.id,
           name: team.name,
-          tier: team.tier,
           maxUsers: team.max_users,
           currentUsers: team.profiles?.[0]?.count || 0,
           createdAt: team.created_at,
@@ -252,10 +250,6 @@ export default function AnalyticsDashboard() {
 
         const result = {
           totalTeams: teamAnalytics.length,
-          teamsByTier: teamAnalytics.reduce((acc, team) => {
-            acc[team.tier] = (acc[team.tier] || 0) + 1;
-            return acc;
-          }, {}),
           teamAnalytics: teamAnalytics.sort((a, b) => b.activityCount - a.activityCount)
         };
         
@@ -300,7 +294,6 @@ export default function AnalyticsDashboard() {
       const teamAnalytics = teams?.map(team => ({
         id: team.id,
         name: team.name,
-        tier: team.tier,
         maxUsers: team.max_users,
         currentUsers: team.profiles?.[0]?.count || 0,
         createdAt: team.created_at,
@@ -310,10 +303,6 @@ export default function AnalyticsDashboard() {
 
       const result = {
         totalTeams: teamAnalytics.length,
-        teamsByTier: teamAnalytics.reduce((acc, team) => {
-          acc[team.tier] = (acc[team.tier] || 0) + 1;
-          return acc;
-        }, {}),
         teamAnalytics: teamAnalytics.sort((a, b) => b.activityCount - a.activityCount)
       };
       
@@ -321,7 +310,7 @@ export default function AnalyticsDashboard() {
       return result;
     } catch (err) {
       console.error('Error fetching team analytics:', err);
-      return { totalTeams: 0, teamsByTier: {}, teamAnalytics: [] };
+      return { totalTeams: 0, teamAnalytics: [] };
     }
   };
 
@@ -520,12 +509,6 @@ export default function AnalyticsDashboard() {
                   </div>
                   <div className={styles.metricLabel}>Total Teams</div>
                 </div>
-                <div className={styles.metricCard}>
-                  <div className={styles.metricValue}>
-                    {Object.keys(analytics.teamAnalytics.teamsByTier || {}).length}
-                  </div>
-                  <div className={styles.metricLabel}>Active Tiers</div>
-                </div>
               </div>
 
                              {analytics.teamAnalytics.teamAnalytics?.length > 0 && (
@@ -548,7 +531,6 @@ export default function AnalyticsDashboard() {
                              </div>
                              <div className={styles.teamDetails}>
                                <span className={styles.teamName}>{team.name}</span>
-                               <span className={styles.teamTier}>{team.tier}</span>
                              </div>
                            </div>
                            <div className={styles.teamStats}>

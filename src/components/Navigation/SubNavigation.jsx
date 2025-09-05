@@ -36,7 +36,6 @@ const SubNavigation = () => {
   const [marketsViewMode, setMarketsViewMode] = useState('list');
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pricingStep, setPricingStep] = useState(1);
   const { hasTeam } = useUserTeam();
 
   useEffect(() => {
@@ -62,15 +61,6 @@ const SubNavigation = () => {
     fetchUserRole();
   }, []);
 
-  // Listen for pricing step updates
-  useEffect(() => {
-    const handlePricingStepUpdate = (event) => {
-      setPricingStep(event.detail.step);
-    };
-
-    window.addEventListener('pricingStepUpdate', handlePricingStepUpdate);
-    return () => window.removeEventListener('pricingStepUpdate', handlePricingStepUpdate);
-  }, []);
   
   // Extract the active tab from the current path
   const pathSegments = location.pathname.split('/');
@@ -680,7 +670,7 @@ const SubNavigation = () => {
       { id: "company", label: "Company", icon: Building2, path: "/app/settings/company", show: canAccessUsers },
       { id: "users", label: "Users", icon: Users, path: "/app/settings/users", show: canAccessUsers },
       { id: "branding", label: "Branding", icon: Palette, path: "/app/settings/branding", show: canAccessColors },
-             { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription/subscribe", show: canAccessSubscription },
+             { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription/manage", show: canAccessSubscription },
       { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform", show: canAccessPlatform }
     ];
 
@@ -757,19 +747,19 @@ const SubNavigation = () => {
 
          // If we're on a subscription sub-page, render both navigation levels
      if (location.pathname.includes('/settings/subscription/')) {
-       // Determine the correct active subscription sub-tab
-       let currentSubscriptionTab = "subscribe"; // Default to subscribe
-       
-       if (location.pathname.includes('/subscribe')) {
-         currentSubscriptionTab = 'subscribe';
-       } else if (location.pathname.includes('/manage')) {
-         currentSubscriptionTab = 'manage';
-       }
+             // Determine the correct active subscription sub-tab
+      let currentSubscriptionTab = "manage"; // Default to manage
+      
+      if (location.pathname.includes('/checkout')) {
+        currentSubscriptionTab = 'checkout';
+      } else if (location.pathname.includes('/manage')) {
+        currentSubscriptionTab = 'manage';
+      }
 
-       const subscriptionTabs = [
-         { id: "subscribe", label: "Subscribe", icon: ShoppingCart, path: "/app/settings/subscription/subscribe" },
-         { id: "manage", label: "Manage", icon: Settings, path: "/app/settings/subscription/manage" }
-       ];
+             const subscriptionTabs = [
+        { id: "manage", label: "Manage", icon: Settings, path: "/app/settings/subscription/manage" },
+        { id: "checkout", label: "Checkout", icon: Plus, path: "/app/settings/subscription/checkout" },
+      ];
 
       return (
         <>
@@ -812,68 +802,9 @@ const SubNavigation = () => {
           </nav>
         </>
       );
-         }
+    }
 
-     // If we're on a subscription page, render both navigation levels
-     if (location.pathname.includes('/settings/subscription')) {
-       // Determine the correct active subscription sub-tab
-       let currentSubscriptionTab = "subscribe"; // Default to subscribe
-       
-       if (location.pathname.includes('/subscribe')) {
-         currentSubscriptionTab = 'subscribe';
-       } else if (location.pathname.includes('/manage')) {
-         currentSubscriptionTab = 'manage';
-       }
-
-       const subscriptionTabs = [
-         { id: "subscribe", label: "Subscribe", icon: ShoppingCart, path: "/app/settings/subscription/subscribe" },
-         { id: "manage", label: "Manage", icon: Settings, path: "/app/settings/subscription/manage" }
-       ];
-
-       return (
-         <>
-           {/* First level navigation - Settings tabs */}
-           <nav className={styles.subNavigation}>
-             <div className={styles.navLeft}>
-               {visibleTabs.map((tab) => {
-                 const IconComponent = tab.icon;
-                 return (
-                   <Link
-                     key={tab.id}
-                     to={tab.path}
-                     className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
-                   >
-                     <IconComponent size={16} />
-                     {tab.label}
-                   </Link>
-                 );
-               })}
-             </div>
-           </nav>
-           
-           {/* Second level navigation - Subscription sub-tabs */}
-           <nav className={`${styles.subNavigation} ${styles.subscriptionSubNav}`}>
-             <div className={styles.navLeft}>
-               {subscriptionTabs.map((tab) => {
-                 const IconComponent = tab.icon;
-                 return (
-                   <Link
-                     key={tab.id}
-                     to={tab.path}
-                     className={`${styles.tab} ${currentSubscriptionTab === tab.id ? styles.active : ''}`}
-                   >
-                     <IconComponent size={16} />
-                     {tab.label}
-                   </Link>
-                 );
-               })}
-             </div>
-           </nav>
-         </>
-       );
-     }
-
-     // Regular settings page - just the first level navigation
+    // Regular settings page - just the first level navigation
     return (
       <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>
@@ -971,42 +902,6 @@ const SubNavigation = () => {
                 <IconComponent size={16} />
                 {tab.label}
               </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-
-
-  // Handle pricing page
-  if (location.pathname.includes('/pricing')) {
-    const currentStep = pricingStep.toString();
-    
-    const tabs = [
-      { id: "1", label: "Add to Cart", icon: ShoppingCart, path: "/app/pricing?step=1" },
-      { id: "2", label: "Team Setup", icon: Users, path: "/app/pricing?step=2" },
-      { id: "3", label: "Payment", icon: CreditCard, path: "/app/pricing?step=3" }
-    ];
-
-    return (
-      <nav className={styles.subNavigation}>
-        <div className={styles.navLeft}>
-          {tabs.map((tab) => {
-            const IconComponent = tab.icon;
-            return (
-                             <button
-                 key={tab.id}
-                 className={`${styles.tab} ${parseInt(currentStep) === parseInt(tab.id) ? styles.active : ''}`}
-                 onClick={() => {
-                   // This will be handled by the pricing page component
-                   window.dispatchEvent(new CustomEvent('pricingStepChange', { detail: { step: parseInt(tab.id) } }));
-                 }}
-               >
-                <IconComponent size={16} />
-                {tab.label}
-              </button>
             );
           })}
         </div>

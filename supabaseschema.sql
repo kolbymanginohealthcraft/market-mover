@@ -7,8 +7,8 @@ CREATE TABLE public.feature_request_votes (
   user_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT feature_request_votes_pkey PRIMARY KEY (id),
-  CONSTRAINT feature_request_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  CONSTRAINT feature_request_votes_feature_request_id_fkey FOREIGN KEY (feature_request_id) REFERENCES public.feature_requests(id)
+  CONSTRAINT feature_request_votes_feature_request_id_fkey FOREIGN KEY (feature_request_id) REFERENCES public.feature_requests(id),
+  CONSTRAINT feature_request_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.feature_requests (
   id integer NOT NULL DEFAULT nextval('feature_requests_id_seq'::regclass),
@@ -43,15 +43,6 @@ CREATE TABLE public.invoices (
   CONSTRAINT invoices_pkey PRIMARY KEY (id),
   CONSTRAINT invoices_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id)
 );
-CREATE TABLE public.license_add_ons (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  subscription_id uuid,
-  quantity integer NOT NULL,
-  added_at timestamp with time zone DEFAULT now(),
-  notes text,
-  CONSTRAINT license_add_ons_pkey PRIMARY KEY (id),
-  CONSTRAINT license_add_ons_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id)
-);
 CREATE TABLE public.markets (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -83,31 +74,6 @@ CREATE TABLE public.payments (
   CONSTRAINT payments_pkey PRIMARY KEY (id),
   CONSTRAINT payments_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id)
 );
-CREATE TABLE public.plan_pricing (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  plan_id uuid NOT NULL,
-  price_book_id uuid NOT NULL,
-  price_monthly numeric NOT NULL,
-  license_block_price numeric DEFAULT 250,
-  effective_date timestamp with time zone DEFAULT now(),
-  end_date timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT plan_pricing_pkey PRIMARY KEY (id),
-  CONSTRAINT plan_pricing_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.plans(id),
-  CONSTRAINT plan_pricing_price_book_id_fkey FOREIGN KEY (price_book_id) REFERENCES public.price_books(id)
-);
-CREATE TABLE public.plans (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL UNIQUE,
-  price_monthly numeric,
-  max_users integer,
-  description text,
-  features jsonb,
-  license_block_price numeric DEFAULT 250,
-  is_active boolean DEFAULT true,
-  saved_markets integer,
-  CONSTRAINT plans_pkey PRIMARY KEY (id)
-);
 CREATE TABLE public.policy_approvals (
   id integer NOT NULL DEFAULT nextval('policy_approvals_id_seq'::regclass),
   version_id integer,
@@ -131,8 +97,8 @@ CREATE TABLE public.policy_definitions (
   updated_at timestamp with time zone DEFAULT now(),
   updated_by uuid,
   CONSTRAINT policy_definitions_pkey PRIMARY KEY (id),
-  CONSTRAINT policy_definitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT policy_definitions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
+  CONSTRAINT policy_definitions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_definitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.policy_permissions (
   id integer NOT NULL DEFAULT nextval('policy_permissions_id_seq'::regclass),
@@ -145,8 +111,8 @@ CREATE TABLE public.policy_permissions (
   created_by uuid,
   CONSTRAINT policy_permissions_pkey PRIMARY KEY (id),
   CONSTRAINT policy_permissions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
-  CONSTRAINT policy_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  CONSTRAINT policy_permissions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+  CONSTRAINT policy_permissions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.policy_versions (
   id integer NOT NULL DEFAULT nextval('policy_versions_id_seq'::regclass),
@@ -166,18 +132,9 @@ CREATE TABLE public.policy_versions (
   rejection_reason text,
   CONSTRAINT policy_versions_pkey PRIMARY KEY (id),
   CONSTRAINT policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id),
   CONSTRAINT policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
-  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
-  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id)
-);
-CREATE TABLE public.price_books (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  description text,
-  is_active boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  additional_license_price numeric DEFAULT 300.00,
-  CONSTRAINT price_books_pkey PRIMARY KEY (id)
+  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
@@ -209,7 +166,6 @@ CREATE TABLE public.subscriptions (
   trial_ends_at timestamp with time zone,
   discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
   CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
-  CONSTRAINT subscriptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.plans(id),
   CONSTRAINT subscriptions_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
 CREATE TABLE public.system_announcements (

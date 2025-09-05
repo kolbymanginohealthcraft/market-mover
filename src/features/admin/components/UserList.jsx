@@ -36,7 +36,7 @@ export default function UserList() {
           created_at,
           updated_at,
           team_id,
-          teams(name, tier),
+          teams(name),
           user_activities(count)
         `)
         .order(sortBy, { ascending: sortOrder === 'asc' });
@@ -251,7 +251,7 @@ export default function UserList() {
                     {user.teams ? (
                       <span className={styles.teamBadge}>
                         <Building className={styles.teamIcon} />
-                        {user.teams.name} ({user.teams.tier})
+                        {user.teams.name}
                       </span>
                     ) : (
                       <span className={styles.noTeam}>No Team</span>

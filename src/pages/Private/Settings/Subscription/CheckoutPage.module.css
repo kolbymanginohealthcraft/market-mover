@@ -1,0 +1,386 @@
+.container {
+  padding: 24px;
+  margin: 0;
+  max-width: 100%;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.description {
+  text-align: center;
+  color: #6b7280;
+}
+
+.description p {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.planSelection h3,
+.billingSelection h3,
+.licenseSelection h3,
+.pricingSummary h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.plansGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.planCard {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.planCard:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-md);
+}
+
+.planCard.selected {
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
+
+.planHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.planHeader h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.planPricing {
+  text-align: right;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.period {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 4px;
+}
+
+.planDescription {
+  margin: 0 0 20px 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.planFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planFeatures li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.currentPlan {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.currentPlanCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.planInfo h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.planInfo p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.billingOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.billingOption {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.billingOption:hover {
+  border-color: var(--gray-300);
+}
+
+.billingOption.selected {
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
+
+.billingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.billingHeader h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.billingPrice {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.billingOption p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.savingsBadge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  background: var(--success-green);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.licenseControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.licenseInput {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.licenseInput button {
+  background: var(--gray-50);
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  transition: background-color 0.2s ease;
+}
+
+.licenseInput button:hover:not(:disabled) {
+  background: var(--gray-100);
+}
+
+.licenseInput button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.licenseInput input {
+  border: none;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 500;
+  width: 60px;
+  background: var(--white);
+}
+
+.licenseInput input:focus {
+  outline: none;
+}
+
+.licenseInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.additionalLicenses {
+  color: var(--gray-500);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.pricingSummary {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.pricingDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pricingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.pricingRow:last-of-type {
+  border-bottom: none;
+}
+
+.pricingRow span:first-child {
+  color: var(--gray-500);
+}
+
+.pricingRow span:last-child {
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.discount {
+  color: var(--success-green) !important;
+}
+
+.pricingTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0 0 0;
+  border-top: 2px solid var(--gray-200);
+  margin-top: 8px;
+}
+
+.pricingTotal span:first-child {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.pricingTotal span:last-child {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.securityNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  color: var(--gray-700);
+}
+
+.securityNotice h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.securityNotice p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkoutButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .plansGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .billingOptions {
+    grid-template-columns: 1fr;
+  }
+  
+  .licenseControls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .checkoutButton {
+    width: 100%;
+  }
+}

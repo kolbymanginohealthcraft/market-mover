@@ -1,17 +1,16 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import SubscriptionTab from './Subscription/SubscriptionTab';
-import NewPricingPage from './NewPricingPage';
-import SubscriptionManagePage from './SubscriptionManagePage';
+import SubscriptionManagePage from './Subscription/SubscriptionManagePage';
+import CheckoutPage from './Subscription/CheckoutPage';
 
 export default function SubscriptionLayout() {
   return (
     <div>
       <Routes>
-        <Route index element={<Navigate to="subscribe" replace />} />
-        <Route path="subscribe" element={<NewPricingPage />} />
+        <Route index element={<Navigate to="manage" replace />} />
         <Route path="manage" element={<SubscriptionManagePage />} />
-        <Route path="*" element={<Navigate to="subscribe" replace />} />
+        <Route path="checkout" element={<CheckoutPage />} />
+        <Route path="*" element={<Navigate to="manage" replace />} />
       </Routes>
     </div>
   );

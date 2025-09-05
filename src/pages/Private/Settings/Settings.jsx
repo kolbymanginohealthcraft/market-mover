@@ -7,7 +7,6 @@ import {
   ProfileTab,
   UsersTab,
   BrandingTab,
-  SubscriptionTab,
   CompanyTab
 } from "./index";
 import SubscriptionLayout from "./SubscriptionLayout";
