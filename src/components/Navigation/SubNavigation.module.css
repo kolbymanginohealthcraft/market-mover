@@ -85,6 +85,15 @@
   border-bottom: 2px solid #3599b8;
 }
 
+/* Subscription sub-navigation uses blue borders (same as platform) */
+.subscriptionSubNav {
+  top: 128px; /* 80px (main nav) + 48px (first sub nav) */
+}
+
+.subscriptionSubNav .tab.active {
+  border-bottom: 2px solid #3599b8;
+}
+
 /* Storyteller sub-navigation uses blue borders (same as platform) */
 .storytellerSubNav {
   top: 128px; /* 80px (main nav) + 48px (first sub nav) */

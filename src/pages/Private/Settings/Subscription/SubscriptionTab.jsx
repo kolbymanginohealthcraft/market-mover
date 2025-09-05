@@ -216,6 +216,36 @@ export default function SubscriptionTab() {
             <p>Role: {profile.role}</p>
           </div>
 
+          {/* Plan Tier Grid */}
+          <div className={styles.tierGrid}>
+            {["starter", "advanced", "pro"].map((tierName) => {
+              const isCurrent = subscription?.plan_name === tierName;
+              return (
+                <div
+                  key={tierName}
+                  className={`${styles.tierOption} ${
+                    isCurrent ? styles.active : ""
+                  }`}
+                >
+                  <h4>
+                    {tierName.charAt(0).toUpperCase() + tierName.slice(1)}
+                  </h4>
+                  <p>
+                    {tierName === "starter" &&
+                      "Great for small teams just getting started."}
+                    {tierName === "advanced" &&
+                      "For growing teams that need more tools."}
+                    {tierName === "pro" &&
+                      "Full access for large organizations."}
+                  </p>
+                  {isCurrent && (
+                    <span className={styles.tierBadge}>Your Plan</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
 
 
           {/* Current Period Dates */}
@@ -274,11 +304,12 @@ export default function SubscriptionTab() {
             >
               View Billing History
             </Button>
-            <Button variant="gold" size="md" disabled>
-              Upgrade / Downgrade (Coming Soon)
-            </Button>
-            <Button variant="teal" size="md" disabled>
-              Purchase Licenses (Coming Soon)
+            <Button 
+              variant="gold" 
+              size="md"
+              onClick={() => navigate("/app/settings/subscription/manage")}
+            >
+              Modify Subscription
             </Button>
           </div>
         </div>
@@ -286,11 +317,15 @@ export default function SubscriptionTab() {
         <div className={styles.noTeamMessage}>
           <h3>No Active Subscription</h3>
           <p>You need to join or create a team to access subscription features.</p>
-          <div className={styles.teamActions}>
-            <Button variant="blue" size="md" onClick={() => navigate("/pricing")}>
-              View Plans
-            </Button>
-          </div>
+                     <div className={styles.teamActions}>
+             <Button 
+               variant="gold" 
+               size="md"
+               onClick={() => navigate("/app/settings/subscription/subscribe")}
+             >
+               Get Started
+             </Button>
+           </div>
         </div>
       )}
       </div>

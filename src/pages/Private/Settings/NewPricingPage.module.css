@@ -1,0 +1,403 @@
+.page {
+  padding: 24px;
+  margin: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.pricingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.pricingCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.pricingCard h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1.5rem 0;
+}
+
+.priceDisplay {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 1rem;
+}
+
+.priceAmount {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+.pricePeriod {
+  font-size: 1.25rem;
+  color: #6b7280;
+  margin-left: 0.5rem;
+}
+
+.savings {
+  background: #ecfdf5;
+  color: #059669;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #374151;
+}
+
+.feature svg {
+  color: #059669;
+  flex-shrink: 0;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.billingToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+}
+
+.billingToggle span {
+  font-weight: 500;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.billingToggle span.active {
+  color: #1f2937;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: #d1d5db;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.toggleSwitch.annual {
+  background: #059669;
+}
+
+.toggleHandle {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggleSwitch.annual .toggleHandle {
+  transform: translateX(24px);
+}
+
+.discountNote {
+  font-size: 0.875rem;
+  color: #059669;
+}
+
+.paymentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.formSection {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.formSection h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inputGroup {
+  margin-bottom: 1rem;
+}
+
+.inputGroup:last-child {
+  margin-bottom: 0;
+}
+
+.inputGroup label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.inputGroup input,
+.inputGroup select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cardDetails {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.licenseSelector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.licenseInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.licenseInfo span:first-child {
+  font-weight: 500;
+  color: #374151;
+}
+
+.licensePrice {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.licenseControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.licenseButton {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.licenseButton:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.licenseButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.licenseCount {
+  font-weight: 600;
+  color: #1f2937;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.errorMessage {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  font-weight: 500;
+}
+
+.orderSummary {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.orderSummary h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  color: #374151;
+}
+
+.summaryDivider {
+  height: 1px;
+  background: #d1d5db;
+  margin: 1rem 0;
+}
+
+.summaryTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.summaryPeriod {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.successContent {
+  text-align: center;
+  padding: 4rem 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.successIcon {
+  color: #059669;
+  margin: 0 auto 1.5rem;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.successContent h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.successContent p {
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .priceAmount {
+    font-size: 2.5rem;
+  }
+  
+  .cardDetails {
+    grid-template-columns: 1fr;
+  }
+  
+  .licenseSelector {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .licenseControls {
+    justify-content: center;
+  }
+}

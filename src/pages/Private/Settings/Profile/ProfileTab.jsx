@@ -34,8 +34,6 @@ export default function ProfileTab() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-  const [teamCode, setTeamCode] = useState("");
-  const [showTierOptions, setShowTierOptions] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
 
   const navigate = useNavigate();
@@ -119,8 +117,6 @@ export default function ProfileTab() {
             max_users: team.max_users || null,
           });
         }
-      } else {
-        setShowTierOptions(true);
       }
     } catch (err) {
       console.error("💥 Unexpected error:", err);
@@ -176,54 +172,7 @@ export default function ProfileTab() {
     setMessageType("");
   };
 
-  const handleJoinTeam = async () => {
-    setMessage("");
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const access_token = session?.access_token;
 
-      if (!access_token) {
-        setMessage("❌ User is not logged in.");
-        setMessageType("error");
-        return;
-      }
-
-      const res = await fetch(
-        "https://ukuxibhujcozcwozljzf.functions.supabase.co/join_team_by_code",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
-          },
-          body: JSON.stringify({ access_code: teamCode }),
-        }
-      );
-
-      const raw = await res.text();
-      console.log("📥 Raw response:", raw);
-
-      const result = JSON.parse(raw);
-
-      if (!res.ok) {
-        setMessage("❌ " + (result.error || "Failed to join team"));
-        setMessageType("error");
-      } else {
-        setMessage("✅ Successfully joined team!");
-        setMessageType("success");
-        setTimeout(() => window.location.reload(), 1000);
-      }
-    } catch (err) {
-      console.error("💥 Join failed:", err);
-      setMessage("❌ Unexpected error occurred.");
-      setMessageType("error");
-    }
-  };
-
-  const hasTeam = !!profile.team_id;
-  const isTeamAdmin = profile.role === "Team Admin" || profile.role === "Platform Admin" || profile.role === "Platform Support";
 
   // Check if profile has been modified
   const hasChanges = 
@@ -243,137 +192,36 @@ export default function ProfileTab() {
       />
       
       <div className={styles.content}>
-        <div className={styles.twoColumnLayout}>
-          {/* Left Column - Personal Information */}
-          <div className={styles.leftColumn}>
-            <div className={styles.personalInfo}>
-              <h3 className={styles.subsectionTitle}>Personal Information</h3>
-              <div className={styles.formGroup}>
-                <label>First Name</label>
-                <input
-                  name="first_name"
-                  value={profile.first_name}
-                  onChange={handleProfileChange}
-                  placeholder="Enter your first name"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Last Name</label>
-                <input
-                  name="last_name"
-                  value={profile.last_name}
-                  onChange={handleProfileChange}
-                  placeholder="Enter your last name"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Job Title</label>
-                <input
-                  name="title"
-                  value={profile.title}
-                  onChange={handleProfileChange}
-                  placeholder="Enter your job title"
-                />
-              </div>
-            </div>
+        <div className={styles.personalInfo}>
+          <h3 className={styles.subsectionTitle}>Personal Information</h3>
+          <div className={styles.formGroup}>
+            <label>First Name</label>
+            <input
+              name="first_name"
+              value={profile.first_name}
+              onChange={handleProfileChange}
+              placeholder="Enter your first name"
+            />
           </div>
-
-        {/* Right Column - Subscription Section */}
-        <div className={styles.rightColumn}>
-          <div className={styles.subscriptionBox}>
-            <h3 className={styles.subsectionTitle}>Subscription Details</h3>
-
-            {hasTeam ? (
-              <>
-                <div className={styles.tierGrid}>
-                  {["starter", "advanced", "pro"].map((tierName) => {
-                    const isCurrent = subscription.plan_name === tierName;
-                    return (
-                      <div
-                        key={tierName}
-                        className={`${styles.tierOption} ${
-                          isCurrent ? styles.active : ""
-                        }`}
-                      >
-                        <h4>
-                          {tierName.charAt(0).toUpperCase() + tierName.slice(1)}
-                        </h4>
-                        <p>
-                          {tierName === "starter" &&
-                            "Great for small teams just getting started."}
-                          {tierName === "advanced" &&
-                            "For growing teams that need more tools."}
-                          {tierName === "pro" &&
-                            "Full access for large organizations."}
-                        </p>
-                        {isCurrent && (
-                          <span className={styles.tierBadge}>Your Plan</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className={styles.metaInfoGroup}>
-                  <p className={styles.metaInfo}>
-                    👥 Team: <strong>{subscription.team_name}</strong>
-                  </p>
-                  <p className={styles.metaInfo}>
-                    🧑 Role: <strong>{profile.role}</strong>
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                {showTierOptions && (
-                  <>
-                    <div className={styles.tierDivider} />
-                    <p className={styles.tierIntro}>
-                      You're currently on the free plan. Choose your next step:
-                    </p>
-                    <div className={styles.tierActions}>
-                      <div className={styles.tierCard}>
-                        <div className={styles.optionLabel}>🤝 Join a Team</div>
-                        <p>
-                          Enter the team code you received to join an existing
-                          team. Your access will match the team's plan.
-                        </p>
-                        <input
-                          type="text"
-                          placeholder="Enter team code"
-                          value={teamCode}
-                          onChange={(e) => setTeamCode(e.target.value)}
-                        />
-                        <Button
-                          variant="blue"
-                          size="sm"
-                          onClick={handleJoinTeam}
-                        >
-                          Join Team
-                        </Button>
-                      </div>
-
-                      <div className={styles.tierCard}>
-                        <div className={styles.optionLabel}>🚀 Create a Team</div>
-                        <p>
-                          You'll choose your plan and be able to invite teammates
-                          after completing payment.
-                        </p>
-                        <Button
-                          variant="gold"
-                          size="sm"
-                          onClick={() => navigate("/app/pricing")}
-                        >
-                          Go to Pricing & Payment
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
+          <div className={styles.formGroup}>
+            <label>Last Name</label>
+            <input
+              name="last_name"
+              value={profile.last_name}
+              onChange={handleProfileChange}
+              placeholder="Enter your last name"
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Job Title</label>
+            <input
+              name="title"
+              value={profile.title}
+              onChange={handleProfileChange}
+              placeholder="Enter your job title"
+            />
           </div>
         </div>
-      </div>
       </div>
 
       {/* Sticky Footer */}

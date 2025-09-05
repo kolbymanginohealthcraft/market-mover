@@ -10,6 +10,7 @@ import {
   SubscriptionTab,
   CompanyTab
 } from "./index";
+import SubscriptionLayout from "./SubscriptionLayout";
 import PlatformLayout from "./Platform/PlatformLayout";
 
 export default function Settings() {
@@ -51,7 +52,7 @@ export default function Settings() {
 
   // Check if user can access restricted tabs
   const canAccessPlatform = hasPlatformAccess(userRole);
-  const canAccessSubscription = isTeamAdmin(userRole);
+  const canAccessSubscription = true; // Remove team admin restriction
   const canAccessUsers = isTeamAdmin(userRole);
   const canAccessTaggedProviders = userRole !== null;
   const canAccessColors = userRole !== null;
@@ -61,10 +62,7 @@ export default function Settings() {
     return <Navigate to="/app/settings/profile" replace />;
   }
 
-  // If user tries to access subscription tab without permission, redirect to profile
-  if (!loading && activeTab === "subscription" && !canAccessSubscription) {
-    return <Navigate to="/app/settings/profile" replace />;
-  }
+  // Subscription tab is now accessible to all users
 
   // If user tries to access company tab without permission, redirect to profile
   if (!loading && activeTab === "company" && !canAccessUsers) {
@@ -90,7 +88,7 @@ export default function Settings() {
           <Route path="users" element={<UsersTab />} />
           <Route path="company" element={<CompanyTab />} />
           <Route path="branding" element={<BrandingTab />} />
-          <Route path="subscription" element={<SubscriptionTab />} />
+          <Route path="subscription/*" element={<SubscriptionLayout />} />
           <Route path="platform/*" element={<PlatformLayout />} />
           <Route path="*" element={<Navigate to="profile" replace />} />
         </Routes>

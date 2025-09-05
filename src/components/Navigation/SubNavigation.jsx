@@ -662,7 +662,7 @@ const SubNavigation = () => {
   if (location.pathname.includes('/settings')) {
     // Check if user can access restricted tabs
     const canAccessPlatform = hasPlatformAccess(userRole);
-    const canAccessSubscription = isTeamAdmin(userRole);
+    const canAccessSubscription = true; // Remove team admin restriction - accessible to all users
     const canAccessUsers = isTeamAdmin(userRole);
     const canAccessColors = userRole !== null;
 
@@ -670,6 +670,9 @@ const SubNavigation = () => {
     let currentActiveTab = activeTab;
     if (location.pathname.includes('/settings/platform')) {
       currentActiveTab = 'platform';
+    } else if (location.pathname.includes('/settings/subscription')) {
+      // Keep subscription tab active for all subscription-related routes
+      currentActiveTab = 'subscription';
     }
 
     const allTabs = [
@@ -677,7 +680,7 @@ const SubNavigation = () => {
       { id: "company", label: "Company", icon: Building2, path: "/app/settings/company", show: canAccessUsers },
       { id: "users", label: "Users", icon: Users, path: "/app/settings/users", show: canAccessUsers },
       { id: "branding", label: "Branding", icon: Palette, path: "/app/settings/branding", show: canAccessColors },
-      { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription", show: canAccessSubscription },
+             { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription/subscribe", show: canAccessSubscription },
       { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform", show: canAccessPlatform }
     ];
 
@@ -752,7 +755,125 @@ const SubNavigation = () => {
        );
     }
 
-    // Regular settings page - just the first level navigation
+         // If we're on a subscription sub-page, render both navigation levels
+     if (location.pathname.includes('/settings/subscription/')) {
+       // Determine the correct active subscription sub-tab
+       let currentSubscriptionTab = "subscribe"; // Default to subscribe
+       
+       if (location.pathname.includes('/subscribe')) {
+         currentSubscriptionTab = 'subscribe';
+       } else if (location.pathname.includes('/manage')) {
+         currentSubscriptionTab = 'manage';
+       }
+
+       const subscriptionTabs = [
+         { id: "subscribe", label: "Subscribe", icon: ShoppingCart, path: "/app/settings/subscription/subscribe" },
+         { id: "manage", label: "Manage", icon: Settings, path: "/app/settings/subscription/manage" }
+       ];
+
+      return (
+        <>
+          {/* First level navigation - Settings tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {visibleTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Subscription sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.subscriptionSubNav}`}>
+            <div className={styles.navLeft}>
+              {subscriptionTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentSubscriptionTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+         }
+
+     // If we're on a subscription page, render both navigation levels
+     if (location.pathname.includes('/settings/subscription')) {
+       // Determine the correct active subscription sub-tab
+       let currentSubscriptionTab = "subscribe"; // Default to subscribe
+       
+       if (location.pathname.includes('/subscribe')) {
+         currentSubscriptionTab = 'subscribe';
+       } else if (location.pathname.includes('/manage')) {
+         currentSubscriptionTab = 'manage';
+       }
+
+       const subscriptionTabs = [
+         { id: "subscribe", label: "Subscribe", icon: ShoppingCart, path: "/app/settings/subscription/subscribe" },
+         { id: "manage", label: "Manage", icon: Settings, path: "/app/settings/subscription/manage" }
+       ];
+
+       return (
+         <>
+           {/* First level navigation - Settings tabs */}
+           <nav className={styles.subNavigation}>
+             <div className={styles.navLeft}>
+               {visibleTabs.map((tab) => {
+                 const IconComponent = tab.icon;
+                 return (
+                   <Link
+                     key={tab.id}
+                     to={tab.path}
+                     className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                   >
+                     <IconComponent size={16} />
+                     {tab.label}
+                   </Link>
+                 );
+               })}
+             </div>
+           </nav>
+           
+           {/* Second level navigation - Subscription sub-tabs */}
+           <nav className={`${styles.subNavigation} ${styles.subscriptionSubNav}`}>
+             <div className={styles.navLeft}>
+               {subscriptionTabs.map((tab) => {
+                 const IconComponent = tab.icon;
+                 return (
+                   <Link
+                     key={tab.id}
+                     to={tab.path}
+                     className={`${styles.tab} ${currentSubscriptionTab === tab.id ? styles.active : ''}`}
+                   >
+                     <IconComponent size={16} />
+                     {tab.label}
+                   </Link>
+                 );
+               })}
+             </div>
+           </nav>
+         </>
+       );
+     }
+
+     // Regular settings page - just the first level navigation
     return (
       <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>

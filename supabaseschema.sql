@@ -165,10 +165,10 @@ CREATE TABLE public.policy_versions (
   approved_by uuid,
   rejection_reason text,
   CONSTRAINT policy_versions_pkey PRIMARY KEY (id),
-  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
   CONSTRAINT policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
-  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id),
-  CONSTRAINT policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.price_books (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -191,8 +191,8 @@ CREATE TABLE public.profiles (
   email text,
   role text CHECK (role = ANY (ARRAY['Platform Admin'::text, 'Platform Support'::text, 'Team Admin'::text, 'Team Member'::text])),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT profiles_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
-  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
+  CONSTRAINT profiles_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
 CREATE TABLE public.subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -209,8 +209,8 @@ CREATE TABLE public.subscriptions (
   trial_ends_at timestamp with time zone,
   discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
   CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
-  CONSTRAINT subscriptions_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
-  CONSTRAINT subscriptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.plans(id)
+  CONSTRAINT subscriptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.plans(id),
+  CONSTRAINT subscriptions_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
 CREATE TABLE public.system_announcements (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -261,7 +261,7 @@ CREATE TABLE public.teams (
 CREATE TABLE public.user_activities (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  activity_type text NOT NULL CHECK (activity_type = ANY (ARRAY['login'::text, 'search_providers'::text, 'view_provider'::text, 'view_market'::text, 'save_market'::text])),
+  activity_type text NOT NULL CHECK (activity_type = ANY (ARRAY['search_providers'::text, 'view_provider'::text, 'view_market'::text, 'save_market'::text])),
   target_id text,
   target_name text,
   metadata jsonb,

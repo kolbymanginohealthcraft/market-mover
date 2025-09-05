@@ -98,7 +98,61 @@
   font-size: 1.4rem;
   font-weight: 600;
   color: #2d4740;
-  margin: 0 0 12px 0;
+  margin-bottom: 1rem;
+}
+
+.planInfo p {
+  margin: 0.5rem 0;
+  color: #6b7280;
+}
+
+/* Tier Grid Styles */
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.tierOption {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.tierOption.active {
+  border-color: #059669;
+  background: #f0fdf4;
+}
+
+.tierOption h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.75rem 0;
+  text-transform: capitalize;
+}
+
+.tierOption p {
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tierBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #059669;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .planInfo p {

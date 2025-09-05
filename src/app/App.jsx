@@ -26,6 +26,7 @@ import ResetPassword from "../pages/Auth/ResetPassword";
 import TeamOnboarding from "../pages/Auth/TeamOnboarding";
 import SetPassword from "../pages/Auth/SetPassword";
 import PricingPage from "../pages/Public/Pricing/PricingPage";
+import NewPricingPage from "../pages/Private/Settings/NewPricingPage";
 import FAQPage from "../pages/Public/FAQ/FAQPage";
 import LegalPage from "../pages/Public/Legal/LegalPage";
 
@@ -157,6 +158,7 @@ export default function App() {
 
               <Route path="settings/*" element={<Settings />} />
               <Route path="pricing" element={<PricingPage />} />
+              <Route path="new-pricing" element={<NewPricingPage />} />
               <Route path="payment" element={<PaymentForm />} />
               <Route path="manage-announcements" element={<ManageAnnouncements />} />
               <Route path="manage-feedback" element={<ManageFeedback />} />

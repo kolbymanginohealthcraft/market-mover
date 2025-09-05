@@ -15,23 +15,6 @@
   padding: 24px;
 }
 
-/* Two Column Layout - Use global utilities */
-.twoColumnLayout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.leftColumn {
-  display: flex;
-  flex-direction: column;
-}
-
-.rightColumn {
-  display: flex;
-  flex-direction: column;
-}
 
 /* Personal Information Panel */
 .personalInfo {
@@ -295,6 +278,7 @@
   border: 1px solid var(--gray-200);
 }
 
+
 /* Message Styling */
 .message {
   padding: 12px 16px;
@@ -403,11 +387,6 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .twoColumnLayout {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
   .formGroup {
     flex-direction: column;
     align-items: flex-start;
@@ -434,11 +413,6 @@
   
   .subsectionTitle {
     font-size: 1.2rem;
-  }
-
-  .tierGrid,
-  .tierActions {
-    flex-direction: column;
   }
 
   .stickyFooter {

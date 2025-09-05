@@ -35,7 +35,7 @@ export default function SettingsTabs({ activeTab, setActiveTab }) {
   };
 
   const canAccessPlatform = hasPlatformAccess(userRole);
-  const canAccessSubscription = isTeamAdmin(userRole);
+  const canAccessSubscription = true; // Remove team admin restriction
   const canAccessUsers = isTeamAdmin(userRole);
   const canAccessTaggedProviders = userRole !== null;
   const canAccessColors = userRole !== null;
