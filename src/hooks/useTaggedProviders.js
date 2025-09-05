@@ -193,13 +193,12 @@ export default function useTaggedProviders() {
         throw new Error('User not part of a team');
       }
 
-      // Remove the old tag
+      // Remove ALL existing tags for this provider first
       const { error: deleteError } = await supabase
         .from('team_provider_tags')
         .delete()
         .eq('team_id', profile.team_id)
-        .eq('provider_dhc', providerDhc)
-        .eq('tag_type', oldTagType);
+        .eq('provider_dhc', providerDhc);
 
       if (deleteError) {
         throw new Error(deleteError.message);
@@ -218,12 +217,12 @@ export default function useTaggedProviders() {
         throw new Error(insertError.message);
       }
 
-      // Update local state
+      // Update local state - replace all tags with just the new one
       setTaggedProviders(prev => prev.map(provider => {
         if (provider.provider_dhc === providerDhc) {
           return {
             ...provider,
-            tags: provider.tags.map(tag => tag === oldTagType ? newTagType : tag)
+            tags: [newTagType] // Only one tag per provider
           };
         }
         return provider;

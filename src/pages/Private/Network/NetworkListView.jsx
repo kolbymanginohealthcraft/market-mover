@@ -42,7 +42,15 @@ export default function NetworkListView() {
     removingTag,
     removeAllProviderTags,
     changeProviderTag,
+    getProviderTags,
   } = useTaggedProviders();
+
+  // Wrapper function to handle adding tags (ProviderTagBadge expects 2 params)
+  const handleAddTag = useCallback(async (providerId, tagType) => {
+    const currentTags = getProviderTags(providerId);
+    const currentTag = currentTags[0] || null;
+    await changeProviderTag(providerId, currentTag, tagType);
+  }, [changeProviderTag, getProviderTags]);
 
   // Check if user has a team
   const { hasTeam } = useUserTeam();
@@ -547,7 +555,7 @@ export default function NetworkListView() {
                           teamLoading={false}
                           primaryTag={provider.tags[0] || null}
                           isSaving={removingTag}
-                          onAddTag={changeProviderTag}
+                          onAddTag={handleAddTag}
                           onRemoveTag={removeAllProviderTags}
                           size="medium"
                           variant="default"

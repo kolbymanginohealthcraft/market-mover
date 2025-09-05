@@ -49,7 +49,7 @@ export default function useTeamProviderTags() {
     }
   };
 
-  // Add a tag to a provider
+  // Add a tag to a provider (ensures only one tag per provider)
   const addTeamProviderTag = async (providerDhc, tagType) => {
     try {
       setAddingTag(true);
@@ -71,14 +71,24 @@ export default function useTeamProviderTags() {
         throw new Error('User not part of a team');
       }
 
+      // First, remove any existing tags for this provider to ensure only one tag
+      const { error: deleteError } = await supabase
+        .from('team_provider_tags')
+        .delete()
+        .eq('team_id', profile.team_id)
+        .eq('provider_dhc', providerDhc);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      // Then add the new tag
       const { error: insertError } = await supabase
         .from('team_provider_tags')
-        .upsert({
+        .insert({
           team_id: profile.team_id,
           provider_dhc: providerDhc,
           tag_type: tagType
-        }, {
-          onConflict: 'team_id,provider_dhc,tag_type'
         });
 
       if (insertError) {
@@ -95,10 +105,10 @@ export default function useTeamProviderTags() {
     }
   };
 
-  // Remove a tag from a provider
+  // Remove all tags from a provider (ensures only one tag per provider)
   const removeTeamProviderTag = async (providerDhc, tagType) => {
     try {
-      setRemovingTag(`${providerDhc}-${tagType}`);
+      setRemovingTag(providerDhc);
       setError(null);
 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -117,20 +127,20 @@ export default function useTeamProviderTags() {
         throw new Error('User not part of a team');
       }
 
+      // Remove ALL tags for this provider (not just the specific tag type)
       const { error: deleteError } = await supabase
         .from('team_provider_tags')
         .delete()
         .eq('team_id', profile.team_id)
-        .eq('provider_dhc', providerDhc)
-        .eq('tag_type', tagType);
+        .eq('provider_dhc', providerDhc);
 
       if (deleteError) {
         throw new Error(deleteError.message);
       }
 
-      // Update local state
+      // Update local state - remove all tags for this provider
       setTeamProviderTags(prev => prev.filter(tag => 
-        !(tag.provider_dhc === providerDhc && tag.tag_type === tagType)
+        tag.provider_dhc !== providerDhc
       ));
     } catch (err) {
       console.error('Error removing team provider tag:', err);
