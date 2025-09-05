@@ -4,6 +4,8 @@
 .taggingContainer {
   position: relative;
   display: inline-block;
+  /* Ensure dropdown can escape container clipping */
+  overflow: visible;
 }
 
 /* Tag Display */
@@ -194,8 +196,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* Ensure dropdown is always on top */
-  z-index: 10000;
+  /* Ensure dropdown is always on top - higher than any container */
+  z-index: 10001;
   /* Additional properties to ensure visibility above containers */
   pointer-events: auto;
   /* Force hardware acceleration for smooth rendering */

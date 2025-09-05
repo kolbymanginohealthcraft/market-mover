@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, memo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, ChevronDown } from 'lucide-react';
 import { getTagColor, getTagLabel } from '../../utils/tagColors';
 import styles from './ProviderTagBadge.module.css';
@@ -24,20 +25,20 @@ const ProviderTagBadgeComponent = ({
   const buttonRef = useRef(null);
   const badgeRef = useRef(null);
 
-  // Check if dropdown should open upward when it opens
+  // Check if dropdown should open upward when it opens and calculate position
   useEffect(() => {
     if (isDropdownOpen) {
       const triggerElement = primaryTag ? badgeRef.current : buttonRef.current;
       if (triggerElement) {
         const triggerRect = triggerElement.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        const estimatedDropdownHeight = 160; // Height to accommodate all options
+        const estimatedDropdownHeight = 200;
 
         // Check if there's enough space below
         const hasSpaceBelow = triggerRect.bottom + estimatedDropdownHeight < viewportHeight;
         setShouldOpenUp(!hasSpaceBelow);
         
-        // Update dropdown position
+        // Calculate fixed position coordinates
         setDropdownPosition({
           left: triggerRect.left,
           top: triggerRect.bottom + 4,
@@ -151,15 +152,15 @@ const ProviderTagBadgeComponent = ({
 
   return (
     <div className={`${styles.taggingContainer} ${className}`} style={{ position: 'relative', display: 'inline-block' }}>
-      {/* Dropdown Menu */}
-      {isDropdownOpen && (
+      {/* Dropdown Menu - Rendered via Portal to escape container clipping */}
+      {isDropdownOpen && createPortal(
         <div
           ref={dropdownRef}
           className={styles.dropdown}
           style={{
             position: 'fixed',
             left: dropdownPosition.left,
-            zIndex: 10000,
+            zIndex: 10001,
             // Intelligent positioning: down by default, up when needed
             top: shouldOpenUp ? 'auto' : dropdownPosition.top,
             bottom: shouldOpenUp ? dropdownPosition.bottom : 'auto'
@@ -210,7 +211,8 @@ const ProviderTagBadgeComponent = ({
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Tag Display */}

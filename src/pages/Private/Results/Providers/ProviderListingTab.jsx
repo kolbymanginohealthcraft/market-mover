@@ -62,6 +62,10 @@ export default function ProviderListingTab({
   const [dataReady, setDataReady] = useState(false);
   const [hoveredRow, setHoveredRow] = useState(null);
   const [hoveredMarker, setHoveredMarker] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -461,6 +465,12 @@ export default function ProviderListingTab({
     return results;
   }, [filteredResults, provider.dhc]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(uniqueResults.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedResults = uniqueResults.slice(startIndex, endIndex);
+
   console.log(filteredResults.map(p => ({ name: p.name, distance: p.distance, type: typeof p.distance })));
 
   const providerCount = useMemo(() => filteredResults.length.toLocaleString(), [filteredResults]);
@@ -859,10 +869,47 @@ export default function ProviderListingTab({
             </>
           }
           rightContent={
-            <span className={controlsStyles.summaryText}>
-              Showing {providerCount} provider
-              {filteredResults.length !== 1 ? "s" : ""}
-            </span>
+            <div className={styles.controlsRightContent}>
+              <span className={controlsStyles.summaryText}>
+                Showing {startIndex + 1}-{Math.min(endIndex, uniqueResults.length)} of {uniqueResults.length} providers
+              </span>
+              <div className={styles.paginationControls}>
+                <div className={styles.pageSizeSelector}>
+                  <label htmlFor="pageSize">Show:</label>
+                  <select 
+                    id="pageSize"
+                    value={itemsPerPage} 
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className={styles.pageSizeSelect}
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                  </select>
+                </div>
+                <button 
+                  className={styles.paginationButton}
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className={styles.paginationPage}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button 
+                  className={styles.paginationButton}
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           }
         >
           <div className="searchBarContainer">
@@ -899,7 +946,7 @@ export default function ProviderListingTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {uniqueResults.map((p) => (
+                  {paginatedResults.map((p) => (
                     <tr
                       key={p.dhc}
                       className={`${

@@ -415,9 +415,47 @@ export default function NetworkListView() {
           </>
         }
         rightContent={
-          <span className={controlsStyles.summaryText}>
-            Showing {filteredAndSortedProviders.length} of {taggedProviders.length} providers
-          </span>
+          <div className={styles.controlsRightContent}>
+            <span className={controlsStyles.summaryText}>
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredAndSortedProviders.length)} of {filteredAndSortedProviders.length} providers
+            </span>
+            <div className={styles.paginationControls}>
+              <div className={styles.pageSizeSelector}>
+                <label htmlFor="pageSize">Show:</label>
+                <select 
+                  id="pageSize"
+                  value={itemsPerPage} 
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className={styles.pageSizeSelect}
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                </select>
+              </div>
+              <button 
+                className={styles.paginationButton}
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className={styles.paginationPage}>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                className={styles.paginationButton}
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         }
       />
 
@@ -433,51 +471,8 @@ export default function NetworkListView() {
               <p>Try adjusting your search or filters to find providers in your network.</p>
             </div>
           ) : (
-            <div className={styles.tablePanel}>
-              {/* Top Pagination Controls */}
-              <div className={styles.paginationTop}>
-                <div className={styles.paginationInfo}>
-                  Showing {startIndex + 1}-{Math.min(endIndex, filteredAndSortedProviders.length)} of {filteredAndSortedProviders.length} providers
-                </div>
-                <div className={styles.paginationControls}>
-                  <div className={styles.pageSizeSelector}>
-                    <label htmlFor="pageSize">Show:</label>
-                    <select 
-                      id="pageSize"
-                      value={itemsPerPage} 
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className={styles.pageSizeSelect}
-                    >
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                      <option value={200}>200</option>
-                    </select>
-                  </div>
-                  <button 
-                    className={styles.paginationButton}
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </button>
-                  <span className={styles.paginationPage}>
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button 
-                    className={styles.paginationButton}
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-              
-              <div className={styles.tableScroll}>
+                         <div className={styles.tablePanel}>
+               <div className={styles.tableScroll}>
                 <table className={styles.providersTable}>
                 <thead>
                   <tr>

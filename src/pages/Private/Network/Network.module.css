@@ -166,6 +166,13 @@
   margin-top: 16px;
 }
 
+/* Controls Row Right Content */
+.controlsRightContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .paginationTop {
   display: flex;
   justify-content: space-between;
@@ -186,37 +193,37 @@
 .paginationControls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .pageSizeSelector {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-right: 16px;
+  gap: 6px;
+  margin-right: 12px;
 }
 
 .pageSizeSelector label {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
   font-weight: 500;
 }
 
 .pageSizeSelect {
-  padding: 6px 8px;
+  padding: 4px 6px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   background: white;
   cursor: pointer;
 }
 
 .paginationButton {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border: 1px solid #d1d5db;
   background: white;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
