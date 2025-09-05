@@ -15,9 +15,9 @@ import UnifiedSidebarLayout from "../components/Layouts/UnifiedSidebarLayout";
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
 
 // Pages
-import NewLandingPage from "../pages/Public/Marketing/NewLandingPage";
-import LoginTest from "../pages/Auth/LoginTest";
-import SignupTest from "../pages/Auth/SignupTest";
+import LandingPage from "../pages/Public/Marketing/LandingPage";
+import Login from "../pages/Auth/Login";
+import Signup from "../pages/Auth/Signup";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import TeamOnboarding from "../pages/Auth/TeamOnboarding";
@@ -97,13 +97,13 @@ export default function App() {
             <Route path="/" element={<UnifiedSidebarLayout isPublic={true} />}>
               <Route
                 index
-                element={session ? <Navigate to="/app/dashboard" /> : <NewLandingPage />}
+                element={session ? <Navigate to="/app/dashboard" /> : <LandingPage />}
               />
               <Route
                 path="login"
-                element={session ? <Navigate to="/app/dashboard" /> : <LoginTest />}
+                element={session ? <Navigate to="/app/dashboard" /> : <Login />}
               />
-              <Route path="signup" element={<SignupTest />} />
+              <Route path="signup" element={<Signup />} />
               <Route path="forgot-password" element={<ForgotPassword />} />
               <Route path="reset-password" element={<ResetPassword />} />
               <Route path="team-onboarding" element={<TeamOnboarding />} />

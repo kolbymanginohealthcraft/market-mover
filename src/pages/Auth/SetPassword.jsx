@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
 import Spinner from "../../components/Buttons/Spinner";
-import styles from "./LoginTest.module.css";
+import styles from "./Login.module.css";
 
 const SetPassword = () => {
   const navigate = useNavigate();

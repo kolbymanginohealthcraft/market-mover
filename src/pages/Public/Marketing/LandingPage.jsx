@@ -56,10 +56,10 @@ import {
   Compass
 } from 'lucide-react';
 
-import styles from './NewLandingPage.module.css';
+import styles from './LandingPage.module.css';
 import heroImage from '../../../assets/hero-illustration.jpg';
 
-const NewLandingPage = () => {
+const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const heroRef = useRef();
 
@@ -394,4 +394,4 @@ const NewLandingPage = () => {
   );
 };
 
-export default NewLandingPage;
+export default LandingPage;

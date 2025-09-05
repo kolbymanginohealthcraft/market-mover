@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
-import styles from "./LoginTest.module.css";
+import styles from "./Login.module.css";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");

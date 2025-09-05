@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Target, BarChart3, TrendingUp, Gift } from "lucide-react";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
-import styles from "./SignupTest.module.css";
+import styles from "./Signup.module.css";
 
-const SignupTest = () => {
+const Signup = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -347,4 +347,4 @@ const SignupTest = () => {
    );
 };
 
-export default SignupTest;
+export default Signup;

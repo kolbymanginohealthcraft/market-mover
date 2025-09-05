@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
-import styles from "./LoginTest.module.css";
+import styles from "./Login.module.css";
 
-const LoginTest = () => {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
@@ -181,4 +181,4 @@ const LoginTest = () => {
    );
 };
 
-export default LoginTest;
+export default Login;
