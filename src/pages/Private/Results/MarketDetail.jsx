@@ -21,7 +21,6 @@ import useQualityMeasures from "../../../hooks/useQualityMeasures";
 
 import OverviewTab from "./Overview/OverviewTab";
 import ProviderListingTab from "./Providers/ProviderListingTab";
-import ChartsTab from "./Storyteller/ChartDashboard";
 
 import ClaimsTab from "./Claims/ClaimsTab";
 import CensusDataPanel from "./Population/CensusDataPanel";

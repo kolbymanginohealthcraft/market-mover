@@ -20,7 +20,6 @@ import useProviderInfo from "../../../hooks/useProviderInfo";
 
 import OverviewTab from "./Overview/OverviewTab";
 import ProviderListingTab from "./Providers/ProviderListingTab";
-import ChartsTab from "./Storyteller/ChartDashboard";
 
 import ClaimsTab from "./Claims/ClaimsTab";
 import CensusDataPanel from "./Population/CensusDataPanel";
@@ -140,7 +139,6 @@ function ProviderDetailContent() {
       <Routes>
         <Route path="overview" element={<OverviewTab provider={provider} />} />
         <Route path="provider-listing" element={<ProviderListingTab provider={provider} radiusInMiles={radiusInMiles} providers={[provider, ...nearbyProviders]} />} />
-        <Route path="charts" element={<ChartsTab provider={provider} />} />
 
         <Route path="claims" element={<ClaimsTab provider={provider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
         <Route path="catchment" element={<CatchmentTab providerInfo={provider} />} />
