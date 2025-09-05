@@ -10,14 +10,11 @@ import { supabase } from "./supabaseClient";
 
 // Components
 import ScrollToTop from "../components/Navigation/ScrollToTop";
-import Layout from "../components/Layouts/Layout";
-import SidebarLayout from "../components/Layouts/SidebarLayout";
-import PublicSidebarLayout from "../components/Layouts/PublicSidebarLayout";
+import UnifiedSidebarLayout from "../components/Layouts/UnifiedSidebarLayout";
 
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
 
 // Pages
-import MarketingPage from "../pages/Public/Marketing/MarketingPage";
 import NewLandingPage from "../pages/Public/Marketing/NewLandingPage";
 import LoginTest from "../pages/Auth/LoginTest";
 import SignupTest from "../pages/Auth/SignupTest";
@@ -35,7 +32,6 @@ import ManageAnnouncements from "../pages/Private/Settings/Platform/ManageAnnoun
 import ManageFeedback from "../pages/Private/Settings/Platform/ManageFeedback";
 import AnalyticsDashboard from "../pages/Private/Settings/Platform/AnalyticsDashboard";
 import StyleGuide from "../pages/Private/Settings/Platform/StyleGuide";
-// import CompleteProfile from "../pages/Private/Settings/CompleteProfile";
 import LegalContentEditor from "../pages/Private/Settings/Platform/LegalContentEditor";
 import PolicyManagement from "../pages/Private/Settings/Platform/PolicyManagement";
 
@@ -50,8 +46,6 @@ import MarketDetail from "../pages/Private/Results/MarketDetail";
 import MarketsList from "../pages/Private/Markets/MarketsList";
 
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
-import BannerTest from "../pages/Temp/BannerTest";
-import SpinnerDemo from "../pages/Temp/SpinnerDemo";
 import Network from "../pages/Private/Network/Network";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
@@ -100,7 +94,7 @@ export default function App() {
       <ProviderContextProvider>
           <Routes>
             {/* Public */}
-            <Route path="/" element={<PublicSidebarLayout />}>
+            <Route path="/" element={<UnifiedSidebarLayout isPublic={true} />}>
               <Route
                 index
                 element={session ? <Navigate to="/app/dashboard" /> : <NewLandingPage />}
@@ -119,7 +113,6 @@ export default function App() {
       
 
 
-              {/* <Route path="/complete-profile" element={<CompleteProfile />} /> */}
 
             </Route>
 
@@ -127,7 +120,7 @@ export default function App() {
             <Route path="/legal" element={<LegalPage />} />
 
             {/* Private */}
-            <Route path="/app" element={session ? <SidebarLayout /> : <Navigate to="/" />}>
+            <Route path="/app" element={session ? <UnifiedSidebarLayout isPublic={false} /> : <Navigate to="/" />}>
               <Route index element={<Navigate to="dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="search" element={<Navigate to="search/basic" />} />
@@ -140,8 +133,6 @@ export default function App() {
               <Route path="markets/*" element={<MarketsList />} />
               <Route path="market/:marketId/*" element={<MarketDetail />} />
               <Route path="market/create" element={<InteractiveMarketCreation />} />
-              <Route path="banner-test" element={<BannerTest />} />
-              <Route path="spinner-demo" element={<SpinnerDemo />} />
               <Route path="settings/*" element={<Settings />} />
               <Route path="manage-announcements" element={<ManageAnnouncements />} />
               <Route path="manage-feedback" element={<ManageFeedback />} />

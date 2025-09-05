@@ -36,7 +36,7 @@ const SubNavigation = () => {
   const [marketsViewMode, setMarketsViewMode] = useState('list');
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { hasTeam } = useUserTeam();
+  const { hasTeam, loading: teamLoading } = useUserTeam();
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -110,7 +110,7 @@ const SubNavigation = () => {
 
   // Handle Markets page navigation
   if (isMarketsPage) {
-    if (!hasTeam) {
+    if (!teamLoading && !hasTeam) {
       return (
         <nav className={styles.subNavigation}>
           <div className={styles.navLeft}>
@@ -164,7 +164,7 @@ const SubNavigation = () => {
 
   // Handle Network page navigation
   if (isNetworkPage) {
-    if (!hasTeam) {
+    if (!teamLoading && !hasTeam) {
       return (
         <nav className={styles.subNavigation}>
           <div className={styles.navLeft}>
@@ -242,12 +242,12 @@ const SubNavigation = () => {
     const tabs = [
       { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview`, locked: false },
       { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing`, locked: false },
-      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: !hasTeam },
-      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: !hasTeam },
-      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: teamLoading ? false : !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: teamLoading ? false : !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: teamLoading ? false : !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels
@@ -462,12 +462,12 @@ const SubNavigation = () => {
     const tabs = [
       { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview`, locked: false },
       { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing`, locked: false },
-      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: !hasTeam },
-      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: !hasTeam },
-      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: !hasTeam }
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: teamLoading ? false : !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: teamLoading ? false : !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: teamLoading ? false : !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels
@@ -848,7 +848,7 @@ const SubNavigation = () => {
             const IconComponent = tab.icon;
             
             // If tab requires team and user doesn't have one, show disabled version
-            if (tab.requiresTeam && !hasTeam) {
+            if (tab.requiresTeam && !teamLoading && !hasTeam) {
               return (
                 <div
                   key={tab.id}

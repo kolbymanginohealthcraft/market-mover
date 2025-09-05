@@ -1,13 +1,13 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Sidebar from '../Navigation/Sidebar';
+import PublicSidebar from '../Navigation/PublicSidebar';
 import Header from '../Navigation/Header';
 import SubNavigation from '../Navigation/SubNavigation';
 import styles from './SidebarLayout.module.css';
 
-export default function SidebarLayout() {
+export default function UnifiedSidebarLayout({ isPublic = false }) {
   const location = useLocation();
-  const isMarketsPage = location.pathname.includes('/markets') || location.pathname === '/app/markets';
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Auto-collapse sidebar on mobile devices
@@ -48,9 +48,11 @@ export default function SidebarLayout() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isSidebarCollapsed]);
 
+  const SidebarComponent = isPublic ? PublicSidebar : Sidebar;
+
   return (
     <div className={styles.page}>
-      <Sidebar 
+      <SidebarComponent 
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={setIsSidebarCollapsed}
       />
