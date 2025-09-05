@@ -4,6 +4,7 @@ import { supabase } from '../../../app/supabaseClient';
 import styles from './MarketsList.module.css';
 
 import Spinner from '../../../components/Buttons/Spinner';
+import Button from '../../../components/Buttons/Button';
 import InteractiveMarketCreation from './InteractiveMarketCreation';
 import MarketMap from './components/MarketMap';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
