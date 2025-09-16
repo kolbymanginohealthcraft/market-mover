@@ -212,6 +212,21 @@ export default function NetworkMapView() {
               }
             });
 
+            // Add hover layer for highlighting
+            newMap.addLayer({
+              id: 'network-providers-hover',
+              type: 'circle',
+              source: 'network-providers',
+              paint: {
+                'circle-radius': 12,
+                'circle-color': getMapboxTagColorsWithProperty('primaryTag'),
+                'circle-stroke-color': '#265947',
+                'circle-stroke-width': 3,
+                'circle-opacity': 0.8
+              },
+              filter: ['==', ['get', 'id'], '']
+            });
+
             // Store original provider data for filtering
             newMap.originalProviderData = providerGeoJSON;
 
@@ -220,46 +235,85 @@ export default function NetworkMapView() {
               if (e.features.length > 0) {
                 const feature = e.features[0];
                 const [longitude, latitude] = feature.geometry.coordinates;
+                const markerId = feature.properties.id;
                 
-                const popup = new window.maplibregl.Popup({ offset: 25 })
+                // Check if clicking the same marker - toggle behavior
+                if (newMap.lastClickedMarker === markerId && newMap.currentPopup) {
+                  newMap.currentPopup.remove();
+                  newMap.currentPopup = null;
+                  newMap.lastClickedMarker = null;
+                  return;
+                }
+                
+                // Close existing popup if any
+                if (newMap.currentPopup) {
+                  newMap.currentPopup.remove();
+                }
+                
+                const primaryTag = feature.properties.primaryTag;
+                const tagColor = getTagColor(primaryTag);
+                const tagLabel = getTagLabel(primaryTag);
+                
+                const tagDisplay = primaryTag && primaryTag !== 'default' ? 
+                  `<span style="background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: capitalize;">${tagLabel}</span>` : 
+                  '<span style="background-color: #5f6b6d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Untagged</span>';
+                
+                const newPopup = new window.maplibregl.Popup({ offset: 25 })
                   .setLngLat([longitude, latitude])
                   .setHTML(`
-                    <div style="padding: 12px; min-width: 200px;">
-                      <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1a2e2a;">
+                    <div style="padding: 8px;">
+                      <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
                         ${feature.properties.name}
                       </h4>
-                      <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                      <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
                         ${feature.properties.street || ''}, ${feature.properties.city || ''}, ${feature.properties.state || ''}
                       </p>
-                      <div style="margin: 0 0 8px 0;">
-                        ${feature.properties.tags && feature.properties.tags.length > 0 ? 
-                          feature.properties.tags.map(tag => 
-                            `<span style="display: inline-block; padding: 2px 6px; margin: 1px; border-radius: 8px; font-size: 10px; font-weight: 500; color: white; background-color: ${getTagColor(tag)};">
-                              ${getTagLabel(tag)}
-                            </span>`
-                          ).join('') : 
-                          '<span style="color: #999; font-size: 11px;">No tags</span>'
-                        }
-                      </div>
+                      <p style="margin: 0 0 4px 0; font-size: 12px;">
+                        Tag: ${tagDisplay}
+                      </p>
                       <button onclick="window.open('/app/provider/${feature.properties.id}/overview', '_blank')" 
-                              style="background: #265947; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                              style="background: #265947; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 4px;">
                         View Provider
                       </button>
                     </div>
                   `);
 
-                popup.addTo(newMap);
+                newPopup.addTo(newMap);
+                newMap.currentPopup = newPopup;
+                newMap.lastClickedMarker = markerId;
               }
             });
 
-            // Change cursor on hover
-            newMap.on('mouseenter', 'network-providers', () => {
+            // Add hover effects for better interactivity
+            newMap.on('mouseenter', 'network-providers', (e) => {
               newMap.getCanvas().style.cursor = 'pointer';
+              
+              // Change the paint property of the layer to highlight the hovered feature
+              if (e.features.length > 0) {
+                const feature = e.features[0];
+                newMap.setFilter('network-providers-hover', ['==', ['get', 'id'], feature.properties.id]);
+              }
             });
 
             newMap.on('mouseleave', 'network-providers', () => {
               newMap.getCanvas().style.cursor = '';
+              newMap.setFilter('network-providers-hover', ['==', ['get', 'id'], '']);
             });
+
+            // Add escape key handler to close popup
+            const handleEscapeKey = (e) => {
+              if (e.key === 'Escape' && newMap.currentPopup) {
+                newMap.currentPopup.remove();
+                newMap.currentPopup = null;
+                newMap.lastClickedMarker = null;
+              }
+            };
+
+            // Add event listener for escape key
+            document.addEventListener('keydown', handleEscapeKey);
+
+            // Store the handler for cleanup
+            newMap.escapeKeyHandler = handleEscapeKey;
           }
 
           // Fit the map to show all providers
@@ -291,6 +345,10 @@ export default function NetworkMapView() {
     return () => {
       if (mapRef.current) {
         try {
+          // Remove escape key event listener
+          if (mapRef.current.escapeKeyHandler) {
+            document.removeEventListener('keydown', mapRef.current.escapeKeyHandler);
+          }
           mapRef.current.remove();
         } catch (error) {
           console.error('Error removing map:', error);
