@@ -23,7 +23,9 @@ import {
   ShoppingCart,
   Lock,
   TrendingUp,
-  Target
+  Target,
+  HelpCircle,
+  Scale
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
@@ -663,6 +665,10 @@ const SubNavigation = () => {
     } else if (location.pathname.includes('/settings/subscription')) {
       // Keep subscription tab active for all subscription-related routes
       currentActiveTab = 'subscription';
+    } else if (location.pathname.includes('/settings/legal')) {
+      currentActiveTab = 'legal';
+    } else if (location.pathname.includes('/settings/faq')) {
+      currentActiveTab = 'faq';
     }
 
     const allTabs = [
@@ -670,8 +676,10 @@ const SubNavigation = () => {
       { id: "company", label: "Company", icon: Building2, path: "/app/settings/company", show: canAccessUsers },
       { id: "users", label: "Users", icon: Users, path: "/app/settings/users", show: canAccessUsers },
       { id: "branding", label: "Branding", icon: Palette, path: "/app/settings/branding", show: canAccessColors },
-             { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription/manage", show: canAccessSubscription },
-      { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform", show: canAccessPlatform }
+      { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription/manage", show: canAccessSubscription },
+      { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform", show: canAccessPlatform },
+      { id: "faq", label: "FAQ", icon: HelpCircle, path: "/app/settings/faq", show: true },
+      { id: "legal", label: "Legal", icon: Scale, path: "/app/settings/legal", show: true }
     ];
 
     // Filter tabs based on user permissions
@@ -792,6 +800,68 @@ const SubNavigation = () => {
                     key={tab.id}
                     to={tab.path}
                     className={`${styles.tab} ${currentSubscriptionTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+    }
+
+    // If we're on a legal sub-page, render both navigation levels
+    if (location.pathname.includes('/settings/legal')) {
+      // Determine the correct active legal sub-tab
+      let currentLegalTab = "terms"; // Default to terms
+      
+      if (location.pathname.includes('?tab=terms') || location.pathname.endsWith('/legal')) {
+        currentLegalTab = 'terms';
+      } else if (location.pathname.includes('?tab=privacy')) {
+        currentLegalTab = 'privacy';
+      } else if (location.pathname.includes('?tab=refund')) {
+        currentLegalTab = 'refund';
+      }
+
+      const legalTabs = [
+        { id: "terms", label: "Terms and Conditions", icon: FileText, path: "/app/settings/legal?tab=terms" },
+        { id: "privacy", label: "Privacy Policy", icon: Shield, path: "/app/settings/legal?tab=privacy" },
+        { id: "refund", label: "Refund Policy", icon: CreditCard, path: "/app/settings/legal?tab=refund" }
+      ];
+
+      return (
+        <>
+          {/* First level navigation - Settings tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {visibleTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Legal sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.legalSubNav}`}>
+            <div className={styles.navLeft}>
+              {legalTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentLegalTab === tab.id ? styles.active : ''}`}
                   >
                     <IconComponent size={16} />
                     {tab.label}

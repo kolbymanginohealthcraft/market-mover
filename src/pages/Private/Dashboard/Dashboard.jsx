@@ -25,10 +25,11 @@ export default function Home() {
   const { isChecking, needsOnboarding } = useFirstTimeLogin();
 
   const motivationalQuotes = [
-    "Every great decision starts with great data.",
-    "Turn insight into action - every day.",
-    "Grow smart. Win big.",
-    "Use the data. Own the market.",
+    // "Every great decision starts with great data.",
+    // "Turn insight into action - every day.",
+    // "Grow smart. Win big.",
+    // "Use the data. Own the market.",
+    "Simply smarter healthcare sales and marketing strategies."
   ];
 
   useEffect(() => {

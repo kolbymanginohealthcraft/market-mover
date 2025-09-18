@@ -67,15 +67,17 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     <>
       <div className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
         {/* Brand Section */}
-        <div className={styles.brand}>
-          <div className={styles.logo}>MM</div>
-          {!isCollapsed && (
-            <div className={styles.brandText}>
-              <div className={styles.brandName}>Market Mover</div>
-              <div className={styles.companyName}>Healthcraft Creative Solutions</div>
-            </div>
-          )}
-        </div>
+        <Link to="/app/dashboard" className={styles.brandLink}>
+          <div className={styles.brand}>
+            <div className={styles.logo}>MM</div>
+            {!isCollapsed && (
+              <div className={styles.brandText}>
+                <div className={styles.brandName}>Market Mover</div>
+                <div className={styles.companyName}>Healthcraft Creative Solutions</div>
+              </div>
+            )}
+          </div>
+        </Link>
 
         {/* Main Navigation */}
         <div className={styles.navItems}>
@@ -101,20 +103,20 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             <Link 
               to="/app/markets" 
               className={`${styles.navItem} ${isActive('/markets') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Markets')}
+              onMouseEnter={(e) => handleMouseEnter(e, 'Saved Markets')}
               onMouseLeave={handleMouseLeave}
             >
               <MapPin size={14} />
-              {!isCollapsed && 'My Markets'}
+              {!isCollapsed && 'Saved Markets'}
             </Link>
           ) : (
             <div 
               className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Markets - Join or create a team to access markets and network features')}
+              onMouseEnter={(e) => handleMouseEnter(e, 'Saved Markets - Join or create a team to access markets and network features')}
               onMouseLeave={handleMouseLeave}
             >
               <MapPin size={14} />
-              {!isCollapsed && 'My Markets'}
+              {!isCollapsed && 'Saved Markets'}
               {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
             </div>
           )}

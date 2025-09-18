@@ -257,7 +257,7 @@ const Header = ({ currentView, selectedMarket }) => {
     
     if (currentPath.includes('/dashboard')) {
       return [
-        { text: 'Performance analytics and market insights', type: 'description' }
+        { text: 'Your data-driven strategy platform', type: 'description' }
       ];
     } else if (currentPath.includes('/search')) {
       return [

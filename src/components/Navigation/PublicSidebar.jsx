@@ -56,15 +56,17 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     <>
       <div className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
         {/* Brand Section */}
-        <div className={styles.brand}>
-          <div className={styles.logo}>MM</div>
-          {!isCollapsed && (
-            <div className={styles.brandText}>
-              <div className={styles.brandName}>Market Mover</div>
-              <div className={styles.companyName}>Healthcraft Creative Solutions</div>
-            </div>
-          )}
-        </div>
+        <Link to="/" className={styles.brandLink}>
+          <div className={styles.brand}>
+            <div className={styles.logo}>MM</div>
+            {!isCollapsed && (
+              <div className={styles.brandText}>
+                <div className={styles.brandName}>Market Mover</div>
+                <div className={styles.companyName}>Healthcraft Creative Solutions</div>
+              </div>
+            )}
+          </div>
+        </Link>
 
         {/* Main Navigation */}
         <div className={styles.navItems}>

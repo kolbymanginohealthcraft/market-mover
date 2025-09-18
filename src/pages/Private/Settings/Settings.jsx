@@ -11,6 +11,8 @@ import {
 } from "./index";
 import SubscriptionLayout from "./SubscriptionLayout";
 import PlatformLayout from "./Platform/PlatformLayout";
+import FAQTab from "./FAQTab";
+import LegalTab from "./LegalTab";
 
 export default function Settings() {
   const location = useLocation();
@@ -79,7 +81,7 @@ export default function Settings() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ position: 'relative' }}>
       <div className={styles.tabContent}>
         <Routes>
           <Route index element={<Navigate to="profile" replace />} />
@@ -89,6 +91,8 @@ export default function Settings() {
           <Route path="branding" element={<BrandingTab />} />
           <Route path="subscription/*" element={<SubscriptionLayout />} />
           <Route path="platform/*" element={<PlatformLayout />} />
+          <Route path="faq" element={<FAQTab />} />
+          <Route path="legal" element={<LegalTab />} />
           <Route path="*" element={<Navigate to="profile" replace />} />
         </Routes>
       </div>
