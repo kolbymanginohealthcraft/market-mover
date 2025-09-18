@@ -25,7 +25,7 @@ import ProviderListingTab from "./Providers/ProviderListingTab";
 import ClaimsTab from "./Claims/ClaimsTab";
 import CensusDataPanel from "./Population/CensusDataPanel";
 
-import CMSEnrollmentTab from "./Enrollment/CMSEnrollmentTab";
+import Enrollment from "./Enrollment/Enrollment";
 import ProviderDensityPage from "./Providers/ProviderDensityPage";
 import CatchmentTab from "./Catchment/CatchmentTab";
 
@@ -279,7 +279,7 @@ export default function MarketDetail() {
           <Route path="population" element={<CensusDataPanel key={`population-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} censusData={censusData} counties={counties} censusTracts={censusTracts} />} />
           <Route path="claims" element={<ClaimsTab key={`claims-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} nearbyProviders={nearbyProviders} />} />
           <Route path="catchment" element={<CatchmentTab key={`catchment-${marketId}`} marketInfo={market} />} />
-          <Route path="cms-enrollment" element={<CMSEnrollmentTab key={`cms-enrollment-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} />} />
+          <Route path="cms-enrollment/*" element={<Enrollment key={`cms-enrollment-${marketId}`} provider={marketProvider} radiusInMiles={radiusInMiles} />} />
           <Route path="storyteller/*" element={<Storyteller 
             key={`storyteller-${marketId}`}
             provider={marketProvider}
