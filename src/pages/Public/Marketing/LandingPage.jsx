@@ -93,15 +93,15 @@ const LandingPage = () => {
     },
     {
       icon: Users,
-      title: 'Population Insights',
+      title: 'Market Demographics',
       description: 'Understand the people that providers serve to align your strategy with market needs.',
-      benefits: ['Market demographics', 'Population health', 'Socioeconomic factors', 'Geographic access']
+      benefits: ['Population density', 'Economic profile', 'Percent insured', 'National and county benchmarks']
     },
     {
       icon: Shield,
       title: 'Payer Enrollment',
       description: 'Track payer networks, enrollment data, and coverage patterns to understand market access and opportunities.',
-      benefits: ['Payer networks', 'Enrollment data', 'Coverage patterns', 'Network access']
+      benefits: ['Payer networks', 'Enrollment trends', 'Coverage patterns', 'Network access']
     }
   ];
 
@@ -128,9 +128,14 @@ const LandingPage = () => {
 
   const useCases = [
     {
-      icon: Megaphone,
-      title: 'Healthcare Marketers',
-      description: 'Identify high-potential markets and tailor outreach based on geography, service type, and facility profile.'
+      icon: Building2,
+      title: 'Healthcare Administrators',
+      description: 'Make strategic decisions with comprehensive market data to optimize operations and identify growth opportunities.'
+    },
+    {
+      icon: Heart,
+      title: 'Clinical Program Leaders',
+      description: 'Plan strategic care programs by aligning clinical services with the needs and outcomes of local populations.'
     },
     {
       icon: TrendingUp,
@@ -138,24 +143,19 @@ const LandingPage = () => {
       description: 'Visualize referral paths, spot new connection opportunities, and strengthen existing provider relationships.'
     },
     {
-      icon: Building2,
-      title: 'Clinical Program Leaders',
-      description: 'Plan strategic care programs by aligning clinical services with the needs and outcomes of local populations.'
+      icon: Settings,
+      title: 'Operations Directors',
+      description: 'Optimize operational efficiency and resource allocation using performance insights and data-driven clarity.'
     },
     {
-      icon: Handshake,
-      title: 'Partnership & Network Teams',
-      description: 'Find ideal partners based on capacity, quality metrics, and alignment with your organization\'s priorities.'
+      icon: Target,
+      title: 'Business Development',
+      description: 'Identify and pursue new market opportunities with data-driven insights on provider networks and market gaps.'
     },
     {
-      icon: BarChart3,
-      title: 'Data & Ops Analysts',
-      description: 'Turn market insights into compelling visuals and reports that drive executive decisions and team actions.'
-    },
-    {
-      icon: Compass,
-      title: 'Strategic Planners',
-      description: 'Explore emerging markets, monitor competitors, and support growth initiatives with data-driven clarity.'
+      icon: Megaphone,
+      title: 'Sales and Marketing Teams',
+      description: 'Identify high-potential markets and tailor outreach based on geography, service type, and facility profile.'
     }
   ];
 
@@ -354,8 +354,8 @@ const LandingPage = () => {
              {/* Use Cases */}
        <section className={styles.useCases}>
          <div className={styles.sectionHeader}>
-           <h2>Who Benefits Most</h2>
-           <p>Healthcare leaders and professionals who rely on data-driven insights to guide strategy and growth</p>
+           <h2>A Healthcare Professionals Guide for Strategy and Growth</h2>
+           <p>Market Mover was designed as a simple sales and marketing enhancer for healthcare providers and sales professionals.</p>
          </div>
         <div className={styles.useCasesGrid}>
           {useCases.map((useCase, index) => {
@@ -374,12 +374,12 @@ const LandingPage = () => {
       {/* CTA Section */}
       <section className={styles.cta}>
         <div className={styles.ctaContent}>
-          <h2>Ready to Discover Your Market Opportunities?</h2>
-          <p>Experience Healthcraft's proven analytics expertise reimagined for the modern healthcare landscape. Be among the first to access our industry-leading insights in an entirely new way.</p>
+          <h2>Ready to supercharge your healthcare strategy?</h2>
+          <p>Experience Healthcraft's proven analytics expertise reimagined for the modern healthcare landscape. Be among the first to access our industry-leading vision in an entirely new way.</p>
           <div className={styles.ctaActions}>
             <Link to="/signup">
               <button className={styles.ctaPrimaryButton}>
-                Start For Free
+                Sign Up Now
               </button>
             </Link>
             {/* <Link to="/pricing">
