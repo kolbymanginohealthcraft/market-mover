@@ -82,14 +82,14 @@ const LandingPage = () => {
     {
       icon: Database,
       title: 'Claims Intelligence',
-      description: 'Comprehensive claims data to understand provider behavior and service utilization.',
+      description: 'Analyze comprehensive claims data to understand provider behavior and service utilization.',
       benefits: ['All payers and settings', 'Referral patterns', 'Diagnoses and procedures', 'Volume Trends']
     },
     {
       icon: BarChart3,
       title: 'Quality Performance',
-      description: 'Compare provider performance against industry benchmarks to identify top performers.',
-      benefits: ['Quality Scores', 'Benchmark comparisons', 'Value-Based Care', 'Exportable Graphs']
+      description: 'Identify opportunities and build a stronger sales and marketing case by comparing provider performance against industry benchmarks.',
+      benefits: ['Provider Rankings', 'Quality Comparisons', 'Performance Trends', 'Benchmark Analysis']
     },
     {
       icon: Users,
@@ -121,7 +121,7 @@ const LandingPage = () => {
     {
       icon: Network,
       title: 'My Network',
-      description: 'Track and analyze your provider relationships and network connections.',
+      description: 'Track and analyze your provider partners, competitors and target opportunities.',
       features: ['Network Mapping', 'Relationship Tracking', 'Connection Analysis', 'Referral Patterns', 'Network Insights']
     }
   ];
@@ -323,7 +323,7 @@ const LandingPage = () => {
        <section className={styles.features}>
                    <div className={styles.sectionHeader}>
             <h2>Key Components</h2>
-            <p>Core areas that form the foundation for smarter strategic decisions</p>
+            <p>Core areas that form the foundation for smarter strategic decisions.</p>
           </div>
          <div className={styles.featuresGrid}>
            {features.map((feature, index) => {
