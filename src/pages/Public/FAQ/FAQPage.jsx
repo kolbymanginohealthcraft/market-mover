@@ -42,7 +42,9 @@ const FAQItem = React.memo(({ faq, isOpen, onToggle, searchQuery, sectionIndex, 
   return (
     <div className={styles.faqItem}>
       <button
-        className={styles.faqQuestion}
+        className={classNames(styles.faqQuestion, {
+          [styles.expanded]: isOpen
+        })}
         onClick={() => onToggle(sectionIndex, itemIndex)}
       >
         <span className={styles.questionText}>
