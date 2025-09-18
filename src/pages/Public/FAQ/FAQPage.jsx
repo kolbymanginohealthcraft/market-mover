@@ -4,40 +4,82 @@ import styles from './FAQPage.module.css';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import faqSections from './faqData';
-import { Search } from 'lucide-react'; // Added import for Search icon
+import { Search } from 'lucide-react';
+
+// Lazy-loaded section component
+const FAQSection = React.memo(({ section, sectionIndex, filteredFaqSections, openItems, toggleItem, debouncedSearchQuery, highlightRegex }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={sectionRef} className={styles.section}>
+      <h2 className={styles.sectionTitle}>{section.title}</h2>
+      <div className={styles.faqList}>
+        {isVisible && section.items.map((faq, itemIndex) => {
+          const key = `${sectionIndex}-${itemIndex}`;
+          const isOpen = openItems[key];
+          
+          return (
+            <FAQItem
+              key={key}
+              faq={faq}
+              isOpen={isOpen}
+              onToggle={toggleItem}
+              searchQuery={debouncedSearchQuery}
+              sectionIndex={sectionIndex}
+              itemIndex={itemIndex}
+              highlightRegex={highlightRegex}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+FAQSection.displayName = 'FAQSection';
 
 // Memoized FAQ item component to prevent unnecessary re-renders
-const FAQItem = React.memo(({ faq, isOpen, onToggle, searchQuery, sectionIndex, itemIndex }) => {
+const FAQItem = React.memo(({ faq, isOpen, onToggle, searchQuery, sectionIndex, itemIndex, highlightRegex }) => {
   // Memoize highlighted text to prevent recalculation
   const highlightedQuestion = useMemo(() => {
     if (!searchQuery.trim()) {
       return faq.question;
     }
-    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = faq.question.split(regex);
+    const parts = faq.question.split(highlightRegex);
     return parts.map((part, index) => 
-      regex.test(part) ? (
+      highlightRegex.test(part) ? (
         <mark key={index} className={styles.highlight}>{part}</mark>
       ) : (
         part
       )
     );
-  }, [faq.question, searchQuery]);
+  }, [faq.question, searchQuery, highlightRegex]);
 
   const highlightedAnswer = useMemo(() => {
     if (!searchQuery.trim()) {
       return faq.answer;
     }
-    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = faq.answer.split(regex);
-    return parts.map((part, index) => 
-      regex.test(part) ? (
-        <mark key={index} className={styles.highlight}>{part}</mark>
-      ) : (
-        part
-      )
-    );
-  }, [faq.answer, searchQuery]);
+    return faq.answer.replace(highlightRegex, `<mark class="${styles.highlight}">$1</mark>`);
+  }, [faq.answer, searchQuery, highlightRegex]);
 
   return (
     <div className={styles.faqItem}>
@@ -71,6 +113,12 @@ const FAQPage = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const debounceTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Create regex once for highlighting to avoid recreation on every render
+  const highlightRegex = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) return null;
+    return new RegExp(`(${debouncedSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  }, [debouncedSearchQuery]);
 
   // Auto-focus search input on page load
   useEffect(() => {
@@ -111,18 +159,54 @@ const FAQPage = () => {
     }
 
     const query = debouncedSearchQuery.toLowerCase();
-    return faqSections.map(section => {
-      const filteredItems = section.items.filter(item =>
-        item.question.toLowerCase().includes(query) ||
-        item.answer.toLowerCase().includes(query)
-      );
-
-      return filteredItems.length > 0 ? {
-        ...section,
-        items: filteredItems
-      } : null;
-    }).filter(Boolean);
+    const result = [];
+    
+    for (const section of faqSections) {
+      const filteredItems = [];
+      
+      for (const item of section.items) {
+        if (item.question.toLowerCase().includes(query) ||
+            item.answer.toLowerCase().includes(query)) {
+          filteredItems.push(item);
+        }
+      }
+      
+      if (filteredItems.length > 0) {
+        result.push({
+          ...section,
+          items: filteredItems
+        });
+      }
+    }
+    
+    return result;
   }, [debouncedSearchQuery]);
+
+  // Auto-expand matching FAQ items when searching (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!debouncedSearchQuery.trim()) {
+        // Clear all open items when search is cleared
+        setOpenItems({});
+        return;
+      }
+
+      const newOpenItems = {};
+      
+      // Use filtered sections to ensure consistent indexing
+      filteredFaqSections.forEach((section, sectionIndex) => {
+        section.items.forEach((item, itemIndex) => {
+          // Since we're using filtered sections, all items here match the search
+          const key = `${sectionIndex}-${itemIndex}`;
+          newOpenItems[key] = true;
+        });
+      });
+
+      setOpenItems(newOpenItems);
+    }, 50); // Small delay to prevent excessive updates
+
+    return () => clearTimeout(timeoutId);
+  }, [debouncedSearchQuery, filteredFaqSections]);
 
   const totalResults = useMemo(() => {
     return filteredFaqSections.reduce((total, section) => total + section.items.length, 0);
@@ -186,27 +270,16 @@ const FAQPage = () => {
       <div className={styles.faqContent}>
         <div className={styles.faqGrid}>
           {filteredFaqSections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className={styles.section}>
-              <h2 className={styles.sectionTitle}>{section.title}</h2>
-              <div className={styles.faqList}>
-                {section.items.map((faq, itemIndex) => {
-                  const key = `${sectionIndex}-${itemIndex}`;
-                  const isOpen = openItems[key];
-                  
-                  return (
-                    <FAQItem
-                      key={key}
-                      faq={faq}
-                      isOpen={isOpen}
-                      onToggle={toggleItem}
-                      searchQuery={debouncedSearchQuery}
-                      sectionIndex={sectionIndex}
-                      itemIndex={itemIndex}
-                    />
-                  );
-                })}
-              </div>
-            </div>
+            <FAQSection
+              key={sectionIndex}
+              section={section}
+              sectionIndex={sectionIndex}
+              filteredFaqSections={filteredFaqSections}
+              openItems={openItems}
+              toggleItem={toggleItem}
+              debouncedSearchQuery={debouncedSearchQuery}
+              highlightRegex={highlightRegex}
+            />
           ))}
         </div>
       </div>
