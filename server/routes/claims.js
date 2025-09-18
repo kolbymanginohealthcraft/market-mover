@@ -4,6 +4,10 @@ import cache from "../utils/cache.js";
 
 const router = express.Router();
 
+// Constants
+const MONTHS_LOOKBACK = 12;
+const CURRENT_DATE_FUNCTION = 'CURRENT_DATE()';
+
 // Define available table names and their fields
 const CLAIMS_TABLES = {
   "volume_diagnosis": { 
@@ -286,7 +290,7 @@ router.post("/claims-data", async (req, res) => {
           COUNT(DISTINCT c.${perspectiveFields.npiField}) as total_unique_providers
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
-          AND c.date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
       `;
 
@@ -309,7 +313,7 @@ router.post("/claims-data", async (req, res) => {
                    ELSE NULL END) as state
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
-          AND c.date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
         GROUP BY c.${perspectiveFields.npiField}, c.${perspectiveFields.nameField}
         ORDER BY total_claims DESC
@@ -376,7 +380,7 @@ router.post("/claims-data", async (req, res) => {
           COUNT(DISTINCT c.date__month_grain) as months_with_activity
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
-          AND c.date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
         GROUP BY c.${tableInfo.fields.serviceLineField}, c.${tableInfo.fields.serviceLineDescField}
         ORDER BY total_claims DESC
@@ -398,7 +402,7 @@ router.post("/claims-data", async (req, res) => {
           COUNT(DISTINCT c.${perspectiveFields.npiField}) as unique_providers
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
-          AND c.date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
         GROUP BY c.date__month_grain
         ORDER BY c.date__month_grain DESC
@@ -427,7 +431,7 @@ router.post("/claims-data", async (req, res) => {
           ROUND(SUM(c.count) / COUNT(DISTINCT c.date__month_grain), 0) as avg_monthly_claims
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
-          AND c.date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
         GROUP BY 
           CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_state 
@@ -569,7 +573,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT ${tableInfo.fields.payorGroupField} as payor_group
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND ${tableInfo.fields.payorGroupField} IS NOT NULL
       ORDER BY ${tableInfo.fields.payorGroupField}
     `;
@@ -581,7 +585,7 @@ router.post("/claims-filters", async (req, res) => {
         service_category_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND service_category_code IS NOT NULL
       ORDER BY service_category_description
     `;
@@ -595,7 +599,7 @@ router.post("/claims-filters", async (req, res) => {
         ${tableInfo.fields.serviceLineDescField} as service_line_description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND ${tableInfo.fields.serviceLineField} IS NOT NULL
         AND service_category_code IS NOT NULL
       ORDER BY service_category_description, ${tableInfo.fields.serviceLineDescField}
@@ -612,7 +616,7 @@ router.post("/claims-filters", async (req, res) => {
         subservice_line_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND subservice_line_code IS NOT NULL
         AND ${tableInfo.fields.serviceLineField} IS NOT NULL
         AND service_category_code IS NOT NULL
@@ -632,7 +636,7 @@ router.post("/claims-filters", async (req, res) => {
         code_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND code IS NOT NULL
         AND code != ''
         AND code_description IS NOT NULL
@@ -649,7 +653,7 @@ router.post("/claims-filters", async (req, res) => {
         place_of_service as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND place_of_service_code IS NOT NULL
         AND place_of_service IS NOT NULL
         AND place_of_service_code != ''
@@ -664,7 +668,7 @@ router.post("/claims-filters", async (req, res) => {
         site_of_care_classification as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND site_of_care_summary IS NOT NULL
         AND site_of_care_classification IS NOT NULL
         AND site_of_care_summary != ''
@@ -679,7 +683,7 @@ router.post("/claims-filters", async (req, res) => {
         bill_facility_type as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND bill_facility_type_code IS NOT NULL
       ORDER BY bill_facility_type
     `;
@@ -691,7 +695,7 @@ router.post("/claims-filters", async (req, res) => {
         bill_classification_type as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND bill_classification_type_code IS NOT NULL
         AND bill_classification_type IS NOT NULL
         AND bill_classification_type_code != ''
@@ -704,7 +708,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT patient_gender
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND patient_gender IS NOT NULL
       ORDER BY patient_gender
     `;
@@ -713,7 +717,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT patient_age_bracket
         FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND patient_age_bracket IS NOT NULL
       ORDER BY patient_age_bracket
     `;
@@ -723,7 +727,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT patient_us_region
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND patient_us_region IS NOT NULL
         AND patient_us_region != ''
       ORDER BY patient_us_region
@@ -736,7 +740,7 @@ router.post("/claims-filters", async (req, res) => {
         patient_us_division as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND patient_us_division IS NOT NULL
         AND patient_us_division != ''
         AND patient_us_region IS NOT NULL
@@ -751,7 +755,7 @@ router.post("/claims-filters", async (req, res) => {
         patient_state as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND patient_state IS NOT NULL
         AND patient_state != ''
         AND patient_us_division IS NOT NULL
@@ -768,7 +772,7 @@ router.post("/claims-filters", async (req, res) => {
         patient_zip3 as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND patient_zip3 IS NOT NULL
         AND patient_zip3 != ''
         AND patient_state IS NOT NULL
@@ -782,7 +786,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT claim_type_code
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND claim_type_code IS NOT NULL
         AND claim_type_code != ''
       ORDER BY claim_type_code
@@ -795,7 +799,7 @@ router.post("/claims-filters", async (req, res) => {
         drg_mdc_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND drg_mdc IS NOT NULL
         AND drg_mdc != ''
       ORDER BY drg_mdc_description
@@ -809,7 +813,7 @@ router.post("/claims-filters", async (req, res) => {
         drg_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND drg_code IS NOT NULL
         AND drg_code != ''
         AND drg_mdc IS NOT NULL
@@ -820,7 +824,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT drg_med_surg
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND drg_med_surg IS NOT NULL
         AND drg_med_surg != ''
       ORDER BY drg_med_surg
@@ -833,7 +837,7 @@ router.post("/claims-filters", async (req, res) => {
         bill_frequency_type as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND bill_frequency_type_code IS NOT NULL
         AND bill_frequency_type_code != ''
       ORDER BY bill_frequency_type
@@ -846,7 +850,7 @@ router.post("/claims-filters", async (req, res) => {
         code_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND code IS NOT NULL
         AND code != ''
         AND code_description IS NOT NULL
@@ -858,7 +862,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT code_system
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND code_system IS NOT NULL
         AND code_system != ''
       ORDER BY code_system
@@ -868,7 +872,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT code_summary
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND code_summary IS NOT NULL
         AND code_summary != ''
       ORDER BY code_summary
@@ -879,7 +883,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT is_surgery
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND is_surgery IS NOT NULL
       ORDER BY is_surgery
     `;
@@ -891,7 +895,7 @@ router.post("/claims-filters", async (req, res) => {
         revenue_code_description as description
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND revenue_code IS NOT NULL
         AND revenue_code != ''
         AND revenue_code_description IS NOT NULL
@@ -903,7 +907,7 @@ router.post("/claims-filters", async (req, res) => {
       SELECT DISTINCT revenue_code_group
       FROM \`aegis_access.${tableName}\`
       WHERE ${perspectiveFields.npiField} IN UNNEST(@npis)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
         AND revenue_code_group IS NOT NULL
         AND revenue_code_group != ''
       ORDER BY revenue_code_group
