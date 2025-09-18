@@ -8,7 +8,8 @@ import {
   Mail,
   UserPlus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import styles from './Sidebar.module.css';
@@ -117,6 +118,17 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             <FileText size={14} />
             {!isCollapsed && 'Legal Info'}
           </Link>
+          <a 
+            href="https://www.healthcraftcreative.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.navItem}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Visit Healthcraft')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <ExternalLink size={14} />
+            {!isCollapsed && 'About Healthcraft'}
+          </a>
         </div>
 
         {/* Collapse Toggle Button */}

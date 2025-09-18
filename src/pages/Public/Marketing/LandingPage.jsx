@@ -173,21 +173,7 @@ const LandingPage = () => {
                <strong>
                  Market Mover<sup>®</sup>
                </strong>{" "}
-               is a data-driven strategy platform built by{" "}
-               <span className={styles.tooltipWrapper}>
-                 <a
-                   href="https://www.healthcraftcreative.com/"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className={styles.brandLinkInline}
-                 >
-                   Healthcraft Creative Solutions
-                 </a>
-                 <span className={`${styles.tooltipContent} ${styles.greenTooltip}`}>
-                   Visit our main company site
-                 </span>
-               </span>
-               . We help healthcare{" "}
+               is a data-driven strategy platform designed to simplify sales and marketing decision-making and drive stronger storytelling. We help healthcare{" "}
                <span className={styles.tooltipWrapper}>
                  <span className={styles.roleHighlight}>providers</span>
                  <span className={styles.tooltipContent}>
@@ -214,7 +200,7 @@ const LandingPage = () => {
                                                <div className={styles.heroActions}>
                    <Link to="/signup">
                      <button className={styles.primaryButton}>
-                       Start For Free
+                       Sign Up Now
                      </button>
                    </Link>
                    {/* <Link to="/pricing">
@@ -239,17 +225,14 @@ const LandingPage = () => {
               <p>
                 In today's competitive healthcare landscape, having a great service isn't enough.
                 You need to understand where the opportunities are and how to reach the right partners.
-                That's where market analytics come in: they turn blind outreach into focused strategy.
+                That's where market intelligence comes in - turning hunches into informed strategy.
               </p>
             </div>
             <div className={styles.aboutArrow} data-aos="zoom-in" data-aos-delay="300"></div>
             <div className={styles.aboutColumn} data-aos="fade-left" data-aos-delay="400">
-              <h2>Why Healthcraft?</h2>
+              <h2>Why Market Mover?</h2>
               <p>
-                Healthcraft Creative Solutions is a team of analysts, designers, and strategists
-                dedicated to transforming how healthcare organizations grow. Our flagship product,
-                Market Mover, brings transparency, clarity, and action to your market strategy with
-                tools designed to help you move faster and smarter than ever before.
+              Care providers and sales teams use Market Mover to assess growth opportunities, identify potential partners, and tell their story through data. Created by Healthcraft Creative Solutions - experts in healthcare marketing and analytics.
               </p>
             </div>
           </div>
@@ -261,7 +244,7 @@ const LandingPage = () => {
         <section className={styles.modules}>
           <div className={styles.sectionHeader}>
             <h2>Platform Modules</h2>
-            <p>Purpose-built tools that bring clarity and precision to healthcare market dynamics</p>
+            <p>Purpose-built tools that bring clarity and precision to healthcare market analysis</p>
           </div>
           
           <div className={styles.modulesContainer}>
