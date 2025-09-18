@@ -193,10 +193,10 @@
 .tooltipContent {
   visibility: hidden;
   width: 280px;
-  background: linear-gradient(135deg, #265947 0%, #3FB985 100%);
-  color: white;
+  background: rgba(255, 255, 255, 0.95);
+  color: #00514A;
   text-align: center;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
   position: absolute;
   z-index: 1;
@@ -207,9 +207,9 @@
   transition: all 0.3s ease;
   font-size: 0.875rem;
   line-height: 1.5;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid #1DADBE;
   transform: translateY(10px) scale(0.95);
 }
 
@@ -224,17 +224,17 @@
 }
 
 .roleHighlight {
-  color: #265947;
+  color: #1DADBE;
   font-weight: 600;
-  border-bottom: 2px solid #3FB985;
+  border-bottom: 2px solid #1DADBE;
   cursor: help;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .roleHighlight:hover {
-  color: #3FB985;
-  border-bottom-color: #3FB985;
+  color: #1DADBE;
+  border-bottom-color: #1DADBE;
 }
 
 .brandLinkInline {
