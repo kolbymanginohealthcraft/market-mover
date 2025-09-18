@@ -2,8 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DynamicLegalContent from '../../Private/Settings/Platform/DynamicLegalContent';
 import { getAllApprovedPolicies } from '../../../utils/legalContent';
-import { FileText } from 'lucide-react';
-import SectionHeader from '../../../components/Layouts/SectionHeader';
 import styles from './LegalPage.module.css';
 
 const LegalPage = () => {
@@ -14,20 +12,6 @@ const LegalPage = () => {
   const [loading, setLoading] = useState(true);
 
   const selectedTab = searchParams.get('tab') || 'terms';
-
-  // Get the dynamic title based on selected tab
-  const getDynamicTitle = () => {
-    switch (selectedTab) {
-      case 'terms':
-        return 'Terms and Conditions';
-      case 'privacy':
-        return 'Privacy Policy';
-      case 'refund':
-        return 'Refund Policy';
-      default:
-        return 'Terms and Conditions';
-    }
-  };
 
   // Load approved policies on mount
   useEffect(() => {
@@ -69,28 +53,20 @@ const LegalPage = () => {
 
   if (loading) {
     return (
-      <div className={styles.contentContainer}>
-        <div className={styles.content}>
-          <div>Loading policies...</div>
-        </div>
+      <div className={styles.content}>
+        <div>Loading policies...</div>
       </div>
     );
   }
 
   return (
-    <div className={styles.contentContainer}>
-      <SectionHeader
-        title={getDynamicTitle()}
-        icon={FileText}
-      />
-      <div 
-        ref={setContentRef}
-        className={styles.content}
-      >
-        {selectedPolicy && (
-          <DynamicLegalContent policySlug={selectedPolicy.slug} />
-        )}
-      </div>
+    <div 
+      ref={setContentRef}
+      className={styles.content}
+    >
+      {selectedPolicy && (
+        <DynamicLegalContent policySlug={selectedPolicy.slug} />
+      )}
     </div>
   );
 };

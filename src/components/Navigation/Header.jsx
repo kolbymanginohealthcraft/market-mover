@@ -206,7 +206,7 @@ const Header = ({ currentView, selectedMarket }) => {
         ];
       } else if (location.pathname === '/legal') {
         return [
-          { text: 'Terms, privacy, and refund policies', type: 'description' }
+          { text: 'How we work together', type: 'description' }
         ];
       } else if (location.pathname === '/login') {
         return [

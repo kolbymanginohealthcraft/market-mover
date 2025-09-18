@@ -82,9 +82,9 @@ const SubNavigation = () => {
     const currentTab = new URLSearchParams(location.search).get('tab') || 'terms';
     
     const tabs = [
-      { id: "terms", label: "Terms", icon: FileText, path: "/legal?tab=terms" },
-      { id: "privacy", label: "Privacy", icon: Shield, path: "/legal?tab=privacy" },
-      { id: "refund", label: "Refund", icon: CreditCard, path: "/legal?tab=refund" }
+      { id: "terms", label: "Terms and Conditions", icon: FileText, path: "/legal?tab=terms" },
+      { id: "privacy", label: "Privacy Policy", icon: Shield, path: "/legal?tab=privacy" },
+      { id: "refund", label: "Refund Policy", icon: CreditCard, path: "/legal?tab=refund" }
     ];
 
     return (

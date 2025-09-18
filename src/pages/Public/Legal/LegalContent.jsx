@@ -9,20 +9,18 @@ const LegalContent = ({ content, className }) => {
   const sanitizeContent = (rawContent) => {
     if (!rawContent || typeof rawContent !== 'string') return rawContent;
     
-    // Fix common malformed attributes like type"a" -> type="a"
+    // Only fix actual HTML attributes, not quoted text in content
     let sanitized = rawContent
-      // Fix type"a" -> type="a" (missing equals sign)
-      .replace(/type"([^"]*)"/g, 'type="$1"')
-      // Fix other common malformed attributes with missing equals sign
-      .replace(/(\w+)"([^"]*)"/g, (match, attr, value) => {
-        // Only fix if it looks like a malformed attribute (no equals sign before quote)
-        if (match.includes('"') && !match.includes('="')) {
-          return `${attr}="${value}"`;
+      // Fix type"a" -> type="a" (missing equals sign) - only in HTML tags
+      .replace(/<(\w+)\s+type"([^"]*)"/g, '<$1 type="$2"')
+      // Fix other malformed attributes only within HTML tags
+      .replace(/<(\w+)([^>]*?)(\w+)"([^"]*)"([^>]*?)>/g, (match, tag, before, attr, value, after) => {
+        // Only fix if it's clearly a malformed HTML attribute (no equals sign before quote)
+        if (match.includes('"') && !match.includes('="') && match.startsWith('<')) {
+          return `<${tag}${before}${attr}="${value}"${after}>`;
         }
         return match;
-      })
-      // Fix any remaining malformed attributes that might have spaces but no equals
-      .replace(/(\w+)\s+"([^"]*)"/g, '$1="$2"');
+      });
     
     return sanitized;
   };
