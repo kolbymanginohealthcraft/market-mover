@@ -55,7 +55,7 @@ const FAQItem = React.memo(({ faq, isOpen, onToggle, searchQuery, sectionIndex, 
       <div className={classNames(styles.faqAnswer, {
         [styles.open]: isOpen
       })}>
-        <p>{highlightedAnswer}</p>
+        <p dangerouslySetInnerHTML={{ __html: highlightedAnswer }} />
       </div>
     </div>
   );

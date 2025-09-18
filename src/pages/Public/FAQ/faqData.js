@@ -7,107 +7,77 @@ const faqSections = [
       {
         question: 'What is Market Mover?',
         answer:
-          'Market Mover is a healthcare analytics platform that helps organizations visualize provider networks, analyze market dynamics, and drive strategic growth — all through an intuitive, visual interface.',
+          'Market Mover is a healthcare strategy platform that helps organizations analyze market dynamics, visualize provider networks, and drive strategic growth - all through an intuitive, visual interface.',
       },
       {
-        question: 'Do I need technical skills to use Market Mover?',
+        question: 'Do I need technical skills or an analyst to be able to use the Market Mover platform?',
         answer:
-          'No. The platform is designed to simplify market analysis so anyone can identify opportunities and take action without needing an analyst or technical background.',
+          'No. The Market Mover platform was designed to simplify market strategy so that users can easily identify opportunities to impact their business.',
       },
       {
         question: 'What are your data sources?',
         answer:
-          'Data comes from CMS claims (Medicare Part A and B), public directories, provider registries, and partner-supplied insights. Data is delivered as-is and updated regularly.',
+          'Data included in the platform comes from healthcare insurance claims, public directories, provider registries, and partner-supplied insights. Data is delivered as-is and updated regularly.',
       },
       {
         question: 'How often is the data updated?',
         answer:
-          'Most datasets are updated quarterly. Some metrics such as volumes and referrals are refreshed monthly as available.',
+          'The data is refreshed regularly, as it becomes available. Most datasets are updated quarterly. Some metrics, such as volumes and referrals, are updated monthly.',
       },
       {
-        question: 'How do you define a market?',
+        question: 'Can I try the platform before subscribing?',
         answer:
-          'Markets are defined by a 100-mile radius around a selected address or city center. For example, the Atlanta, GA market includes dozens of ZIP codes within that range.',
-      },
-      {
-        question: 'Can I try the portal before subscribing?',
-        answer:
-          'Yes. You can try the Starter plan free for 7 days by following the link on our pricing page.',
+          'We do not offer a trial period. However, with our monthly plan, you can cancel your subscription after 30 days.',
       },
       {
         question: 'What kind of support do you offer?',
         answer:
-          'Market Mover is a self-service subscription. For help or to schedule a consultation, contact info@healthcraftcreative.com.',
+          'Market Mover is a self-service subscription. For help, leverage the tool tips within the platform, or email us at info@healthcraftcreative.com.',
       },
       {
-        question: 'Who can I contact with other questions?',
+        question: 'Who can I contact with questions?',
         answer:
-          'Please email info@healthcraftcreative.com with any additional inquiries.',
+          'Email info@healthcraftcreative.com with any inquiries.',
       },
       {
-        question: 'Where can I find your privacy policy?',
+        question: 'Where can I find your Privacy Policy?',
         answer:
-          'You can view it at the bottom of this page or by visiting the Privacy Policy link in our website footer.',
+          'Our privacy policy can be viewed by clicking <a href="/legal?tab=privacy" target="_blank">here</a>.',
       },
       {
-        question: 'Where can I find your terms of service?',
+        question: 'Where can I find your Terms and Conditions?',
         answer:
-          'You can view our Terms and Conditions from the footer or account creation screen.',
+          'Our Terms and Conditions can be viewed by clicking <a href="/legal?tab=terms" target="_blank">here</a>.',
       },
     ],
   },
   {
-    title: 'Account Setup and Access',
+    title: 'Account Setup and Settings',
     items: [
-      {
-        question: 'I was given a new user code from my account administrator. Now what?',
-        answer:
-          'Follow the instructions in the invitation email to set your password and complete your profile. You will then be linked to your organization’s subscription.',
-      },
       {
         question: 'Can I change the users who have access to my account?',
         answer:
-          'Yes. Admin users can add or remove users directly from the Accounts page.',
-      },
-      {
-        question: 'Can I change the market associated with my account?',
-        answer:
-          'Yes. You may update your market selection every three months by contacting info@healthcraftcreative.com.',
+          'Yes. Your account administrator can add or remove users directly from the Accounts page.',
       },
       {
         question: 'How do I reset my password?',
         answer:
-          'Click “Forgot Password?” on the login screen and follow the instructions to receive a reset email.',
+          'Click "Forgot Password?" on the login screen and follow the instructions to receive a reset email.',
       },
       {
-        question: "I'm locked out of my account — how can I regain access?",
+        question: "I'm locked out of my account how can I regain access?",
         answer:
           'Contact info@healthcraftcreative.com for help restoring access to your account.',
       },
     ],
   },
   {
-    title: 'Subscription and Payment',
+    title: 'Subscription Changes and Payment',
     items: [
       {
         question: 'Can I add additional users to my account?',
         answer:
-          'Yes. You can add users to any plan for $250 per user/month from your Accounts page.',
-      },
-      {
-        question: 'Can I add additional markets to my account?',
-        answer:
-          'Starter and Advanced users may upgrade to unlock additional markets. Pro users needing 8+ markets should contact us for Enterprise options.',
-      },
-      {
-        question: 'How can I upgrade or downgrade my subscription?',
-        answer:
-          'Please contact info@healthcraftcreative.com to discuss subscription changes.',
-      },
-      {
-        question: "I don't want to pay by credit card. Are there other options?",
-        answer:
-          'Yes. We support ACH transfers for Enterprise subscriptions. Contact info@healthcraftcreative.com to set this up.',
+          'Yes. Additional users are sold in sets of three for $250 per month. New users can be added to your account at any time from your Accounts page.',
       },
       {
         question: 'How do I download my credit card receipts?',
@@ -117,12 +87,12 @@ const faqSections = [
       {
         question: 'What is your refund policy?',
         answer:
-          'Subscriptions are auto-renewing and non-refundable. If you cancel, your access remains active through the end of the billing cycle.',
+          'Subscriptions are auto-renewing and non-refundable. We do not offer partial refunds. If you cancel before your subscription period ends, you will not receive a partial refund, and your account will remain active until the end of your subscription period.',
       },
       {
         question: 'How can I cancel my subscription?',
         answer:
-          'Visit your Account page, click “Cancel Subscription,” and follow the confirmation steps.',
+          'Visit your Accounts page and click Cancel Subscription. Then follow the steps to confirm your cancellation.',
       },
     ],
   },

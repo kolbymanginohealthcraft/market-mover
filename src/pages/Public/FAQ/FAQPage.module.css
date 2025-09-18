@@ -246,6 +246,18 @@
   border-left: 3px solid #1DADBE;
 }
 
+.faqAnswer p a {
+  color: #1DADBE;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.faqAnswer p a:hover {
+  color: #265947;
+  text-decoration: none;
+}
+
 /* Mobile Responsive */
 @media (max-width: 1024px) {
   .faqGrid {

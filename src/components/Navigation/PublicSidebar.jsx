@@ -127,7 +127,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             onMouseLeave={handleMouseLeave}
           >
             <ExternalLink size={14} />
-            {!isCollapsed && 'About Healthcraft'}
+            {!isCollapsed && 'Visit Healthcraft'}
           </a>
         </div>
 

@@ -209,7 +209,8 @@
   line-height: 1.5;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
-  border: 2px solid #1DADBE;
+  border: 2px solid var(--primary-teal-dark);
+  /* border: 2px solid #1DADBE; */
   transform: translateY(10px) scale(0.95);
 }
 
@@ -224,17 +225,20 @@
 }
 
 .roleHighlight {
-  color: #1DADBE;
+  /* color: #1DADBE; */
+  color: var(--primary-teal-dark);
   font-weight: 600;
-  border-bottom: 2px solid #1DADBE;
+  border-bottom: 2px solid var(--primary-teal-dark);
   cursor: help;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .roleHighlight:hover {
-  color: #1DADBE;
-  border-bottom-color: #1DADBE;
+  /* color: #1DADBE; */
+  color: var(--primary-teal-dark);
+  /* border-bottom-color: #1DADBE; */
+  border-bottom-color: var(--primary-teal-dark);
 }
 
 .brandLinkInline {
