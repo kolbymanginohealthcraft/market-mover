@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import rehypeRaw from 'rehype-raw';
 import styles from './TermsAndConditions.module.css';
 
@@ -43,7 +44,7 @@ const LegalContent = ({ content, className }) => {
   return (
     <div className={`${styles.container} ${className || ''}`}>
       <ReactMarkdown 
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeRaw]}
         components={{
           // Custom styling for markdown elements

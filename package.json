@@ -51,6 +51,7 @@
     "react-tsparticles": "^2.12.2",
     "recharts": "^3.0.2",
     "rehype-raw": "^7.0.0",
+    "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "tsparticles": "^3.8.1",
     "use-debounce": "^10.0.5"
