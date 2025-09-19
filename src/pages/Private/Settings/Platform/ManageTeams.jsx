@@ -15,6 +15,10 @@ export default function ManageTeams() {
   const [editingTeam, setEditingTeam] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState(new Set());
+  const [showCreateSubscriptionModal, setShowCreateSubscriptionModal] = useState(false);
+  const [selectedTeamForSubscription, setSelectedTeamForSubscription] = useState(null);
+  const [newSubscriptionLicenses, setNewSubscriptionLicenses] = useState(10);
+  const [newSubscriptionBillingInterval, setNewSubscriptionBillingInterval] = useState('monthly');
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
@@ -81,29 +85,52 @@ export default function ManageTeams() {
         }
       }
 
-      // Get subscriptions for each team
-      const teamIds = teams?.map(team => team.id) || [];
-      let subscriptions = [];
-      
-      if (teamIds.length > 0) {
-        const { data: subsData, error: subsError } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .in('team_id', teamIds);
+              // Get subscriptions for each team
+              const teamIds = teams?.map(team => team.id) || [];
+              let subscriptions = [];
+              
+              if (teamIds.length > 0) {
+                const { data: subsData, error: subsError } = await supabase
+                  .from('subscriptions')
+                  .select('*')
+                  .in('team_id', teamIds);
 
-        if (subsError) {
-          console.error('Error fetching subscriptions:', subsError);
-        } else {
-          subscriptions = subsData || [];
-        }
-      }
+                if (subsError) {
+                  console.error('Error fetching subscriptions:', subsError);
+                } else {
+                  subscriptions = subsData || [];
+                }
+              }
 
-      // Combine teams with their subscriptions and creator info
+              // Get team members for each team
+              let teamMembers = {};
+              
+              if (teamIds.length > 0) {
+                const { data: membersData, error: membersError } = await supabase
+                  .from('profiles')
+                  .select('id, first_name, last_name, email, team_id, role')
+                  .in('team_id', teamIds);
+
+                if (membersError) {
+                  console.error('Error fetching team members:', membersError);
+                } else {
+                  // Group members by team_id
+                  membersData?.forEach(member => {
+                    if (!teamMembers[member.team_id]) {
+                      teamMembers[member.team_id] = [];
+                    }
+                    teamMembers[member.team_id].push(member);
+                  });
+                }
+              }
+
+      // Combine teams with their subscriptions, creator info, and members
       const teamsWithSubs = teams?.map(team => ({
         ...team,
         currentUsers: team.profiles?.[0]?.count || 0,
         subscriptions: subscriptions.filter(sub => sub.team_id === team.id),
-        creator: creators[team.created_by] || null
+        creator: creators[team.created_by] || null,
+        members: teamMembers[team.id] || []
       })) || [];
 
       setTeams(teamsWithSubs);
@@ -124,8 +151,7 @@ export default function ManageTeams() {
         .insert({
           name: formData.name,
           max_users: formData.max_users,
-          created_by: user.id,
-          tier: 'starter' // Single tier
+          created_by: user.id
         })
         .select()
         .single();
@@ -172,17 +198,31 @@ export default function ManageTeams() {
       return;
     }
 
+    setProcessing(true);
     try {
-      const { error } = await supabase
+      console.log('Attempting to delete team:', teamId);
+      
+      const { data, error } = await supabase
         .from('teams')
         .delete()
-        .eq('id', teamId);
+        .eq('id', teamId)
+        .select();
 
-      if (error) throw error;
+      console.log('Delete result:', { data, error });
+
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Team deleted successfully');
       await fetchTeams();
     } catch (error) {
       console.error('Error deleting team:', error);
-      alert('Error deleting team. Please try again.');
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      alert(`Error deleting team: ${error.message || 'Unknown error'}. Please check the console for details.`);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -202,6 +242,43 @@ export default function ManageTeams() {
         .single();
 
       if (error) throw error;
+      await fetchTeams();
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      alert('Error creating subscription. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCreateSubscriptionFromModal = async () => {
+    setProcessing(true);
+    try {
+      if (!selectedTeamForSubscription) {
+        throw new Error('No team selected for subscription.');
+      }
+
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .insert({
+          team_id: selectedTeamForSubscription.id,
+          status: 'active',
+          licenses: newSubscriptionLicenses,
+          billing_interval: newSubscriptionBillingInterval,
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
+          cancel_at_period_end: false,
+          price_id: 'one_tier_price_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setShowCreateSubscriptionModal(false);
+      setSelectedTeamForSubscription(null);
+      setNewSubscriptionLicenses(10);
+      setNewSubscriptionBillingInterval('monthly');
       await fetchTeams();
     } catch (error) {
       console.error('Error creating subscription:', error);
@@ -321,7 +398,7 @@ export default function ManageTeams() {
             <h3>No teams found</h3>
             <p>Create your first team to get started</p>
             <Button
-              variant="primary"
+              variant="blue"
               size="md"
               onClick={() => setShowCreateModal(true)}
             >
@@ -411,6 +488,31 @@ export default function ManageTeams() {
                         <span className={styles.detailLabel}>Created:</span>
                         <span className={styles.detailValue}>{formatDate(team.created_at)}</span>
                       </div>
+                    </div>
+
+                    <div className={styles.detailSection}>
+                      <h4>Team Members ({team.members?.length || 0})</h4>
+                      {team.members && team.members.length > 0 ? (
+                        <div className={styles.membersList}>
+                          {team.members.map(member => (
+                            <div key={member.id} className={styles.memberItem}>
+                              <div className={styles.memberInfo}>
+                                <div className={styles.memberName}>
+                                  {member.first_name} {member.last_name}
+                                </div>
+                                <div className={styles.memberEmail}>{member.email}</div>
+                              </div>
+                              <div className={styles.memberRole}>
+                                <span className={styles.roleBadge}>{member.role}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={styles.noMembers}>
+                          <p>No team members found.</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.detailSection}>
@@ -524,7 +626,7 @@ export default function ManageTeams() {
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="blue"
                 size="md"
                 onClick={editingTeam ? handleUpdateTeam : handleCreateTeam}
                 disabled={processing || !formData.name.trim()}
@@ -537,6 +639,73 @@ export default function ManageTeams() {
                 ) : (
                   editingTeam ? 'Update Team' : 'Create Team'
                 )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Subscription Modal */}
+      {showCreateSubscriptionModal && selectedTeamForSubscription && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Create Subscription for {selectedTeamForSubscription.name}</h3>
+              <button
+                className={styles.closeButton}
+                onClick={() => {
+                  setShowCreateSubscriptionModal(false);
+                  setSelectedTeamForSubscription(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.modalContent}>
+              <div className={styles.formGroup}>
+                <label htmlFor="licenses">Number of Licenses</label>
+                <input
+                  id="licenses"
+                  type="number"
+                  value={newSubscriptionLicenses}
+                  onChange={(e) => setNewSubscriptionLicenses(parseInt(e.target.value))}
+                  min="1"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="billingInterval">Billing Interval</label>
+                <select
+                  id="billingInterval"
+                  value={newSubscriptionBillingInterval}
+                  onChange={(e) => setNewSubscriptionBillingInterval(e.target.value)}
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="annually">Annually</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <Button
+                variant="gray"
+                size="md"
+                onClick={() => {
+                  setShowCreateSubscriptionModal(false);
+                  setSelectedTeamForSubscription(null);
+                }}
+                disabled={processing}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="blue"
+                size="md"
+                onClick={handleCreateSubscriptionFromModal}
+                disabled={processing}
+              >
+                {processing ? 'Creating...' : 'Create Subscription'}
               </Button>
             </div>
           </div>

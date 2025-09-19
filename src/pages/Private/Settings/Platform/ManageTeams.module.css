@@ -134,7 +134,7 @@
 
 .detailsGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 24px;
 }
 
@@ -143,6 +143,72 @@
   font-size: 14px;
   color: var(--gray-700);
   font-weight: 600;
+}
+
+.membersList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.memberItem:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.memberInfo {
+  flex: 1;
+}
+
+.memberName {
+  font-weight: 500;
+  color: var(--gray-800);
+  font-size: 14px;
+}
+
+.memberEmail {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-top: 2px;
+}
+
+.memberRole {
+  margin-left: 12px;
+}
+
+.roleBadge {
+  background: var(--blue-100);
+  color: var(--blue-700);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.noMembers {
+  text-align: center;
+  padding: 20px;
+  color: var(--gray-500);
+  font-style: italic;
+}
+
+.noMembers p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .teamInfo {

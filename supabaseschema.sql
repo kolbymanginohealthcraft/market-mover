@@ -1,6 +1,15 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.billing_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  subscription_id uuid NOT NULL,
+  event_type text NOT NULL CHECK (event_type = ANY (ARRAY['subscription_created'::text, 'subscription_updated'::text, 'subscription_cancelled'::text, 'payment_succeeded'::text, 'payment_failed'::text, 'invoice_created'::text, 'invoice_paid'::text, 'trial_started'::text, 'trial_ended'::text, 'dunning_started'::text, 'dunning_ended'::text])),
+  event_data jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT billing_events_pkey PRIMARY KEY (id),
+  CONSTRAINT billing_events_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id)
+);
 CREATE TABLE public.feature_request_votes (
   id integer NOT NULL DEFAULT nextval('feature_request_votes_id_seq'::regclass),
   feature_request_id integer,
@@ -57,6 +66,22 @@ CREATE TABLE public.markets (
   CONSTRAINT markets_pkey PRIMARY KEY (id),
   CONSTRAINT experimental_markets_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.payment_methods (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  cybersource_token text NOT NULL,
+  last_four_digits text NOT NULL,
+  card_brand text NOT NULL,
+  expiry_month integer NOT NULL,
+  expiry_year integer NOT NULL,
+  billing_address jsonb,
+  is_default boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_methods_pkey PRIMARY KEY (id),
+  CONSTRAINT payment_methods_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
 CREATE TABLE public.payments (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   payment_id text NOT NULL UNIQUE,
@@ -71,7 +96,19 @@ CREATE TABLE public.payments (
   billing_provider text,
   provider_subscription_id text,
   invoice_id uuid,
+  cybersource_payment_id text,
+  cybersource_reconciliation_id text,
+  processor_response_code text,
+  processor_response_message text,
+  payment_method_type text,
+  last_four_digits text,
+  card_brand text,
+  is_recurring boolean DEFAULT false,
+  parent_payment_id bigint,
+  refunded_amount numeric DEFAULT 0,
+  refund_reason text,
   CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_parent_payment_id_fkey FOREIGN KEY (parent_payment_id) REFERENCES public.payments(id),
   CONSTRAINT payments_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id)
 );
 CREATE TABLE public.policy_approvals (
@@ -97,8 +134,8 @@ CREATE TABLE public.policy_definitions (
   updated_at timestamp with time zone DEFAULT now(),
   updated_by uuid,
   CONSTRAINT policy_definitions_pkey PRIMARY KEY (id),
-  CONSTRAINT policy_definitions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
-  CONSTRAINT policy_definitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+  CONSTRAINT policy_definitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_definitions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.policy_permissions (
   id integer NOT NULL DEFAULT nextval('policy_permissions_id_seq'::regclass),
@@ -110,9 +147,9 @@ CREATE TABLE public.policy_permissions (
   created_at timestamp with time zone DEFAULT now(),
   created_by uuid,
   CONSTRAINT policy_permissions_pkey PRIMARY KEY (id),
+  CONSTRAINT policy_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT policy_permissions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
-  CONSTRAINT policy_permissions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT policy_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT policy_permissions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.policy_versions (
   id integer NOT NULL DEFAULT nextval('policy_versions_id_seq'::regclass),
@@ -131,10 +168,10 @@ CREATE TABLE public.policy_versions (
   approved_by uuid,
   rejection_reason text,
   CONSTRAINT policy_versions_pkey PRIMARY KEY (id),
-  CONSTRAINT policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id),
   CONSTRAINT policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
-  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
+  CONSTRAINT policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
@@ -148,8 +185,8 @@ CREATE TABLE public.profiles (
   email text,
   role text CHECK (role = ANY (ARRAY['Platform Admin'::text, 'Platform Support'::text, 'Team Admin'::text, 'Team Member'::text])),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
-  CONSTRAINT profiles_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+  CONSTRAINT profiles_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -165,6 +202,20 @@ CREATE TABLE public.subscriptions (
   billing_interval text DEFAULT 'monthly'::text CHECK (billing_interval = ANY (ARRAY['monthly'::text, 'annual'::text])),
   trial_ends_at timestamp with time zone,
   discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
+  cybersource_subscription_id text,
+  payment_method_id text,
+  next_billing_date timestamp with time zone,
+  billing_address jsonb,
+  tax_rate numeric DEFAULT 0,
+  tax_amount numeric DEFAULT 0,
+  plan_name text NOT NULL DEFAULT 'starter'::text,
+  plan_features jsonb,
+  base_price numeric NOT NULL DEFAULT 0,
+  trial_started_at timestamp with time zone,
+  trial_duration_days integer DEFAULT 14,
+  failed_payment_count integer DEFAULT 0,
+  last_failed_payment_at timestamp with time zone,
+  dunning_status text DEFAULT 'none'::text CHECK (dunning_status = ANY (ARRAY['none'::text, 'retry'::text, 'suspended'::text, 'cancelled'::text])),
   CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
   CONSTRAINT subscriptions_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
@@ -202,8 +253,6 @@ CREATE TABLE public.team_provider_tags (
 CREATE TABLE public.teams (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,
-  tier text NOT NULL CHECK (tier = ANY (ARRAY['free'::text, 'starter'::text, 'advanced'::text, 'pro'::text])),
-  access_code text NOT NULL UNIQUE,
   max_users integer NOT NULL,
   created_by uuid,
   created_at timestamp with time zone DEFAULT now(),
@@ -235,4 +284,15 @@ CREATE TABLE public.user_testimonials (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT user_testimonials_pkey PRIMARY KEY (id),
   CONSTRAINT user_testimonials_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.webhook_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_id text NOT NULL UNIQUE,
+  event_type text NOT NULL,
+  payload jsonb NOT NULL,
+  processed boolean DEFAULT false,
+  processing_error text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT webhook_events_pkey PRIMARY KEY (id)
 );
