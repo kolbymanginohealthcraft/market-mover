@@ -18,7 +18,6 @@ export default function ManageTeams() {
   const [showCreateSubscriptionModal, setShowCreateSubscriptionModal] = useState(false);
   const [selectedTeamForSubscription, setSelectedTeamForSubscription] = useState(null);
   const [newSubscriptionLicenses, setNewSubscriptionLicenses] = useState(10);
-  const [newSubscriptionBillingInterval, setNewSubscriptionBillingInterval] = useState('monthly');
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
@@ -276,7 +275,6 @@ export default function ManageTeams() {
       setShowCreateSubscriptionModal(false);
       setSelectedTeamForSubscription(null);
       setNewSubscriptionLicenses(10);
-      setNewSubscriptionBillingInterval('monthly');
       await fetchTeams();
     } catch (error) {
       console.error('Error creating subscription:', error);
@@ -671,17 +669,6 @@ export default function ManageTeams() {
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="billingInterval">Billing Interval</label>
-                <select
-                  id="billingInterval"
-                  value={newSubscriptionBillingInterval}
-                  onChange={(e) => setNewSubscriptionBillingInterval(e.target.value)}
-                >
-                  <option value="monthly">Monthly</option>
-                  <option value="annually">Annually</option>
-                </select>
-              </div>
             </div>
 
             <div className={styles.modalActions}>

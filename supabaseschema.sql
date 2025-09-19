@@ -197,7 +197,6 @@ CREATE TABLE public.subscriptions (
   expires_at timestamp with time zone,
   canceled_at timestamp with time zone,
   license_quantity integer DEFAULT 1,
-  billing_interval text DEFAULT 'monthly'::text CHECK (billing_interval = ANY (ARRAY['monthly'::text, 'annual'::text])),
   discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
   next_billing_date timestamp with time zone,
   base_price numeric NOT NULL DEFAULT 0,
