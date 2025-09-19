@@ -180,7 +180,7 @@ export default function SubscriptionManagePage() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return '#10b981';
-      case 'past_due': return '#ef4444';
+      case 'expired': return '#ef4444';
       case 'canceled': return '#6b7280';
       default: return '#6b7280';
     }
@@ -189,7 +189,7 @@ export default function SubscriptionManagePage() {
   const getStatusLabel = (status) => {
     switch (status) {
       case 'active': return 'Active';
-      case 'past_due': return 'Past Due';
+      case 'expired': return 'Expired';
       case 'canceled': return 'Canceled';
       default: return status;
     }

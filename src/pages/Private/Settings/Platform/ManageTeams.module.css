@@ -431,11 +431,15 @@
 }
 
 .modalContent {
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 .formGroup {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.formGroup:last-of-type {
+  margin-bottom: 8px;
 }
 
 .formRow {
@@ -514,4 +518,57 @@
     flex-direction: column;
     gap: 4px;
   }
+}
+
+/* Radio Button Styles */
+.radioGroup {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  margin-top: 6px !important;
+}
+
+.radioLabel {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  padding: 2px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.radioLabel:hover {
+  background-color: #e5e7eb !important;
+}
+
+.radioLabel input[type="radio"] {
+  margin: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  accent-color: #3b82f6 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+.radioText {
+  font-size: 12px !important;
+  color: #374151 !important;
+  font-weight: 500 !important;
+}
+
+
+.trialInfo {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.trialInfo small {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
 }

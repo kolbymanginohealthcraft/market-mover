@@ -191,7 +191,7 @@ CREATE TABLE public.profiles (
 CREATE TABLE public.subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   team_id uuid NOT NULL UNIQUE,
-  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'canceled'::text, 'past_due'::text])),
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'canceled'::text, 'expired'::text])),
   started_at timestamp with time zone DEFAULT now(),
   expires_at timestamp with time zone,
   canceled_at timestamp with time zone,

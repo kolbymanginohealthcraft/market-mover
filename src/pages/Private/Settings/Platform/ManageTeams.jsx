@@ -18,6 +18,26 @@ export default function ManageTeams() {
   const [showCreateSubscriptionModal, setShowCreateSubscriptionModal] = useState(false);
   const [selectedTeamForSubscription, setSelectedTeamForSubscription] = useState(null);
   const [newSubscriptionLicenses, setNewSubscriptionLicenses] = useState(10);
+  const [subscriptionType, setSubscriptionType] = useState('regular');
+  const [startedAt, setStartedAt] = useState(new Date().toISOString().split('T')[0]);
+  const [trialEndDate, setTrialEndDate] = useState('');
+  const [trialDays, setTrialDays] = useState(14);
+
+  // Calculate trial end date based on days
+  const calculateTrialEndDate = (startDate, days) => {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + days);
+    return end.toISOString().split('T')[0];
+  };
+
+  // Update trial end date when trial days or start date changes
+  useEffect(() => {
+    if (subscriptionType === 'trial') {
+      const calculatedEndDate = calculateTrialEndDate(startedAt, trialDays);
+      setTrialEndDate(calculatedEndDate);
+    }
+  }, [trialDays, startedAt, subscriptionType]);
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
@@ -254,17 +274,18 @@ export default function ManageTeams() {
         throw new Error('No team selected for subscription.');
       }
 
+      const subscriptionData = {
+        team_id: selectedTeamForSubscription.id,
+        status: 'active',
+        license_quantity: newSubscriptionLicenses,
+        started_at: startedAt,
+        expires_at: subscriptionType === 'trial' ? trialEndDate : null,
+        canceled_at: null
+      };
+
       const { data, error } = await supabase
         .from('subscriptions')
-        .insert({
-          team_id: selectedTeamForSubscription.id,
-          status: 'active',
-          licenses: newSubscriptionLicenses,
-          current_period_start: new Date().toISOString(),
-          current_period_end: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
-          cancel_at_period_end: false,
-          price_id: 'one_tier_price_id'
-        })
+        .insert(subscriptionData)
         .select()
         .single();
 
@@ -273,6 +294,10 @@ export default function ManageTeams() {
       setShowCreateSubscriptionModal(false);
       setSelectedTeamForSubscription(null);
       setNewSubscriptionLicenses(10);
+      setSubscriptionType('regular');
+      setStartedAt(new Date().toISOString().split('T')[0]);
+      setTrialEndDate('');
+      setTrialDays(14);
       await fetchTeams();
     } catch (error) {
       console.error('Error creating subscription:', error);
@@ -319,7 +344,7 @@ export default function ManageTeams() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return '#10b981';
-      case 'past_due': return '#ef4444';
+      case 'expired': return '#ef4444';
       case 'canceled': return '#6b7280';
       default: return '#6b7280';
     }
@@ -644,6 +669,83 @@ export default function ManageTeams() {
                   min="1"
                 />
               </div>
+
+              <div className={styles.formGroup}>
+                <label>Subscription Type</label>
+                <div className={styles.radioGroup}>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="subscriptionType"
+                      value="regular"
+                      checked={subscriptionType === 'regular'}
+                      onChange={(e) => setSubscriptionType(e.target.value)}
+                    />
+                    <span className={styles.radioText}>Regular Subscription</span>
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="subscriptionType"
+                      value="trial"
+                      checked={subscriptionType === 'trial'}
+                      onChange={(e) => setSubscriptionType(e.target.value)}
+                    />
+                    <span className={styles.radioText}>Trial Subscription</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="startedAt">Started Date</label>
+                <input
+                  id="startedAt"
+                  type="date"
+                  value={startedAt}
+                  onChange={(e) => setStartedAt(e.target.value)}
+                />
+              </div>
+
+              {subscriptionType === 'trial' && (
+                <div className={styles.formGroup}>
+                  <label>Trial Duration</label>
+                  <div className={styles.radioGroup}>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="trialDays"
+                        value="7"
+                        checked={trialDays === 7}
+                        onChange={(e) => setTrialDays(parseInt(e.target.value))}
+                      />
+                      <span className={styles.radioText}>7 days</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="trialDays"
+                        value="14"
+                        checked={trialDays === 14}
+                        onChange={(e) => setTrialDays(parseInt(e.target.value))}
+                      />
+                      <span className={styles.radioText}>14 days</span>
+                    </label>
+                    <label className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="trialDays"
+                        value="30"
+                        checked={trialDays === 30}
+                        onChange={(e) => setTrialDays(parseInt(e.target.value))}
+                      />
+                      <span className={styles.radioText}>30 days</span>
+                    </label>
+                  </div>
+                  <div className={styles.trialInfo}>
+                    <small>Trial will end on: {trialEndDate}</small>
+                  </div>
+                </div>
+              )}
 
             </div>
 

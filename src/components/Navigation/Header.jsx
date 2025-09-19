@@ -185,7 +185,7 @@ const Header = ({ currentView, selectedMarket }) => {
     } else if (location.pathname.includes('/network')) {
       return 'My Network';
     } else if (location.pathname.includes('/settings')) {
-      return 'Settings';
+      return 'Account Settings';
     } else if (location.pathname.includes('/feedback')) {
       return 'Leave Feedback';
     } else {
@@ -273,7 +273,7 @@ const Header = ({ currentView, selectedMarket }) => {
       ];
     } else if (currentPath.includes('/settings')) {
       return [
-        { text: 'Profile configuration and account settings', type: 'description' }
+        { text: 'Manage your profile and preferences', type: 'description' }
       ];
     } else if (currentPath.includes('/feedback')) {
       return [
