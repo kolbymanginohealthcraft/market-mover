@@ -36,12 +36,15 @@ const PROVIDER_PERSPECTIVES = {
 router.post("/claims-data", async (req, res) => {
   try {
     console.log("🔍 Claims data request received:", JSON.stringify(req.body, null, 2));
+    console.log("🔍 Aggregation from frontend:", req.body.aggregation);
+    console.log("🔍 Original aggregation from frontend:", req.body.originalAggregation);
     
     const {
       npis,
       tableName,
       filters = {},
       aggregation = "provider",
+      originalAggregation,
       limit = 100
     } = req.body;
 
@@ -80,9 +83,16 @@ router.post("/claims-data", async (req, res) => {
     const cacheKey = `claims-data-${tableName}-billing-${aggregation}-${JSON.stringify(filters)}-${npis.sort().join(',')}`;
     console.log("🔍 Cache key:", cacheKey);
     
+    // Debug mode - just log more info
+    if (req.body.debug === true) {
+      console.log("🔍 DEBUG MODE: Request received");
+    }
+    
     const cachedResult = cache.get(cacheKey);
     if (cachedResult) {
       console.log("✅ Returning cached result");
+      console.log("🔍 Cached aggregation:", aggregation);
+      console.log("🔍 Cached filters:", filters);
       return res.json({
         success: true,
         data: cachedResult,
@@ -274,22 +284,26 @@ router.post("/claims-data", async (req, res) => {
       const filterClause = buildFilterConditions(filters, filterParams);
       
       // Determine if we're looking at billing or performing providers based on the frontend aggregation
-      const isPerformingProvider = req.body.aggregation === 'performing_provider';
+      const isPerformingProvider = originalAggregation === 'performing_provider';
       const providerFields = isPerformingProvider ? {
         npiField: "performing_provider_npi",
         nameField: "performing_provider_name"
       } : perspectiveFields;
       
-    console.log("🔍 Applied filters:", filters);
-    console.log("🔍 Filter clause:", filterClause);
-    console.log("🔍 Filter params:", filterParams);
-    console.log("🔍 Breadcrumb filters detected:", {
-      providerNpi: filters.providerNpi,
-      serviceLine: filters.serviceLine,
-      dateMonth: filters.dateMonth,
-      state: filters.state,
-      county: filters.county
-    });
+      console.log("🔍 ===== PROVIDER AGGREGATION DEBUG =====");
+      console.log("🔍 Request body aggregation:", req.body.aggregation);
+      console.log("🔍 Is performing provider view:", isPerformingProvider);
+      console.log("🔍 Provider fields:", providerFields);
+      console.log("🔍 Applied filters:", filters);
+      console.log("🔍 Filter clause:", filterClause);
+      console.log("🔍 Filter params:", filterParams);
+      console.log("🔍 Breadcrumb filters detected:", {
+        providerNpi: filters.providerNpi,
+        serviceLine: filters.serviceLine,
+        dateMonth: filters.dateMonth,
+        state: filters.state,
+        county: filters.county
+      });
 
       // First, get summary stats from ALL providers (no limit)
       const summaryQuery = `
@@ -299,7 +313,7 @@ router.post("/claims-data", async (req, res) => {
           COUNT(DISTINCT c.billing_provider_npi) as total_unique_billing_providers,
           COUNT(DISTINCT c.performing_provider_npi) as total_unique_performing_providers
         FROM \`aegis_access.${tableName}\` c
-        WHERE c.${providerFields.npiField} IN UNNEST(@npis)
+        WHERE c.billing_provider_npi IN UNNEST(@npis)
           AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
       `;
@@ -307,30 +321,32 @@ router.post("/claims-data", async (req, res) => {
       // Then, get detailed provider data (limited for display)
       const detailQuery = `
         SELECT 
-          c.${providerFields.npiField} as npi,
-          c.${providerFields.nameField} as provider_name,
+          c.${isPerformingProvider ? 'performing_provider_npi' : 'billing_provider_npi'} as npi,
+          c.${isPerformingProvider ? 'performing_provider_name' : 'billing_provider_name'} as provider_name,
           SUM(c.count) as total_claims,
           ${getChargeCalculation()} as total_charges,
           COUNT(DISTINCT c.date__month_grain) as months_with_activity,
           ROUND(SUM(c.count) / COUNT(DISTINCT c.date__month_grain), 0) as avg_monthly_claims,
           MAX(c.date__month_grain) as last_activity_date,
-          MAX(CASE WHEN c.${providerFields.npiField} = c.billing_provider_npi THEN c.billing_provider_taxonomy_classification 
-                   WHEN c.${providerFields.npiField} = c.performing_provider_npi THEN c.performing_provider_taxonomy_classification
-                   ELSE NULL END) as taxonomy_classification,
-          MAX(CASE WHEN c.${providerFields.npiField} = c.billing_provider_npi THEN c.billing_provider_city 
-                   ELSE NULL END) as city,
-          MAX(CASE WHEN c.${providerFields.npiField} = c.billing_provider_npi THEN c.billing_provider_state 
-                   ELSE NULL END) as state
+          MAX(c.${isPerformingProvider ? 'performing_provider_taxonomy_classification' : 'billing_provider_taxonomy_classification'}) as taxonomy_classification,
+          ${!isPerformingProvider ? 'MAX(c.billing_provider_city) as city,' : ''}
+          ${!isPerformingProvider ? 'MAX(c.billing_provider_state) as state' : ''}
         FROM \`aegis_access.${tableName}\` c
-        WHERE c.${providerFields.npiField} IN UNNEST(@npis)
+        WHERE c.billing_provider_npi IN UNNEST(@npis)
           AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
-        GROUP BY c.${providerFields.npiField}, c.${providerFields.nameField}
+          ${isPerformingProvider ? 'AND c.performing_provider_npi IS NOT NULL' : ''}
+        GROUP BY c.${isPerformingProvider ? 'performing_provider_npi' : 'billing_provider_npi'}, c.${isPerformingProvider ? 'performing_provider_name' : 'billing_provider_name'}
         ORDER BY total_claims DESC
         LIMIT @limit
       `;
 
       // Execute both queries
+      console.log("🔍 ===== EXECUTING PROVIDER QUERIES =====");
+      console.log("🔍 Summary query:", summaryQuery);
+      console.log("🔍 Detail query:", detailQuery);
+      console.log("🔍 Filter params:", filterParams);
+      
       const [summaryResult, detailResult] = await Promise.all([
         vendorBigQueryClient.query({ query: summaryQuery, params: filterParams }),
         vendorBigQueryClient.query({ query: detailQuery, params: filterParams })
@@ -353,6 +369,7 @@ router.post("/claims-data", async (req, res) => {
 
       console.log(`✅ Retrieved ${rows.length} records of claims data (showing top ${limit} of ${summary.total_unique_providers} total providers)`);
       console.log(`🔍 Summary stats:`, resultWithSummary.summary);
+      console.log(`🔍 Is performing provider view:`, isPerformingProvider);
       console.log(`🔍 Sample data:`, rows.slice(0, 2));
 
       // Cache the result for 5 minutes

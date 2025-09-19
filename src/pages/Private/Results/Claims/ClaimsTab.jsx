@@ -209,8 +209,10 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
             npis: cachedNPIs,
             tableName,
             aggregation: aggregation === 'billing_provider' || aggregation === 'performing_provider' ? 'provider' : aggregation,
+            originalAggregation: aggregation,
             filters,
-            limit: 100
+            limit: 100,
+            debug: true
           })
         });
 
@@ -1160,11 +1162,20 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
               <table>
                                  <thead>
                    <tr>
-                     {(aggregation === "billing_provider" || aggregation === "performing_provider") && (
+                     {aggregation === "billing_provider" && (
                        <>
                          <th>Provider</th>
                          <th>Specialty</th>
                          <th>Location</th>
+                         <th>Total Procedures</th>
+                         <th>Total Charges</th>
+                         <th>Avg Monthly</th>
+                       </>
+                     )}
+                     {aggregation === "performing_provider" && (
+                       <>
+                         <th>Provider</th>
+                         <th>Specialty</th>
                          <th>Total Procedures</th>
                          <th>Total Charges</th>
                          <th>Avg Monthly</th>
@@ -1198,7 +1209,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                       onClick={() => handleRowClick(row)}
                       title="Click to drill down"
                     >
-                                           {(aggregation === "billing_provider" || aggregation === "performing_provider") && (
+                                           {aggregation === "billing_provider" && (
                        <>
                          <td>
                            <div>
@@ -1208,6 +1219,20 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                          </td>
                          <td>{row.taxonomy_classification || 'Unknown'}</td>
                          <td>{row.city}, {row.state}</td>
+                         <td>{row.total_claims?.toLocaleString()}</td>
+                         <td>{formatCurrency(row.total_charges)}</td>
+                         <td>{row.avg_monthly_claims?.toLocaleString()}</td>
+                       </>
+                     )}
+                     {aggregation === "performing_provider" && (
+                       <>
+                         <td>
+                           <div>
+                             <strong>{row.provider_name || 'Unknown'}</strong>
+                             <small>{row.npi}</small>
+                           </div>
+                         </td>
+                         <td>{row.taxonomy_classification || 'Unknown'}</td>
                          <td>{row.total_claims?.toLocaleString()}</td>
                          <td>{formatCurrency(row.total_charges)}</td>
                          <td>{row.avg_monthly_claims?.toLocaleString()}</td>
