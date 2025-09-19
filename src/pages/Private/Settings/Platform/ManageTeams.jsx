@@ -235,7 +235,6 @@ export default function ManageTeams() {
           team_id: teamId,
           status: 'active',
           license_quantity: 3,
-          billing_interval: 'monthly',
           started_at: new Date().toISOString()
         })
         .select()
@@ -264,7 +263,6 @@ export default function ManageTeams() {
           team_id: selectedTeamForSubscription.id,
           status: 'active',
           licenses: newSubscriptionLicenses,
-          billing_interval: newSubscriptionBillingInterval,
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
           cancel_at_period_end: false,
@@ -325,7 +323,6 @@ export default function ManageTeams() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return '#10b981';
-      case 'trialing': return '#f59e0b';
       case 'past_due': return '#ef4444';
       case 'canceled': return '#6b7280';
       default: return '#6b7280';
@@ -530,7 +527,7 @@ export default function ManageTeams() {
                             </div>
                             <div className={styles.subscriptionDetail}>
                               <span className={styles.detailLabel}>Billing:</span>
-                              <span className={styles.detailValue}>{sub.billing_interval}</span>
+                              <span className={styles.detailValue}>Monthly</span>
                             </div>
                             <div className={styles.subscriptionDetail}>
                               <span className={styles.detailLabel}>Period:</span>

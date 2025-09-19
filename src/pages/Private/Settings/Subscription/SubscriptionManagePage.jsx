@@ -19,9 +19,7 @@ export default function SubscriptionManagePage() {
   const [billingHistory, setBillingHistory] = useState({ invoices: [], payments: [] });
   const [showHistory, setShowHistory] = useState(false);
   const [editingLicenses, setEditingLicenses] = useState(false);
-  const [editingBilling, setEditingBilling] = useState(false);
   const [newLicenseCount, setNewLicenseCount] = useState(0);
-  const [newBillingInterval, setNewBillingInterval] = useState('');
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
   const [editingPaymentMethod, setEditingPaymentMethod] = useState(null);
@@ -41,7 +39,6 @@ export default function SubscriptionManagePage() {
         .select(`
           *,
           subscriptions(
-            billing_interval,
             license_quantity
           )
         `)
@@ -183,7 +180,6 @@ export default function SubscriptionManagePage() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return '#10b981';
-      case 'trialing': return '#f59e0b';
       case 'past_due': return '#ef4444';
       case 'canceled': return '#6b7280';
       default: return '#6b7280';
@@ -193,7 +189,6 @@ export default function SubscriptionManagePage() {
   const getStatusLabel = (status) => {
     switch (status) {
       case 'active': return 'Active';
-      case 'trialing': return 'Trial';
       case 'past_due': return 'Past Due';
       case 'canceled': return 'Canceled';
       default: return status;
@@ -250,44 +245,12 @@ export default function SubscriptionManagePage() {
     }
   };
 
-  const handleBillingUpdate = async () => {
-    if (!subscription || newBillingInterval === subscription.billing_interval) {
-      setEditingBilling(false);
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ 
-          billing_interval: newBillingInterval,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', subscription.id);
-
-      if (error) throw error;
-
-      // Refresh subscription data
-      await fetchSubscriptionData();
-      setEditingBilling(false);
-    } catch (error) {
-      console.error('Error updating billing interval:', error);
-      alert('Failed to update billing interval. Please try again.');
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   const startEditingLicenses = () => {
     setNewLicenseCount(subscription?.license_quantity || 0);
     setEditingLicenses(true);
   };
 
-  const startEditingBilling = () => {
-    setNewBillingInterval(subscription?.billing_interval || 'monthly');
-    setEditingBilling(true);
-  };
 
   const fetchPaymentMethods = async () => {
     if (!profile?.team_id) return;
@@ -442,15 +405,6 @@ export default function SubscriptionManagePage() {
                   </span>
                 </div>
               </div>
-              <div className={styles.detailItem}>
-                <CreditCard size={20} style={{ width: 'var(--icon-size-lg)', height: 'var(--icon-size-lg)' }} />
-                <div>
-                  <span className={styles.detailLabel}>Billing</span>
-                  <span className={styles.detailValue}>
-                    {subscription.billing_interval === 'annual' ? 'Annual' : 'Monthly'}
-                  </span>
-                </div>
-              </div>
             </div>
             
             <div className={styles.detailRow}>
@@ -485,26 +439,16 @@ export default function SubscriptionManagePage() {
               )}
             </div>
             
-            {(subscription.trial_ends_at || subscription.discount_percent > 0) && (
+            {subscription.discount_percent > 0 && (
               <div className={styles.detailRow}>
-                {subscription.trial_ends_at && (
-                  <div className={styles.detailItem}>
-                    <div>
-                      <span className={styles.detailLabel}>Trial Ends</span>
-                      <span className={styles.detailValue}>{formatDate(subscription.trial_ends_at)}</span>
-                    </div>
+                <div className={styles.detailItem}>
+                  <div>
+                    <span className={styles.detailLabel}>Discount</span>
+                    <span className={styles.detailValue}>
+                      {subscription.discount_percent}%
+                    </span>
                   </div>
-                )}
-                {subscription.discount_percent > 0 && (
-                  <div className={styles.detailItem}>
-                    <div>
-                      <span className={styles.detailLabel}>Discount</span>
-                      <span className={styles.detailValue}>
-                        {subscription.discount_percent}% - {subscription.discount_reason}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -578,66 +522,27 @@ export default function SubscriptionManagePage() {
                 </div>
               </div>
               
-              {/* Billing Management */}
+              {/* Payment Management */}
               <div className={styles.actionItem}>
                 <div className={styles.actionInfo}>
-                  <h4>Billing & Payment</h4>
-                  <p>Current: {subscription?.billing_interval === 'annually' ? 'Annual' : 'Monthly'} billing</p>
+                  <h4>Payment Methods</h4>
+                  <p>Manage your payment methods and billing information</p>
                 </div>
                 <div className={styles.actionControls}>
-                  {editingBilling ? (
-                    <div className={styles.editSection}>
-                      <div className={styles.editControls}>
-                        <select
-                          value={newBillingInterval}
-                          onChange={(e) => setNewBillingInterval(e.target.value)}
-                          className={styles.billingSelect}
-                        >
-                          <option value="monthly">Monthly</option>
-                          <option value="annually">Annually (20% discount)</option>
-                        </select>
-                      </div>
-                      <div className={styles.editActions}>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={handleBillingUpdate}
-                          disabled={processing}
-                        >
-                          {processing ? 'Updating...' : 'Save Changes'}
-                        </Button>
-                        <Button
-                          variant="gray"
-                          size="sm"
-                          onClick={() => setEditingBilling(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={styles.actionButtons}>
-                      <Button
-                        variant="gray"
-                        size="sm"
-                        onClick={startEditingBilling}
-                      >
-                        Change Billing
-                      </Button>
-                      <Button
-                        variant="gray"
-                        size="sm"
-                        onClick={() => {
-                          setShowPaymentMethods(!showPaymentMethods);
-                          if (!showPaymentMethods) {
-                            fetchPaymentMethods();
-                          }
-                        }}
-                      >
-                        {showPaymentMethods ? 'Hide' : 'Show'} Payment Methods
-                      </Button>
-                    </div>
-                  )}
+                  <div className={styles.actionButtons}>
+                    <Button
+                      variant="gray"
+                      size="sm"
+                      onClick={() => {
+                        setShowPaymentMethods(!showPaymentMethods);
+                        if (!showPaymentMethods) {
+                          fetchPaymentMethods();
+                        }
+                      }}
+                    >
+                      {showPaymentMethods ? 'Hide' : 'Show'} Payment Methods
+                    </Button>
+                  </div>
                 </div>
               </div>
               

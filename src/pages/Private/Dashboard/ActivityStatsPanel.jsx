@@ -109,7 +109,7 @@ export default function ActivityStatsPanel() {
        //     .from("subscriptions")
        //     .select("*")
        //     .eq("team_id", profileData.team_id)
-       //     .in("status", ["active", "trialing"])
+       //     .in("status", ["active"])
        //     .order("renewed_at", { ascending: false })
        //     .limit(1)
        //     .single();
