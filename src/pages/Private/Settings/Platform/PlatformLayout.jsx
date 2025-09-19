@@ -5,7 +5,8 @@ import {
   Settings, 
   FileText, 
   MessageCircle,
-  Megaphone
+  Megaphone,
+  Users
 } from 'lucide-react';
 import { hasPlatformAccess } from '../../../../utils/roleHelpers';
 import { supabase } from '../../../../app/supabaseClient';
@@ -14,6 +15,7 @@ import ManageAnnouncements from './ManageAnnouncements';
 import ManageFeedback from './ManageFeedback';
 import PolicyManagement from './PolicyManagement';
 import StyleGuide from './StyleGuide';
+import ManageTeams from './ManageTeams';
 import styles from './PlatformLayout.module.css';
 
 export default function PlatformLayout() {
@@ -58,6 +60,7 @@ export default function PlatformLayout() {
       <Routes>
         <Route index element={<Navigate to="analytics" replace />} />
         <Route path="analytics" element={<AnalyticsDashboard />} />
+        <Route path="teams" element={<ManageTeams />} />
         <Route path="announcements" element={<ManageAnnouncements />} />
         <Route path="feedback" element={<ManageFeedback />} />
         <Route path="policies" element={<PolicyManagement />} />

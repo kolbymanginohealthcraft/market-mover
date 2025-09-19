@@ -667,6 +667,8 @@ const SubNavigation = () => {
        
        if (location.pathname.includes('/analytics')) {
          currentPlatformTab = 'analytics';
+       } else if (location.pathname.includes('/teams')) {
+         currentPlatformTab = 'teams';
        } else if (location.pathname.includes('/announcements')) {
          currentPlatformTab = 'announcements';
        } else if (location.pathname.includes('/feedback')) {
@@ -679,6 +681,7 @@ const SubNavigation = () => {
 
       const platformTabs = [
         { id: "analytics", label: "Analytics Dashboard", icon: BarChart3, path: "/app/settings/platform/analytics" },
+        { id: "teams", label: "Manage Teams", icon: Users, path: "/app/settings/platform/teams" },
         { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/settings/platform/announcements" },
         { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/settings/platform/feedback" },
         { id: "policies", label: "Policy Management", icon: FileText, path: "/app/settings/platform/policies" },
