@@ -82,9 +82,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   const [activeFilterGroup, setActiveFilterGroup] = useState(null);
   const [activeVisualization, setActiveVisualization] = useState("summary");
 
-  // Available tables mapping - Simplified to only volume tables
+  // Available tables mapping - Only volume_procedure
   const AVAILABLE_TABLES = {
-    volume_diagnosis: { label: "Diagnosis Volume", type: "Commercial" },
     volume_procedure: { label: "Procedure Volume", type: "Commercial" }
   };
 
@@ -95,8 +94,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
     billing_provider: { label: "By Billing Provider", icon: Users },
     performing_provider: { label: "By Performing Provider", icon: Activity },
     service_line: { label: "By Service Line", icon: BarChart3 },
-    temporal: { label: "By Time Period", icon: Calendar },
-    geographic: { label: "By Geography", icon: MapPin }
+    temporal: { label: "By Time Period", icon: Calendar }
   };
 
   // Fetch NPIs once and cache them
@@ -173,8 +171,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             npis: cachedNPIs,
-            tableName,
-            perspective: aggregation.startsWith('billing_') ? 'billing' : 'performing'
+            tableName
           })
         });
 
@@ -202,6 +199,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
       setClaimsLoading(true);
       setClaimsError(null);
 
+      console.log('🔍 Fetching claims data with filters:', filters);
+
       try {
         const response = await fetch(apiUrl("/api/claims-data"), {
           method: "POST",
@@ -209,7 +208,6 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           body: JSON.stringify({
             npis: cachedNPIs,
             tableName,
-            perspective: aggregation.startsWith('billing_') ? 'billing' : 'performing',
             aggregation: aggregation === 'billing_provider' || aggregation === 'performing_provider' ? 'provider' : aggregation,
             filters,
             limit: 100
@@ -235,9 +233,18 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
     fetchClaimsData();
   }, [cachedNPIs, tableName, aggregation, filters]);
 
-  // Update filters when table or aggregation changes
+  // Update filters when table or aggregation changes, but preserve breadcrumb filters
   useEffect(() => {
-    setFilters({});
+    // Only reset non-breadcrumb filters when table or aggregation changes
+    setFilters(prev => {
+      const breadcrumbFilters = {};
+      if (prev.providerNpi) breadcrumbFilters.providerNpi = prev.providerNpi;
+      if (prev.serviceLine) breadcrumbFilters.serviceLine = prev.serviceLine;
+      if (prev.dateMonth) breadcrumbFilters.dateMonth = prev.dateMonth;
+      if (prev.state) breadcrumbFilters.state = prev.state;
+      if (prev.county) breadcrumbFilters.county = prev.county;
+      return breadcrumbFilters;
+    });
   }, [tableName, aggregation]);
 
   // Drill-down functions
@@ -253,6 +260,12 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
   const createDrillDownStep = (row) => {
     switch (aggregation) {
       case "billing_provider":
+        return {
+          type: "provider",
+          value: row.npi,
+          label: `${row.provider_name} (${row.npi})`,
+          filter: { providerNpi: row.npi }
+        };
       case "performing_provider":
         return {
           type: "provider",
@@ -1107,20 +1120,20 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           {/* Summary Stats */}
           <div className={styles.summaryStats}>
             <div className={styles.statCard}>
-               <h4>Total Procedures</h4>
-              <p>{claimsSummary ? claimsSummary.grand_total_claims?.toLocaleString() : claimsData.reduce((sum, item) => sum + (item.total_claims || item.count || 0), 0).toLocaleString()}</p>
+              <h4>Total Procedures</h4>
+              <p>{claimsSummary ? claimsSummary.grand_total_claims?.toLocaleString() : '0'}</p>
             </div>
             <div className={styles.statCard}>
               <h4>Total Charges</h4>
-              <p>{claimsSummary ? formatCurrency(claimsSummary.grand_total_charges) : formatCurrency(claimsData.reduce((sum, item) => sum + (item.total_charges || 0), 0))}</p>
+              <p>{claimsSummary ? formatCurrency(claimsSummary.grand_total_charges) : '$0'}</p>
             </div>
             <div className={styles.statCard}>
-              <h4>Unique Providers</h4>
-              <p>{claimsSummary ? claimsSummary.total_unique_providers : new Set(claimsData.map(item => item.npi || item.unique_providers).filter(Boolean)).size}</p>
+              <h4>Unique Billing Providers</h4>
+              <p>{claimsSummary ? claimsSummary.total_unique_billing_providers?.toLocaleString() : '0'}</p>
             </div>
             <div className={styles.statCard}>
-              <h4>Records Displayed</h4>
-              <p>{claimsSummary ? `${claimsSummary.displayed_records} of ${claimsSummary.total_unique_providers}` : claimsData.length}</p>
+              <h4>Unique Performing Providers</h4>
+              <p>{claimsSummary ? claimsSummary.total_unique_performing_providers?.toLocaleString() : '0'}</p>
             </div>
           </div>
 
@@ -1152,7 +1165,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                          <th>Provider</th>
                          <th>Specialty</th>
                          <th>Location</th>
-                         <th>Total Claims</th>
+                         <th>Total Procedures</th>
                          <th>Total Charges</th>
                          <th>Avg Monthly</th>
                        </>
@@ -1160,28 +1173,21 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                      {aggregation === "service_line" && (
                        <>
                          <th>Service Line</th>
-                         <th>Total Claims</th>
+                         <th>Total Procedures</th>
                          <th>Total Charges</th>
-                         <th>Unique Providers</th>
+                         <th>Unique Billing Providers</th>
+                         <th>Unique Performing Providers</th>
                        </>
                      )}
                      {aggregation === "temporal" && (
                        <>
                          <th>Month</th>
-                         <th>Total Claims</th>
+                         <th>Total Procedures</th>
                          <th>Total Charges</th>
-                         <th>Unique Providers</th>
+                         <th>Unique Billing Providers</th>
+                         <th>Unique Performing Providers</th>
                        </>
                      )}
-                                            {aggregation === "geographic" && (
-                         <>
-                           <th>State</th>
-                           <th>County</th>
-                           <th>CBSA</th>
-                           <th>Total Claims</th>
-                           <th>Total Charges</th>
-                         </>
-                       )}
                    </tr>
                  </thead>
                 <tbody>
@@ -1212,7 +1218,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           <td>{row.service_line_description || row.service_line_code}</td>
                           <td>{row.total_claims?.toLocaleString()}</td>
                           <td>{formatCurrency(row.total_charges)}</td>
-                          <td>{row.unique_providers}</td>
+                          <td>{row.unique_billing_providers}</td>
+                          <td>{row.unique_performing_providers}</td>
                         </>
                       )}
                       {aggregation === "temporal" && (
@@ -1220,16 +1227,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           <td>{row.date_string}</td>
                           <td>{row.total_claims?.toLocaleString()}</td>
                           <td>{formatCurrency(row.total_charges)}</td>
-                          <td>{row.unique_providers}</td>
-                        </>
-                      )}
-                      {aggregation === "geographic" && (
-                        <>
-                          <td>{row.state}</td>
-                          <td>{row.county}</td>
-                          <td>{row.cbsa_name}</td>
-                          <td>{row.total_claims?.toLocaleString()}</td>
-                          <td>{formatCurrency(row.total_charges)}</td>
+                          <td>{row.unique_billing_providers}</td>
+                          <td>{row.unique_performing_providers}</td>
                         </>
                       )}
                     </tr>

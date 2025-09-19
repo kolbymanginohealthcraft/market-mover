@@ -8,20 +8,8 @@ const router = express.Router();
 const MONTHS_LOOKBACK = 12;
 const CURRENT_DATE_FUNCTION = 'CURRENT_DATE()';
 
-// Define available table names and their fields
+// Define available table names and their fields - Only volume_procedure
 const CLAIMS_TABLES = {
-  "volume_diagnosis": { 
-    type: "volume", 
-    fields: { 
-      npiField: "billing_provider_npi", 
-      nameField: "billing_provider_name",
-      codeField: "code",
-      payorGroupField: "payor_group",
-      serviceLineField: "service_line_code",
-      serviceLineDescField: "service_line_description",
-      chargeField: "charge_total"
-    } 
-  },
   "volume_procedure": { 
     type: "volume", 
     fields: { 
@@ -36,15 +24,11 @@ const CLAIMS_TABLES = {
   }
 };
 
-// Define available perspectives and their fields
+// Define available perspectives and their fields - Only billing
 const PROVIDER_PERSPECTIVES = {
   "billing": { 
     npiField: "billing_provider_npi", 
     nameField: "billing_provider_name" 
-  },
-  "performing": { 
-    npiField: "performing_provider_npi", 
-    nameField: "performing_provider_name" 
   }
 };
 
@@ -56,7 +40,6 @@ router.post("/claims-data", async (req, res) => {
     const {
       npis,
       tableName,
-      perspective = "billing",
       filters = {},
       aggregation = "provider",
       limit = 100
@@ -65,7 +48,6 @@ router.post("/claims-data", async (req, res) => {
     console.log("🔍 Parsed request data:", {
       npis: npis?.length || 0, 
       tableName,
-      perspective,
       filters,
       aggregation,
       limit
@@ -88,22 +70,14 @@ router.post("/claims-data", async (req, res) => {
       });
     }
 
-    if (!PROVIDER_PERSPECTIVES[perspective]) {
-      console.log("❌ Validation failed: Invalid perspective", perspective);
-      return res.status(400).json({
-        success: false,
-        message: `Invalid perspective. Available perspectives: ${Object.keys(PROVIDER_PERSPECTIVES).join(', ')}`
-      });
-    }
-
     const tableInfo = CLAIMS_TABLES[tableName];
-    const perspectiveFields = PROVIDER_PERSPECTIVES[perspective];
+    const perspectiveFields = PROVIDER_PERSPECTIVES["billing"];
     
     console.log("🔍 Table info:", tableInfo);
     console.log("🔍 Perspective fields:", perspectiveFields);
 
     // Check cache
-    const cacheKey = `claims-data-${tableName}-${perspective}-${aggregation}-${JSON.stringify(filters)}-${npis.sort().join(',')}`;
+    const cacheKey = `claims-data-${tableName}-billing-${aggregation}-${JSON.stringify(filters)}-${npis.sort().join(',')}`;
     console.log("🔍 Cache key:", cacheKey);
     
     const cachedResult = cache.get(cacheKey);
@@ -139,6 +113,27 @@ router.post("/claims-data", async (req, res) => {
       if (filters.serviceLine) {
         filterConditions.push(`c.${tableInfo.fields.serviceLineField} = @serviceLine`);
         filterParams.serviceLine = filters.serviceLine;
+      }
+      
+      // Breadcrumb drill-down filters
+      if (filters.providerNpi) {
+        filterConditions.push(`c.billing_provider_npi = @providerNpi`);
+        filterParams.providerNpi = filters.providerNpi;
+      }
+      
+      if (filters.dateMonth) {
+        filterConditions.push(`CAST(c.date__month_grain AS STRING) = @dateMonth`);
+        filterParams.dateMonth = filters.dateMonth;
+      }
+      
+      if (filters.state) {
+        filterConditions.push(`c.billing_provider_state = @state`);
+        filterParams.state = filters.state;
+      }
+      
+      if (filters.county) {
+        filterConditions.push(`c.billing_provider_county = @county`);
+        filterParams.county = filters.county;
       }
       
       if (filters.patientGender) {
@@ -278,18 +273,33 @@ router.post("/claims-data", async (req, res) => {
       const filterParams = { npis, limit };
       const filterClause = buildFilterConditions(filters, filterParams);
       
-      console.log("🔍 Applied filters:", filters);
-      console.log("🔍 Filter clause:", filterClause);
-      console.log("🔍 Filter params:", filterParams);
+      // Determine if we're looking at billing or performing providers based on the frontend aggregation
+      const isPerformingProvider = req.body.aggregation === 'performing_provider';
+      const providerFields = isPerformingProvider ? {
+        npiField: "performing_provider_npi",
+        nameField: "performing_provider_name"
+      } : perspectiveFields;
+      
+    console.log("🔍 Applied filters:", filters);
+    console.log("🔍 Filter clause:", filterClause);
+    console.log("🔍 Filter params:", filterParams);
+    console.log("🔍 Breadcrumb filters detected:", {
+      providerNpi: filters.providerNpi,
+      serviceLine: filters.serviceLine,
+      dateMonth: filters.dateMonth,
+      state: filters.state,
+      county: filters.county
+    });
 
       // First, get summary stats from ALL providers (no limit)
       const summaryQuery = `
         SELECT 
           SUM(c.count) as grand_total_claims,
           ${getChargeCalculation()} as grand_total_charges,
-          COUNT(DISTINCT c.${perspectiveFields.npiField}) as total_unique_providers
+          COUNT(DISTINCT c.billing_provider_npi) as total_unique_billing_providers,
+          COUNT(DISTINCT c.performing_provider_npi) as total_unique_performing_providers
         FROM \`aegis_access.${tableName}\` c
-        WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
+        WHERE c.${providerFields.npiField} IN UNNEST(@npis)
           AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
       `;
@@ -297,25 +307,25 @@ router.post("/claims-data", async (req, res) => {
       // Then, get detailed provider data (limited for display)
       const detailQuery = `
         SELECT 
-          c.${perspectiveFields.npiField} as npi,
-          c.${perspectiveFields.nameField} as provider_name,
+          c.${providerFields.npiField} as npi,
+          c.${providerFields.nameField} as provider_name,
           SUM(c.count) as total_claims,
           ${getChargeCalculation()} as total_charges,
           COUNT(DISTINCT c.date__month_grain) as months_with_activity,
           ROUND(SUM(c.count) / COUNT(DISTINCT c.date__month_grain), 0) as avg_monthly_claims,
           MAX(c.date__month_grain) as last_activity_date,
-          MAX(CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_taxonomy_classification 
-                   WHEN c.${perspectiveFields.npiField} = c.performing_provider_npi THEN c.performing_provider_taxonomy_classification
+          MAX(CASE WHEN c.${providerFields.npiField} = c.billing_provider_npi THEN c.billing_provider_taxonomy_classification 
+                   WHEN c.${providerFields.npiField} = c.performing_provider_npi THEN c.performing_provider_taxonomy_classification
                    ELSE NULL END) as taxonomy_classification,
-          MAX(CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_city 
+          MAX(CASE WHEN c.${providerFields.npiField} = c.billing_provider_npi THEN c.billing_provider_city 
                    ELSE NULL END) as city,
-          MAX(CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_state 
+          MAX(CASE WHEN c.${providerFields.npiField} = c.billing_provider_npi THEN c.billing_provider_state 
                    ELSE NULL END) as state
         FROM \`aegis_access.${tableName}\` c
-        WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
+        WHERE c.${providerFields.npiField} IN UNNEST(@npis)
           AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
           ${filterClause}
-        GROUP BY c.${perspectiveFields.npiField}, c.${perspectiveFields.nameField}
+        GROUP BY c.${providerFields.npiField}, c.${providerFields.nameField}
         ORDER BY total_claims DESC
         LIMIT @limit
       `;
@@ -335,7 +345,8 @@ router.post("/claims-data", async (req, res) => {
         summary: {
           grand_total_claims: summary.grand_total_claims,
           grand_total_charges: summary.grand_total_charges,
-          total_unique_providers: summary.total_unique_providers,
+          total_unique_billing_providers: summary.total_unique_billing_providers,
+          total_unique_performing_providers: summary.total_unique_performing_providers,
           displayed_records: rows.length
         }
       };
@@ -353,7 +364,6 @@ router.post("/claims-data", async (req, res) => {
         summary: resultWithSummary.summary,
         metadata: {
           tableInfo: CLAIMS_TABLES[tableName],
-          perspective,
           aggregation,
           filters,
           npisRequested: npis.length,
@@ -369,14 +379,28 @@ router.post("/claims-data", async (req, res) => {
       const filterParams = { npis, limit };
       const filterClause = buildFilterConditions(filters, filterParams);
 
-      // Aggregate by service line
-      query = `
+      // First, get summary stats from ALL data (no limit)
+      const summaryQuery = `
+        SELECT 
+          SUM(c.count) as grand_total_claims,
+          ${getChargeCalculation()} as grand_total_charges,
+          COUNT(DISTINCT c.billing_provider_npi) as total_unique_billing_providers,
+          COUNT(DISTINCT c.performing_provider_npi) as total_unique_performing_providers
+        FROM \`aegis_access.${tableName}\` c
+        WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
+          ${filterClause}
+      `;
+
+      // Then, get detailed service line data (limited for display)
+      const detailQuery = `
         SELECT 
           c.${tableInfo.fields.serviceLineField} as service_line_code,
           c.${tableInfo.fields.serviceLineDescField} as service_line_description,
           SUM(c.count) as total_claims,
           ${getChargeCalculation()} as total_charges,
-          COUNT(DISTINCT c.${perspectiveFields.npiField}) as unique_providers,
+          COUNT(DISTINCT c.billing_provider_npi) as unique_billing_providers,
+          COUNT(DISTINCT c.performing_provider_npi) as unique_performing_providers,
           COUNT(DISTINCT c.date__month_grain) as months_with_activity
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
@@ -386,14 +410,70 @@ router.post("/claims-data", async (req, res) => {
         ORDER BY total_claims DESC
         LIMIT @limit
       `;
-      params = filterParams;
+
+      // Execute both queries
+      const [summaryResult, detailResult] = await Promise.all([
+        vendorBigQueryClient.query({ query: summaryQuery, params: filterParams }),
+        vendorBigQueryClient.query({ query: detailQuery, params: filterParams })
+      ]);
+
+      const summary = summaryResult[0][0];
+      const rows = detailResult[0];
+
+      // Add summary metadata to the response
+      const resultWithSummary = {
+        data: rows,
+        summary: {
+          grand_total_claims: summary.grand_total_claims,
+          grand_total_charges: summary.grand_total_charges,
+          total_unique_billing_providers: summary.total_unique_billing_providers,
+          total_unique_performing_providers: summary.total_unique_performing_providers,
+          displayed_records: rows.length
+        }
+      };
+
+      console.log(`✅ Retrieved ${rows.length} records of service line data (showing top ${limit} of all service lines)`);
+      console.log(`🔍 Summary stats:`, resultWithSummary.summary);
+
+      // Cache the result for 5 minutes
+      cache.set(cacheKey, resultWithSummary, 300);
+
+      res.json({
+        success: true,
+        data: resultWithSummary.data,
+        summary: resultWithSummary.summary,
+        metadata: {
+          tableInfo: CLAIMS_TABLES[tableName],
+          aggregation,
+          filters,
+          npisRequested: npis.length,
+          recordsReturned: rows.length,
+          cacheKey
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      return; // Exit early since we handled the response
     } else if (aggregation === "temporal") {
       // Build filter conditions using helper function
       const filterParams = { npis, limit };
       const filterClause = buildFilterConditions(filters, filterParams);
 
-      // Aggregate by time period
-      query = `
+      // First, get summary stats from ALL data (no limit)
+      const summaryQuery = `
+        SELECT 
+          SUM(c.count) as grand_total_claims,
+          ${getChargeCalculation()} as grand_total_charges,
+          COUNT(DISTINCT c.billing_provider_npi) as total_unique_billing_providers,
+          COUNT(DISTINCT c.performing_provider_npi) as total_unique_performing_providers
+        FROM \`aegis_access.${tableName}\` c
+        WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
+          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
+          ${filterClause}
+      `;
+
+      // Then, get detailed temporal data (limited for display)
+      const detailQuery = `
         SELECT 
           c.date__month_grain,
           CAST(c.date__month_grain AS STRING) as date_string,
@@ -408,76 +488,57 @@ router.post("/claims-data", async (req, res) => {
         ORDER BY c.date__month_grain DESC
         LIMIT @limit
       `;
-      params = filterParams;
-    } else if (aggregation === "geographic") {
-      // Build filter conditions using helper function
-      const filterParams = { npis, limit };
-      const filterClause = buildFilterConditions(filters, filterParams);
 
-      // Aggregate by geographic location using embedded provider location data
-      // Note: Only billing providers have location data, performing providers don't
-      query = `
-        SELECT 
-          MAX(CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_state 
-                   ELSE NULL END) as state,
-          MAX(CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_county 
-                   ELSE NULL END) as county,
-          MAX(CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_cbsa_name 
-                   ELSE NULL END) as cbsa_name,
-          COUNT(DISTINCT c.${perspectiveFields.npiField}) as unique_providers,
-          SUM(c.count) as total_claims,
-          ${getChargeCalculation()} as total_charges,
-          COUNT(DISTINCT c.date__month_grain) as months_with_activity,
-          ROUND(SUM(c.count) / COUNT(DISTINCT c.date__month_grain), 0) as avg_monthly_claims
-        FROM \`aegis_access.${tableName}\` c
-        WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
-          AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)
-          ${filterClause}
-        GROUP BY 
-          CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_state 
-               ELSE NULL END,
-          CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_county 
-               ELSE NULL END,
-          CASE WHEN c.${perspectiveFields.npiField} = c.billing_provider_npi THEN c.billing_provider_cbsa_name 
-               ELSE NULL END
-        ORDER BY total_claims DESC
-        LIMIT @limit
-      `;
-      params = filterParams;
+      // Execute both queries
+      const [summaryResult, detailResult] = await Promise.all([
+        vendorBigQueryClient.query({ query: summaryQuery, params: filterParams }),
+        vendorBigQueryClient.query({ query: detailQuery, params: filterParams })
+      ]);
+
+      const summary = summaryResult[0][0];
+      const rows = detailResult[0];
+
+      // Add summary metadata to the response
+      const resultWithSummary = {
+        data: rows,
+        summary: {
+          grand_total_claims: summary.grand_total_claims,
+          grand_total_charges: summary.grand_total_charges,
+          total_unique_billing_providers: summary.total_unique_billing_providers,
+          total_unique_performing_providers: summary.total_unique_performing_providers,
+          displayed_records: rows.length
+        }
+      };
+
+      console.log(`✅ Retrieved ${rows.length} records of temporal data (showing top ${limit} of all time periods)`);
+      console.log(`🔍 Summary stats:`, resultWithSummary.summary);
+
+      // Cache the result for 5 minutes
+      cache.set(cacheKey, resultWithSummary, 300);
+
+      res.json({
+        success: true,
+        data: resultWithSummary.data,
+        summary: resultWithSummary.summary,
+        metadata: {
+          tableInfo: CLAIMS_TABLES[tableName],
+          aggregation,
+          filters,
+          npisRequested: npis.length,
+          recordsReturned: rows.length,
+          cacheKey
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      return; // Exit early since we handled the response
     } else {
       console.log("❌ Invalid aggregation type:", aggregation);
       return res.status(400).json({
         success: false,
-        message: `Invalid aggregation type. Available types: provider, service_line, temporal, geographic`
+        message: `Invalid aggregation type. Available types: provider, service_line, temporal`
       });
     }
-
-    console.log("🔍 Final query:", query);
-    console.log("🔍 Query params:", params);
-
-    console.log("🔍 About to execute BigQuery query...");
-    const [rows] = await vendorBigQueryClient.query({ query, params });
-
-    console.log(`✅ Retrieved ${rows.length} records of claims data`);
-    console.log(`🔍 Sample data:`, rows.slice(0, 2));
-
-    // Cache the result for 5 minutes
-    cache.set(cacheKey, rows, 300);
-    
-    res.json({
-      success: true,
-      data: rows,
-      metadata: {
-        tableInfo: CLAIMS_TABLES[tableName],
-        perspective,
-        aggregation,
-        filters,
-        npisRequested: npis.length,
-        recordsReturned: rows.length,
-        cacheKey
-      },
-      timestamp: new Date().toISOString()
-    });
     
   } catch (error) {
     console.error("❌ Error fetching claims data:", error);
@@ -509,14 +570,12 @@ router.post("/claims-filters", async (req, res) => {
     
     const {
       npis,
-      tableName,
-      perspective = "billing"
+      tableName
     } = req.body;
 
     console.log("🔍 Parsed filters request data:", {
       npis: npis?.length || 0, 
-      tableName,
-      perspective
+      tableName
     });
     
     // Validate inputs
@@ -536,22 +595,14 @@ router.post("/claims-filters", async (req, res) => {
       });
     }
 
-    if (!PROVIDER_PERSPECTIVES[perspective]) {
-      console.log("❌ Validation failed: Invalid perspective", perspective);
-      return res.status(400).json({
-      success: false,
-        message: `Invalid perspective. Available perspectives: ${Object.keys(PROVIDER_PERSPECTIVES).join(', ')}`
-      });
-    }
-
     const tableInfo = CLAIMS_TABLES[tableName];
-    const perspectiveFields = PROVIDER_PERSPECTIVES[perspective];
+    const perspectiveFields = PROVIDER_PERSPECTIVES["billing"];
     
     console.log("🔍 Table info:", tableInfo);
     console.log("🔍 Perspective fields:", perspectiveFields);
 
     // Check cache
-    const cacheKey = `claims-filters-${tableName}-${perspective}-${npis.sort().join(',')}`;
+    const cacheKey = `claims-filters-${tableName}-billing-${npis.sort().join(',')}`;
     console.log("🔍 Cache key:", cacheKey);
     
     const cachedResult = cache.get(cacheKey);
@@ -1164,7 +1215,6 @@ router.post("/claims-filters", async (req, res) => {
       data: filters,
       metadata: {
         tableInfo: CLAIMS_TABLES[tableName],
-        perspective,
         npisRequested: npis.length,
         cacheKey
       },

@@ -1,0 +1,182 @@
+.container {
+  padding: 24px;
+  margin: 0;
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.bannerContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bannerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(29, 173, 190, 0.1);
+  border-radius: 8px;
+  color: #1DADBE;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.boundaryTypeSelector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.label {
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mapSection {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 24px;
+  min-height: 500px;
+}
+
+.infoSection {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.infoCard {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.infoCard h4 {
+  margin: 0 0 12px 0;
+  color: #212529;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.infoCard p {
+  margin: 0 0 12px 0;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.additionalInfo {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.additionalInfo p {
+  margin: 0;
+  font-size: 14px;
+  color: #495057;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1DADBE;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.error h3 {
+  margin: 0 0 8px 0;
+  color: #dc3545;
+  font-size: 18px;
+}
+
+.error p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .boundaryTypeSelector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .buttonGroup {
+    flex-wrap: wrap;
+  }
+  
+  .mapSection {
+    min-height: 400px;
+  }
+}
