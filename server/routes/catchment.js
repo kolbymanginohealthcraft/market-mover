@@ -1,6 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
 import cache from "../utils/cache.js";
+import myBigQuery from "../utils/myBigQueryClient.js";
 
 const router = express.Router();
 
@@ -162,6 +163,157 @@ router.post("/catchment-data", async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error in catchment-data endpoint:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error"
+    });
+  }
+});
+
+// New endpoint for zip code boundary intersection analysis (Way 2)
+router.post("/catchment-zip-analysis", async (req, res) => {
+  try {
+    console.log("🔍 Zip code boundary analysis request received:", JSON.stringify(req.body, null, 2));
+    
+    const {
+      centerLat,
+      centerLon,
+      radiusInMiles,
+      analysisType = "zip_to_hospitals" // or "hospitals_to_zip"
+    } = req.body;
+
+    // Validate inputs
+    if (!centerLat || !centerLon || !radiusInMiles) {
+      console.log("❌ Validation failed: centerLat, centerLon, and radiusInMiles are required");
+      return res.status(400).json({
+        success: false,
+        message: "centerLat, centerLon, and radiusInMiles are required"
+      });
+    }
+
+    const radiusMeters = parseFloat(radiusInMiles) * 1609.34;
+    const centerLatFloat = parseFloat(centerLat);
+    const centerLonFloat = parseFloat(centerLon);
+
+    console.log(`🔍 Analyzing zip codes within ${radiusInMiles} miles of (${centerLatFloat}, ${centerLonFloat})`);
+
+    // Query to find zip codes that intersect with the circular area
+    const zipQuery = `
+      SELECT 
+        zip_code,
+        zip_code_geom,
+        ST_AREA(zip_code_geom) as zip_area_meters,
+        ST_DISTANCE(
+          ST_GEOGPOINT(CAST(ST_X(ST_CENTROID(zip_code_geom)) AS FLOAT64), CAST(ST_Y(ST_CENTROID(zip_code_geom)) AS FLOAT64)),
+          ST_GEOGPOINT(@centerLon, @centerLat)
+        ) as distance_to_center_meters
+      FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\`
+      WHERE ST_INTERSECTS(
+        zip_code_geom,
+        ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
+      )
+      ORDER BY distance_to_center_meters ASC
+    `;
+
+    console.log("🔍 Executing zip code boundary intersection query...");
+    const [zipRows] = await myBigQuery.query({
+      query: zipQuery,
+      location: 'US',
+      params: {
+        centerLat: centerLatFloat,
+        centerLon: centerLonFloat,
+        radiusMeters: radiusMeters
+      }
+    });
+
+    console.log(`📊 Found ${zipRows.length} zip codes intersecting with the area`);
+
+    if (zipRows.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        metadata: {
+          totalZipCodes: 0,
+          analysisType: analysisType,
+          centerPoint: { lat: centerLatFloat, lon: centerLonFloat },
+          radiusMiles: radiusInMiles,
+          source: "BigQuery Zip Code Boundaries"
+        }
+      });
+    }
+
+    // Extract zip codes for Hospital Service Area analysis
+    const zipCodes = zipRows.map(row => row.zip_code);
+    console.log(`🔍 Extracted ${zipCodes.length} zip codes for Hospital Service Area analysis`);
+
+    // Now query the Hospital Service Area dataset for these zip codes
+    const datasetId = await getCurrentDatasetId();
+    let hospitalData = [];
+
+    if (zipCodes.length > 0) {
+      // Process zip codes in batches for the CMS API
+      const batchSize = 25;
+      let allHospitalData = [];
+      
+      for (let i = 0; i < zipCodes.length; i += batchSize) {
+        const batch = zipCodes.slice(i, i + batchSize);
+        console.log(`🔍 Processing zip code batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(zipCodes.length/batchSize)} with ${batch.length} zip codes`);
+        
+        // Use CMS API filter for zip codes
+        const zipFilters = batch.map(zip => `filter[condition][value][]=${zip}`).join('&');
+        const apiUrl = `https://data.cms.gov/data-api/v1/dataset/${datasetId}/data?filter[condition][path]=ZIP_CD_OF_RESIDENCE&filter[condition][operator]=IN&${zipFilters}&limit=0`;
+        
+        console.log(`🔍 Fetching hospital data for zip codes: ${apiUrl.substring(0, 100)}...`);
+        
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          console.warn(`⚠️ Failed to fetch data for batch ${Math.floor(i/batchSize) + 1}: ${response.status}`);
+          continue;
+        }
+        
+        const batchData = await response.json();
+        console.log(`📊 Received ${batchData.length} hospital records from batch ${Math.floor(i/batchSize) + 1}`);
+        
+        allHospitalData = allHospitalData.concat(batchData);
+      }
+      
+      hospitalData = allHospitalData;
+      console.log(`📊 Total hospital records received: ${hospitalData.length}`);
+    }
+
+    // Filter out suppressed data
+    const filteredHospitalData = hospitalData.filter(row => 
+      row.TOTAL_CASES !== "*" && 
+      row.TOTAL_DAYS_OF_CARE !== "*" && 
+      row.TOTAL_CHARGES !== "*"
+    );
+
+    console.log(`✅ Returning ${filteredHospitalData.length} filtered hospital records for ${zipCodes.length} zip codes`);
+
+    res.json({
+      success: true,
+      data: {
+        zipCodes: zipRows,
+        hospitalData: filteredHospitalData,
+        summary: {
+          totalZipCodes: zipCodes.length,
+          totalHospitalRecords: filteredHospitalData.length,
+          totalCases: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_CASES) || 0), 0),
+          totalDays: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_DAYS_OF_CARE) || 0), 0),
+          totalCharges: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_CHARGES) || 0), 0)
+        }
+      },
+      metadata: {
+        analysisType: analysisType,
+        centerPoint: { lat: centerLatFloat, lon: centerLonFloat },
+        radiusMiles: radiusInMiles,
+        datasetId: datasetId,
+        source: "BigQuery Zip Code Boundaries + CMS Hospital Service Area"
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error in catchment-zip-analysis endpoint:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Internal server error"

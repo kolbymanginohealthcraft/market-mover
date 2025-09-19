@@ -22,6 +22,7 @@ import maEnrollment from "./server/routes/maEnrollment.js";
 import cmsEnrollment from "./server/routes/cmsEnrollment.js";
 import catchment from "./server/routes/catchment.js";
 import batchData from "./server/routes/batchData.js";
+import zipCodes from "./server/routes/zipCodes.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
@@ -69,6 +70,7 @@ app.use("/api", maEnrollment);
 app.use("/api", cmsEnrollment);
 app.use("/api", catchment);
 app.use("/api", batchData);
+app.use("/api", zipCodes);
 
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);

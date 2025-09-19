@@ -236,6 +236,19 @@ router.post("/batch-data", async (req, res) => {
       }
     }
 
+    // Fetch ZIP codes data
+    if (dataTypes.includes('zipCodes')) {
+      try {
+        results.zipCodes = await fetchWithCache('zipCodes', async () => {
+          const response = await fetch(`${req.protocol}://${req.get('host')}/api/zip-codes?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`);
+          const result = await response.json();
+          return result.success ? result.data : [];
+        });
+      } catch (error) {
+        errors.zipCodes = error.message;
+      }
+    }
+
     // Fetch quality measures dates data - OPTIMIZED VERSION
     if (dataTypes.includes('qualityMeasuresDates')) {
       try {

@@ -19,6 +19,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
   const [censusData, setCensusData] = useState(null);
   const [counties, setCounties] = useState([]);
   const [censusTracts, setCensusTracts] = useState([]);
+  const [zipCodes, setZipCodes] = useState([]);
   const [qualityMeasuresDates, setQualityMeasuresDates] = useState({});
   
   // Quality measures data
@@ -39,6 +40,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
   const [ccnsLoading, setCcnsLoading] = useState(false);
   const [npisLoading, setNpisLoading] = useState(false);
   const [censusLoading, setCensusLoading] = useState(false);
+  const [zipCodesLoading, setZipCodesLoading] = useState(false);
   const [qualityMeasuresDatesLoading, setQualityMeasuresDatesLoading] = useState(false);
   const [qualityMeasuresLoading, setQualityMeasuresLoading] = useState(false);
   
@@ -54,6 +56,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
   const [ccnsError, setCcnsError] = useState(null);
   const [npisError, setNpisError] = useState(null);
   const [censusError, setCensusError] = useState(null);
+  const [zipCodesError, setZipCodesError] = useState(null);
   const [qualityMeasuresDatesError, setQualityMeasuresDatesError] = useState(null);
   const [qualityMeasuresError, setQualityMeasuresError] = useState(null);
 
@@ -504,7 +507,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
         body: JSON.stringify({
           provider,
           radiusInMiles,
-          dataTypes: ['providers', 'census', 'ccns', 'npis', 'qualityMeasuresDates']
+          dataTypes: ['providers', 'census', 'ccns', 'npis', 'zipCodes', 'qualityMeasuresDates']
         })
       });
 
@@ -546,6 +549,14 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
         setCounties(Array.from(uniqueCounties));
         setCensusTracts(Array.from(uniqueTracts));
         setCensusDataCompleted(true);
+      }
+      
+      if (batchResult.data.zipCodes) {
+        console.log('🔍 Setting ZIP codes from batch data:', {
+          zipCodesCount: batchResult.data.zipCodes.length,
+          zipCodesSample: batchResult.data.zipCodes.slice(0, 3)
+        });
+        setZipCodes(batchResult.data.zipCodes);
       }
       
       if (batchResult.data.ccns && batchResult.data.npis) {
@@ -697,6 +708,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     censusData,
     counties,
     censusTracts,
+    zipCodes,
     qualityMeasuresDates,
     qualityMeasuresData,
     
@@ -706,6 +718,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     ccnsLoading,
     npisLoading,
     censusLoading,
+    zipCodesLoading,
     qualityMeasuresDatesLoading,
     qualityMeasuresLoading,
     loadingTier,
@@ -722,6 +735,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     ccnsError,
     npisError,
     censusError,
+    zipCodesError,
     qualityMeasuresDatesError,
     qualityMeasuresError,
     
