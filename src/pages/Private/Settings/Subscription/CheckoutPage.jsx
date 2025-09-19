@@ -265,7 +265,7 @@ export default function CheckoutPage() {
               </div>
             )}
             <div className={styles.pricingTotal}>
-              <span>Total</span>
+              <span>Total ({licenseQuantity} users)</span>
               <span>${pricing.total}</span>
             </div>
           </div>
