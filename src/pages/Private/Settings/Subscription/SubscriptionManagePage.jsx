@@ -439,18 +439,6 @@ export default function SubscriptionManagePage() {
               )}
             </div>
             
-            {subscription.discount_percent > 0 && (
-              <div className={styles.detailRow}>
-                <div className={styles.detailItem}>
-                  <div>
-                    <span className={styles.detailLabel}>Discount</span>
-                    <span className={styles.detailValue}>
-                      {subscription.discount_percent}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           </div>
         </div>

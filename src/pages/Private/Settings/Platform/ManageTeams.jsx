@@ -56,8 +56,6 @@ export default function ManageTeams() {
           id,
           name,
           max_users,
-          company_type,
-          industry_vertical,
           created_at,
           created_by,
           profiles(count)
@@ -328,8 +326,7 @@ export default function ManageTeams() {
   };
 
   const filteredTeams = teams.filter(team => 
-    team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    team.company_type?.toLowerCase().includes(searchTerm.toLowerCase())
+    team.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) return <Spinner message="Loading teams..." />;
@@ -421,7 +418,6 @@ export default function ManageTeams() {
                   <div className={styles.teamTitle}>
                     <Building2 size={16} style={{ width: 'var(--icon-size-md)', height: 'var(--icon-size-md)' }} />
                     <h3>{team.name}</h3>
-                    <span className={styles.companyType}>{team.company_type}</span>
                   </div>
                   <div className={styles.teamStats}>
                     <span className={styles.memberCount}>
@@ -465,12 +461,6 @@ export default function ManageTeams() {
                   <div className={styles.detailsGrid}>
                     <div className={styles.detailSection}>
                       <h4>Team Details</h4>
-                      {team.industry_vertical && (
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Industry:</span>
-                          <span className={styles.detailValue}>{team.industry_vertical}</span>
-                        </div>
-                      )}
                       {team.creator && (
                         <div className={styles.detailRow}>
                           <span className={styles.detailLabel}>Created by:</span>
@@ -518,20 +508,6 @@ export default function ManageTeams() {
                             <div className={styles.subscriptionDetail}>
                               <span className={styles.detailLabel}>Status:</span>
                               <span className={`${styles.detailValue} ${styles[sub.status]}`}>{sub.status}</span>
-                            </div>
-                            <div className={styles.subscriptionDetail}>
-                              <span className={styles.detailLabel}>Licenses:</span>
-                              <span className={styles.detailValue}>{sub.licenses}</span>
-                            </div>
-                            <div className={styles.subscriptionDetail}>
-                              <span className={styles.detailLabel}>Billing:</span>
-                              <span className={styles.detailValue}>Monthly</span>
-                            </div>
-                            <div className={styles.subscriptionDetail}>
-                              <span className={styles.detailLabel}>Period:</span>
-                              <span className={styles.detailValue}>
-                                {formatDate(sub.current_period_start)} - {formatDate(sub.current_period_end)}
-                              </span>
                             </div>
                           </div>
                         ))
