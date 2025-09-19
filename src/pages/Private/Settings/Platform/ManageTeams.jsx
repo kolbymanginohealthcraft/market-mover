@@ -125,7 +125,7 @@ export default function ManageTeams() {
               if (teamIds.length > 0) {
                 const { data: membersData, error: membersError } = await supabase
                   .from('profiles')
-                  .select('id, first_name, last_name, email, team_id, role')
+                  .select('id, first_name, last_name, email, team_id, role, title, updated_at, accepted_terms')
                   .in('team_id', teamIds);
 
                 if (membersError) {
@@ -482,63 +482,31 @@ export default function ManageTeams() {
 
               {/* Expandable Details */}
               {expandedTeams.has(team.id) && (
-                <div className={styles.expandedContent}>
-                  <div className={styles.detailsGrid}>
-                    <div className={styles.detailSection}>
-                      <h4>Team Details</h4>
-                      {team.creator && (
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Created by:</span>
-                          <span className={styles.detailValue}>
-                            {team.creator.first_name} {team.creator.last_name}
+                <div className={styles.expandedContent} onClick={(e) => e.stopPropagation()}>
+                  {/* Team Summary Row */}
+                  <div className={styles.teamSummary}>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Created</span>
+                      <span className={styles.summaryValue}>{formatDate(team.created_at)}</span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Created by</span>
+                      <span className={styles.summaryValue}>
+                        {team.creator ? `${team.creator.first_name} ${team.creator.last_name}` : 'Unknown'}
+                      </span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Members</span>
+                      <span className={styles.summaryValue}>{team.currentUsers}/{team.max_users}</span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Subscription</span>
+                      <span className={styles.summaryValue}>
+                        {team.subscriptions && team.subscriptions.length > 0 ? (
+                          <span className={`${styles.statusBadge} ${styles[team.subscriptions[0].status]}`}>
+                            {team.subscriptions[0].status}
                           </span>
-                        </div>
-                      )}
-                      <div className={styles.detailRow}>
-                        <span className={styles.detailLabel}>Created:</span>
-                        <span className={styles.detailValue}>{formatDate(team.created_at)}</span>
-                      </div>
-                    </div>
-
-                    <div className={styles.detailSection}>
-                      <h4>Team Members ({team.members?.length || 0})</h4>
-                      {team.members && team.members.length > 0 ? (
-                        <div className={styles.membersList}>
-                          {team.members.map(member => (
-                            <div key={member.id} className={styles.memberItem}>
-                              <div className={styles.memberInfo}>
-                                <div className={styles.memberName}>
-                                  {member.first_name} {member.last_name}
-                                </div>
-                                <div className={styles.memberEmail}>{member.email}</div>
-                              </div>
-                              <div className={styles.memberRole}>
-                                <span className={styles.roleBadge}>{member.role}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className={styles.noMembers}>
-                          <p>No team members found.</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className={styles.detailSection}>
-                      <h4>Subscriptions</h4>
-                      {team.subscriptions && team.subscriptions.length > 0 ? (
-                        team.subscriptions.map(sub => (
-                          <div key={sub.id} className={styles.subscriptionItem}>
-                            <div className={styles.subscriptionDetail}>
-                              <span className={styles.detailLabel}>Status:</span>
-                              <span className={`${styles.detailValue} ${styles[sub.status]}`}>{sub.status}</span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className={styles.noSubscription}>
-                          <p>No active subscription.</p>
+                        ) : (
                           <Button 
                             variant="blue" 
                             size="sm" 
@@ -549,9 +517,50 @@ export default function ManageTeams() {
                           >
                             Create Subscription
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </span>
                     </div>
+                  </div>
+
+                  {/* Team Members Table */}
+                  <div className={styles.membersSection}>
+                    <h4 className={styles.sectionTitle}>Team Members ({team.members?.length || 0})</h4>
+                    {team.members && team.members.length > 0 ? (
+                      <div className={styles.membersTable}>
+                        <div className={styles.tableHeader}>
+                          <div className={styles.tableCell}>Name</div>
+                          <div className={styles.tableCell}>Email</div>
+                          <div className={styles.tableCell}>Title</div>
+                          <div className={styles.tableCell}>Role</div>
+                        </div>
+                        <div className={styles.tableBody}>
+                          {team.members.map(member => (
+                            <div key={member.id} className={styles.tableRow}>
+                              <div className={styles.tableCell}>
+                                <div className={styles.memberName}>
+                                  {member.first_name} {member.last_name}
+                                </div>
+                              </div>
+                              <div className={styles.tableCell}>
+                                <span className={styles.memberEmail}>{member.email}</span>
+                              </div>
+                              <div className={styles.tableCell}>
+                                <span className={styles.memberTitle}>{member.title || '—'}</span>
+                              </div>
+                              <div className={styles.tableCell}>
+                                <span className={`${styles.roleBadge} ${styles[member.role?.replace(' ', '')]}`}>
+                                  {member.role}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.noMembers}>
+                        <p>No team members found.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
