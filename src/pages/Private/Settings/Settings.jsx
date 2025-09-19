@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import styles from "./Settings.module.css";
-import { hasPlatformAccess, isTeamAdmin } from "../../../utils/roleHelpers";
-import { supabase } from "../../../app/supabaseClient";
+import { useUser } from "../../../components/Context/UserContext";
 import {
   ProfileTab,
   UsersTab,
@@ -17,66 +16,42 @@ import LegalTab from "./LegalTab";
 export default function Settings() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, profile, permissions, loading: userLoading } = useUser();
   
   // Extract the active tab from the current path
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[pathSegments.length - 1] || "profile";
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          setUserRole(profile?.role);
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
 
   const handleTabChange = (newTab) => {
     navigate(`/app/settings/${newTab}`);
   };
 
   // Check if user can access restricted tabs
-  const canAccessPlatform = hasPlatformAccess(userRole);
+  const canAccessPlatform = permissions.canAccessPlatform;
   const canAccessSubscription = true; // Remove team admin restriction
-  const canAccessUsers = isTeamAdmin(userRole);
-  const canAccessTaggedProviders = userRole !== null;
-  const canAccessColors = userRole !== null;
+  const canAccessUsers = permissions.canAccessUsers;
+  const canAccessTaggedProviders = profile !== null;
+  const canAccessColors = permissions.canAccessUsers; // Require team admin or above for branding
 
   // If user tries to access platform tab without permission, redirect to profile
-  if (!loading && activeTab === "platform" && !canAccessPlatform) {
+  if (!userLoading && activeTab === "platform" && !canAccessPlatform) {
     return <Navigate to="/app/settings/profile" replace />;
   }
 
   // Subscription tab is now accessible to all users
 
   // If user tries to access company tab without permission, redirect to profile
-  if (!loading && activeTab === "company" && !canAccessUsers) {
+  if (!userLoading && activeTab === "company" && !canAccessUsers) {
     return <Navigate to="/app/settings/profile" replace />;
   }
 
   // If user tries to access users tab without permission, redirect to profile
-  if (!loading && activeTab === "users" && !canAccessUsers) {
+  if (!userLoading && activeTab === "users" && !canAccessUsers) {
     return <Navigate to="/app/settings/profile" replace />;
   }
 
   // If user tries to access branding tab without permission, redirect to profile
-  if (!loading && activeTab === "branding" && !canAccessColors) {
+  if (!userLoading && activeTab === "branding" && !canAccessColors) {
     return <Navigate to="/app/settings/profile" replace />;
   }
 

@@ -13,6 +13,7 @@ import ScrollToTop from "../components/Navigation/ScrollToTop";
 import UnifiedSidebarLayout from "../components/Layouts/UnifiedSidebarLayout";
 
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
+import { UserProvider } from "../components/Context/UserContext";
 
 // Pages
 import LandingPage from "../pages/Public/Marketing/LandingPage";
@@ -89,7 +90,7 @@ export default function App() {
   if (isLoading) return null;
 
   return (
-    <>
+    <UserProvider>
       <ScrollToTop />
       <ProviderContextProvider>
           <Routes>
@@ -153,6 +154,6 @@ export default function App() {
             } />
           </Routes>
         </ProviderContextProvider>
-    </>
+    </UserProvider>
   );
 }

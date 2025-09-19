@@ -1,44 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../../app/supabaseClient';
-import { hasPlatformAccess, isTeamAdmin } from '../../../utils/roleHelpers';
+import { useUser } from '../../../components/Context/UserContext';
 import styles from './SettingsNavbar.module.css';
 
 export default function SettingsTabs({ activeTab, setActiveTab }) {
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          setUserRole(profile?.role);
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
+  const { user, profile, permissions, loading: userLoading } = useUser();
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
   };
 
-  const canAccessPlatform = hasPlatformAccess(userRole);
+  const canAccessPlatform = permissions.canAccessPlatform;
   const canAccessSubscription = true; // Remove team admin restriction
-  const canAccessUsers = isTeamAdmin(userRole);
-  const canAccessTaggedProviders = userRole !== null;
-  const canAccessColors = userRole !== null;
+  const canAccessUsers = permissions.canAccessUsers;
+  const canAccessTaggedProviders = profile !== null;
+  const canAccessColors = permissions.canAccessUsers; // Require team admin or above for branding
 
   // Remove loading spinner for better UX - user role fetch is very fast
 

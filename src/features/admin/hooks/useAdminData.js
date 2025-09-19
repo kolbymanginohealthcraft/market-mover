@@ -40,7 +40,7 @@ export const useAdminData = () => {
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("first_name, last_name, company, title, role, team_id")
+        .select("first_name, last_name, title, role, team_id")
         .eq("id", user.id)
         .single();
 

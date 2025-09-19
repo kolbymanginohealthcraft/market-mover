@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../../app/supabaseClient';
 import Button from '../../../../components/Buttons/Button';
 import styles from './ManageFeedback.module.css';
-import { hasPlatformAccess } from '../../../../utils/roleHelpers';
+import { useUser } from '../../../../components/Context/UserContext';
 
 export default function ManageFeedback() {
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, profile, permissions, loading: userLoading } = useUser();
   const [activeTab, setActiveTab] = useState('testimonials');
   const [testimonials, setTestimonials] = useState([]);
   const [featureRequests, setFeatureRequests] = useState([]);
@@ -16,30 +15,7 @@ export default function ManageFeedback() {
   const [testimonialStatus, setTestimonialStatus] = useState('pending');
   const [featureRequestStatus, setFeatureRequestStatus] = useState('pending');
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      
-      if (!user) return;
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error checking admin status:', error);
-        return;
-      }
-
-      setIsAdmin(hasPlatformAccess(profile?.role));
-      console.log('Admin status:', hasPlatformAccess(profile?.role), 'Role:', profile?.role);
-    };
-
-    checkUser();
-  }, []);
+  const isAdmin = permissions.canAccessPlatform;
 
   useEffect(() => {
     if (isAdmin) {

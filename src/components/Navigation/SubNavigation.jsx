@@ -28,40 +28,15 @@ import {
   Scale
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
-import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
-import { supabase } from '../../app/supabaseClient';
+import { useUser } from '../Context/UserContext';
 import { useUserTeam } from '../../hooks/useUserTeam';
 
 const SubNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [marketsViewMode, setMarketsViewMode] = useState('list');
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, profile, permissions, loading: userLoading } = useUser();
   const { hasTeam, loading: teamLoading } = useUserTeam();
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          setUserRole(profile?.role);
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
 
   
   // Extract the active tab from the current path
@@ -653,10 +628,10 @@ const SubNavigation = () => {
   // Handle settings pages
   if (location.pathname.includes('/settings')) {
     // Check if user can access restricted tabs
-    const canAccessPlatform = hasPlatformAccess(userRole);
+    const canAccessPlatform = permissions.canAccessPlatform;
     const canAccessSubscription = true; // Remove team admin restriction - accessible to all users
-    const canAccessUsers = isTeamAdmin(userRole);
-    const canAccessColors = userRole !== null;
+    const canAccessUsers = permissions.canAccessUsers;
+    const canAccessColors = permissions.canAccessUsers; // Require team admin or above for branding
 
     // Special handling for platform sub-routes
     let currentActiveTab = activeTab;
