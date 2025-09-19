@@ -26,7 +26,7 @@
 .teamsList {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .emptyState {
@@ -56,21 +56,93 @@
 .teamCard {
   background: white;
   border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .teamCard:hover {
-  border-color: #007bff;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .teamHeader {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.teamMain {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.teamTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teamTitle h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--gray-800);
+  font-weight: 600;
+}
+
+.companyType {
+  background: var(--blue-100);
+  color: var(--blue-700);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.teamStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.memberCount,
+.subscriptionCount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.teamActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.expandedContent {
+  padding: 20px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-100);
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.detailSection h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--gray-700);
+  font-weight: 600;
 }
 
 .teamInfo {

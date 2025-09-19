@@ -19,9 +19,7 @@ export default function ManageTeams() {
   // Form state for create/edit
   const [formData, setFormData] = useState({
     name: '',
-    max_users: 5,
-    company_type: 'Provider',
-    industry_vertical: ''
+    max_users: 5
   });
 
   useEffect(() => {
@@ -126,8 +124,6 @@ export default function ManageTeams() {
         .insert({
           name: formData.name,
           max_users: formData.max_users,
-          company_type: formData.company_type,
-          industry_vertical: formData.industry_vertical,
           created_by: user.id,
           tier: 'starter' // Single tier
         })
@@ -154,9 +150,7 @@ export default function ManageTeams() {
         .from('teams')
         .update({
           name: formData.name,
-          max_users: formData.max_users,
-          company_type: formData.company_type,
-          industry_vertical: formData.industry_vertical
+          max_users: formData.max_users
         })
         .eq('id', editingTeam.id);
 
@@ -221,18 +215,14 @@ export default function ManageTeams() {
     setEditingTeam(team);
     setFormData({
       name: team.name,
-      max_users: team.max_users,
-      company_type: team.company_type || 'Provider',
-      industry_vertical: team.industry_vertical || ''
+      max_users: team.max_users
     });
   };
 
   const resetForm = () => {
     setFormData({
       name: '',
-      max_users: 5,
-      company_type: 'Provider',
-      industry_vertical: ''
+      max_users: 5
     });
   };
 
@@ -340,119 +330,133 @@ export default function ManageTeams() {
           </div>
         ) : (
           filteredTeams.map((team) => (
-            <div key={team.id} className={styles.teamCard}>
+            <div 
+              key={team.id} 
+              className={styles.teamCard}
+              onClick={() => {
+                const newExpanded = new Set(expandedTeams);
+                if (newExpanded.has(team.id)) {
+                  newExpanded.delete(team.id);
+                } else {
+                  newExpanded.add(team.id);
+                }
+                setExpandedTeams(newExpanded);
+              }}
+            >
+              {/* Compact Header */}
               <div className={styles.teamHeader}>
-                <div className={styles.teamInfo}>
-                  <div className={styles.teamName}>
-                    <Building2 size={20} style={{ width: 'var(--icon-size-lg)', height: 'var(--icon-size-lg)' }} />
+                <div className={styles.teamMain}>
+                  <div className={styles.teamTitle}>
+                    <Building2 size={16} style={{ width: 'var(--icon-size-md)', height: 'var(--icon-size-md)' }} />
                     <h3>{team.name}</h3>
-                  </div>
-                  <div className={styles.teamMeta}>
                     <span className={styles.companyType}>{team.company_type}</span>
+                  </div>
+                  <div className={styles.teamStats}>
                     <span className={styles.memberCount}>
-                      <UserCheck size={14} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
-                      {team.currentUsers}/{team.max_users} users
-                      <span className={styles.utilizationRate}>
-                        ({Math.round((team.currentUsers / team.max_users) * 100)}% full)
-                      </span>
+                      <UserCheck size={12} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
+                      {team.currentUsers}/{team.max_users}
                     </span>
-                    <span className={styles.createdDate}>
-                      Created {formatDate(team.created_at)}
+                    <span className={styles.subscriptionCount}>
+                      <CreditCard size={12} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
+                      {team.subscriptions?.length || 0} subscription{team.subscriptions?.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
-                
                 <div className={styles.teamActions}>
-                  <Button
-                    variant="gray"
-                    size="sm"
-                    onClick={() => startEdit(team)}
+                  <button
+                    className="sectionHeaderButton"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEdit(team);
+                    }}
                   >
-                    <Edit size={14} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDeleteTeam(team.id)}
+                    <Edit size={14} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    className="sectionHeaderButton"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTeam(team.id);
+                    }}
+                    disabled={processing}
                   >
-                    <Trash2 size={14} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
-                    Delete
-                  </Button>
+                    <Trash2 size={14} />
+                    <span>{processing ? 'Deleting...' : 'Delete'}</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Team Details */}
-              <div className={styles.teamDetails}>
-                {team.industry_vertical && (
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Industry:</span>
-                    <span className={styles.detailValue}>{team.industry_vertical}</span>
-                  </div>
-                )}
-                {team.creator && (
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Created by:</span>
-                    <span className={styles.detailValue}>
-                      {team.creator.first_name} {team.creator.last_name}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Subscriptions Section */}
-              <div className={styles.subscriptionsSection}>
-                <div className={styles.subscriptionsHeader}>
-                  <h4>Subscriptions</h4>
-                  {team.subscriptions?.length === 0 && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleCreateSubscription(team.id)}
-                      disabled={processing}
-                    >
-                      <Plus size={14} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
-                      Create Subscription
-                    </Button>
-                  )}
-                </div>
-
-                {team.subscriptions?.length === 0 ? (
-                  <div className={styles.noSubscriptions}>
-                    <CreditCard size={24} style={{ width: '24px', height: '24px' }} />
-                    <p>No active subscription</p>
-                  </div>
-                ) : (
-                  <div className={styles.subscriptionsList}>
-                    {team.subscriptions.map((subscription) => (
-                      <div key={subscription.id} className={styles.subscriptionCard}>
-                        <div className={styles.subscriptionInfo}>
-                          <div className={styles.subscriptionStatus}>
-                            <span 
-                              className={styles.statusBadge}
-                              style={{ backgroundColor: getStatusColor(subscription.status) }}
-                            >
-                              {subscription.status}
-                            </span>
-                            <span className={styles.licenseCount}>
-                              {subscription.license_quantity} licenses
-                            </span>
-                            <span className={styles.billingInterval}>
-                              {subscription.billing_interval === 'annual' ? 'Annual' : 'Monthly'} billing
-                            </span>
-                          </div>
-                          <div className={styles.subscriptionDates}>
-                            <span>Started: {formatDate(subscription.started_at)}</span>
-                            {subscription.expires_at && (
-                              <span>Expires: {formatDate(subscription.expires_at)}</span>
-                            )}
-                          </div>
+              {/* Expandable Details */}
+              {expandedTeams.has(team.id) && (
+                <div className={styles.expandedContent}>
+                  <div className={styles.detailsGrid}>
+                    <div className={styles.detailSection}>
+                      <h4>Team Details</h4>
+                      {team.industry_vertical && (
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Industry:</span>
+                          <span className={styles.detailValue}>{team.industry_vertical}</span>
                         </div>
+                      )}
+                      {team.creator && (
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Created by:</span>
+                          <span className={styles.detailValue}>
+                            {team.creator.first_name} {team.creator.last_name}
+                          </span>
+                        </div>
+                      )}
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Created:</span>
+                        <span className={styles.detailValue}>{formatDate(team.created_at)}</span>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className={styles.detailSection}>
+                      <h4>Subscriptions</h4>
+                      {team.subscriptions && team.subscriptions.length > 0 ? (
+                        team.subscriptions.map(sub => (
+                          <div key={sub.id} className={styles.subscriptionItem}>
+                            <div className={styles.subscriptionDetail}>
+                              <span className={styles.detailLabel}>Status:</span>
+                              <span className={`${styles.detailValue} ${styles[sub.status]}`}>{sub.status}</span>
+                            </div>
+                            <div className={styles.subscriptionDetail}>
+                              <span className={styles.detailLabel}>Licenses:</span>
+                              <span className={styles.detailValue}>{sub.licenses}</span>
+                            </div>
+                            <div className={styles.subscriptionDetail}>
+                              <span className={styles.detailLabel}>Billing:</span>
+                              <span className={styles.detailValue}>{sub.billing_interval}</span>
+                            </div>
+                            <div className={styles.subscriptionDetail}>
+                              <span className={styles.detailLabel}>Period:</span>
+                              <span className={styles.detailValue}>
+                                {formatDate(sub.current_period_start)} - {formatDate(sub.current_period_end)}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className={styles.noSubscription}>
+                          <p>No active subscription.</p>
+                          <Button 
+                            variant="blue" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedTeamForSubscription(team);
+                              setShowCreateSubscriptionModal(true);
+                            }}
+                          >
+                            Create Subscription
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -503,28 +507,6 @@ export default function ManageTeams() {
                   />
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label htmlFor="companyType">Company Type *</label>
-                  <select
-                    id="companyType"
-                    value={formData.company_type}
-                    onChange={(e) => setFormData({ ...formData, company_type: e.target.value })}
-                  >
-                    <option value="Provider">Provider</option>
-                    <option value="Supplier">Supplier</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="industry">Industry Vertical</label>
-                <input
-                  id="industry"
-                  type="text"
-                  value={formData.industry_vertical}
-                  onChange={(e) => setFormData({ ...formData, industry_vertical: e.target.value })}
-                  placeholder="e.g., Healthcare, Technology"
-                />
               </div>
             </div>
 
