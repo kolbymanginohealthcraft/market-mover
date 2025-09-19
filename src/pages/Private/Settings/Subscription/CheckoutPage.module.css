@@ -1,10 +1,10 @@
-.container {
-  padding: 24px;
-  margin: 0;
-  max-width: 100%;
-}
-
 .content {
+  background: var(--white);
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--gray-200);
+  border-top: none;
+  overflow: visible;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -12,22 +12,24 @@
 
 .description {
   text-align: center;
-  color: #6b7280;
+  color: var(--gray-500);
+  margin-bottom: 24px;
 }
 
 .description p {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .planSelection h3,
 .billingSelection h3,
 .licenseSelection h3,
 .pricingSummary h3 {
-  margin: 0 0 20px 0;
-  font-size: 1.25rem;
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--gray-700);
 }
 
 .plansGrid {
@@ -110,10 +112,11 @@
 }
 
 .currentPlan {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
   border-radius: 8px;
-  padding: 24px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .currentPlanCard {
@@ -124,14 +127,14 @@
 
 .planInfo h4 {
   margin: 0 0 4px 0;
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--gray-700);
 }
 
 .planInfo p {
   margin: 0;
-  color: #6b7280;
+  color: var(--gray-500);
   font-size: 0.875rem;
 }
 
@@ -141,23 +144,46 @@
   gap: 16px;
 }
 
-.billingOption {
-  background: white;
+.billingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.billingSelection {
+  background: var(--white);
   border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  padding: 20px;
-  cursor: pointer;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.billingSelection:hover {
+  border-color: var(--primary-teal);
+  box-shadow: var(--shadow);
+}
+
+.billingOption {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: default;
+  transition: none;
   position: relative;
+  box-shadow: none;
 }
 
 .billingOption:hover {
-  border-color: var(--gray-300);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .billingOption.selected {
-  border-color: var(--primary-teal);
-  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .billingHeader {
@@ -165,106 +191,192 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-100);
 }
 
 .billingHeader h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--gray-700);
 }
 
 .billingPrice {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-teal);
 }
 
 .billingOption p {
   margin: 0;
-  color: #6b7280;
+  color: var(--gray-500);
   font-size: 0.875rem;
 }
 
-.savingsBadge {
-  position: absolute;
-  top: -8px;
-  right: 12px;
-  background: var(--success-green);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
+.billingSelection p {
+  margin: 0;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.billingAndUsers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.billingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.licenseSelection {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.licenseSelection:hover {
+  border-color: var(--primary-teal);
+  box-shadow: var(--shadow);
+}
+
+.licenseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.licenseIncluded {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-teal);
+}
+
+.pricingDescription {
+  margin: 0 0 16px 0;
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .licenseControls {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.licenseInput {
+.licenseToggle {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--gray-50);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid var(--gray-200);
+}
+
+.toggleButton {
+  background: var(--white);
   border: 1px solid var(--gray-300);
   border-radius: 6px;
-  overflow: hidden;
-}
-
-.licenseInput button {
-  background: var(--gray-50);
-  border: none;
-  padding: 8px 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  font-size: 1.125rem;
+  transition: all 0.2s ease;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--gray-700);
-  transition: background-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.licenseInput button:hover:not(:disabled) {
-  background: var(--gray-100);
+.toggleButton:hover:not(:disabled) {
+  background: var(--primary-teal);
+  color: var(--white);
+  border-color: var(--primary-teal);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
 }
 
-.licenseInput button:disabled {
-  opacity: 0.5;
+.toggleButton:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
+  background: var(--gray-100);
+  color: var(--gray-400);
 }
 
-.licenseInput input {
-  border: none;
-  padding: 8px 12px;
-  text-align: center;
-  font-size: 1rem;
+.licenseDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 60px;
+}
+
+.licenseNumber {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1;
+}
+
+.licenseLabel {
+  font-size: 0.75rem;
+  color: var(--gray-600);
   font-weight: 500;
-  width: 60px;
-  background: var(--white);
 }
 
-.licenseInput input:focus {
-  outline: none;
+.additionalInfo {
+  text-align: center;
+  padding: 8px 12px;
+  background: var(--primary-teal);
+  color: var(--white);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.additionalText {
+  color: var(--white);
 }
 
 .licenseInfo {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--gray-500);
+  color: var(--gray-600);
   font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .additionalLicenses {
   color: var(--gray-500);
   font-size: 0.75rem;
   font-style: italic;
+  margin-left: 4px;
 }
 
 .pricingSummary {
-  background: var(--white);
+  background: var(--gray-50);
   border: 1px solid var(--gray-200);
   border-radius: 8px;
-  padding: 24px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .pricingDetails {
@@ -278,7 +390,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .pricingRow:last-of-type {
@@ -286,12 +398,14 @@
 }
 
 .pricingRow span:first-child {
-  color: var(--gray-500);
+  color: var(--gray-600);
+  font-size: 0.875rem;
 }
 
 .pricingRow span:last-child {
-  font-weight: 500;
-  color: var(--gray-900);
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: 0.875rem;
 }
 
 .discount {
@@ -303,20 +417,20 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 0 0 0;
-  border-top: 2px solid var(--gray-200);
+  border-top: 2px solid var(--primary-teal);
   margin-top: 8px;
 }
 
 .pricingTotal span:first-child {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--gray-700);
 }
 
 .pricingTotal span:last-child {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--gray-900);
+  color: var(--primary-teal);
 }
 
 .securityNotice {
@@ -327,26 +441,32 @@
   background: var(--gray-50);
   border: 1px solid var(--gray-200);
   border-radius: 8px;
-  color: var(--gray-700);
+  color: var(--gray-600);
+  box-shadow: var(--shadow-sm);
 }
 
 .securityNotice h4 {
   margin: 0 0 4px 0;
   font-size: 0.875rem;
   font-weight: 600;
+  color: var(--gray-700);
 }
 
 .securityNotice p {
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.4;
+  color: var(--gray-600);
 }
 
 .actions {
   display: flex;
   gap: 12px;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--gray-200);
+  margin-top: 24px;
 }
 
 .checkoutButton {
@@ -355,10 +475,11 @@
   gap: 8px;
   min-width: 200px;
   justify-content: center;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
-  .container {
+  .content {
     padding: 16px;
   }
   
@@ -370,6 +491,11 @@
     grid-template-columns: 1fr;
   }
   
+  .billingAndUsers {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
   .licenseControls {
     flex-direction: column;
     align-items: flex-start;
@@ -378,9 +504,22 @@
   
   .actions {
     flex-direction: column;
+    gap: 12px;
   }
   
   .checkoutButton {
     width: 100%;
+  }
+  
+  .billingOption {
+    padding: 16px;
+  }
+  
+  .pricingSummary {
+    padding: 16px;
+  }
+  
+  .securityNotice {
+    padding: 12px;
   }
 }

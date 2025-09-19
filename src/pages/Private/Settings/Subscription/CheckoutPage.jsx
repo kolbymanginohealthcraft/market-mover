@@ -15,7 +15,7 @@ export default function CheckoutPage() {
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedBilling, setSelectedBilling] = useState('monthly');
-  const [licenseQuantity, setLicenseQuantity] = useState(5);
+  const [licenseQuantity, setLicenseQuantity] = useState(3);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [processing, setProcessing] = useState(false);
 
@@ -83,33 +83,28 @@ export default function CheckoutPage() {
 
   const pricingConfig = {
     monthlyPrice: 2000,
-    annualPrice: 19200, // 20% discount
-    baseLicenses: 5,
-    additionalLicensePrice: 250,
-    additionalLicenseAnnualPrice: 200 // 20% discount
+    baseLicenses: 3,
+    additionalLicensePrice: 250 // per set of 3 users
   };
 
   const calculatePricing = () => {
-    const basePrice = selectedBilling === 'annual' ? pricingConfig.annualPrice : pricingConfig.monthlyPrice;
-    const additionalLicenses = Math.max(0, licenseQuantity - pricingConfig.baseLicenses);
-    const additionalLicensePrice = selectedBilling === 'annual' ? 
-      pricingConfig.additionalLicenseAnnualPrice : pricingConfig.additionalLicensePrice;
+    const basePrice = pricingConfig.monthlyPrice;
+    const additionalSets = Math.max(0, Math.ceil((licenseQuantity - pricingConfig.baseLicenses) / 3));
+    const additionalLicensePrice = pricingConfig.additionalLicensePrice;
     
     const baseSubtotal = basePrice;
-    const additionalSubtotal = additionalLicenses * additionalLicensePrice;
+    const additionalSubtotal = additionalSets * additionalLicensePrice;
     const subtotal = baseSubtotal + additionalSubtotal;
     
-    // Annual billing discount (20%)
-    const discount = selectedBilling === 'annual' ? subtotal * 0.20 : 0;
-    const total = subtotal - discount;
+    const total = subtotal;
 
     return { 
       subtotal, 
-      discount, 
+      discount: 0, 
       total, 
       baseSubtotal, 
       additionalSubtotal, 
-      additionalLicenses 
+      additionalSets 
     };
   };
 
@@ -139,7 +134,7 @@ export default function CheckoutPage() {
 
   const canProceed = () => {
     if (checkoutType === 'new') {
-      return selectedBilling && licenseQuantity >= 5;
+      return selectedBilling && licenseQuantity >= 3;
     }
     if (checkoutType === 'upgrade') {
       return true; // Always can upgrade to the single plan
@@ -154,7 +149,7 @@ export default function CheckoutPage() {
     switch (checkoutType) {
       case 'upgrade': return 'Upgrade Subscription';
       case 'add-licenses': return 'Add Licenses';
-      default: return 'Choose Your Plan';
+      default: return 'New Subscription';
     }
   };
 
@@ -162,7 +157,7 @@ export default function CheckoutPage() {
     switch (checkoutType) {
       case 'upgrade': return 'Upgrade your current plan to access more features';
       case 'add-licenses': return 'Add more user licenses to your current plan';
-      default: return 'Select a plan that fits your team\'s needs';
+      default: return '';
     }
   };
 
@@ -171,7 +166,7 @@ export default function CheckoutPage() {
   const pricing = calculatePricing();
 
   return (
-    <div className={styles.container}>
+    <>
       <SectionHeader 
         title={getPageTitle()} 
         icon={CreditCard} 
@@ -179,9 +174,11 @@ export default function CheckoutPage() {
       />
       
       <div className={styles.content}>
-        <div className={styles.description}>
-          <p>{getPageDescription()}</p>
-        </div>
+        {getPageDescription() && (
+          <div className={styles.description}>
+            <p>{getPageDescription()}</p>
+          </div>
+        )}
 
 
         {/* Current Plan Display for Upgrades */}
@@ -197,73 +194,57 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {/* Billing Interval Selection */}
-        <div className={styles.billingSelection}>
-          <h3>Billing Interval</h3>
-          <div className={styles.billingOptions}>
-            <div
-              className={`${styles.billingOption} ${selectedBilling === 'monthly' ? styles.selected : ''}`}
-              onClick={() => setSelectedBilling('monthly')}
-            >
-              <div className={styles.billingHeader}>
-                <h4>Monthly</h4>
-                <span className={styles.billingPrice}>
-                  ${pricingConfig.monthlyPrice}/month
-                </span>
-              </div>
-              <p>Pay monthly, cancel anytime</p>
+        {/* Billing and Users Section */}
+        <div className={styles.billingAndUsers}>
+          {/* Billing Information */}
+          <div className={styles.billingSelection}>
+            <div className={styles.billingHeader}>
+              <h3>Base Subscription</h3>
+              <span className={styles.billingPrice}>
+                ${pricingConfig.monthlyPrice}/month
+              </span>
             </div>
-            <div
-              className={`${styles.billingOption} ${selectedBilling === 'annual' ? styles.selected : ''}`}
-              onClick={() => setSelectedBilling('annual')}
-            >
-              <div className={styles.billingHeader}>
-                <h4>Annual</h4>
-                <span className={styles.billingPrice}>
-                  ${pricingConfig.annualPrice}/year
-                </span>
-              </div>
-              <p>Save 20% with annual billing</p>
-              <span className={styles.savingsBadge}>Save ${pricing.discount}</span>
-            </div>
+            <p>Pay monthly, cancel anytime</p>
           </div>
-        </div>
 
-        {/* License Quantity */}
-        <div className={styles.licenseSelection}>
-          <h3>
-            {checkoutType === 'add-licenses' ? 'Add Licenses' : 'Number of Licenses'}
-          </h3>
-          <div className={styles.licenseControls}>
-            <div className={styles.licenseInput}>
-              <button
-                type="button"
-                onClick={() => setLicenseQuantity(Math.max(5, licenseQuantity - 5))}
-                disabled={licenseQuantity <= 5}
-              >
-                −5
-              </button>
-              <input
-                type="number"
-                value={licenseQuantity}
-                onChange={(e) => setLicenseQuantity(Math.max(5, parseInt(e.target.value) || 5))}
-                min="5"
-                step="5"
-              />
-              <button
-                type="button"
-                onClick={() => setLicenseQuantity(licenseQuantity + 5)}
-              >
-                +5
-              </button>
+          {/* License Quantity */}
+          <div className={styles.licenseSelection}>
+            <div className={styles.licenseHeader}>
+              <h3>
+                {checkoutType === 'add-licenses' ? 'Add Licenses' : 'Number of Users'}
+              </h3>
+              <span className={styles.licenseIncluded}>
+                3 users included
+              </span>
             </div>
-            <div className={styles.licenseInfo}>
-              <Users size={16} style={{ width: 'var(--icon-size-md)', height: 'var(--icon-size-md)' }} />
-              <span>{licenseQuantity} user{licenseQuantity !== 1 ? 's' : ''}</span>
-              {licenseQuantity > 5 && (
-                <span className={styles.additionalLicenses}>
-                  ({licenseQuantity - 5} additional)
-                </span>
+            <div className={styles.licenseControls}>
+              <div className={styles.licenseToggle}>
+                <button
+                  type="button"
+                  className={styles.toggleButton}
+                  onClick={() => setLicenseQuantity(Math.max(3, licenseQuantity - 3))}
+                  disabled={licenseQuantity <= 3}
+                >
+                  <span>−</span>
+                </button>
+                <div className={styles.licenseDisplay}>
+                  <span className={styles.licenseNumber}>{licenseQuantity}</span>
+                  <span className={styles.licenseLabel}>users</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.toggleButton}
+                  onClick={() => setLicenseQuantity(licenseQuantity + 3)}
+                >
+                  <span>+</span>
+                </button>
+              </div>
+              {licenseQuantity > 3 && (
+                <div className={styles.additionalInfo}>
+                  <span className={styles.additionalText}>
+                    +{Math.ceil((licenseQuantity - 3) / 3)} additional set{Math.ceil((licenseQuantity - 3) / 3) !== 1 ? 's' : ''} of 3
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -272,28 +253,22 @@ export default function CheckoutPage() {
         {/* Pricing Summary */}
         <div className={styles.pricingSummary}>
           <h3>Order Summary</h3>
-                      <div className={styles.pricingDetails}>
-              <div className={styles.pricingRow}>
-                <span>Subscription (5 licenses)</span>
-                <span>${pricing.baseSubtotal}</span>
-              </div>
-              {pricing.additionalLicenses > 0 && (
-                <div className={styles.pricingRow}>
-                  <span>Additional Licenses ({pricing.additionalLicenses})</span>
-                  <span>${pricing.additionalSubtotal}</span>
-                </div>
-              )}
-              {pricing.discount > 0 && (
-                <div className={styles.pricingRow}>
-                  <span>Annual Discount (20%)</span>
-                  <span className={styles.discount}>-${pricing.discount}</span>
-                </div>
-              )}
-              <div className={styles.pricingTotal}>
-                <span>Total</span>
-                <span>${pricing.total}</span>
-              </div>
+          <div className={styles.pricingDetails}>
+            <div className={styles.pricingRow}>
+              <span>Subscription (3 users)</span>
+              <span>${pricing.baseSubtotal}</span>
             </div>
+            {pricing.additionalSets > 0 && (
+              <div className={styles.pricingRow}>
+                <span>Additional sets of 3 users ({pricing.additionalSets})</span>
+                <span>${pricing.additionalSubtotal}</span>
+              </div>
+            )}
+            <div className={styles.pricingTotal}>
+              <span>Total</span>
+              <span>${pricing.total}</span>
+            </div>
+          </div>
         </div>
 
         {/* Security Notice */}
@@ -315,7 +290,7 @@ export default function CheckoutPage() {
             Back
           </Button>
           <Button
-            variant="gold"
+            variant="teal"
             size="md"
             onClick={handleCheckout}
             disabled={!canProceed() || processing}
@@ -337,6 +312,6 @@ export default function CheckoutPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
