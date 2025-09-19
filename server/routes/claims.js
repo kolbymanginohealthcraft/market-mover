@@ -131,6 +131,11 @@ router.post("/claims-data", async (req, res) => {
         filterParams.providerNpi = filters.providerNpi;
       }
       
+      if (filters.performingProviderNpi) {
+        filterConditions.push(`c.performing_provider_npi = @performingProviderNpi`);
+        filterParams.performingProviderNpi = filters.performingProviderNpi;
+      }
+      
       if (filters.dateMonth) {
         filterConditions.push(`CAST(c.date__month_grain AS STRING) = @dateMonth`);
         filterParams.dateMonth = filters.dateMonth;
@@ -496,7 +501,8 @@ router.post("/claims-data", async (req, res) => {
           CAST(c.date__month_grain AS STRING) as date_string,
           SUM(c.count) as total_claims,
           ${getChargeCalculation()} as total_charges,
-          COUNT(DISTINCT c.${perspectiveFields.npiField}) as unique_providers
+          COUNT(DISTINCT c.billing_provider_npi) as unique_billing_providers,
+          COUNT(DISTINCT c.performing_provider_npi) as unique_performing_providers
         FROM \`aegis_access.${tableName}\` c
         WHERE c.${perspectiveFields.npiField} IN UNNEST(@npis)
           AND c.date__month_grain >= DATE_SUB(${CURRENT_DATE_FUNCTION}, INTERVAL ${MONTHS_LOOKBACK} MONTH)

@@ -241,6 +241,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
     setFilters(prev => {
       const breadcrumbFilters = {};
       if (prev.providerNpi) breadcrumbFilters.providerNpi = prev.providerNpi;
+      if (prev.performingProviderNpi) breadcrumbFilters.performingProviderNpi = prev.performingProviderNpi;
       if (prev.serviceLine) breadcrumbFilters.serviceLine = prev.serviceLine;
       if (prev.dateMonth) breadcrumbFilters.dateMonth = prev.dateMonth;
       if (prev.state) breadcrumbFilters.state = prev.state;
@@ -273,7 +274,7 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
           type: "provider",
           value: row.npi,
           label: `${row.provider_name} (${row.npi})`,
-          filter: { providerNpi: row.npi }
+          filter: { performingProviderNpi: row.npi }
         };
       case "service_line":
         return {
@@ -1243,8 +1244,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           <td>{row.service_line_description || row.service_line_code}</td>
                           <td>{row.total_claims?.toLocaleString()}</td>
                           <td>{formatCurrency(row.total_charges)}</td>
-                          <td>{row.unique_billing_providers}</td>
-                          <td>{row.unique_performing_providers}</td>
+                          <td>{row.unique_billing_providers?.toLocaleString()}</td>
+                          <td>{row.unique_performing_providers?.toLocaleString()}</td>
                         </>
                       )}
                       {aggregation === "temporal" && (
@@ -1252,8 +1253,8 @@ export default function ClaimsTab({ provider, radiusInMiles, nearbyProviders }) 
                           <td>{row.date_string}</td>
                           <td>{row.total_claims?.toLocaleString()}</td>
                           <td>{formatCurrency(row.total_charges)}</td>
-                          <td>{row.unique_billing_providers}</td>
-                          <td>{row.unique_performing_providers}</td>
+                          <td>{row.unique_billing_providers?.toLocaleString()}</td>
+                          <td>{row.unique_performing_providers?.toLocaleString()}</td>
                         </>
                       )}
                     </tr>
