@@ -56,7 +56,7 @@ export const useAdminData = () => {
       if (profileData.team_id) {
         const { data: team, error: teamError } = await supabase
           .from("teams")
-          .select("name, max_users, created_at")
+          .select("name, created_at")
           .eq("id", profileData.team_id)
           .single();
 
@@ -66,10 +66,29 @@ export const useAdminData = () => {
           return;
         }
 
+        // Fetch current active subscription
+        const { data: subData, error: subError } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("team_id", profileData.team_id)
+          .eq("status", "active")
+          .is("expires_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (subError || !subData) {
+          setError("No active subscription found for this team.");
+          setLoading(false);
+          return;
+        }
+
+        setSubscription(subData);
+
         setTeamInfo({
           id: profileData.team_id,
           name: team.name,
-          maxUsers: team.max_users,
+          maxUsers: subData.license_quantity,
           createdAt: team.created_at,
         });
 
@@ -89,18 +108,7 @@ export const useAdminData = () => {
 
         // Check if licenses are maxed out
         const currentMemberCount = members?.length || 0;
-        setLicensesMaxedOut(currentMemberCount >= team.max_users);
-
-        // Fetch subscription info
-        const { data: subData, error: subError } = await supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("team_id", profileData.team_id)
-          .single();
-
-        if (!subError && subData) {
-          setSubscription(subData);
-        }
+        setLicensesMaxedOut(currentMemberCount >= subData.license_quantity);
       }
     } catch (err) {
       console.error("Error fetching admin data:", err);

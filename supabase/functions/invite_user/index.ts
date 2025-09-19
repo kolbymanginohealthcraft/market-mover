@@ -141,16 +141,20 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // 2. Check team license availability
-    const { data: team, error: teamError } = await supabase
-      .from("teams")
-      .select("max_users, name")
-      .eq("id", team_id)
+    // 2. Check team license availability from current active subscription
+    const { data: subscription, error: subError } = await supabase
+      .from("subscriptions")
+      .select("license_quantity, teams(name)")
+      .eq("team_id", team_id)
+      .eq("status", "active")
+      .is("expires_at", null)
+      .order("started_at", { ascending: false })
+      .limit(1)
       .single();
 
-    if (teamError || !team) {
+    if (subError || !subscription) {
       return new Response(
-        JSON.stringify({ error: "Team not found" }),
+        JSON.stringify({ error: "No active subscription found for this team" }),
         { status: 404, headers: corsHeaders }
       );
     }
@@ -168,7 +172,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    if (currentMembers >= team.max_users) {
+    if (currentMembers >= subscription.license_quantity) {
       return new Response(
         JSON.stringify({ error: "No available licenses on this team" }),
         { status: 403, headers: corsHeaders }
@@ -257,8 +261,8 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         message: "User invited successfully",
         isNewUser,
-        teamName: team.name,
-        availableLicenses: team.max_users - (currentMembers + 1)
+        teamName: subscription.teams.name,
+        availableLicenses: subscription.license_quantity - (currentMembers + 1)
       }),
       { status: 200, headers: corsHeaders }
     );

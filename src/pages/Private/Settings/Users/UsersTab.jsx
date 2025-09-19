@@ -88,7 +88,7 @@ export default function UsersTab() {
       if (profileData.team_id) {
         const { data: team, error: teamError } = await supabase
           .from("teams")
-          .select("name, max_users, created_at")
+          .select("name, created_at")
           .eq("id", profileData.team_id)
           .single();
 
@@ -99,34 +99,35 @@ export default function UsersTab() {
           return;
         }
 
+        // Fetch current active subscription
+        const { data: subData, error: subError } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("team_id", profileData.team_id)
+          .eq("status", "active")
+          .is("expires_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (subError || !subData) {
+          setMessage("No active subscription found for this team.");
+          setMessageType("error");
+          setLoading(false);
+          return;
+        }
+
         setTeamInfo({
           id: profileData.team_id,
           name: team.name,
-          max_users: team.max_users,
+          max_users: subData.license_quantity,
           created_at: team.created_at,
         });
 
-        // Fetch subscription data (temporarily disabled due to 406 errors)
-        // try {
-        //   const { data: subData, error: subError } = await supabase
-        //     .from("subscriptions")
-        //     .select("*")
-        //     .eq("team_id", profileData.team_id)
-        //     .in("status", ["active"])
-        //     .order("renewed_at", { ascending: false })
-        //     .limit(1)
-        //     .single();
-
-        //   if (!subError && subData) {
-        //     setSubscription({
-        //       ...subData,
-        //       plan_name: "Active Plan", // Simplified for now
-        //     });
-        //   }
-        // } catch (subErr) {
-        //   console.log("Subscription query failed (this is expected for some teams):", subErr);
-        //   // Don't set error message for subscription failures as they're not critical
-        // }
+        setSubscription({
+          ...subData,
+          plan_name: "Active Plan", // Simplified for now
+        });
 
         // Fetch team members directly from profiles table
         const { data: members, error: membersError } = await supabase
@@ -157,7 +158,7 @@ export default function UsersTab() {
         });
 
         setTeamMembers(sortedMembers);
-        setLicensesMaxedOut(members.length >= team.max_users);
+        setLicensesMaxedOut(members.length >= subData.license_quantity);
       }
     } catch (err) {
       console.error("💥 Unexpected error:", err);
