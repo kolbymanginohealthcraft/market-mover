@@ -311,6 +311,7 @@ export default function BenchmarkChart({
                axisLine={false}
                tickLine={false}
                tick={{ fontSize: 12, fill: '#666' }}
+               domain={measureInfo?.source === 'Ratings' ? [0, 5] : undefined}
                tickFormatter={(value) => {
                  const isStarRating = measureInfo?.source === 'Ratings';
                  return isStarRating ? value.toFixed(1) : `${value}%`;
