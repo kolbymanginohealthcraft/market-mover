@@ -193,13 +193,9 @@ CREATE TABLE public.subscriptions (
   team_id uuid NOT NULL UNIQUE,
   status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'canceled'::text, 'past_due'::text])),
   started_at timestamp with time zone DEFAULT now(),
-  renewed_at timestamp with time zone,
   expires_at timestamp with time zone,
   canceled_at timestamp with time zone,
   license_quantity integer DEFAULT 1,
-  discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
-  next_billing_date timestamp with time zone,
-  base_price numeric NOT NULL DEFAULT 0,
   CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
   CONSTRAINT subscriptions_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );

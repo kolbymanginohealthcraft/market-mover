@@ -216,6 +216,23 @@ export default function SubscriptionManagePage() {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
+  const getNextBillingDate = (startedAt) => {
+    if (!startedAt) return null;
+    
+    const startDate = new Date(startedAt);
+    const now = new Date();
+    
+    // Calculate months since start
+    const monthsElapsed = (now.getFullYear() - startDate.getFullYear()) * 12 + 
+                         (now.getMonth() - startDate.getMonth());
+    
+    // Next billing is start date + (months elapsed + 1)
+    const nextBilling = new Date(startDate);
+    nextBilling.setMonth(startDate.getMonth() + monthsElapsed + 1);
+    
+    return nextBilling;
+  };
+
   const handleLicenseUpdate = async () => {
     if (!subscription || newLicenseCount === subscription.license_quantity) {
       setEditingLicenses(false);
@@ -387,17 +404,12 @@ export default function SubscriptionManagePage() {
             <div className={styles.overviewDetails}>
             <div className={styles.detailRow}>
               <div className={styles.detailItem}>
-                <Users size={20} style={{ width: 'var(--icon-size-lg)', height: 'var(--icon-size-lg)' }} />
                 <div>
                   <span className={styles.detailLabel}>Team</span>
                   <span className={styles.detailValue}>{teamInfo?.name}</span>
                 </div>
               </div>
-            </div>
-            
-            <div className={styles.detailRow}>
               <div className={styles.detailItem}>
-                <Users size={20} style={{ width: 'var(--icon-size-lg)', height: 'var(--icon-size-lg)' }} />
                 <div>
                   <span className={styles.detailLabel}>Licenses</span>
                   <span className={styles.detailValue}>
@@ -414,30 +426,32 @@ export default function SubscriptionManagePage() {
                   <span className={styles.detailValue}>{formatDate(subscription.started_at)}</span>
                 </div>
               </div>
-              <div className={styles.detailItem}>
-                <div>
-                  <span className={styles.detailLabel}>Last Renewed</span>
-                  <span className={styles.detailValue}>{formatDate(subscription.renewed_at)}</span>
+              {subscription.status === 'active' && (
+                <div className={styles.detailItem}>
+                  <div>
+                    <span className={styles.detailLabel}>Next Billing</span>
+                    <span className={styles.detailValue}>{formatDate(getNextBillingDate(subscription.started_at))}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             
-            <div className={styles.detailRow}>
-              <div className={styles.detailItem}>
-                <div>
-                  <span className={styles.detailLabel}>Expires</span>
-                  <span className={styles.detailValue}>{formatDate(subscription.expires_at)}</span>
+            {subscription.canceled_at && (
+              <div className={styles.detailRow}>
+                <div className={styles.detailItem}>
+                  <div>
+                    <span className={styles.detailLabel}>Expires</span>
+                    <span className={styles.detailValue}>{formatDate(subscription.expires_at)}</span>
+                  </div>
                 </div>
-              </div>
-              {subscription.canceled_at && (
                 <div className={styles.detailItem}>
                   <div>
                     <span className={styles.detailLabel}>Canceled</span>
                     <span className={styles.detailValue}>{formatDate(subscription.canceled_at)}</span>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
             
           </div>
           </div>
@@ -717,17 +731,6 @@ export default function SubscriptionManagePage() {
                     </div>
                   </div>
                   
-                  {subscription?.renewed_at && (
-                    <div className={styles.eventItem}>
-                      <div className={styles.eventIcon}>
-                        <CreditCard size={16} style={{ width: 'var(--icon-size-md)', height: 'var(--icon-size-md)' }} />
-                      </div>
-                      <div className={styles.eventDetails}>
-                        <div className={styles.eventTitle}>Last Renewed</div>
-                        <div className={styles.eventDate}>{formatDate(subscription.renewed_at)}</div>
-                      </div>
-                    </div>
-                  )}
                   
                   {subscription?.canceled_at && (
                     <div className={styles.eventItem}>
