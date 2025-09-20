@@ -1,222 +1,277 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE auth.audit_log_entries (
-  instance_id uuid,
-  id uuid NOT NULL,
-  payload json,
-  created_at timestamp with time zone,
-  ip_address character varying NOT NULL DEFAULT ''::character varying,
-  CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id)
-);
-CREATE TABLE auth.flow_state (
-  id uuid NOT NULL,
-  user_id uuid,
-  auth_code text NOT NULL,
-  code_challenge_method USER-DEFINED NOT NULL,
-  code_challenge text NOT NULL,
-  provider_type text NOT NULL,
-  provider_access_token text,
-  provider_refresh_token text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  authentication_method text NOT NULL,
-  auth_code_issued_at timestamp with time zone,
-  CONSTRAINT flow_state_pkey PRIMARY KEY (id)
-);
-CREATE TABLE auth.identities (
-  provider_id text NOT NULL,
-  user_id uuid NOT NULL,
-  identity_data jsonb NOT NULL,
-  provider text NOT NULL,
-  last_sign_in_at timestamp with time zone,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  email text DEFAULT lower((identity_data ->> 'email'::text)),
+CREATE TABLE public.billing_events (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  CONSTRAINT identities_pkey PRIMARY KEY (id),
-  CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  subscription_id uuid NOT NULL,
+  event_type text NOT NULL CHECK (event_type = ANY (ARRAY['subscription_created'::text, 'subscription_updated'::text, 'subscription_cancelled'::text, 'payment_succeeded'::text, 'payment_failed'::text, 'invoice_created'::text, 'invoice_paid'::text, 'trial_started'::text, 'trial_ended'::text, 'dunning_started'::text, 'dunning_ended'::text])),
+  event_data jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT billing_events_pkey PRIMARY KEY (id),
+  CONSTRAINT billing_events_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id)
 );
-CREATE TABLE auth.instances (
-  id uuid NOT NULL,
-  uuid uuid,
-  raw_base_config text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  CONSTRAINT instances_pkey PRIMARY KEY (id)
+CREATE TABLE public.feature_request_votes (
+  id integer NOT NULL DEFAULT nextval('feature_request_votes_id_seq'::regclass),
+  feature_request_id integer,
+  user_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT feature_request_votes_pkey PRIMARY KEY (id),
+  CONSTRAINT feature_request_votes_feature_request_id_fkey FOREIGN KEY (feature_request_id) REFERENCES public.feature_requests(id),
+  CONSTRAINT feature_request_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-CREATE TABLE auth.mfa_amr_claims (
-  session_id uuid NOT NULL,
-  created_at timestamp with time zone NOT NULL,
-  updated_at timestamp with time zone NOT NULL,
-  authentication_method text NOT NULL,
-  id uuid NOT NULL,
-  CONSTRAINT mfa_amr_claims_pkey PRIMARY KEY (id),
-  CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id)
+CREATE TABLE public.feature_requests (
+  id integer NOT NULL DEFAULT nextval('feature_requests_id_seq'::regclass),
+  title text NOT NULL,
+  description text,
+  user_id uuid,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT feature_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT feature_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-CREATE TABLE auth.mfa_challenges (
-  id uuid NOT NULL,
-  factor_id uuid NOT NULL,
-  created_at timestamp with time zone NOT NULL,
-  verified_at timestamp with time zone,
-  ip_address inet NOT NULL,
-  otp_code text,
-  web_authn_session_data jsonb,
-  CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id),
-  CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id)
+CREATE TABLE public.invoice_line_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  invoice_id uuid,
+  description text,
+  quantity integer,
+  unit_price numeric,
+  subtotal numeric,
+  CONSTRAINT invoice_line_items_pkey PRIMARY KEY (id),
+  CONSTRAINT invoice_line_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id)
 );
-CREATE TABLE auth.mfa_factors (
+CREATE TABLE public.invoices (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  subscription_id uuid,
+  billing_period_start timestamp with time zone,
+  billing_period_end timestamp with time zone,
+  issued_at timestamp with time zone DEFAULT now(),
+  due_at timestamp with time zone,
+  status text CHECK (status = ANY (ARRAY['pending'::text, 'paid'::text, 'overdue'::text, 'voided'::text])),
+  total_amount numeric,
+  CONSTRAINT invoices_pkey PRIMARY KEY (id),
+  CONSTRAINT invoices_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id)
+);
+CREATE TABLE public.markets (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  name text NOT NULL,
+  city text NOT NULL,
+  state text NOT NULL,
+  latitude numeric NOT NULL,
+  longitude numeric NOT NULL,
+  radius_miles integer NOT NULL CHECK (radius_miles > 0 AND radius_miles <= 100),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT markets_pkey PRIMARY KEY (id),
+  CONSTRAINT experimental_markets_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.payment_methods (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  cybersource_token text NOT NULL,
+  last_four_digits text NOT NULL,
+  card_brand text NOT NULL,
+  expiry_month integer NOT NULL,
+  expiry_year integer NOT NULL,
+  billing_address jsonb,
+  is_default boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_methods_pkey PRIMARY KEY (id),
+  CONSTRAINT payment_methods_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
+CREATE TABLE public.payments (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  payment_id text NOT NULL UNIQUE,
+  client_ref text,
+  amount numeric NOT NULL,
+  currency text NOT NULL DEFAULT 'USD'::text,
+  status text NOT NULL,
+  approval_code text,
+  network_transaction_id text,
+  created_at timestamp with time zone DEFAULT now(),
+  type text NOT NULL DEFAULT 'charge'::text CHECK (type = ANY (ARRAY['charge'::text, 'refund'::text, 'adjustment'::text])),
+  billing_provider text,
+  provider_subscription_id text,
+  invoice_id uuid,
+  cybersource_payment_id text,
+  cybersource_reconciliation_id text,
+  processor_response_code text,
+  processor_response_message text,
+  payment_method_type text,
+  last_four_digits text,
+  card_brand text,
+  is_recurring boolean DEFAULT false,
+  parent_payment_id bigint,
+  refunded_amount numeric DEFAULT 0,
+  refund_reason text,
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_parent_payment_id_fkey FOREIGN KEY (parent_payment_id) REFERENCES public.payments(id),
+  CONSTRAINT payments_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id)
+);
+CREATE TABLE public.policy_approvals (
+  id integer NOT NULL DEFAULT nextval('policy_approvals_id_seq'::regclass),
+  version_id integer,
+  approver_id uuid,
+  action character varying NOT NULL,
+  comments text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT policy_approvals_pkey PRIMARY KEY (id),
+  CONSTRAINT policy_approvals_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.policy_versions(id),
+  CONSTRAINT policy_approvals_approver_id_fkey FOREIGN KEY (approver_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.policy_definitions (
+  id integer NOT NULL DEFAULT nextval('policy_definitions_id_seq'::regclass),
+  slug character varying NOT NULL UNIQUE,
+  nickname character varying NOT NULL,
+  full_name character varying NOT NULL,
+  description text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  updated_by uuid,
+  CONSTRAINT policy_definitions_pkey PRIMARY KEY (id),
+  CONSTRAINT policy_definitions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_definitions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.policy_permissions (
+  id integer NOT NULL DEFAULT nextval('policy_permissions_id_seq'::regclass),
+  user_id uuid,
+  policy_id integer,
+  can_edit boolean DEFAULT false,
+  can_approve boolean DEFAULT false,
+  can_view boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT policy_permissions_pkey PRIMARY KEY (id),
+  CONSTRAINT policy_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT policy_permissions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
+  CONSTRAINT policy_permissions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.policy_versions (
+  id integer NOT NULL DEFAULT nextval('policy_versions_id_seq'::regclass),
+  policy_id integer,
+  version_number integer NOT NULL,
+  content text NOT NULL,
+  status character varying DEFAULT 'draft'::character varying,
+  title character varying,
+  summary text,
+  effective_date date,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  updated_by uuid,
+  approved_at timestamp with time zone,
+  approved_by uuid,
+  rejection_reason text,
+  CONSTRAINT policy_versions_pkey PRIMARY KEY (id),
+  CONSTRAINT policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policy_definitions(id),
+  CONSTRAINT policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
+  CONSTRAINT policy_versions_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.profiles (
   id uuid NOT NULL,
+  first_name text,
+  last_name text,
+  title text,
+  updated_at timestamp without time zone DEFAULT now(),
+  accepted_terms boolean,
+  access_type text CHECK (access_type = ANY (ARRAY['create'::text, 'join'::text, 'free'::text])),
+  team_id uuid,
+  email text,
+  role text CHECK (role = ANY (ARRAY['Platform Admin'::text, 'Platform Support'::text, 'Team Admin'::text, 'Team Member'::text])),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'canceled'::text, 'expired'::text])),
+  started_at timestamp with time zone DEFAULT now(),
+  expires_at timestamp with time zone,
+  canceled_at timestamp with time zone,
+  license_quantity integer DEFAULT 1,
+  CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT subscriptions_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
+CREATE TABLE public.system_announcements (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text NOT NULL,
+  announcement_date date NOT NULL,
+  priority integer DEFAULT 1,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT system_announcements_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.team_custom_colors (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid,
+  color_name text NOT NULL,
+  color_hex text NOT NULL CHECK (color_hex ~ '^#[0-9A-Fa-f]{6}$'::text),
+  color_order integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_custom_colors_pkey PRIMARY KEY (id),
+  CONSTRAINT team_custom_colors_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
+CREATE TABLE public.team_provider_tags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid,
+  provider_dhc bigint NOT NULL,
+  tag_type text NOT NULL CHECK (tag_type = ANY (ARRAY['me'::text, 'partner'::text, 'competitor'::text, 'target'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_provider_tags_pkey PRIMARY KEY (id),
+  CONSTRAINT team_provider_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
+CREATE TABLE public.teams (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  company_type text CHECK (company_type = ANY (ARRAY['Provider'::text, 'Supplier'::text])),
+  industry_vertical text,
+  target_organization_types ARRAY DEFAULT '{}'::text[],
+  target_practitioner_specialties ARRAY DEFAULT '{}'::text[],
+  CONSTRAINT teams_pkey PRIMARY KEY (id),
+  CONSTRAINT teams_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_activities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  friendly_name text,
-  factor_type USER-DEFINED NOT NULL,
-  status USER-DEFINED NOT NULL,
-  created_at timestamp with time zone NOT NULL,
-  updated_at timestamp with time zone NOT NULL,
-  secret text,
-  phone text,
-  last_challenged_at timestamp with time zone UNIQUE,
-  web_authn_credential jsonb,
-  web_authn_aaguid uuid,
-  CONSTRAINT mfa_factors_pkey PRIMARY KEY (id),
-  CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  activity_type text NOT NULL CHECK (activity_type = ANY (ARRAY['search_providers'::text, 'view_provider'::text, 'view_market'::text, 'save_market'::text])),
+  target_id text,
+  target_name text,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_activities_pkey PRIMARY KEY (id),
+  CONSTRAINT user_activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-CREATE TABLE auth.oauth_clients (
-  id uuid NOT NULL,
-  client_id text NOT NULL UNIQUE,
-  client_secret_hash text NOT NULL,
-  registration_type USER-DEFINED NOT NULL,
-  redirect_uris text NOT NULL,
-  grant_types text NOT NULL,
-  client_name text CHECK (char_length(client_name) <= 1024),
-  client_uri text CHECK (char_length(client_uri) <= 2048),
-  logo_uri text CHECK (char_length(logo_uri) <= 2048),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  deleted_at timestamp with time zone,
-  CONSTRAINT oauth_clients_pkey PRIMARY KEY (id)
+CREATE TABLE public.user_testimonials (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  content text NOT NULL,
+  consent_to_feature boolean DEFAULT false,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  featured_on_website boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_testimonials_pkey PRIMARY KEY (id),
+  CONSTRAINT user_testimonials_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-CREATE TABLE auth.one_time_tokens (
-  id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  token_type USER-DEFINED NOT NULL,
-  token_hash text NOT NULL CHECK (char_length(token_hash) > 0),
-  relates_to text NOT NULL,
-  created_at timestamp without time zone NOT NULL DEFAULT now(),
-  updated_at timestamp without time zone NOT NULL DEFAULT now(),
-  CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id),
-  CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
-);
-CREATE TABLE auth.refresh_tokens (
-  instance_id uuid,
-  id bigint NOT NULL DEFAULT nextval('auth.refresh_tokens_id_seq'::regclass),
-  token character varying UNIQUE,
-  user_id character varying,
-  revoked boolean,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  parent character varying,
-  session_id uuid,
-  CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id),
-  CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id)
-);
-CREATE TABLE auth.saml_providers (
-  id uuid NOT NULL,
-  sso_provider_id uuid NOT NULL,
-  entity_id text NOT NULL UNIQUE CHECK (char_length(entity_id) > 0),
-  metadata_xml text NOT NULL CHECK (char_length(metadata_xml) > 0),
-  metadata_url text CHECK (metadata_url = NULL::text OR char_length(metadata_url) > 0),
-  attribute_mapping jsonb,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  name_id_format text,
-  CONSTRAINT saml_providers_pkey PRIMARY KEY (id),
-  CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id)
-);
-CREATE TABLE auth.saml_relay_states (
-  id uuid NOT NULL,
-  sso_provider_id uuid NOT NULL,
-  request_id text NOT NULL CHECK (char_length(request_id) > 0),
-  for_email text,
-  redirect_to text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  flow_state_id uuid,
-  CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id),
-  CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id),
-  CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id)
-);
-CREATE TABLE auth.schema_migrations (
-  version character varying NOT NULL,
-  CONSTRAINT schema_migrations_pkey PRIMARY KEY (version)
-);
-CREATE TABLE auth.sessions (
-  id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  factor_id uuid,
-  aal USER-DEFINED,
-  not_after timestamp with time zone,
-  refreshed_at timestamp without time zone,
-  user_agent text,
-  ip inet,
-  tag text,
-  CONSTRAINT sessions_pkey PRIMARY KEY (id),
-  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
-);
-CREATE TABLE auth.sso_domains (
-  id uuid NOT NULL,
-  sso_provider_id uuid NOT NULL,
-  domain text NOT NULL CHECK (char_length(domain) > 0),
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  CONSTRAINT sso_domains_pkey PRIMARY KEY (id),
-  CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id)
-);
-CREATE TABLE auth.sso_providers (
-  id uuid NOT NULL,
-  resource_id text CHECK (resource_id = NULL::text OR char_length(resource_id) > 0),
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  disabled boolean,
-  CONSTRAINT sso_providers_pkey PRIMARY KEY (id)
-);
-CREATE TABLE auth.users (
-  instance_id uuid,
-  id uuid NOT NULL,
-  aud character varying,
-  role character varying,
-  email character varying,
-  encrypted_password character varying,
-  email_confirmed_at timestamp with time zone,
-  invited_at timestamp with time zone,
-  confirmation_token character varying,
-  confirmation_sent_at timestamp with time zone,
-  recovery_token character varying,
-  recovery_sent_at timestamp with time zone,
-  email_change_token_new character varying,
-  email_change character varying,
-  email_change_sent_at timestamp with time zone,
-  last_sign_in_at timestamp with time zone,
-  raw_app_meta_data jsonb,
-  raw_user_meta_data jsonb,
-  is_super_admin boolean,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  phone text DEFAULT NULL::character varying UNIQUE,
-  phone_confirmed_at timestamp with time zone,
-  phone_change text DEFAULT ''::character varying,
-  phone_change_token character varying DEFAULT ''::character varying,
-  phone_change_sent_at timestamp with time zone,
-  confirmed_at timestamp with time zone DEFAULT LEAST(email_confirmed_at, phone_confirmed_at),
-  email_change_token_current character varying DEFAULT ''::character varying,
-  email_change_confirm_status smallint DEFAULT 0 CHECK (email_change_confirm_status >= 0 AND email_change_confirm_status <= 2),
-  banned_until timestamp with time zone,
-  reauthentication_token character varying DEFAULT ''::character varying,
-  reauthentication_sent_at timestamp with time zone,
-  is_sso_user boolean NOT NULL DEFAULT false,
-  deleted_at timestamp with time zone,
-  is_anonymous boolean NOT NULL DEFAULT false,
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+CREATE TABLE public.webhook_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_id text NOT NULL UNIQUE,
+  event_type text NOT NULL,
+  payload jsonb NOT NULL,
+  processed boolean DEFAULT false,
+  processing_error text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT webhook_events_pkey PRIMARY KEY (id)
 );

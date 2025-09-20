@@ -348,6 +348,34 @@ export default function ManageTeams() {
     }
   };
 
+  // Business logic helper functions for subscription status
+  const getCalculatedStatus = (subscription) => {
+    const now = new Date();
+    
+    // Check if subscription has expired
+    if (subscription.expires_at) {
+      const expiresDate = new Date(subscription.expires_at);
+      if (expiresDate <= now) {
+        return 'expired';
+      }
+    }
+    
+    // Check if subscription was canceled (but may still be active)
+    if (subscription.canceled_at) {
+      return 'canceled';
+    }
+    
+    return 'active';
+  };
+
+  const hasActiveAccess = (subscription) => {
+    const now = new Date();
+    if (!subscription.expires_at) {
+      return true; // No expiry date = ongoing access
+    }
+    return new Date(subscription.expires_at) > now;
+  };
+
   const filteredTeams = teams.filter(team => 
     team.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -494,24 +522,36 @@ export default function ManageTeams() {
                           <div className={styles.tableCell}>Expires</div>
                         </div>
                         <div className={styles.tableBody}>
-                          {team.subscriptions.map(subscription => (
-                            <div key={subscription.id} className={styles.tableRow}>
-                              <div className={styles.tableCell}>
-                                <span className={`${styles.statusBadge} ${styles[subscription.status]}`}>
-                                  {subscription.status}
-                                </span>
+                          {team.subscriptions.map(subscription => {
+                            const calculatedStatus = getCalculatedStatus(subscription);
+                            const hasAccess = hasActiveAccess(subscription);
+                            
+                            return (
+                              <div key={subscription.id} className={styles.tableRow}>
+                                <div className={styles.tableCell}>
+                                  <span className={`${styles.statusBadge} ${styles[calculatedStatus]}`}>
+                                    {calculatedStatus}
+                                  </span>
+                                  {calculatedStatus === 'canceled' && hasAccess && (
+                                    <span className={styles.accessNote}>(Active until expiry)</span>
+                                  )}
+                                </div>
+                                <div className={styles.tableCell}>
+                                  <span className={styles.dateValue}>{formatDate(subscription.started_at)}</span>
+                                </div>
+                                <div className={styles.tableCell}>
+                                  <span className={styles.dateValue}>
+                                    {subscription.canceled_at ? formatDate(subscription.canceled_at) : '—'}
+                                  </span>
+                                </div>
+                                <div className={styles.tableCell}>
+                                  <span className={styles.dateValue}>
+                                    {subscription.expires_at ? formatDate(subscription.expires_at) : '—'}
+                                  </span>
+                                </div>
                               </div>
-                              <div className={styles.tableCell}>
-                                <span className={styles.dateValue}>{formatDate(subscription.started_at)}</span>
-                              </div>
-                              <div className={styles.tableCell}>
-                                <span className={styles.dateValue}>{formatDate(subscription.canceled_at)}</span>
-                              </div>
-                              <div className={styles.tableCell}>
-                                <span className={styles.dateValue}>{formatDate(subscription.expires_at)}</span>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     ) : (
