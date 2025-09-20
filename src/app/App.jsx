@@ -79,10 +79,12 @@ function AppContent({ session, location }) {
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="team-onboarding" element={<TeamOnboarding />} />
-            <Route path="set-password" element={<SetPassword />} />
             <Route path="faq" element={<FAQPage />} />
             <Route path="legal" element={<LegalPage />} />
           </Route>
+
+          {/* Auth pages that need to be outside layout to avoid conflicts */}
+          <Route path="set-password" element={<SetPassword />} />
 
           {/* Legal */}
           <Route path="/legal" element={<LegalPage />} />

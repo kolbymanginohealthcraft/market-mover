@@ -178,6 +178,10 @@ const SetPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log("🔍 SetPassword - FORM SUBMITTED!");
+    console.log("🔍 SetPassword - Password length:", password.length);
+    console.log("🔍 SetPassword - Passwords match:", password === confirmPassword);
+    
     if (password.length < 6) {
       setMessage("Password must be at least 6 characters long.");
       setMessageType("error");
@@ -190,20 +194,29 @@ const SetPassword = () => {
       return;
     }
 
+    console.log("🔍 SetPassword - Starting password update...");
     setSaving(true);
     setMessage("");
 
     try {
+      console.log("🔍 SetPassword - Calling supabase.auth.updateUser...");
+      
       // Update the user's password
       const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
 
+      console.log("🔍 SetPassword - updateUser result:", { updateError });
+
       if (updateError) {
+        console.log("🔍 SetPassword - Password update failed:", updateError);
         setMessage("Failed to set password. Please try again.");
         setMessageType("error");
+        setSaving(false);
         return;
       }
+
+      console.log("🔍 SetPassword - Password update successful!");
 
       // Wait a moment for the password update to complete
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -220,8 +233,12 @@ const SetPassword = () => {
       setMessageType("success");
       
       // Force redirect using window.location - most reliable method
-      console.log("🔍 SetPassword - Redirecting to team onboarding");
+      console.log("🔍 SetPassword - About to redirect to /team-onboarding");
+      console.log("🔍 SetPassword - Current URL before redirect:", window.location.href);
+      
       window.location.href = '/team-onboarding';
+      
+      console.log("🔍 SetPassword - Redirect command sent");
 
     } catch (err) {
       console.error("Error setting password:", err);
