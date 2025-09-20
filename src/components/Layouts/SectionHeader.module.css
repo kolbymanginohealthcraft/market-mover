@@ -38,6 +38,28 @@
   line-height: 1;
 }
 
+.headerMessage {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 4px;
+  margin-left: 8px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.headerMessage.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-green);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.headerMessage.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error-red);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
 /* Generalized section header button style */
 .actionButton {
   display: flex;

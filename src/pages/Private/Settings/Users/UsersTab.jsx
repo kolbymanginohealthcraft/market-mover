@@ -381,42 +381,32 @@ export default function UsersTab() {
   return (
     <div className={styles.section}>
       <SectionHeader 
-        title="Team Management" 
+        title="Users on Your Team" 
         icon={Users} 
-        showEditButton={false}
+        showActionButton={false}
+        message={message}
+        messageType={messageType}
+        customElement={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {teamMembers.length} / {teamInfo?.max_users} licenses used
+            </span>
+            {userIsTeamAdmin && (
+              <button
+                className="sectionHeaderButton"
+                onClick={() => setShowInvitePanel(true)}
+                disabled={licensesMaxedOut}
+              >
+                <Plus size={14} />
+                <span>Invite Users</span>
+              </button>
+            )}
+          </div>
+        }
       />
       
       <div className={styles.content}>
-                 {message && (
-           <div className={`${styles.message} ${styles[messageType]}`}>
-             {message}
-           </div>
-         )}
-
         {/* Team Members Table */}
-        <div className={styles.membersSection}>
-          <div className={styles.membersHeader}>
-            <div className={styles.headerLeft}>
-              <div className={styles.teamNameDisplay}>
-                <span className={styles.teamName}>User Management</span>
-                <span className={styles.memberCount}>
-                  {teamMembers.length} / {teamInfo?.max_users} licenses used
-                </span>
-              </div>
-            </div>
-            <div className={styles.headerRight}>
-              {userIsTeamAdmin && (
-                <button
-                                      className="sectionHeaderButton"
-                  onClick={() => setShowInvitePanel(true)}
-                  disabled={licensesMaxedOut}
-                >
-                  <Plus size={14} />
-                  <span>Invite Users</span>
-                </button>
-              )}
-            </div>
-          </div>
         <table className={styles.membersTable}>
           <thead>
             <tr>
@@ -521,7 +511,6 @@ export default function UsersTab() {
             ))}
           </tbody>
         </table>
-      </div>
       </div>
 
              {/* Invite Team Members Right Drawer */}

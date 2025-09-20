@@ -7,7 +7,9 @@ const SectionHeader = ({
   icon: Icon, 
   actionButton,
   showActionButton = true,
-  customElement
+  customElement,
+  message,
+  messageType
 }) => {
   // Default icon mapping for common actions
   const getActionIcon = (actionType) => {
@@ -29,6 +31,11 @@ const SectionHeader = ({
         <div className={styles.leftSection}>
           {Icon && <Icon size={16} className={styles.headerIcon} />}
           <span className={styles.headerTitle}>{title}</span>
+          {message && (
+            <span className={`${styles.headerMessage} ${styles[messageType]}`}>
+              {message}
+            </span>
+          )}
         </div>
         {customElement ? (
           customElement
