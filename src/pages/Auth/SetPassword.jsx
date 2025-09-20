@@ -248,6 +248,7 @@ const SetPassword = () => {
       }
 
       console.log("🔍 SetPassword - Password update successful!");
+      console.log("🔍 SetPassword - About to set success message and redirect...");
 
       // Wait a moment for the password update to complete
       await new Promise(resolve => setTimeout(resolve, 500));
