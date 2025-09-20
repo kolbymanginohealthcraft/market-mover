@@ -193,8 +193,7 @@ export default function ManageTeams() {
       const { error } = await supabase
         .from('teams')
         .update({
-          name: formData.name,
-          max_users: 999 // Temporary placeholder until schema migration
+          name: formData.name
         })
         .eq('id', editingTeam.id);
 
@@ -482,48 +481,59 @@ export default function ManageTeams() {
               {/* Expandable Details */}
               {expandedTeams.has(team.id) && (
                 <div className={styles.expandedContent} onClick={(e) => e.stopPropagation()}>
-                  {/* Team Summary Row */}
-                  <div className={styles.teamSummary}>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryLabel}>Created</span>
-                      <span className={styles.summaryValue}>{formatDate(team.created_at)}</span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryLabel}>Created by</span>
-                      <span className={styles.summaryValue}>
-                        {team.creator ? `${team.creator.first_name} ${team.creator.last_name}` : 'Unknown'}
-                      </span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryLabel}>Members</span>
-                      <span className={styles.summaryValue}>{team.currentUsers}/{team.licenseQuantity || 0}</span>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span className={styles.summaryLabel}>Subscription</span>
-                      <span className={styles.summaryValue}>
-                        {team.subscriptions && team.subscriptions.length > 0 ? (
-                          <span className={`${styles.statusBadge} ${styles[team.subscriptions[0].status]}`}>
-                            {team.subscriptions[0].status}
-                          </span>
-                        ) : (
-                          <Button 
-                            variant="blue" 
-                            size="sm" 
-                            onClick={() => {
-                              setSelectedTeamForSubscription(team);
-                              setShowCreateSubscriptionModal(true);
-                            }}
-                          >
-                            Create Subscription
-                          </Button>
-                        )}
-                      </span>
-                    </div>
+
+                  {/* Subscription Section */}
+                  <div className={styles.subscriptionSection}>
+                    <h4 className={styles.sectionTitle}>Subscriptions ({team.subscriptions?.length || 0})</h4>
+                    {team.subscriptions && team.subscriptions.length > 0 ? (
+                      <div className={styles.subscriptionTable}>
+                        <div className={styles.tableHeader}>
+                          <div className={styles.tableCell}>Status</div>
+                          <div className={styles.tableCell}>Started</div>
+                          <div className={styles.tableCell}>Canceled</div>
+                          <div className={styles.tableCell}>Expires</div>
+                        </div>
+                        <div className={styles.tableBody}>
+                          {team.subscriptions.map(subscription => (
+                            <div key={subscription.id} className={styles.tableRow}>
+                              <div className={styles.tableCell}>
+                                <span className={`${styles.statusBadge} ${styles[subscription.status]}`}>
+                                  {subscription.status}
+                                </span>
+                              </div>
+                              <div className={styles.tableCell}>
+                                <span className={styles.dateValue}>{formatDate(subscription.started_at)}</span>
+                              </div>
+                              <div className={styles.tableCell}>
+                                <span className={styles.dateValue}>{formatDate(subscription.canceled_at)}</span>
+                              </div>
+                              <div className={styles.tableCell}>
+                                <span className={styles.dateValue}>{formatDate(subscription.expires_at)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.noSubscriptions}>
+                        <p>No subscriptions found.</p>
+                        <Button 
+                          variant="blue" 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedTeamForSubscription(team);
+                            setShowCreateSubscriptionModal(true);
+                          }}
+                        >
+                          Create Subscription
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Team Members Table */}
                   <div className={styles.membersSection}>
-                    <h4 className={styles.sectionTitle}>Team Members ({team.members?.length || 0})</h4>
+                    <h4 className={styles.sectionTitle}>Team Members ({team.currentUsers}/{team.licenseQuantity || 0})</h4>
                     {team.members && team.members.length > 0 ? (
                       <div className={styles.membersTable}>
                         <div className={styles.tableHeader}>
@@ -622,10 +632,7 @@ export default function ManageTeams() {
                 disabled={processing || !formData.name.trim()}
               >
                 {processing ? (
-                  <>
-                    <Spinner size="sm" />
-                    {editingTeam ? 'Updating...' : 'Creating...'}
-                  </>
+                  editingTeam ? 'Updating...' : 'Creating...'
                 ) : (
                   editingTeam ? 'Update Team' : 'Create Team'
                 )}
