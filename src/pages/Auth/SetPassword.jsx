@@ -19,8 +19,39 @@ const SetPassword = () => {
   const passwordRef = useRef(null);
 
   useEffect(() => {
-    checkInvitation();
+    // Check if we need to refresh the session first
+    refreshSessionIfNeeded();
   }, []);
+
+  const refreshSessionIfNeeded = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.log("🔍 SetPassword - Session error, refreshing:", error);
+        // Try to refresh the session
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.log("🔍 SetPassword - Session refresh failed:", refreshError);
+          setMessage("Your invitation link has expired. Please contact your team admin for a new invitation.");
+          setMessageType("error");
+          setLoading(false);
+          return;
+        }
+        
+        console.log("🔍 SetPassword - Session refreshed successfully");
+      }
+      
+      // Now check the invitation
+      checkInvitation();
+    } catch (err) {
+      console.error("Error refreshing session:", err);
+      setMessage("Your invitation link has expired. Please contact your team admin for a new invitation.");
+      setMessageType("error");
+      setLoading(false);
+    }
+  };
 
   const checkInvitation = async () => {
     try {
@@ -199,18 +230,25 @@ const SetPassword = () => {
     setMessage("");
 
     try {
-      console.log("🔍 SetPassword - Calling supabase.auth.updateUser...");
+      console.log("🔍 SetPassword - Refreshing session before password update...");
       
-      // Update the user's password with timeout
-      const updatePromise = supabase.auth.updateUser({
+      // Force refresh the session first
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.log("🔍 SetPassword - Session refresh failed:", refreshError);
+        setMessage("Session expired. Please refresh the page and try again.");
+        setMessageType("error");
+        setSaving(false);
+        return;
+      }
+      
+      console.log("🔍 SetPassword - Session refreshed, now updating password...");
+      
+      // Update the user's password
+      const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Password update timeout')), 10000)
-      );
-      
-      const { error: updateError } = await Promise.race([updatePromise, timeoutPromise]);
 
       console.log("🔍 SetPassword - updateUser result:", { updateError });
 
