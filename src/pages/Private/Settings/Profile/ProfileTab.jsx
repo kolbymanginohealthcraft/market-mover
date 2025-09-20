@@ -25,11 +25,6 @@ export default function ProfileTab() {
     team_id: null,
   });
   const [teamInfo, setTeamInfo] = useState(null);
-  const [subscription, setSubscription] = useState({
-    plan_name: "free",
-    team_name: null,
-    max_users: null,
-  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -98,7 +93,7 @@ export default function ProfileTab() {
       if (profileData.team_id) {
         const { data: team, error: teamError } = await supabase
           .from("teams")
-          .select("name, max_users, created_at")
+          .select("name, created_at")
           .eq("id", profileData.team_id)
           .single();
 
@@ -106,14 +101,7 @@ export default function ProfileTab() {
           setTeamInfo({
             id: profileData.team_id,
             name: team.name,
-            max_users: team.max_users,
             created_at: team.created_at,
-          });
-
-          setSubscription({
-            plan_name: "free",
-            team_name: team.name || null,
-            max_users: team.max_users || null,
           });
         }
       }

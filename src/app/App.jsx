@@ -7,6 +7,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import { sessionSync, getStoredSession, isSessionValid } from "../utils/sessionSync";
+import "../utils/sessionDebug"; // Load debug utilities
 
 // Components
 import ScrollToTop from "../components/Navigation/ScrollToTop";
@@ -59,18 +61,49 @@ export default function App() {
   const location = useLocation();
 
   useEffect(() => {
+    // Check for stored session first to handle tab duplication
+    const storedSession = getStoredSession();
+    if (storedSession && isSessionValid(storedSession)) {
+      console.log("🔄 App.jsx - Found valid stored session, setting immediately");
+      setSession(storedSession);
+      setIsLoading(false);
+    }
+
+    // Get current session from Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("🔄 App.jsx - Supabase session check:", !!session);
       setSession(session);
       setIsLoading(false);
     });
 
+    // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔄 App.jsx - Auth state change:", event, !!session);
       setSession(session);
+      
+      // Broadcast session changes to other tabs
+      sessionSync.broadcastAuthStateChange(event, session);
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for session updates from other tabs
+    const unsubscribeSync = sessionSync.subscribe((event, data) => {
+      console.log("🔄 App.jsx - Cross-tab session update:", event);
+      
+      if (event === 'sessionUpdate' && data) {
+        setSession(data);
+      } else if (event === 'sessionClear') {
+        setSession(null);
+      } else if (event === 'authStateChange') {
+        setSession(data.session);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      unsubscribeSync();
+    };
   }, []);
 
   useEffect(() => {

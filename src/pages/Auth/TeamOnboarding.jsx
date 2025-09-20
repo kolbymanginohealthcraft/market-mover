@@ -60,7 +60,7 @@ const TeamOnboarding = () => {
       // Get team information
       const { data: teamData, error: teamError } = await supabase
         .from("teams")
-        .select("name, max_users")
+        .select("name")
         .eq("id", profileData.team_id)
         .single();
 
@@ -74,7 +74,6 @@ const TeamOnboarding = () => {
       setTeamInfo({
         id: profileData.team_id,
         name: teamData.name,
-        max_users: teamData.max_users,
       });
 
       // Pre-fill existing profile data

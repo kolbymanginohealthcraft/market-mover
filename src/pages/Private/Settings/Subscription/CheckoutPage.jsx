@@ -54,7 +54,7 @@ export default function CheckoutPage() {
         // Fetch team data
         const { data: team, error: teamError } = await supabase
           .from("teams")
-          .select("name, max_users")
+          .select("name")
           .eq("id", profileData.team_id)
           .single();
 

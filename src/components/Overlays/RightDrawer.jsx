@@ -28,7 +28,7 @@ const RightDrawer = ({
     <>
       <div className={styles.drawerOverlay} onClick={onClose} />
       <div 
-        className={`${styles.rightDrawer} ${styles.drawerOpen} ${className}`}
+        className={`${styles.rightDrawer} ${className}`}
         style={{ width }}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {

@@ -233,7 +233,6 @@ CREATE TABLE public.team_provider_tags (
 CREATE TABLE public.teams (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,
-  max_users integer NOT NULL,
   created_by uuid,
   created_at timestamp with time zone DEFAULT now(),
   company_type text CHECK (company_type = ANY (ARRAY['Provider'::text, 'Supplier'::text])),

@@ -41,8 +41,7 @@ export default function ManageTeams() {
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
-    name: '',
-    max_users: 5
+    name: ''
   });
 
   useEffect(() => {
@@ -69,13 +68,12 @@ export default function ManageTeams() {
   const fetchTeams = async () => {
     setLoading(true);
     try {
-      // Use the same query structure as AnalyticsDashboard
+      // Get teams without max_users
       const { data: teams, error: teamsError } = await supabase
         .from('teams')
         .select(`
           id,
           name,
-          max_users,
           created_at,
           created_by,
           profiles(count)
@@ -142,13 +140,17 @@ export default function ManageTeams() {
               }
 
       // Combine teams with their subscriptions, creator info, and members
-      const teamsWithSubs = teams?.map(team => ({
-        ...team,
-        currentUsers: team.profiles?.[0]?.count || 0,
-        subscriptions: subscriptions.filter(sub => sub.team_id === team.id),
-        creator: creators[team.created_by] || null,
-        members: teamMembers[team.id] || []
-      })) || [];
+      const teamsWithSubs = teams?.map(team => {
+        const activeSubscription = subscriptions.find(sub => sub.team_id === team.id && sub.status === 'active');
+        return {
+          ...team,
+          currentUsers: team.profiles?.[0]?.count || 0,
+          subscriptions: subscriptions.filter(sub => sub.team_id === team.id),
+          creator: creators[team.created_by] || null,
+          members: teamMembers[team.id] || [],
+          licenseQuantity: activeSubscription?.license_quantity || 0
+        };
+      }) || [];
 
       setTeams(teamsWithSubs);
     } catch (error) {
@@ -167,7 +169,6 @@ export default function ManageTeams() {
         .from('teams')
         .insert({
           name: formData.name,
-          max_users: formData.max_users,
           created_by: user.id
         })
         .select()
@@ -193,7 +194,7 @@ export default function ManageTeams() {
         .from('teams')
         .update({
           name: formData.name,
-          max_users: formData.max_users
+          max_users: 999 // Temporary placeholder until schema migration
         })
         .eq('id', editingTeam.id);
 
@@ -310,15 +311,13 @@ export default function ManageTeams() {
   const startEdit = (team) => {
     setEditingTeam(team);
     setFormData({
-      name: team.name,
-      max_users: team.max_users
+      name: team.name
     });
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      max_users: 5
+      name: ''
     });
   };
 
@@ -447,7 +446,7 @@ export default function ManageTeams() {
                   <div className={styles.teamStats}>
                     <span className={styles.memberCount}>
                       <UserCheck size={12} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
-                      {team.currentUsers}/{team.max_users}
+                      {team.currentUsers}/{team.licenseQuantity || 0}
                     </span>
                     <span className={styles.subscriptionCount}>
                       <CreditCard size={12} style={{ width: 'var(--icon-size-sm)', height: 'var(--icon-size-sm)' }} />
@@ -497,7 +496,7 @@ export default function ManageTeams() {
                     </div>
                     <div className={styles.summaryItem}>
                       <span className={styles.summaryLabel}>Members</span>
-                      <span className={styles.summaryValue}>{team.currentUsers}/{team.max_users}</span>
+                      <span className={styles.summaryValue}>{team.currentUsers}/{team.licenseQuantity || 0}</span>
                     </div>
                     <div className={styles.summaryItem}>
                       <span className={styles.summaryLabel}>Subscription</span>
@@ -601,20 +600,6 @@ export default function ManageTeams() {
                 />
               </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="maxUsers">Max Users *</label>
-                  <input
-                    id="maxUsers"
-                    type="number"
-                    min="1"
-                    value={formData.max_users}
-                    onChange={(e) => setFormData({ ...formData, max_users: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-
-              </div>
             </div>
 
             <div className={styles.modalActions}>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../app/supabaseClient';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
+import { sessionSync, getStoredSession, isSessionValid } from '../../utils/sessionSync';
 
 const UserContext = createContext();
 
@@ -115,7 +116,20 @@ export const UserProvider = ({ children }) => {
       try {
         setLoading(true);
         
-        // Get initial session
+        // First check for stored session to handle tab duplication
+        const storedSession = getStoredSession();
+        if (storedSession && isSessionValid(storedSession)) {
+          console.log('🔄 UserContext - Found valid stored session');
+          if (mounted) {
+            setUser(storedSession.user);
+            if (storedSession.user) {
+              await fetchUserProfile(storedSession.user.id);
+            }
+            setLoading(false);
+          }
+        }
+        
+        // Get current session from Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -169,9 +183,46 @@ export const UserProvider = ({ children }) => {
       }
     });
 
+    // Listen for cross-tab session updates
+    const unsubscribeSync = sessionSync.subscribe(async (event, data) => {
+      if (!mounted) return;
+      
+      console.log('🔄 UserContext - Cross-tab session update:', event);
+      
+      if (event === 'sessionUpdate' && data?.user) {
+        setUser(data.user);
+        await fetchUserProfile(data.user.id);
+      } else if (event === 'sessionClear') {
+        setUser(null);
+        setProfile(null);
+        setPermissions({
+          isTeamAdmin: false,
+          isPlatformAdmin: false,
+          hasTeam: false,
+          canAccessPlatform: false,
+          canAccessUsers: false
+        });
+      } else if (event === 'authStateChange' && data?.session) {
+        setUser(data.session.user);
+        if (data.session.user) {
+          await fetchUserProfile(data.session.user.id);
+        } else {
+          setProfile(null);
+          setPermissions({
+            isTeamAdmin: false,
+            isPlatformAdmin: false,
+            hasTeam: false,
+            canAccessPlatform: false,
+            canAccessUsers: false
+          });
+        }
+      }
+    });
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      unsubscribeSync();
     };
   }, [fetchUserProfile]);
 

@@ -218,13 +218,31 @@ export default function AnalyticsDashboard() {
         .select(`
           id,
           name,
-          max_users,
           created_at,
           profiles(count)
         `);
 
       if (teamsError) throw teamsError;
       console.log('Teams found:', teams?.length || 0);
+
+      // Get active subscriptions for license quantities
+      const teamIds = teams?.map(team => team.id) || [];
+      let subscriptions = [];
+      
+      if (teamIds.length > 0) {
+        const { data: subsData, error: subsError } = await supabase
+          .from('subscriptions')
+          .select('team_id, license_quantity')
+          .in('team_id', teamIds)
+          .eq('status', 'active')
+          .is('expires_at', null);
+
+        if (subsError) {
+          console.error('Error fetching subscriptions:', subsError);
+        } else {
+          subscriptions = subsData || [];
+        }
+      }
 
       // Get team activity (simplified query)
       const thirtyDaysAgo = new Date();
@@ -238,15 +256,19 @@ export default function AnalyticsDashboard() {
       if (activityError) {
         console.error('Error fetching team activities:', activityError);
         // Continue without team activities
-        const teamAnalytics = teams?.map(team => ({
-          id: team.id,
-          name: team.name,
-          maxUsers: team.max_users,
-          currentUsers: team.profiles?.[0]?.count || 0,
-          createdAt: team.created_at,
-          activityCount: 0,
-          utilizationRate: team.max_users > 0 ? Math.round((team.profiles?.[0]?.count / team.max_users) * 100) : 0
-        })) || [];
+        const teamAnalytics = teams?.map(team => {
+          const activeSubscription = subscriptions.find(sub => sub.team_id === team.id);
+          const licenseQuantity = activeSubscription?.license_quantity || 0;
+          return {
+            id: team.id,
+            name: team.name,
+            maxUsers: licenseQuantity,
+            currentUsers: team.profiles?.[0]?.count || 0,
+            createdAt: team.created_at,
+            activityCount: 0,
+            utilizationRate: licenseQuantity > 0 ? Math.round((team.profiles?.[0]?.count / licenseQuantity) * 100) : 0
+          };
+        }) || [];
 
         const result = {
           totalTeams: teamAnalytics.length,
@@ -291,15 +313,19 @@ export default function AnalyticsDashboard() {
         }
       });
 
-      const teamAnalytics = teams?.map(team => ({
-        id: team.id,
-        name: team.name,
-        maxUsers: team.max_users,
-        currentUsers: team.profiles?.[0]?.count || 0,
-        createdAt: team.created_at,
-        activityCount: teamActivityCounts[team.id] || 0,
-        utilizationRate: team.max_users > 0 ? Math.round((team.profiles?.[0]?.count / team.max_users) * 100) : 0
-      })) || [];
+      const teamAnalytics = teams?.map(team => {
+        const activeSubscription = subscriptions.find(sub => sub.team_id === team.id);
+        const licenseQuantity = activeSubscription?.license_quantity || 0;
+        return {
+          id: team.id,
+          name: team.name,
+          maxUsers: licenseQuantity,
+          currentUsers: team.profiles?.[0]?.count || 0,
+          createdAt: team.created_at,
+          activityCount: teamActivityCounts[team.id] || 0,
+          utilizationRate: licenseQuantity > 0 ? Math.round((team.profiles?.[0]?.count / licenseQuantity) * 100) : 0
+        };
+      }) || [];
 
       const result = {
         totalTeams: teamAnalytics.length,

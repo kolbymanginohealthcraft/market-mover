@@ -99,33 +99,42 @@ export default function UsersTab() {
           return;
         }
 
-        // Fetch current active subscription
+        // Fetch current active subscription (including trials that haven't expired yet)
         const { data: subData, error: subError } = await supabase
           .from("subscriptions")
           .select("*")
           .eq("team_id", profileData.team_id)
           .eq("status", "active")
-          .is("expires_at", null)
-          .order("started_at", { ascending: false })
-          .limit(1)
-          .single();
+          .or("expires_at.is.null,expires_at.gt.now()")
+          .order("started_at", { ascending: false });
 
-        if (subError || !subData) {
+        if (subError) {
+          console.error("Error fetching subscription:", subError);
+          setMessage("Error loading subscription data.");
+          setMessageType("error");
+          setLoading(false);
+          return;
+        }
+
+        if (!subData || subData.length === 0) {
           setMessage("No active subscription found for this team.");
           setMessageType("error");
           setLoading(false);
           return;
         }
 
+        // Use the most recent active subscription
+        const activeSubscription = subData[0];
+
         setTeamInfo({
           id: profileData.team_id,
           name: team.name,
-          max_users: subData.license_quantity,
+          max_users: activeSubscription.license_quantity,
           created_at: team.created_at,
         });
 
         setSubscription({
-          ...subData,
+          ...activeSubscription,
           plan_name: "Active Plan", // Simplified for now
         });
 
@@ -158,7 +167,7 @@ export default function UsersTab() {
         });
 
         setTeamMembers(sortedMembers);
-        setLicensesMaxedOut(members.length >= subData.license_quantity);
+        setLicensesMaxedOut(members.length >= activeSubscription.license_quantity);
       }
     } catch (err) {
       console.error("💥 Unexpected error:", err);

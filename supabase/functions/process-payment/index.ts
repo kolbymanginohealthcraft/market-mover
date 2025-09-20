@@ -201,9 +201,7 @@ serve(async (req) => {
       const planTiers = ["starter", "advanced", "pro"];
       const tier = planTiers[planId] || "starter";
 
-      // Calculate max users based on plan and additional licenses
-      const baseUsers = planId === 0 ? 3 : planId === 1 ? 10 : 30;
-      const maxUsers = baseUsers + additionalLicenses;
+      // Note: License limits are now managed via subscriptions table
 
       // Create team
       const { data: team, error: teamError } = await supabase
@@ -211,7 +209,6 @@ serve(async (req) => {
         .insert({
           name: teamName,
           tier: tier,
-          max_users: maxUsers,
           company_type: companyType,
           billing_cycle: billingCycle,
           created_by: userId

@@ -24,6 +24,7 @@ export default function SubscriptionManagePage() {
   const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
   const [editingPaymentMethod, setEditingPaymentMethod] = useState(null);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+  const [teamMemberCount, setTeamMemberCount] = useState(0);
 
   useEffect(() => {
     fetchSubscriptionData();
@@ -89,7 +90,7 @@ export default function SubscriptionManagePage() {
         // Fetch team data
         const { data: team, error: teamError } = await supabase
           .from("teams")
-          .select("name, max_users")
+          .select("name")
           .eq("id", profileData.team_id)
           .single();
 
@@ -106,6 +107,16 @@ export default function SubscriptionManagePage() {
 
         if (!subError && subData) {
           setSubscription(subData);
+          
+          // Fetch team member count
+          const { count: memberCount, error: memberCountError } = await supabase
+            .from("profiles")
+            .select("*", { count: "exact", head: true })
+            .eq("team_id", profileData.team_id);
+
+          if (!memberCountError) {
+            setTeamMemberCount(memberCount || 0);
+          }
         }
       }
     } catch (err) {
@@ -413,7 +424,7 @@ export default function SubscriptionManagePage() {
                 <div>
                   <span className={styles.detailLabel}>Licenses</span>
                   <span className={styles.detailValue}>
-                    {subscription.license_quantity} / {teamInfo?.max_users}
+                    {teamMemberCount}/{subscription.license_quantity} licenses used
                   </span>
                 </div>
               </div>
