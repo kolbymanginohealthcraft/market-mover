@@ -260,17 +260,6 @@ const SetPassword = () => {
       console.log("🔍 SetPassword - Password update successful!");
       console.log("🔍 SetPassword - About to set success message and redirect...");
 
-      // Wait a moment for the password update to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Get the updated user session
-      const { data: { user: updatedUser } } = await supabase.auth.getUser();
-      console.log("🔍 SetPassword - Updated user state:", {
-        email: updatedUser.email,
-        emailConfirmed: updatedUser.email_confirmed_at,
-        provider: updatedUser.app_metadata?.provider
-      });
-
       setMessage("Password set successfully!");
       setMessageType("success");
       
