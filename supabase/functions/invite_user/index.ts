@@ -255,26 +255,42 @@ serve(async (req: Request): Promise<Response> => {
     // Invitation sent successfully - manually update profile
     console.log("Invitation sent successfully, updating profile...");
     
-    // Try to update the profile with team information
-    // This will work for existing users and may work for new users if the profile exists
-    try {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          team_id: team_id,
-          role: "Team Member",
-          access_type: "join"
-        })
-        .eq("email", sanitizedEmail);
+    // Wait a moment for the profile to be created by the trigger, then update it
+    console.log("Waiting for profile creation, then updating with team info...");
+    
+    // Try multiple times to update the profile (in case it takes time to be created)
+    let profileUpdated = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        // Wait a bit between attempts
+        if (attempt > 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         
-      if (profileError) {
-        console.log("Profile update error (this might be expected for new users):", profileError);
-        // For new users, we'll handle team assignment in the SetPassword component
-      } else {
-        console.log("Profile updated successfully");
+        console.log(`Attempt ${attempt} to update profile...`);
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            team_id: team_id,
+            role: "Team Member",
+            access_type: "join"
+          })
+          .eq("email", sanitizedEmail);
+          
+        if (profileError) {
+          console.log(`Profile update attempt ${attempt} failed:`, profileError);
+        } else {
+          console.log(`Profile updated successfully on attempt ${attempt}`);
+          profileUpdated = true;
+          break;
+        }
+      } catch (err) {
+        console.log(`Profile update attempt ${attempt} failed with error:`, err);
       }
-    } catch (err) {
-      console.log("Profile update failed (this might be expected for new users):", err);
+    }
+    
+    if (!profileUpdated) {
+      console.log("Profile update failed after all attempts - will be handled during password setup");
     }
 
     // Log successful invitation

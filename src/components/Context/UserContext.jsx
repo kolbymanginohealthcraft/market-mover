@@ -90,7 +90,6 @@ export const UserProvider = ({ children }) => {
   // Refresh user data (useful when permissions change)
   const refreshUserData = useCallback(async () => {
     if (user?.id) {
-      console.log('🔄 Refreshing user data due to permission change');
       await fetchUserProfile(user.id);
     }
   }, [user?.id, fetchUserProfile]);
@@ -98,7 +97,6 @@ export const UserProvider = ({ children }) => {
   // Force refresh user data (useful when permissions change externally)
   const forceRefreshUserData = useCallback(async () => {
     if (user?.id) {
-      console.log('🔄 Force refreshing user data');
       setLoading(true);
       try {
         await fetchUserProfile(user.id);
@@ -108,65 +106,14 @@ export const UserProvider = ({ children }) => {
     }
   }, [user?.id, fetchUserProfile]);
 
-  // Initialize user state
+  // Initialize user state - only listen for auth changes, don't initialize session
   useEffect(() => {
     let mounted = true;
 
-    const initializeUser = async () => {
-      try {
-        setLoading(true);
-        
-        // First check for stored session to handle tab duplication
-        const storedSession = getStoredSession();
-        if (storedSession && isSessionValid(storedSession)) {
-          console.log('🔄 UserContext - Found valid stored session');
-          if (mounted) {
-            setUser(storedSession.user);
-            if (storedSession.user) {
-              await fetchUserProfile(storedSession.user.id);
-            }
-            setLoading(false);
-          }
-        }
-        
-        // Get current session from Supabase
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          if (mounted) {
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        if (mounted) {
-          setUser(session?.user || null);
-          if (session?.user) {
-            await fetchUserProfile(session.user.id);
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing user:', error);
-        if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeUser();
-
-    // Listen for auth state changes
+    // Listen for auth state changes from App.jsx
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      console.log('Auth state change:', event, session?.user?.email);
-      
       setUser(session?.user || null);
       
       if (session?.user) {
@@ -181,13 +128,13 @@ export const UserProvider = ({ children }) => {
           canAccessUsers: false
         });
       }
+      
+      setLoading(false);
     });
 
     // Listen for cross-tab session updates
     const unsubscribeSync = sessionSync.subscribe(async (event, data) => {
       if (!mounted) return;
-      
-      console.log('🔄 UserContext - Cross-tab session update:', event);
       
       if (event === 'sessionUpdate' && data?.user) {
         setUser(data.user);
@@ -217,6 +164,8 @@ export const UserProvider = ({ children }) => {
           });
         }
       }
+      
+      setLoading(false);
     });
 
     return () => {

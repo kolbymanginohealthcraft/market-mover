@@ -15,7 +15,7 @@ import ScrollToTop from "../components/Navigation/ScrollToTop";
 import UnifiedSidebarLayout from "../components/Layouts/UnifiedSidebarLayout";
 
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
-import { UserProvider } from "../components/Context/UserContext";
+import { UserProvider, useUser } from "../components/Context/UserContext";
 
 // Pages
 import LandingPage from "../pages/Public/Marketing/LandingPage";
@@ -53,10 +53,80 @@ import Network from "../pages/Private/Network/Network";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
+// Inner App component that has access to UserContext
+function AppContent({ session, location }) {
+  const { loading: userLoading } = useUser();
+  
+  // Show loading if either App or UserContext is still loading
+  if (userLoading) return null;
+  
+  return (
+    <>
+      <ScrollToTop />
+      <ProviderContextProvider>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<UnifiedSidebarLayout isPublic={true} />}>
+            <Route
+              index
+              element={session ? <Navigate to="/app/dashboard" /> : <LandingPage />}
+            />
+            <Route
+              path="login"
+              element={session ? <Navigate to="/app/dashboard" /> : <Login />}
+            />
+            <Route path="signup" element={<Signup />} />
+            <Route path="forgot-password" element={<ForgotPassword />} />
+            <Route path="reset-password" element={<ResetPassword />} />
+            <Route path="team-onboarding" element={<TeamOnboarding />} />
+            <Route path="set-password" element={<SetPassword />} />
+            <Route path="faq" element={<FAQPage />} />
+            <Route path="legal" element={<LegalPage />} />
+          </Route>
+
+          {/* Legal */}
+          <Route path="/legal" element={<LegalPage />} />
+
+          {/* Private */}
+          <Route path="/app" element={session ? <UnifiedSidebarLayout isPublic={false} /> : <Navigate to="/" />}>
+            <Route index element={<Navigate to="dashboard" />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="search" element={<Navigate to="search/basic" />} />
+            <Route path="search/basic" element={<ProviderSearch />} />
+            <Route path="search/advanced" element={<AdvancedSearch />} />
+            <Route path="explore" element={<Explore />} />
+            <Route path="feedback" element={<Feedback />} />
+            <Route path="provider/:dhc/*" element={<ProviderDetail />} />
+
+            <Route path="markets/*" element={<MarketsList />} />
+            <Route path="market/:marketId/*" element={<MarketDetail />} />
+            <Route path="market/create" element={<InteractiveMarketCreation />} />
+            <Route path="settings/*" element={<Settings />} />
+            <Route path="manage-announcements" element={<ManageAnnouncements />} />
+            <Route path="manage-feedback" element={<ManageFeedback />} />
+            <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
+            <Route path="legal-content-editor" element={<LegalContentEditor />} />
+            <Route path="policy-management" element={<PolicyManagement />} />
+            <Route path="style-guide" element={<StyleGuide />} />
+            <Route path="network/*" element={<Network />} />
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={
+            session && location.pathname !== "/reset-password" 
+              ? <Navigate to="/app/dashboard" /> 
+              : <Navigate to="/" />
+          } />
+        </Routes>
+      </ProviderContextProvider>
+    </>
+  );
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastRedirectCheck, setLastRedirectCheck] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -64,14 +134,12 @@ export default function App() {
     // Check for stored session first to handle tab duplication
     const storedSession = getStoredSession();
     if (storedSession && isSessionValid(storedSession)) {
-      console.log("🔄 App.jsx - Found valid stored session, setting immediately");
       setSession(storedSession);
       setIsLoading(false);
     }
 
     // Get current session from Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("🔄 App.jsx - Supabase session check:", !!session);
       setSession(session);
       setIsLoading(false);
     });
@@ -80,17 +148,16 @@ export default function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔄 App.jsx - Auth state change:", event, !!session);
       setSession(session);
       
-      // Broadcast session changes to other tabs
-      sessionSync.broadcastAuthStateChange(event, session);
+      // Only broadcast significant auth state changes to prevent loops
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        sessionSync.broadcastAuthStateChange(event, session);
+      }
     });
 
     // Listen for session updates from other tabs
     const unsubscribeSync = sessionSync.subscribe((event, data) => {
-      console.log("🔄 App.jsx - Cross-tab session update:", event);
-      
       if (event === 'sessionUpdate' && data) {
         setSession(data);
       } else if (event === 'sessionClear') {
@@ -107,86 +174,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Don't redirect if user is on reset-password page (they need to complete password reset)
-    console.log("🔍 App.jsx - Session redirect check:", {
-      hasSession: !!session,
-      pathname: location.pathname,
-      isResetPassword: location.pathname === "/reset-password"
-    });
+    // Debounce redirect checks to prevent rapid redirects
+    const now = Date.now();
+    const timeSinceLastCheck = now - lastRedirectCheck;
+    
+    // Only check redirects if enough time has passed (500ms debounce)
+    if (timeSinceLastCheck < 500 && lastRedirectCheck > 0) {
+      return;
+    }
+    
+    setLastRedirectCheck(now);
     
     if (session && (location.pathname === "/" || location.pathname === "/login") && location.pathname !== "/reset-password") {
-      console.log("🔍 App.jsx - Redirecting to dashboard");
       navigate("/app/dashboard");
     }
-  }, [session, location.pathname, navigate]);
+  }, [session, location.pathname, navigate, lastRedirectCheck]);
 
   if (isLoading) return null;
 
   return (
     <UserProvider>
-      <ScrollToTop />
-      <ProviderContextProvider>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<UnifiedSidebarLayout isPublic={true} />}>
-              <Route
-                index
-                element={session ? <Navigate to="/app/dashboard" /> : <LandingPage />}
-              />
-              <Route
-                path="login"
-                element={session ? <Navigate to="/app/dashboard" /> : <Login />}
-              />
-              <Route path="signup" element={<Signup />} />
-              <Route path="forgot-password" element={<ForgotPassword />} />
-              <Route path="reset-password" element={<ResetPassword />} />
-              <Route path="team-onboarding" element={<TeamOnboarding />} />
-              <Route path="set-password" element={<SetPassword />} />
-              <Route path="faq" element={<FAQPage />} />
-              <Route path="legal" element={<LegalPage />} />
-      
-
-
-
-            </Route>
-
-            {/* Legal */}
-            <Route path="/legal" element={<LegalPage />} />
-
-            {/* Private */}
-            <Route path="/app" element={session ? <UnifiedSidebarLayout isPublic={false} /> : <Navigate to="/" />}>
-              <Route index element={<Navigate to="dashboard" />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="search" element={<Navigate to="search/basic" />} />
-              <Route path="search/basic" element={<ProviderSearch />} />
-              <Route path="search/advanced" element={<AdvancedSearch />} />
-              <Route path="explore" element={<Explore />} />
-              <Route path="feedback" element={<Feedback />} />
-              <Route path="provider/:dhc/*" element={<ProviderDetail />} />
-
-              <Route path="markets/*" element={<MarketsList />} />
-              <Route path="market/:marketId/*" element={<MarketDetail />} />
-              <Route path="market/create" element={<InteractiveMarketCreation />} />
-              <Route path="settings/*" element={<Settings />} />
-              <Route path="manage-announcements" element={<ManageAnnouncements />} />
-              <Route path="manage-feedback" element={<ManageFeedback />} />
-              <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
-              <Route path="legal-content-editor" element={<LegalContentEditor />} />
-              <Route path="policy-management" element={<PolicyManagement />} />
-              <Route path="style-guide" element={<StyleGuide />} />
-              <Route path="network/*" element={<Network />} />
-              
-
-            </Route>
-
-            {/* Fallback */}
-            <Route path="*" element={
-              session && location.pathname !== "/reset-password" 
-                ? <Navigate to="/app/dashboard" /> 
-                : <Navigate to="/" />
-            } />
-          </Routes>
-        </ProviderContextProvider>
+      <AppContent session={session} location={location} />
     </UserProvider>
   );
 }

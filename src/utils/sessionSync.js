@@ -4,6 +4,8 @@ class SessionSync {
     this.channel = null;
     this.listeners = new Set();
     this.isInitialized = false;
+    this.lastBroadcast = 0;
+    this.broadcastDebounceMs = 100; // Debounce broadcasts by 100ms
     
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       this.channel = new BroadcastChannel('market-mover-session');
@@ -73,13 +75,19 @@ class SessionSync {
 
   // Broadcast auth state change to other tabs
   broadcastAuthStateChange(event, session) {
-    if (this.channel) {
-      this.channel.postMessage({
-        type: 'AUTH_STATE_CHANGE',
-        data: { event, session },
-        timestamp: Date.now()
-      });
+    if (!this.channel) return;
+    
+    const now = Date.now();
+    if (now - this.lastBroadcast < this.broadcastDebounceMs) {
+      return;
     }
+    
+    this.lastBroadcast = now;
+    this.channel.postMessage({
+      type: 'AUTH_STATE_CHANGE',
+      data: { event, session },
+      timestamp: now
+    });
   }
 
   // Clean up
@@ -120,14 +128,6 @@ export const isSessionValid = (session) => {
   
   // Consider session valid if it expires in more than 5 minutes
   const isValid = expiresAt && (expiresAt - now) > 300;
-  
-  console.log('🔍 Session validation:', {
-    hasSession: !!session,
-    expiresAt,
-    now,
-    timeUntilExpiry: expiresAt ? expiresAt - now : 'N/A',
-    isValid
-  });
   
   return isValid;
 };
