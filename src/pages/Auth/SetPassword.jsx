@@ -232,10 +232,16 @@ const SetPassword = () => {
     try {
       console.log("🔍 SetPassword - Updating password directly...");
       
-      // Update the user's password directly without session refresh
-      const { error: updateError } = await supabase.auth.updateUser({
+      // Update the user's password with timeout
+      const updatePromise = supabase.auth.updateUser({
         password: password
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Password update timeout')), 5000)
+      );
+      
+      const { error: updateError } = await Promise.race([updatePromise, timeoutPromise]);
 
       console.log("🔍 SetPassword - updateUser result:", { updateError });
 
