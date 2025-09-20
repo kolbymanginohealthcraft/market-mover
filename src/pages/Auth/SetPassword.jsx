@@ -205,14 +205,25 @@ const SetPassword = () => {
         return;
       }
 
+      // Wait a moment for the password update to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Get the updated user session
+      const { data: { user: updatedUser } } = await supabase.auth.getUser();
+      console.log("🔍 SetPassword - Updated user state:", {
+        email: updatedUser.email,
+        emailConfirmed: updatedUser.email_confirmed_at,
+        provider: updatedUser.app_metadata?.provider
+      });
 
       setMessage("Password set successfully! Welcome to the team!");
       setMessageType("success");
       
       // Redirect to team onboarding after a brief delay
       setTimeout(() => {
+        console.log("🔍 SetPassword - Redirecting to team onboarding");
         navigate('/team-onboarding');
-      }, 2000);
+      }, 1500);
 
     } catch (err) {
       console.error("Error setting password:", err);

@@ -65,8 +65,12 @@ export const useFirstTimeLogin = () => {
       }
 
       // Check if user needs to set password first (new invited user with team but no password)
-      if (profile.team_id && user.app_metadata?.provider === 'email' && !user.email_confirmed_at) {
-        // User has a team but needs to set password first
+      // Only redirect to set-password if user is not already on set-password or team-onboarding pages
+      // and if they haven't confirmed their email yet (which happens after password is set)
+      if (profile.team_id && user.app_metadata?.provider === 'email' && !user.email_confirmed_at && 
+          location.pathname !== '/set-password' && location.pathname !== '/team-onboarding' &&
+          !profile.first_name && !profile.last_name) {
+        // User has a team but needs to set password first (indicated by missing profile data)
         console.log("🔍 useFirstTimeLogin - User needs to set password");
         navigate('/set-password');
         setIsChecking(false);
@@ -74,7 +78,8 @@ export const useFirstTimeLogin = () => {
       }
 
       // If user has a team but incomplete profile, redirect to onboarding
-      if (profile.team_id && (!profile.first_name || !profile.last_name)) {
+      // Only redirect if user is not already on team-onboarding page
+      if (profile.team_id && (!profile.first_name || !profile.last_name) && location.pathname !== '/team-onboarding') {
         console.log("🔍 useFirstTimeLogin - User needs team onboarding");
         setNeedsOnboarding(true);
         navigate('/team-onboarding');
