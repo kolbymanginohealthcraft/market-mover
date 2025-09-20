@@ -19,6 +19,14 @@ export const useFirstTimeLogin = () => {
 
     try {
       checkInProgress.current = true;
+      
+      // Don't redirect if user is currently on set-password or team-onboarding pages
+      if (location.pathname === '/set-password' || location.pathname === '/team-onboarding') {
+        console.log("🔍 useFirstTimeLogin - User is on auth page, not redirecting:", location.pathname);
+        setIsChecking(false);
+        return;
+      }
+      
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -32,13 +40,6 @@ export const useFirstTimeLogin = () => {
         emailConfirmed: user.email_confirmed_at,
         userMetadata: user.user_metadata
       });
-
-      // Don't redirect if user is currently on set-password page
-      if (location.pathname === '/set-password') {
-        console.log("🔍 useFirstTimeLogin - User is on set-password page, not redirecting");
-        setIsChecking(false);
-        return;
-      }
 
       // Check if user just joined a team (from URL param)
       const teamJoined = searchParams.get('team_joined');
@@ -97,8 +98,16 @@ export const useFirstTimeLogin = () => {
   }, [navigate, location.pathname, searchParams]);
 
   useEffect(() => {
+    // Don't run the hook if user is on auth pages
+    if (location.pathname === '/set-password' || location.pathname === '/team-onboarding' || 
+        location.pathname === '/login' || location.pathname === '/signup' || 
+        location.pathname === '/forgot-password' || location.pathname === '/reset-password') {
+      console.log("🔍 useFirstTimeLogin - Skipping hook on auth page:", location.pathname);
+      setIsChecking(false);
+      return;
+    }
     checkFirstTimeLogin();
-  }, [checkFirstTimeLogin]);
+  }, [checkFirstTimeLogin, location.pathname]);
 
   return {
     isChecking,

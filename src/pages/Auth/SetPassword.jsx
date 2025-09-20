@@ -216,14 +216,12 @@ const SetPassword = () => {
         provider: updatedUser.app_metadata?.provider
       });
 
-      setMessage("Password set successfully! Welcome to the team!");
+      setMessage("Password set successfully!");
       setMessageType("success");
       
-      // Redirect to team onboarding after a brief delay
-      setTimeout(() => {
-        console.log("🔍 SetPassword - Redirecting to team onboarding");
-        navigate('/team-onboarding');
-      }, 1500);
+      // Force redirect using window.location - most reliable method
+      console.log("🔍 SetPassword - Redirecting to team onboarding");
+      window.location.href = '/team-onboarding';
 
     } catch (err) {
       console.error("Error setting password:", err);
