@@ -205,6 +205,7 @@ const SetPassword = () => {
         return;
       }
 
+
       setMessage("Password set successfully! Welcome to the team!");
       setMessageType("success");
       

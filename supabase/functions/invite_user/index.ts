@@ -141,23 +141,48 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // 2. Check team license availability from current active subscription
-    const { data: subscription, error: subError } = await supabase
-      .from("subscriptions")
-      .select("license_quantity, teams(name)")
-      .eq("team_id", team_id)
-      .eq("status", "active")
-      .is("expires_at", null)
-      .order("started_at", { ascending: false })
-      .limit(1)
+    // 2. First verify the team exists
+    const { data: team, error: teamError } = await supabase
+      .from("teams")
+      .select("name")
+      .eq("id", team_id)
       .single();
 
-    if (subError || !subscription) {
+    if (teamError || !team) {
+      console.error("Team lookup failed:", { team_id, teamError, team });
+      return new Response(
+        JSON.stringify({ error: "Team not found" }),
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    // 3. Check team license availability from current active subscription
+    const { data: subscriptions, error: subError } = await supabase
+      .from("subscriptions")
+      .select("license_quantity")
+      .eq("team_id", team_id)
+      .eq("status", "active")
+      .or("expires_at.is.null,expires_at.gt.now()")
+      .order("started_at", { ascending: false });
+
+    if (subError) {
+      console.error("Subscription query error:", { team_id, subError });
+      return new Response(
+        JSON.stringify({ error: "Failed to check subscription status" }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.error("No active subscription found:", { team_id, subscriptions });
       return new Response(
         JSON.stringify({ error: "No active subscription found for this team" }),
         { status: 404, headers: corsHeaders }
       );
     }
+
+    // Use the most recent active subscription
+    const subscription = subscriptions[0];
 
     // Count current team members
     const { count: currentMembers, error: countError } = await supabase
@@ -214,6 +239,7 @@ serve(async (req: Request): Promise<Response> => {
       "http://localhost:5173/set-password" : 
       `${siteUrl}/set-password`;
     
+    // Send invitation email
     const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(sanitizedEmail, {
       redirectTo: redirectUrl
     });
@@ -229,7 +255,8 @@ serve(async (req: Request): Promise<Response> => {
     // Invitation sent successfully - manually update profile
     console.log("Invitation sent successfully, updating profile...");
     
-    // Try to update the profile (for existing users or after user creation)
+    // Try to update the profile with team information
+    // This will work for existing users and may work for new users if the profile exists
     try {
       const { error: profileError } = await supabase
         .from("profiles")
@@ -242,6 +269,7 @@ serve(async (req: Request): Promise<Response> => {
         
       if (profileError) {
         console.log("Profile update error (this might be expected for new users):", profileError);
+        // For new users, we'll handle team assignment in the SetPassword component
       } else {
         console.log("Profile updated successfully");
       }
@@ -261,7 +289,7 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         message: "User invited successfully",
         isNewUser,
-        teamName: subscription.teams.name,
+        teamName: team.name,
         availableLicenses: subscription.license_quantity - (currentMembers + 1)
       }),
       { status: 200, headers: corsHeaders }

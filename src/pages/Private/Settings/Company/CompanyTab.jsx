@@ -233,6 +233,7 @@ export default function CompanyTab() {
       const { error: teamError } = await supabase
         .from('teams')
         .update({
+          name: companyProfile.company_name || null,
           company_type: companyProfile.company_type || null,
           industry_vertical: companyProfile.industry_vertical || null,
           target_organization_types: targetAudience.organization_types || [],

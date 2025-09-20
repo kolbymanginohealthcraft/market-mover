@@ -13,3 +13,7 @@ entrypoint = "./functions/process-payment/index.ts"
 [functions.test_invite]
 enabled = true
 verify_jwt = false
+
+[functions.invite_user]
+enabled = true
+verify_jwt = false
