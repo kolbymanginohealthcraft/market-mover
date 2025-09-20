@@ -238,7 +238,7 @@ const SetPassword = () => {
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Password update timeout')), 5000)
+        setTimeout(() => reject(new Error('Password update timeout')), 2000)
       );
       
       try {
