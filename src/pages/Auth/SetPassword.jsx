@@ -230,22 +230,9 @@ const SetPassword = () => {
     setMessage("");
 
     try {
-      console.log("🔍 SetPassword - Refreshing session before password update...");
+      console.log("🔍 SetPassword - Updating password directly...");
       
-      // Force refresh the session first
-      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError) {
-        console.log("🔍 SetPassword - Session refresh failed:", refreshError);
-        setMessage("Session expired. Please refresh the page and try again.");
-        setMessageType("error");
-        setSaving(false);
-        return;
-      }
-      
-      console.log("🔍 SetPassword - Session refreshed, now updating password...");
-      
-      // Update the user's password
+      // Update the user's password directly without session refresh
       const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
