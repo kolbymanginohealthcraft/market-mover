@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../app/supabaseClient';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
 import { sessionSync, getStoredSession, isSessionValid } from '../../utils/sessionSync';
@@ -14,6 +15,7 @@ export const useUser = () => {
 };
 
 export const UserProvider = ({ children }) => {
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +107,19 @@ export const UserProvider = ({ children }) => {
       }
     }
   }, [user?.id, fetchUserProfile]);
+
+  // Check for profile update parameter and refresh profile data
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('profile_updated') === 'true' && user?.id) {
+      console.log('🔄 Profile update detected, refreshing profile data...');
+      fetchUserProfile(user.id);
+      
+      // Clean up the URL parameter to prevent repeated refreshes
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [location.search, user?.id, fetchUserProfile]);
 
   // Initialize user state - only listen for auth changes, don't initialize session
   useEffect(() => {

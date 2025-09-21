@@ -133,9 +133,10 @@ const TeamOnboarding = () => {
       setMessage("Profile updated successfully! Welcome to the team!");
       setMessageType("success");
       
-      // Redirect to dashboard immediately - the UserContext will automatically
-      // fetch the updated profile data when the user navigates to the dashboard
-      navigate('/app/dashboard');
+      // Small delay to ensure database update propagates, then redirect with refresh flag
+      setTimeout(() => {
+        navigate('/app/dashboard?profile_updated=true');
+      }, 500);
 
     } catch (err) {
       console.error("Error updating profile:", err);
