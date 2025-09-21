@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../app/supabaseClient";
-import { useUser } from "../../components/Context/UserContext";
 import Button from "../../components/Buttons/Button";
 import Spinner from "../../components/Buttons/Spinner";
 import styles from "./Login.module.css";
@@ -9,7 +8,6 @@ import styles from "./Login.module.css";
 const TeamOnboarding = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { forceRefreshUserData } = useUser();
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
@@ -135,13 +133,9 @@ const TeamOnboarding = () => {
       setMessage("Profile updated successfully! Welcome to the team!");
       setMessageType("success");
       
-      // Refresh user data to update the header avatar
-      await forceRefreshUserData();
-      
-      // Redirect to dashboard after a brief delay
-      setTimeout(() => {
-        navigate('/app/dashboard');
-      }, 2000);
+      // Redirect to dashboard immediately - the UserContext will automatically
+      // fetch the updated profile data when the user navigates to the dashboard
+      navigate('/app/dashboard');
 
     } catch (err) {
       console.error("Error updating profile:", err);
