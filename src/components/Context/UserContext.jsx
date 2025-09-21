@@ -121,7 +121,7 @@ export const UserProvider = ({ children }) => {
     }
   }, [location.search, user?.id, fetchUserProfile]);
 
-  // Initialize user state - only listen for auth changes, don't initialize session
+  // Initialize users state - only listen for auth changes, don't initialize session
   useEffect(() => {
     let mounted = true;
 
