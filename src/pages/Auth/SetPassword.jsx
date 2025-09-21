@@ -43,7 +43,7 @@ const SetPassword = () => {
         console.log("🔍 SetPassword - Session refreshed successfully");
       }
       
-      // Now check the invitation
+      // Now checking the invitation
       checkInvitation();
     } catch (err) {
       console.error("Error refreshing session:", err);
