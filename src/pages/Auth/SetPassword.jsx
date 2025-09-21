@@ -258,7 +258,7 @@ const SetPassword = () => {
         // Verify the password was actually set by attempting to sign in with it
         try {
           const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: user.email,
+            email: userEmail,
             password: password
           });
           
