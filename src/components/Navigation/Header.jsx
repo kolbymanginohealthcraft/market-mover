@@ -20,64 +20,22 @@ import {
   FileText
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
+import { useUser } from '../Context/UserContext';
 import { supabase } from '../../app/supabaseClient';
 import styles from './Header.module.css';
 
 const Header = ({ currentView, selectedMarket }) => {
-  const [user, setUser] = useState(null);
-  const [userFirstName, setUserFirstName] = useState('');
-  const [userLastName, setUserLastName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentMarket, setCurrentMarket] = useState(null);
   const dropdownRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { currentProvider } = useProviderContext();
+  const { user, profile } = useUser();
 
   // Check if we're on a public page
   const isPublicPage = !location.pathname.startsWith('/app');
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) return;
-      
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, email")
-          .eq("id", user.id)
-          .single();
-
-        if (!profileError && profileData) {
-          setUserFirstName(profileData.first_name || '');
-          setUserLastName(profileData.last_name || '');
-          setUserEmail(profileData.email || user.email || '');
-        } else {
-          setUserEmail(user.email || '');
-        }
-      } catch (err) {
-        console.error('Error fetching user profile:', err);
-        setUserEmail(user.email || '');
-      }
-    };
-
-    fetchUserProfile();
-  }, [user]);
 
   // Fetch market data when on a market page
   useEffect(() => {
@@ -360,9 +318,9 @@ const Header = ({ currentView, selectedMarket }) => {
                 onClick={toggleDropdown}
               >
                 <div className={styles.userAvatar}>
-                  {userFirstName ? userFirstName.charAt(0).toUpperCase() : 'U'}
+                  {profile?.first_name ? profile.first_name.charAt(0).toUpperCase() : 'U'}
                 </div>
-                <span className={styles.userName}>{userFirstName || 'User'}</span>
+                <span className={styles.userName}>{profile?.first_name || 'User'}</span>
                 <ChevronDown size={16} className={`${styles.chevron} ${isDropdownOpen ? styles.rotated : ''}`} />
               </button>
               
@@ -370,14 +328,14 @@ const Header = ({ currentView, selectedMarket }) => {
                 <div className={styles.dropdown}>
                   <div className={styles.dropdownHeader}>
                     <div className={styles.dropdownAvatar}>
-                      {userFirstName ? userFirstName.charAt(0).toUpperCase() : 'U'}
+                      {profile?.first_name ? profile.first_name.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div className={styles.dropdownUserInfo}>
                       <div className={styles.dropdownName}>
-                        {userFirstName && userLastName ? `${userFirstName} ${userLastName}` : userFirstName || 'User'}
+                        {profile?.first_name && profile?.last_name ? `${profile.first_name} ${profile.last_name}` : profile?.first_name || 'User'}
                       </div>
                       <div className={styles.dropdownEmail}>
-                        {userEmail}
+                        {profile?.email || user?.email}
                       </div>
                     </div>
                   </div>
