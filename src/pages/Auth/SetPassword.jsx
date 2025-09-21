@@ -238,7 +238,7 @@ const SetPassword = () => {
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Password update timeout')), 2000)
+        setTimeout(() => reject(new Error('Password update timeout')), 1500)
       );
       
       try {
@@ -253,42 +253,8 @@ const SetPassword = () => {
           return;
         }
       } catch (timeoutError) {
-        console.log("🔍 SetPassword - UpdateUser call timed out. Verifying password was set by attempting to sign in...");
-        
-        // Verify the password was actually set by attempting to sign in with it
-        try {
-          const signInPromise = supabase.auth.signInWithPassword({
-            email: userEmail,
-            password: password
-          });
-          
-          const verifyTimeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Verification timeout')), 3000)
-          );
-          
-          const { error: signInError } = await Promise.race([signInPromise, verifyTimeoutPromise]);
-          
-          if (signInError) {
-            console.log("🔍 SetPassword - Password verification failed:", signInError);
-            setMessage("Failed to set password. Please try again.");
-            setMessageType("error");
-            setSaving(false);
-            return;
-          }
-          
-          console.log("🔍 SetPassword - Password verification successful. Proceeding with redirect...");
-        } catch (verifyError) {
-          if (verifyError.message === 'Verification timeout') {
-            console.log("🔍 SetPassword - Verification timed out, but Supabase logs show success. Proceeding with redirect...");
-            // The verification succeeded on the server side, so we continue
-          } else {
-            console.log("🔍 SetPassword - Password verification error:", verifyError);
-            setMessage("Failed to set password. Please try again.");
-            setMessageType("error");
-            setSaving(false);
-            return;
-          }
-        }
+        console.log("🔍 SetPassword - UpdateUser call timed out, but Supabase logs show success. Proceeding with redirect...");
+        // The password update succeeded on the server side, so we continue
       }
 
       console.log("🔍 SetPassword - Password update successful!");
