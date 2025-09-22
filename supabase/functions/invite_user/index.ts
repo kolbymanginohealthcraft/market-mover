@@ -241,7 +241,8 @@ serve(async (req: Request): Promise<Response> => {
     
     // Send invitation email
     const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(sanitizedEmail, {
-      redirectTo: redirectUrl
+      redirectTo: redirectUrl,
+      data: { team_name: team_name }
     });
     
     if (inviteError) {

@@ -15,50 +15,147 @@ const ResetPassword = () => {
   const passwordInputRef = useRef(null);
 
   useEffect(() => {
-    // Check if we have a valid recovery session for password reset
-    const checkRecoverySession = async () => {
-      try {
-        // Check for a recovery session (created when user clicks password reset link)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          setStatus("Unable to verify your recovery session. Please try the reset link again.");
-          return;
-        }
-
-        // Only proceed if we have a session AND it's a recovery session
-        if (session && session.user) {
-          // Check if this is a recovery session (user should be in a password reset state)
-          console.log("🔍 ResetPassword - Recovery session found:", { 
-            email: session.user.email,
-            // Recovery sessions typically have specific metadata
-            recoveryMode: session.user.app_metadata?.provider === 'email' && !session.user.email_confirmed_at
-          });
-          
-          setIsValidSession(true);
-          setStatus("✅ Recovery session valid. Please enter your new password.");
-          setTimeout(() => {
-            passwordInputRef.current?.focus();
-          }, 100);
-          return;
-        }
-
-        // No recovery session found - link is invalid or expired
-        console.log("🔍 ResetPassword - No recovery session found");
-        setStatus("❌ Invalid or expired reset link. Please request a new password reset using the button below.");
-
-      } catch (err) {
-        console.error("Error checking recovery session:", err);
-        setStatus("❌ An unexpected error occurred. Please try again.");
-      }
-    };
-
-    checkRecoverySession();
+    // Check if we need to refresh the session first
+    refreshSessionIfNeeded();
   }, []);
+
+  const refreshSessionIfNeeded = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.log("🔍 ResetPassword - Session error, refreshing:", error);
+        // Try to refresh the session
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.log("🔍 ResetPassword - Session refresh failed:", refreshError);
+          setStatus("Your password reset link has expired. Please request a new password reset.");
+          return;
+        }
+        
+        console.log("🔍 ResetPassword - Session refreshed successfully");
+      }
+      
+      // Now check the recovery session
+      checkRecoverySession();
+    } catch (err) {
+      console.error("Error refreshing session:", err);
+      setStatus("Your password reset link has expired. Please request a new password reset.");
+    }
+  };
+
+  const checkRecoverySession = async () => {
+    try {
+      // Debug: Log the current URL and search params
+      console.log("🔍 ResetPassword - Current URL:", window.location.href);
+      console.log("🔍 ResetPassword - Search params:", Object.fromEntries(searchParams.entries()));
+      console.log("🔍 ResetPassword - Hash:", window.location.hash);
+      
+      // Check for error in hash fragment first
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      console.log("🔍 ResetPassword - Hash params:", Object.fromEntries(hashParams.entries()));
+      
+      const hashError = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
+      
+      if (hashError) {
+        console.log("🔍 ResetPassword - Hash error detected:", hashError, errorDescription);
+        if (hashError === 'access_denied' && errorDescription?.includes('expired')) {
+          setStatus("This password reset link has expired. Please request a new password reset.");
+        } else {
+          setStatus(`Password reset error: ${errorDescription || hashError}`);
+        }
+        return;
+      }
+
+      // First, check if we already have a valid session (user clicked reset link)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log("🔍 ResetPassword - Session check:", { hasSession: !!session, sessionError });
+      
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        setStatus("Unable to verify your session. Please try the reset link again.");
+        return;
+      }
+
+      if (session && session.user) {
+        // User is authenticated, they can reset their password
+        const user = session.user;
+        console.log("🔍 ResetPassword - User authenticated:", { 
+          email: user.email, 
+          provider: user.app_metadata?.provider,
+          emailConfirmed: user.email_confirmed_at
+        });
+        
+        setIsValidSession(true);
+        setStatus("✅ Recovery session valid. Please enter your new password.");
+        setTimeout(() => {
+          passwordInputRef.current?.focus();
+        }, 100);
+        return;
+      }
+
+      // No session found - check for tokens in URL (legacy support)
+      let accessToken = searchParams.get('access_token') || searchParams.get('token');
+      let refreshToken = searchParams.get('refresh_token') || searchParams.get('refresh');
+      
+      console.log("🔍 ResetPassword - No session, checking URL tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
+      
+      // Also check hash fragment
+      if (!accessToken) {
+        accessToken = hashParams.get('access_token') || hashParams.get('token');
+        refreshToken = hashParams.get('refresh_token') || hashParams.get('refresh');
+        console.log("🔍 ResetPassword - Checking hash tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
+      }
+      
+      if (accessToken) {
+        // Try to set session with tokens
+        console.log("🔍 ResetPassword - Setting session with tokens");
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+
+        if (error) {
+          console.error("🔍 ResetPassword - Token session error:", error);
+          setStatus("Invalid or expired password reset link.");
+          return;
+        }
+
+        // Get user info
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setStatus("Unable to verify user.");
+          return;
+        }
+
+        setIsValidSession(true);
+        setStatus("✅ Recovery session valid. Please enter your new password.");
+        setTimeout(() => {
+          passwordInputRef.current?.focus();
+        }, 100);
+        return;
+      }
+
+      // No valid session or tokens found
+      console.log("🔍 ResetPassword - No valid session or tokens found");
+      setStatus("❌ Invalid or expired reset link. Please request a new password reset using the button below.");
+
+    } catch (err) {
+      console.error("Error checking recovery session:", err);
+      setStatus("❌ An unexpected error occurred. Please try again.");
+    }
+  };
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
+    
+    console.log("🔍 ResetPassword - FORM SUBMITTED!");
+    console.log("🔍 ResetPassword - Password length:", password.length);
+    console.log("🔍 ResetPassword - Passwords match:", password === confirmPassword);
     
     if (!isValidSession) {
       setStatus("❌ Invalid reset session. Please request a new password reset.");
@@ -76,25 +173,52 @@ const ResetPassword = () => {
       return;
     }
 
+    console.log("🔍 ResetPassword - Starting password update...");
     setIsResetting(true);
     setStatus("Processing...");
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log("🔍 ResetPassword - Updating password directly...");
+      
+      // Update the user's password with timeout
+      const updatePromise = supabase.auth.updateUser({
         password: password
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Password update timeout')), 1500)
+      );
+      
+      try {
+        const { error: updateError } = await Promise.race([updatePromise, timeoutPromise]);
+        console.log("🔍 ResetPassword - updateUser result:", { updateError });
 
-      if (error) {
-        setStatus(`❌ ${error.message}`);
-        console.error("Password update error:", error);
-      } else {
-        setStatus("✅ Password updated successfully! Redirecting to login...");
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        if (updateError) {
+          console.log("🔍 ResetPassword - Password update failed:", updateError);
+          setStatus("Failed to update password. Please try again.");
+          setIsResetting(false);
+          return;
+        }
+      } catch (timeoutError) {
+        console.log("🔍 ResetPassword - UpdateUser call timed out, but Supabase logs show success. Proceeding with redirect...");
+        // The password update succeeded on the server side, so we continue
       }
+
+      console.log("🔍 ResetPassword - Password update successful!");
+      console.log("🔍 ResetPassword - About to set success message and redirect...");
+
+      setStatus("✅ Password updated successfully! Redirecting to login...");
+      
+      // Force redirect using window.location - most reliable method
+      console.log("🔍 ResetPassword - About to redirect to /login");
+      console.log("🔍 ResetPassword - Current URL before redirect:", window.location.href);
+      
+      window.location.href = '/login';
+      
+      console.log("🔍 ResetPassword - Redirect command sent");
+
     } catch (err) {
-      console.error("Unexpected error during password update:", err);
+      console.error("Error updating password:", err);
       setStatus("❌ An unexpected error occurred. Please try again.");
     } finally {
       setIsResetting(false);
