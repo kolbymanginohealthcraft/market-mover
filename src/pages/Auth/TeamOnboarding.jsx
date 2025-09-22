@@ -173,7 +173,7 @@ const TeamOnboarding = () => {
             fontWeight: 'bold',
             margin: '0 0 12px 0'
           }}>
-            Welcome to {teamInfo?.name}!
+            Almost There
           </h1>
           <p style={{
             color: '#5f6b6d',
@@ -181,7 +181,7 @@ const TeamOnboarding = () => {
             margin: 0,
             lineHeight: '1.5'
           }}>
-            Complete your profile to get started with your team
+            Complete your profile to continue
           </p>
         </div>
 
@@ -305,18 +305,6 @@ const TeamOnboarding = () => {
                 {saving ? 'Saving...' : 'Complete Setup'}
               </Button>
             </form>
-
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Button
-                variant="blue"
-                ghost
-                size="sm"
-                onClick={() => navigate('/app/dashboard')}
-                disabled={saving}
-              >
-                Skip for Now
-              </Button>
-            </div>
           </div>
         </div>
 

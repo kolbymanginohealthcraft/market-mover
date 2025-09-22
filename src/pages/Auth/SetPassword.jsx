@@ -107,8 +107,6 @@ const SetPassword = () => {
 
         // User is on the set-password page, so they need to set a password
         console.log("🔍 SetPassword - User needs to set password");
-        setMessage("Please set your password to complete your account setup.");
-        setMessageType("info");
 
         // Get team info from user metadata or profile
         if (user.user_metadata?.team_name) {
@@ -306,7 +304,7 @@ const SetPassword = () => {
             fontWeight: 'bold',
             margin: '0 0 12px 0'
           }}>
-            Set Your Password
+            Welcome to Market Mover
           </h1>
           <p style={{
             color: '#5f6b6d',
@@ -314,7 +312,7 @@ const SetPassword = () => {
             margin: 0,
             lineHeight: '1.5'
           }}>
-            {teamName ? `Welcome to ${teamName}!` : 'Welcome!'} Create your password to get started.
+            Set your password to get started
           </p>
           {userEmail && (
             <p style={{
@@ -323,7 +321,7 @@ const SetPassword = () => {
               margin: '8px 0 0 0',
               fontStyle: 'italic'
             }}>
-              {userEmail}
+              Account: {userEmail}
             </p>
           )}
         </div>
@@ -361,78 +359,101 @@ const SetPassword = () => {
         )}
 
         {messageType !== 'error' && (
-          <form onSubmit={handleSubmit} style={{ marginTop: '24px' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                color: '#265947',
-                fontWeight: '500',
-                fontSize: '14px'
-              }}>
-                Password
-              </label>
-              <input
-                ref={passwordRef}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`form-input ${styles['form-input']}`}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  backgroundColor: '#fff',
-                  transition: 'all 0.2s ease'
-                }}
-                placeholder="Enter your password"
-                disabled={saving}
-              />
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ maxWidth: '400px', width: '100%' }}>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontWeight: '600',
+                    color: '#5f6b6d',
+                    marginBottom: '8px',
+                    fontSize: '14px'
+                  }}>
+                    Password *
+                  </label>
+                  <input
+                    ref={passwordRef}
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={saving}
+                    className={`form-input ${styles['form-input']}`}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease'
+                    }}
+                    placeholder="Enter your password"
+                  />
+                </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                color: '#265947',
-                fontWeight: '500',
-                fontSize: '14px'
-              }}>
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`form-input ${styles['form-input']}`}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  backgroundColor: '#fff',
-                  transition: 'all 0.2s ease'
-                }}
-                placeholder="Confirm your password"
-                disabled={saving}
-              />
-            </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontWeight: '600',
+                    color: '#5f6b6d',
+                    marginBottom: '8px',
+                    fontSize: '14px'
+                  }}>
+                    Confirm Password *
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={saving}
+                    className={`form-input ${styles['form-input']}`}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease'
+                    }}
+                    placeholder="Confirm your password"
+                  />
+                </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Button
-                type="submit"
-                variant="blue"
-                size="lg"
-                disabled={saving}
-                style={{ width: '100%' }}
-              >
-                {saving ? 'Setting Password...' : 'Set Password'}
-              </Button>
+                <Button
+                  type="submit"
+                  variant="blue"
+                  size="lg"
+                  disabled={saving}
+                  style={{ marginTop: '8px' }}
+                >
+                  {saving ? 'Setting Password...' : 'Set Password'}
+                </Button>
+              </form>
+
+              {teamName && (
+                <div style={{
+                  marginTop: '32px',
+                  padding: '20px',
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{ margin: '0 0 12px 0', color: '#0369a1', fontSize: '18px' }}>
+                    Team Information
+                  </h3>
+                  <div style={{ color: '#0c4a6e', fontSize: '14px', lineHeight: '1.5' }}>
+                    <div><strong>Team:</strong> {teamName}</div>
+                    <div><strong>Your Role:</strong> Team Member</div>
+                  </div>
+                </div>
+              )}
             </div>
-          </form>
+          </div>
         )}
       </div>
     </div>
