@@ -25,6 +25,7 @@ import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import TeamOnboarding from "../pages/Auth/TeamOnboarding";
 import SetPassword from "../pages/Auth/SetPassword";
+import EmailChangeConfirmation from "../pages/Auth/EmailChangeConfirmation";
 import FAQPage from "../pages/Public/FAQ/FAQPage";
 import LegalPage from "../pages/Public/Legal/LegalPage";
 
@@ -80,6 +81,7 @@ function AppContent({ session, location }) {
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="set-password" element={<SetPassword />} />
             <Route path="team-onboarding" element={<TeamOnboarding />} />
+            <Route path="email-change-confirmation" element={<EmailChangeConfirmation />} />
             <Route path="faq" element={<FAQPage />} />
             <Route path="legal" element={<LegalPage />} />
           </Route>

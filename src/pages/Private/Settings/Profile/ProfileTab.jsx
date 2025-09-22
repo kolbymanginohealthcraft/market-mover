@@ -194,7 +194,10 @@ export default function ProfileTab() {
 
     try {
       const { error } = await supabase.auth.updateUser({
-        email: newEmail.trim()
+        email: newEmail.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/email-change-confirmation`
+        }
       });
 
       if (error) {
@@ -202,12 +205,17 @@ export default function ProfileTab() {
         setEmailChangeMessage(`Failed to send confirmation email: ${error.message}`);
         setEmailChangeMessageType("error");
       } else {
-        setEmailChangeMessage("✅ Confirmation email sent! Please check your new email address and click the confirmation link to complete the change.");
+        setEmailChangeMessage("✅ Confirmation email sent! Please check your new email address and click the confirmation link to complete the change. You can close this tab after clicking the link.");
         setEmailChangeMessageType("success");
         setNewEmail("");
         
         // Track the activity
         await trackActivity('email_change_requested', null, 'Email Change Requested');
+        
+        // Auto-refresh the profile data after a delay to show updated email
+        setTimeout(async () => {
+          await fetchProfileData();
+        }, 3000);
       }
     } catch (err) {
       console.error("Unexpected error during email change:", err);
