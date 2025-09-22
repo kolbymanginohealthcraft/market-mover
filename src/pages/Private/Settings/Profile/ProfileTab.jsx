@@ -30,6 +30,13 @@ export default function ProfileTab() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
   const [footerVisible, setFooterVisible] = useState(false);
+  
+  // Email change state
+  const [currentEmail, setCurrentEmail] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailChangeMessage, setEmailChangeMessage] = useState("");
+  const [emailChangeMessageType, setEmailChangeMessageType] = useState("");
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
 
   const navigate = useNavigate();
 
@@ -88,6 +95,7 @@ export default function ProfileTab() {
 
       setProfile(profileData);
       setOriginalProfile(profileData);
+      setCurrentEmail(user.email);
 
       // Fetch team data if user is part of a team
       if (profileData.team_id) {
@@ -159,6 +167,63 @@ export default function ProfileTab() {
     setMessageType("");
   };
 
+  const handleEmailChange = async () => {
+    if (!newEmail.trim()) {
+      setEmailChangeMessage("Please enter a new email address.");
+      setEmailChangeMessageType("error");
+      return;
+    }
+
+    if (newEmail.trim() === currentEmail) {
+      setEmailChangeMessage("The new email must be different from your current email.");
+      setEmailChangeMessageType("error");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      setEmailChangeMessage("Please enter a valid email address.");
+      setEmailChangeMessageType("error");
+      return;
+    }
+
+    setIsChangingEmail(true);
+    setEmailChangeMessage("Sending confirmation email...");
+    setEmailChangeMessageType("info");
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail.trim()
+      });
+
+      if (error) {
+        console.error("Email change error:", error);
+        setEmailChangeMessage(`Failed to send confirmation email: ${error.message}`);
+        setEmailChangeMessageType("error");
+      } else {
+        setEmailChangeMessage("✅ Confirmation email sent! Please check your new email address and click the confirmation link to complete the change.");
+        setEmailChangeMessageType("success");
+        setNewEmail("");
+        
+        // Track the activity
+        await trackActivity('email_change_requested', null, 'Email Change Requested');
+      }
+    } catch (err) {
+      console.error("Unexpected error during email change:", err);
+      setEmailChangeMessage("An unexpected error occurred. Please try again.");
+      setEmailChangeMessageType("error");
+    } finally {
+      setIsChangingEmail(false);
+    }
+  };
+
+  const handleCancelEmailChange = () => {
+    setNewEmail("");
+    setEmailChangeMessage("");
+    setEmailChangeMessageType("");
+  };
+
 
 
   // Check if profile has been modified
@@ -207,6 +272,58 @@ export default function ProfileTab() {
               onChange={handleProfileChange}
               placeholder="Enter your job title"
             />
+          </div>
+        </div>
+
+        {/* Email Management Section */}
+        <div className={styles.emailSection}>
+          <h3 className={styles.subsectionTitle}>Email Address</h3>
+          <div className={styles.currentEmail}>
+            <label>Current Email</label>
+            <div className={styles.emailDisplay}>
+              {currentEmail}
+            </div>
+          </div>
+          
+          <div className={styles.emailChangeForm}>
+            <div className={styles.formGroup}>
+              <label>New Email Address</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Enter your new email address"
+                disabled={isChangingEmail}
+              />
+            </div>
+            
+            {emailChangeMessage && (
+              <div className={`${styles.emailMessage} ${styles[emailChangeMessageType]}`}>
+                {emailChangeMessageType === "success" && "✅ "}
+                {emailChangeMessageType === "error" && "❌ "}
+                {emailChangeMessageType === "info" && "ℹ️ "}
+                {emailChangeMessage}
+              </div>
+            )}
+            
+            <div className={styles.emailButtons}>
+              {newEmail && (
+                <Button 
+                  variant="gray" 
+                  onClick={handleCancelEmailChange}
+                  disabled={isChangingEmail}
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button 
+                variant="blue" 
+                onClick={handleEmailChange}
+                disabled={isChangingEmail || !newEmail.trim()}
+              >
+                {isChangingEmail ? "Sending..." : "Change Email"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

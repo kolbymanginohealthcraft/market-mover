@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>You're Invited to Join Market Mover</title>
+    <title>Confirm Change of Email</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; line-height: 1.6; color: #111827; margin: 0; padding: 0; background-color: #f9fafb; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
     <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); overflow: hidden;">
@@ -17,7 +17,7 @@
                     </div>
                 </div>
             </div>
-            <h1 style="color: #111827; margin: 0; font-size: 28px; font-weight: 600; line-height: 1.1;">You're Invited!</h1>
+            <h1 style="color: #111827; margin: 0; font-size: 28px; font-weight: 600; line-height: 1.1;">Confirm Change of Email</h1>
         </div>
         
         <div style="padding: 32px 24px;">
@@ -25,32 +25,18 @@
                 Hello,
             </div>
             
-            <div style="font-size: 16px; margin-bottom: 24px; color: #4b5563; line-height: 1.6;">
-                You've been invited to join Market Mover, the data-driven strategy platform.
-            </div>
-            
-            <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                <div style="font-size: 14px; color: #0369a1; margin-bottom: 8px;">
-                    <strong>Team Details:</strong>
-                </div>
-                <div style="font-size: 14px; color: #0c4a6e; line-height: 1.5;">
-                    <div><strong>Team:</strong> {{ .Data.team_name }}</div>
-                    <div><strong>Role:</strong> Team Member</div>
-                </div>
-            </div>
-            
             <div style="font-size: 16px; margin-bottom: 32px; color: #4b5563; line-height: 1.6;">
-                Market Mover helps healthcare organizations analyze markets, identify opportunities, and make data-driven decisions. Click the button below to accept your invitation and get started:
+                Follow this link to confirm the update of your email from <strong>{{ .Email }}</strong> to <strong>{{ .NewEmail }}</strong>:
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
                 <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 12px 24px; background: #00c08b; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; border: none; cursor: pointer;">
-                    Accept Invitation
+                    Change Email
                 </a>
             </div>
             
             <div style="background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; padding: 16px; margin: 24px 0; font-size: 14px; color: #92400e;">
-                <strong>What to expect:</strong> After accepting, you'll be prompted to set up your password and complete your profile. You can then access your team's shared markets, provider data, and analytics immediately!
+                <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this email change, you can safely ignore this email.
             </div>
         </div>
         
