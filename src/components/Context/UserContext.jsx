@@ -78,7 +78,17 @@ export const UserProvider = ({ children }) => {
       setPermissions(newPermissions);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
-      setProfile(null);
+      
+      // Set a default profile so the app can still work
+      setProfile({
+        first_name: 'User',
+        last_name: '',
+        email: '',
+        role: 'user',
+        team_id: null,
+        title: ''
+      });
+      
       setPermissions({
         isTeamAdmin: false,
         isPlatformAdmin: false,
@@ -121,18 +131,77 @@ export const UserProvider = ({ children }) => {
     }
   }, [location.search, user?.id, fetchUserProfile]);
 
-  // Initialize users state - only listen for auth changes, don't initialize session
+  // Initialize auth state - self-sufficient, doesn't depend on App.jsx
   useEffect(() => {
     let mounted = true;
 
-    // Listen for auth state changes from App.jsx
+    // Initialize session immediately
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setUser(null);
+          setProfile(null);
+          setPermissions({
+            isTeamAdmin: false,
+            isPlatformAdmin: false,
+            hasTeam: false,
+            canAccessPlatform: false,
+            canAccessUsers: false
+          });
+          setLoading(false);
+          return;
+        }
+
+        setUser(session?.user || null);
+        
+        if (session?.user) {
+          // Don't await profile fetch - let it happen in background
+          fetchUserProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setPermissions({
+            isTeamAdmin: false,
+            isPlatformAdmin: false,
+            hasTeam: false,
+            canAccessPlatform: false,
+            canAccessUsers: false
+          });
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setPermissions({
+            isTeamAdmin: false,
+            isPlatformAdmin: false,
+            hasTeam: false,
+            canAccessPlatform: false,
+            canAccessUsers: false
+          });
+          setLoading(false);
+        }
+      }
+    };
+
+    // Initialize immediately
+    initializeAuth();
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       setUser(session?.user || null);
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id);
+        // Don't await profile fetch - let it happen in background
+        fetchUserProfile(session.user.id);
       } else {
         setProfile(null);
         setPermissions({

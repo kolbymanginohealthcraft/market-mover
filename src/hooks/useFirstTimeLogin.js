@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '../app/supabaseClient';
+import { useUser } from '../components/Context/UserContext';
 
 export const useFirstTimeLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { user, loading: userLoading } = useUser();
   const [isChecking, setIsChecking] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const checkInProgress = useRef(false);
@@ -13,7 +15,6 @@ export const useFirstTimeLogin = () => {
   const checkFirstTimeLogin = useCallback(async () => {
     // Prevent duplicate requests
     if (checkInProgress.current) {
-      console.log('🔍 First time login check already in progress, skipping...');
       return;
     }
 
@@ -27,19 +28,12 @@ export const useFirstTimeLogin = () => {
         return;
       }
       
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
+      // Use user from UserContext instead of fetching directly
+      if (!user) {
         setIsChecking(false);
         return;
       }
 
-      console.log("🔍 useFirstTimeLogin - User state:", {
-        email: user.email,
-        provider: user.app_metadata?.provider,
-        emailConfirmed: user.email_confirmed_at,
-        userMetadata: user.user_metadata
-      });
 
       // Check if user just joined a team (from URL param)
       const teamJoined = searchParams.get('team_joined');
@@ -95,9 +89,14 @@ export const useFirstTimeLogin = () => {
     } finally {
       checkInProgress.current = false;
     }
-  }, [navigate, location.pathname, searchParams]);
+  }, [navigate, location.pathname, searchParams, user]);
 
   useEffect(() => {
+    // Wait for UserContext to finish loading
+    if (userLoading) {
+      return;
+    }
+
     // Don't run the hook if user is on auth pages
     if (location.pathname === '/set-password' || location.pathname === '/team-onboarding' || 
         location.pathname === '/login' || location.pathname === '/signup' || 
@@ -107,7 +106,7 @@ export const useFirstTimeLogin = () => {
       return;
     }
     checkFirstTimeLogin();
-  }, [checkFirstTimeLogin, location.pathname]);
+  }, [checkFirstTimeLogin, location.pathname, userLoading]);
 
   return {
     isChecking,

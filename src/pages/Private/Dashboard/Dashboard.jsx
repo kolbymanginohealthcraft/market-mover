@@ -5,6 +5,7 @@ import Banner from '../../../components/Buttons/Banner';
 import DashboardLayout from './DashboardLayout';
 import PageLayout from '../../../components/Layouts/PageLayout';
 import { supabase } from '../../../app/supabaseClient';
+import { useUser } from '../../../components/Context/UserContext';
 import useUserActivity from '../../../hooks/useUserActivity';
 
 import useTestimonials from '../../../hooks/useTestimonials';
@@ -12,11 +13,13 @@ import { useFirstTimeLogin } from '../../../hooks/useFirstTimeLogin';
 import { trackActivity, ACTIVITY_TYPES } from '../../../utils/activityTracker';
 
 export default function Home() {
+  const { user, profile, loading } = useUser();
   const [userFirstName, setUserFirstName] = useState('');
   const [quote, setQuote] = useState('');
   const [showBanner, setShowBanner] = useState(true);
   const [error, setError] = useState(null);
   const [greetingText, setGreetingText] = useState('Hello, Welcome to Market Mover');
+
 
   // Custom hooks for data
   const { activities, loading: activitiesLoading, deleteActivity, deleteAllActivities } = useUserActivity();
@@ -37,22 +40,16 @@ export default function Home() {
 
     const fetchUserProfile = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
-
-        if (!profileError && profileData?.first_name) {
-          setUserFirstName(profileData.first_name);
+        // Use profile data from UserContext instead of fetching again
+        if (profile?.first_name) {
+          setUserFirstName(profile.first_name);
+          setGreetingText(`Hello, ${profile.first_name}`);
         }
       } catch (err) {
-        console.error('Error fetching user profile:', err);
+        console.error('Error setting user profile:', err);
+        setError("Failed to load user profile");
       }
     };
 
@@ -61,7 +58,7 @@ export default function Home() {
     setQuote(randomQuote);
 
     fetchUserProfile();
-  }, []);
+  }, [user, profile]);
 
   // Update greeting text when userFirstName changes
   useEffect(() => {
@@ -104,8 +101,8 @@ export default function Home() {
     }
   }, [deleteActivity]);
 
-  // If checking first time login, show loading
-  if (isChecking) {
+  // If checking first time login or UserContext is loading, show loading
+  if (loading || isChecking) {
     return (
       <PageLayout>
         <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -114,6 +111,7 @@ export default function Home() {
       </PageLayout>
     );
   }
+
 
   // If there's an error, show a fallback
   if (error) {
@@ -130,7 +128,7 @@ export default function Home() {
 
   return (
     <PageLayout>
-             <DashboardLayout
+      <DashboardLayout
          activities={activities}
          activitiesLoading={activitiesLoading}
          onClearAllActivities={clearAllActivities}

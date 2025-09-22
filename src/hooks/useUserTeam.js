@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../app/supabaseClient';
+import { useUser } from '../components/Context/UserContext';
 
 export const useUserTeam = () => {
   const [hasTeam, setHasTeam] = useState(false);
   const [loading, setLoading] = useState(true);
   const [teamInfo, setTeamInfo] = useState(null);
+  const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
-    checkUserTeam();
-  }, []);
+    if (!userLoading) {
+      checkUserTeam();
+    }
+  }, [user, userLoading]);
 
   const checkUserTeam = async () => {
     try {
       setLoading(true);
       
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
+      if (!user) {
         setHasTeam(false);
         setLoading(false);
         return;

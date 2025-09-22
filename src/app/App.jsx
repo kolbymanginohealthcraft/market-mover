@@ -55,10 +55,19 @@ import Network from "../pages/Private/Network/Network";
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
 // Inner App component that has access to UserContext
-function AppContent({ session, location }) {
-  const { loading: userLoading } = useUser();
+function AppContent({ location }) {
+  const { user, loading: userLoading } = useUser();
+  const navigate = useNavigate();
   
-  // Show loading if either App or UserContext is still loading
+  
+  // Handle redirects based on auth state
+  useEffect(() => {
+    if (user && (location.pathname === "/" || location.pathname === "/login") && location.pathname !== "/reset-password") {
+      navigate("/app/dashboard");
+    }
+  }, [user, location.pathname, navigate]);
+
+  // Show loading if UserContext is still loading
   if (userLoading) return null;
   
   return (
@@ -70,11 +79,11 @@ function AppContent({ session, location }) {
           <Route path="/" element={<UnifiedSidebarLayout isPublic={true} />}>
             <Route
               index
-              element={session ? <Navigate to="/app/dashboard" /> : <LandingPage />}
+              element={user ? <Navigate to="/app/dashboard" /> : <LandingPage />}
             />
             <Route
               path="login"
-              element={session ? <Navigate to="/app/dashboard" /> : <Login />}
+              element={user ? <Navigate to="/app/dashboard" /> : <Login />}
             />
             <Route path="signup" element={<Signup />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
@@ -90,7 +99,7 @@ function AppContent({ session, location }) {
           <Route path="/legal" element={<LegalPage />} />
 
           {/* Private */}
-          <Route path="/app" element={session ? <UnifiedSidebarLayout isPublic={false} /> : <Navigate to="/" />}>
+          <Route path="/app" element={user ? <UnifiedSidebarLayout isPublic={false} /> : <Navigate to="/" />}>
             <Route index element={<Navigate to="dashboard" />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="search" element={<Navigate to="search/basic" />} />
@@ -115,7 +124,7 @@ function AppContent({ session, location }) {
 
           {/* Fallback */}
           <Route path="*" element={
-            session && location.pathname !== "/reset-password" 
+            user && location.pathname !== "/reset-password" 
               ? <Navigate to="/app/dashboard" /> 
               : <Navigate to="/" />
           } />
@@ -126,52 +135,23 @@ function AppContent({ session, location }) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [lastRedirectCheck, setLastRedirectCheck] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Check for stored session first to handle tab duplication
-    const storedSession = getStoredSession();
-    if (storedSession && isSessionValid(storedSession)) {
-      setSession(storedSession);
-      setIsLoading(false);
-    }
-
-    // Get current session from Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsLoading(false);
-    });
-
-    // Listen for auth state changes
+    // Listen for auth state changes to broadcast to other tabs
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      
       // Only broadcast significant auth state changes to prevent loops
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         sessionSync.broadcastAuthStateChange(event, session);
       }
     });
 
-    // Listen for session updates from other tabs
-    const unsubscribeSync = sessionSync.subscribe((event, data) => {
-      if (event === 'sessionUpdate' && data) {
-        setSession(data);
-      } else if (event === 'sessionClear') {
-        setSession(null);
-      } else if (event === 'authStateChange') {
-        setSession(data.session);
-      }
-    });
-
     return () => {
       subscription.unsubscribe();
-      unsubscribeSync();
     };
   }, []);
 
@@ -187,16 +167,12 @@ export default function App() {
     
     setLastRedirectCheck(now);
     
-    if (session && (location.pathname === "/" || location.pathname === "/login") && location.pathname !== "/reset-password") {
-      navigate("/app/dashboard");
-    }
-  }, [session, location.pathname, navigate, lastRedirectCheck]);
-
-  if (isLoading) return null;
+    // Note: Redirect logic is now handled in AppContent using UserContext
+  }, [location.pathname, navigate, lastRedirectCheck]);
 
   return (
     <UserProvider>
-      <AppContent session={session} location={location} />
+      <AppContent location={location} />
     </UserProvider>
   );
 }

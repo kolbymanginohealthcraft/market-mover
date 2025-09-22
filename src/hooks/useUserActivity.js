@@ -18,7 +18,6 @@ export default function useUserActivity() {
     try {
       fetchInProgress.current = true;
       setLoading(true);
-      console.log('🔍 Fetching user activities...');
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -26,7 +25,6 @@ export default function useUserActivity() {
         return;
       }
 
-      console.log('✅ User authenticated for activity fetch:', user.id);
 
       const { data, error } = await supabase
         .from('user_activities')
@@ -45,7 +43,6 @@ export default function useUserActivity() {
         throw error;
       }
       
-      console.log('✅ Activities fetched:', data?.length || 0, 'activities');
       setActivities(data || []);
     } catch (err) {
       console.error('❌ Error fetching activities:', err);
