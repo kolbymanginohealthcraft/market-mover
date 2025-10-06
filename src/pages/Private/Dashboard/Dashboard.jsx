@@ -45,7 +45,6 @@ export default function Home() {
         // Use profile data from UserContext instead of fetching again
         if (profile?.first_name) {
           setUserFirstName(profile.first_name);
-          setGreetingText(`Hello, ${profile.first_name}`);
         }
       } catch (err) {
         console.error('Error setting user profile:', err);

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Search, 
@@ -16,7 +16,10 @@ import {
   Code,
   Lock,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Radius,
+  Check,
+  X
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useState, useRef, useEffect } from 'react';
@@ -24,6 +27,8 @@ import styles from './Sidebar.module.css';
 
 const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasTeam, loading } = useUserTeam();
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const tooltipRef = useRef(null);
@@ -31,6 +36,26 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const isActive = (path) => location.pathname.includes(path);
   const isProviderPage = location.pathname.includes('/provider/');
   const isMarketPage = location.pathname.includes('/market/') && !location.pathname.includes('/market/create');
+
+  // Read radius from URL params for provider pages
+  const currentRadius = isProviderPage ? (Number(searchParams.get('radius')) || 10) : 10;
+  const [pendingRadius, setPendingRadius] = useState(currentRadius);
+  
+  // Update pending radius when URL changes
+  useEffect(() => {
+    if (isProviderPage) {
+      const urlRadius = Number(searchParams.get('radius')) || 10;
+      setPendingRadius(urlRadius);
+    }
+  }, [searchParams, isProviderPage]);
+
+  const hasRadiusChanged = pendingRadius !== currentRadius;
+  
+  const handleApplyRadius = () => {
+    const params = new URLSearchParams(searchParams);
+    params.set('radius', pendingRadius.toString());
+    setSearchParams(params, { replace: true });
+  };
 
   const toggleSidebar = () => {
     if (onToggleCollapse) {
@@ -154,6 +179,43 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               <BarChart3 size={14} />
               {!isCollapsed && 'Provider Analysis'}
             </div>
+            
+            {/* Radius Selector - only shown when sidebar is expanded and on provider pages */}
+            {!isCollapsed && isProviderPage && (
+              <div className={styles.radiusControl}>
+                <div className={styles.radiusHeader}>
+                  <Radius size={12} />
+                  <span className={styles.radiusTitle}>Analysis Radius</span>
+                  <span className={styles.radiusValue}>{pendingRadius} mi</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={pendingRadius}
+                  onChange={(e) => setPendingRadius(Number(e.target.value))}
+                  className={styles.radiusSlider}
+                />
+                {hasRadiusChanged && (
+                  <div className={styles.radiusActions}>
+                    <button
+                      onClick={handleApplyRadius}
+                      className={styles.applyButton}
+                    >
+                      <Check size={12} />
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => setPendingRadius(currentRadius)}
+                      className={styles.cancelButton}
+                    >
+                      <X size={12} />
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

@@ -9,11 +9,12 @@ import ControlsRow from "../../../../components/Layouts/ControlsRow";
 import { ProviderTagBadge } from "../../../../components/Tagging/ProviderTagBadge";
 import styles from "./ProviderListingTab.module.css";
 import controlsStyles from "../../../../components/Layouts/ControlsRow.module.css";
-import { useDropdownClose } from "../../../../hooks/useDropdownClose";
 import { apiUrl } from '../../../../utils/api';
 import { useProviderTagging } from "../../../../hooks/useProviderTagging";
 import { useUserTeam } from "../../../../hooks/useUserTeam";
 import { getTagColor, getTagLabel, getMapboxTagColors } from "../../../../utils/tagColors";
+import Dropdown from "../../../../components/Buttons/Dropdown";
+import dropdownStyles from "../../../../components/Buttons/Dropdown.module.css";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
@@ -49,6 +50,7 @@ export default function ProviderListingTab({
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [showOnlyCCNs, setShowOnlyCCNs] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [ccnProviderIds, setCcnProviderIds] = useState(new Set());
   const [popup, setPopup] = useState(null);
   const [mapReady, setMapReady] = useState(false);
@@ -69,7 +71,6 @@ export default function ProviderListingTab({
 
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const dropdownRef = useRef();
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
   const marketId = new URLSearchParams(window.location.search).get("marketId");
@@ -181,9 +182,6 @@ export default function ProviderListingTab({
     closeTaggingDropdown
   } = useProviderTagging();
 
-  useDropdownClose(dropdownRef, () => {
-    dropdownRef.current?.classList.remove(styles.dropdownOpen);
-  });
 
   // Check if container is ready
   useEffect(() => {
@@ -485,6 +483,14 @@ export default function ProviderListingTab({
     }
   }, [uniqueResults, provider]);
 
+  // Reset layers when radius changes to force re-render
+  useEffect(() => {
+    if (layersAdded) {
+      console.log("🗺️ Radius changed to", radiusInMiles, "miles - resetting layers to force re-render");
+      setLayersAdded(false);
+    }
+  }, [radiusInMiles]);
+
   // Function to add custom layers (radius circle and provider markers)
   const addCustomLayers = useCallback(() => {
     if (!map.current || !provider || !layersReady || !dataReady) {
@@ -505,6 +511,9 @@ export default function ProviderListingTab({
     // Debounce the layer addition to prevent rapid updates
     layersTimeoutRef.current = setTimeout(() => {
       console.log("🗺️ Adding custom layers (debounced)...");
+      console.log("🗺️ Drawing circle with radius:", radiusInMiles, "miles");
+      console.log("🗺️ Number of providers to plot:", uniqueResults.length);
+      console.log("🗺️ Provider distances:", uniqueResults.slice(0, 5).map(p => ({ name: p.name, distance: p.distance })));
       
       try {
         // Remove existing layers first
@@ -819,44 +828,80 @@ export default function ProviderListingTab({
         <ControlsRow
           leftContent={
             <>
-              <div className={styles.dropdownContainer} ref={dropdownRef}>
-                <Button
-                  isFilter
-                  isActive={selectedTypes.length > 0}
-                  className="button-sm"
-                  onClick={() =>
-                    dropdownRef.current.classList.toggle(styles.dropdownOpen)
-                  }
-                >
-                  <span className={styles.buttonLabel}>
-                    Filter Provider Types
-                    {selectedTypes.length > 0 && (
-                      <span
-                        className={styles.clearButton}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clearFilters();
-                        }}
-                      >
-                        ✕
-                      </span>
-                    )}
-                  </span>
-                </Button>
-
-                <div className={styles.dropdownMenu}>
+              <Dropdown
+                trigger={
+                  <Button
+                    isFilter
+                    isActive={selectedTypes.length > 0}
+                    className="button-sm"
+                  >
+                    <span className={styles.buttonLabel}>
+                      Provider Types
+                      {selectedTypes.length > 0 && (
+                        <span
+                          className={styles.clearButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearFilters();
+                          }}
+                        >
+                          ✕
+                        </span>
+                      )}
+                    </span>
+                  </Button>
+                }
+                isOpen={isDropdownOpen}
+                onToggle={setIsDropdownOpen}
+                className={dropdownStyles.dropdown}
+                style={{ minWidth: '250px' }}
+              >
+                {/* Scrollable content container */}
+                <div style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  maxHeight: '200px'
+                }}>
                   {allTypes.map((type) => (
-                    <label key={type} className={styles.dropdownItem}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTypes.includes(type)}
-                        onChange={() => toggleType(type)}
-                      />
-                      {type}
-                    </label>
+                    <div key={type} className={dropdownStyles.dropdownItem} style={{ padding: '0 !important', margin: '0 !important' }}>
+                      <label style={{ 
+                        margin: '0 !important', 
+                        padding: '4px 8px !important', 
+                        minHeight: 'auto !important',
+                        lineHeight: '1.2 !important',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        borderRadius: '4px',
+                        transition: 'background-color 0.15s ease'
+                      }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedTypes.includes(type)}
+                          onChange={() => toggleType(type)}
+                          style={{ 
+                            margin: '0 !important',
+                            width: '16px',
+                            height: '16px',
+                            cursor: 'pointer',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span style={{ 
+                          margin: '0 !important', 
+                          padding: '0 !important',
+                          fontSize: '12px',
+                          color: '#374151',
+                          fontWeight: '500'
+                        }}>{type}</span>
+                      </label>
+                    </div>
                   ))}
                 </div>
-              </div>
+              </Dropdown>
 
               <Button
                 isFilter
@@ -864,14 +909,14 @@ export default function ProviderListingTab({
                 className="button-sm"
                 onClick={() => setShowOnlyCCNs((prev) => !prev)}
               >
-                Only show Medicare-certified providers
+                Medicare-certified only
               </Button>
             </>
           }
           rightContent={
             <div className={styles.controlsRightContent}>
               <span className={controlsStyles.summaryText}>
-                Showing {startIndex + 1}-{Math.min(endIndex, uniqueResults.length)} of {uniqueResults.length} providers
+                Showing {startIndex + 1}-{Math.min(endIndex, uniqueResults.length)} of {uniqueResults.length}
               </span>
               <div className={styles.paginationControls}>
                 <div className={styles.pageSizeSelector}>
@@ -896,10 +941,10 @@ export default function ProviderListingTab({
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                 >
-                  Previous
+                  Prev
                 </button>
                 <span className={styles.paginationPage}>
-                  Page {currentPage} of {totalPages}
+                  {currentPage}/{totalPages}
                 </span>
                 <button 
                   className={styles.paginationButton}

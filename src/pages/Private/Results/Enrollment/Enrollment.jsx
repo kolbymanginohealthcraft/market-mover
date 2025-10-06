@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation, Routes, Route, Navigate } from "react-router-dom";
+import { useLocation, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import CMSEnrollmentTab from "./CMSEnrollmentTab";
 
 export default function Enrollment({ provider, radiusInMiles }) {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   
   // Set body attribute for CSS overrides
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function Enrollment({ provider, radiusInMiles }) {
           defaultView="payers"
         />
       } />
-      <Route path="*" element={<Navigate to="overview" replace />} />
+      <Route path="*" element={<Navigate to={`overview${location.search}`} replace />} />
     </Routes>
   );
 }

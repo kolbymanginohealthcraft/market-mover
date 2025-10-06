@@ -11,7 +11,11 @@ export const useProviderAnalysis = () => {
   return context;
 };
 
-export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) => {
+export const ProviderAnalysisProvider = ({ 
+  children, 
+  provider, 
+  radiusInMiles
+}) => {
   // Core data states
   const [providers, setProviders] = useState([]);
   const [ccns, setCcns] = useState([]);
@@ -498,7 +502,7 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
     setError(null);
 
     try {
-      console.log('🚀 Starting Tier 1: Core data fetch (batch mode)');
+      console.log('🚀 Starting Tier 1: Core data fetch (batch mode) with radius:', radiusInMiles, 'miles');
       
       // Use batch endpoint for core data
       const batchResponse = await fetch(apiUrl('/api/batch-data'), {
@@ -658,7 +662,15 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
 
   // Main effect for core data
   useEffect(() => {
+    console.log('🔄 ProviderAnalysisContext effect triggered:', {
+      hasProvider: !!provider,
+      latitude: provider?.latitude,
+      longitude: provider?.longitude,
+      radiusInMiles
+    });
+
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles) {
+      console.log('⚠️ Missing required data, resetting state');
       setProviders([]);
       setCcns([]);
       setNpis([]);
@@ -684,6 +696,8 @@ export const ProviderAnalysisProvider = ({ children, provider, radiusInMiles }) 
       setQualityMeasuresCompleted(false);
       return;
     }
+
+    console.log('✅ All data present, fetching core data with radius:', radiusInMiles);
 
     // Cancel any ongoing requests
     if (abortControllerRef.current) {

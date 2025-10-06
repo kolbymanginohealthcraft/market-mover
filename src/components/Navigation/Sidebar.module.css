@@ -341,6 +341,163 @@
   }
 }
 
+/* Radius Control Styles */
+.radiusControl {
+  padding: 16px 12px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(0, 192, 139, 0.05) 0%, rgba(1, 81, 74, 0.05) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 192, 139, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.radiusHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.radiusHeader svg {
+  color: var(--primary-teal);
+  flex-shrink: 0;
+}
+
+.radiusTitle {
+  flex: 1;
+}
+
+.radiusValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-teal);
+  background: var(--white);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 192, 139, 0.2);
+  min-width: 48px;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+}
+
+.radiusSlider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--gray-200) 0%, var(--gray-300) 100%);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radiusSlider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.radiusSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-teal);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.radiusSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(0, 192, 139, 0.15);
+}
+
+.radiusSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-teal);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.radiusSlider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(0, 192, 139, 0.15);
+}
+
+.radiusActions {
+  display: flex;
+  gap: 8px;
+}
+
+.applyButton,
+.cancelButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.applyButton {
+  background: var(--primary-teal);
+  color: var(--white);
+}
+
+.applyButton:hover {
+  background: var(--primary-teal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.3);
+}
+
+.applyButton:active {
+  transform: translateY(0);
+}
+
+.cancelButton {
+  background: var(--white);
+  color: var(--gray-600);
+  border: 1px solid var(--gray-300);
+}
+
+.cancelButton:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
+  color: var(--gray-700);
+  transform: translateY(-1px);
+}
+
+.cancelButton:active {
+  transform: translateY(0);
+}
+
+.applyButton svg,
+.cancelButton svg {
+  width: 12px;
+  height: 12px;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;
@@ -378,6 +535,11 @@
   }
   
   .collapseButton {
+    display: none;
+  }
+  
+  /* Hide radius control on mobile */
+  .radiusControl {
     display: none;
   }
 }

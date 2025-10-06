@@ -40,9 +40,6 @@ function ProviderDetailContent() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const { setCurrentProvider } = useProviderContext();
-  
-  const radiusFromUrl = Number(searchParams.get("radius"));
-  const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
   
@@ -56,6 +53,7 @@ function ProviderDetailContent() {
     censusTracts,
     qualityMeasuresDates,
     qualityMeasuresData,
+    radiusInMiles, // Get radius from context instead of local state
     loading: marketAnalysisLoading,
     providersLoading,
     ccnsLoading,
@@ -193,8 +191,20 @@ export default function ProviderDetail() {
   const [radiusInMiles, setRadiusInMiles] = useState(radiusFromUrl || 10);
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
 
+  // Update radius when URL changes
+  useEffect(() => {
+    const newRadius = radiusFromUrl || 10;
+    if (newRadius !== radiusInMiles) {
+      console.log('🔄 ProviderDetail: Updating radius from URL:', radiusFromUrl, '→', newRadius);
+      setRadiusInMiles(newRadius);
+    }
+  }, [radiusFromUrl, radiusInMiles]);
+
   return (
-    <ProviderAnalysisProvider provider={provider} radiusInMiles={radiusInMiles}>
+    <ProviderAnalysisProvider 
+      provider={provider} 
+      radiusInMiles={radiusInMiles}
+    >
       <ProviderDetailContent />
     </ProviderAnalysisProvider>
   );

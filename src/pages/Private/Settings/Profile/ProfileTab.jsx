@@ -7,9 +7,11 @@ import Spinner from "../../../../components/Buttons/Spinner";
 import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import { trackActivity } from "../../../../utils/activityTracker";
 import { getRoleDisplayName } from "../../../../utils/roleHelpers";
+import { useUser } from "../../../../components/Context/UserContext";
 import styles from "./ProfileTab.module.css";
 
 export default function ProfileTab() {
+  const { refreshUserData } = useUser();
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
@@ -148,6 +150,9 @@ export default function ProfileTab() {
       setMessage("Profile updated successfully!");
       setMessageType("success");
       setOriginalProfile(profile);
+      
+      // Refresh the user data in UserContext so header updates immediately
+      await refreshUserData();
       
       // Keep the footer visible for a moment to show success message
       setTimeout(() => {

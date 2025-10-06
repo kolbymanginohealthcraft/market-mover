@@ -271,7 +271,10 @@ export default function MarketDetail() {
   // For all routes, render normally inside PageLayout
   return (
     <PageLayout>
-      <ProviderAnalysisProvider provider={marketProvider} radiusInMiles={radiusInMiles}>
+      <ProviderAnalysisProvider 
+        provider={marketProvider} 
+        radiusInMiles={radiusInMiles}
+      >
         <Routes key={location.pathname}>
           <Route path="overview" element={<OverviewTab key={`overview-${marketId}`} provider={marketProvider} />} />
           <Route path="provider-listing" element={<ProviderListingTab provider={marketProvider} radiusInMiles={radiusInMiles} providers={nearbyProviders} />} />

@@ -193,6 +193,9 @@ const SubNavigation = () => {
 
     // Construct base path up to the provider DHC
     const basePath = pathSegments.slice(0, dhcIndex + 1).join('/');
+    
+    // Preserve query params like ?radius=10
+    const search = location.search;
 
     // Determine the correct active tab
     let currentActiveTab = "overview"; // Default to overview
@@ -217,14 +220,14 @@ const SubNavigation = () => {
     }
 
     const tabs = [
-      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview`, locked: false },
-      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing`, locked: false },
-      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: teamLoading ? false : !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: teamLoading ? false : !hasTeam },
-      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: teamLoading ? false : !hasTeam },
-      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: teamLoading ? false : !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: teamLoading ? false : !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: teamLoading ? false : !hasTeam }
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview${search}`, locked: false },
+      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing${search}`, locked: false },
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels
@@ -239,8 +242,8 @@ const SubNavigation = () => {
       }
 
       const storytellerTabs = [
-        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard` },
-        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks` }
+        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard${search}` },
+        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks${search}` }
       ];
 
       return (
@@ -311,8 +314,8 @@ const SubNavigation = () => {
       }
 
       const enrollmentTabs = [
-        { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview` },
-        { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers` }
+        { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview${search}` },
+        { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers${search}` }
       ];
 
       return (
@@ -413,6 +416,9 @@ const SubNavigation = () => {
 
     // Construct base path up to the market ID
     const basePath = pathSegments.slice(0, marketIdIndex + 1).join('/');
+    
+    // Preserve query params like ?radius=10
+    const search = location.search;
 
     // Determine the correct active tab
     let currentActiveTab = "overview"; // Default to overview
@@ -437,14 +443,14 @@ const SubNavigation = () => {
     }
 
     const tabs = [
-      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview`, locked: false },
-      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing`, locked: false },
-      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density`, locked: teamLoading ? false : !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population`, locked: teamLoading ? false : !hasTeam },
-      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims`, locked: teamLoading ? false : !hasTeam },
-      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment`, locked: teamLoading ? false : !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment`, locked: teamLoading ? false : !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller`, locked: teamLoading ? false : !hasTeam }
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview${search}`, locked: false },
+      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing${search}`, locked: false },
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels
@@ -459,8 +465,8 @@ const SubNavigation = () => {
       }
 
       const storytellerTabs = [
-        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard` },
-        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks` }
+        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard${search}` },
+        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks${search}` }
       ];
 
       return (
@@ -531,8 +537,8 @@ const SubNavigation = () => {
        }
 
        const enrollmentTabs = [
-         { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview` },
-         { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers` }
+         { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview${search}` },
+         { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers${search}` }
        ];
 
        return (
