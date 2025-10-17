@@ -185,7 +185,318 @@ const SubNavigation = () => {
     );
   }
 
-  // Handle provider pages
+  // Handle Procedures page navigation
+  const isProceduresPage = location.pathname.includes('/procedures') || location.pathname === '/app/procedures';
+  
+  if (isProceduresPage) {
+    if (!teamLoading && !hasTeam) {
+      return (
+        <nav className={styles.subNavigation}>
+          <div className={styles.navLeft}>
+            <div className={`${styles.tab} ${styles.disabled}`} style={{ cursor: 'not-allowed' }}>
+              <Lock size={16} />
+              Team Required
+            </div>
+          </div>
+          <div className={styles.navRight}>
+            <div className={styles.teamRequiredMessage}>
+              Join or create a team to access procedure tagging features
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // Determine the current view from the URL
+    const currentView = location.pathname.includes('/procedures/browse') ? 'browse' : 'tags';
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          <Link
+            to="/app/procedures/tags"
+            className={`${styles.tab} ${currentView === 'tags' ? styles.active : ''}`}
+          >
+            <Bookmark size={16} />
+            My Tags
+          </Link>
+          <Link
+            to="/app/procedures/browse"
+            className={`${styles.tab} ${currentView === 'browse' ? styles.active : ''}`}
+          >
+            <Search size={16} />
+            Browse All
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+
+  // Handle new provider market analysis pages (/app/:dhc/market/*)
+  if (location.pathname.match(/^\/app\/\d+\/market\//)) {
+    const pathSegments = location.pathname.split('/');
+    const dhc = pathSegments[2]; // DHC is at position 2 in /app/:dhc/market/*
+    const basePath = `/app/${dhc}/market`;
+    
+    // Preserve query params like ?radius=10
+    const search = location.search;
+
+    // Determine the correct active tab
+    let currentActiveTab = "overview"; // Default to overview
+    
+    // Check for specific tab paths
+    if (location.pathname.includes('/provider-listing')) {
+      currentActiveTab = 'provider-listing';
+    } else if (location.pathname.includes('/provider-density')) {
+      currentActiveTab = 'provider-density';
+    } else if (location.pathname.includes('/population')) {
+      currentActiveTab = 'population';
+    } else if (location.pathname.includes('/claims')) {
+      currentActiveTab = 'claims';
+    } else if (location.pathname.includes('/catchment')) {
+      currentActiveTab = 'catchment';
+    } else if (location.pathname.includes('/enrollment') || location.pathname.includes('/cms-enrollment')) {
+      currentActiveTab = 'enrollment';
+    } else if (location.pathname.includes('/storyteller')) {
+      currentActiveTab = 'storyteller';
+    } else if (location.pathname.includes('/overview') || location.pathname.endsWith(`/market`)) {
+      currentActiveTab = 'overview';
+    }
+
+    const tabs = [
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview${search}`, locked: false },
+      { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing${search}`, locked: false },
+      { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
+    ];
+
+    // If we're on a storyteller sub-page, render both navigation levels
+    if (location.pathname.includes('/storyteller/')) {
+      // Determine the correct active storyteller sub-tab
+      let currentStorytellerTab = "scorecard"; // Default to scorecard
+      
+      if (location.pathname.includes('/scorecard')) {
+        currentStorytellerTab = 'scorecard';
+      } else if (location.pathname.includes('/benchmarks')) {
+        currentStorytellerTab = 'benchmarks';
+      }
+
+      const storytellerTabs = [
+        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard${search}` },
+        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks${search}` }
+      ];
+
+      return (
+        <>
+          {/* First level navigation - Provider/Market tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                if (tab.locked) {
+                  return (
+                    <div
+                      key={tab.id}
+                      className={`${styles.tab} ${styles.disabled}`}
+                      title="Join or create a team to access this feature"
+                    >
+                      <IconComponent size={16} />
+                      {tab.label}
+                      <Lock size={12} style={{ marginLeft: '4px' }} />
+                    </div>
+                  );
+                }
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Storyteller sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.storytellerSubNav}`}>
+            <div className={styles.navLeft}>
+              {storytellerTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentStorytellerTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+    }
+
+    // If we're on an enrollment sub-page, render both navigation levels
+    if (location.pathname.includes('/cms-enrollment')) {
+      // Determine the correct active enrollment sub-tab
+      let currentEnrollmentTab = "overview"; // Default to overview
+      
+      if (location.pathname.includes('/overview')) {
+        currentEnrollmentTab = 'overview';
+      } else if (location.pathname.includes('/payers')) {
+        currentEnrollmentTab = 'payers';
+      }
+
+      const enrollmentTabs = [
+        { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/cms-enrollment/overview${search}` },
+        { id: "payers", label: "Payers", icon: CreditCard, path: `${basePath}/cms-enrollment/payers${search}` }
+      ];
+
+      return (
+        <>
+          {/* First level navigation - Provider/Market tabs */}
+          <nav className={styles.subNavigation}>
+            <div className={styles.navLeft}>
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                if (tab.locked) {
+                  return (
+                    <div
+                      key={tab.id}
+                      className={`${styles.tab} ${styles.disabled}`}
+                      title="Join or create a team to access this feature"
+                    >
+                      <IconComponent size={16} />
+                      {tab.label}
+                      <Lock size={12} style={{ marginLeft: '4px' }} />
+                    </div>
+                  );
+                }
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          
+          {/* Second level navigation - Enrollment sub-tabs */}
+          <nav className={`${styles.subNavigation} ${styles.enrollmentSubNav}`}>
+            <div className={styles.navLeft}>
+              {enrollmentTabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Link
+                    key={tab.id}
+                    to={tab.path}
+                    className={`${styles.tab} ${currentEnrollmentTab === tab.id ? styles.active : ''}`}
+                  >
+                    <IconComponent size={16} />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      );
+    }
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            if (tab.locked) {
+              return (
+                <div
+                  key={tab.id}
+                  className={`${styles.tab} ${styles.disabled}`}
+                  title="Join or create a team to access this feature"
+                >
+                  <IconComponent size={16} />
+                  {tab.label}
+                  <Lock size={12} style={{ marginLeft: '4px' }} />
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // Handle simple provider profile pages (/app/:dhc/* without /market)
+  if (location.pathname.match(/^\/app\/\d+\//) && !location.pathname.includes('/market')) {
+    const pathSegments = location.pathname.split('/');
+    const dhc = pathSegments[2]; // DHC is at position 2 in /app/:dhc/*
+    const basePath = `/app/${dhc}`;
+    
+    // Determine the current active tab
+    let currentActiveTab = "overview"; // Default to overview
+    
+    if (location.pathname.includes('/claims')) {
+      currentActiveTab = 'claims';
+    } else if (location.pathname.includes('/storyteller')) {
+      currentActiveTab = 'storyteller';
+    } else if (location.pathname.includes('/overview') || location.pathname === basePath) {
+      currentActiveTab = 'overview';
+    }
+
+    const tabs = [
+      { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview` },
+      { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims` },
+      { id: "storyteller", label: "Quality Measures", icon: Shield, path: `${basePath}/storyteller` }
+    ];
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // Handle legacy provider pages (/app/provider/:dhc/*)
   if (location.pathname.includes('/provider/')) {
     const pathSegments = location.pathname.split('/');
     const providerIndex = pathSegments.findIndex(segment => segment === 'provider');

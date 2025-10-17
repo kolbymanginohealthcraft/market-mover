@@ -114,7 +114,7 @@ export default function NetworkListView() {
   };
   
   const handleViewProvider = (providerDhc) => {
-    navigate(`/app/provider/${providerDhc}/overview`);
+    navigate(`/app/${providerDhc}`);
   };
 
   const handleTagClick = (providerDhc, tag) => {

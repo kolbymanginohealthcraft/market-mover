@@ -271,7 +271,7 @@ export default function NetworkMapView() {
                       <p style="margin: 0 0 4px 0; font-size: 12px;">
                         Tag: ${tagDisplay}
                       </p>
-                      <button onclick="window.open('/app/provider/${feature.properties.id}/overview', '_blank')" 
+                      <button onclick="window.open('/app/${feature.properties.id}', '_blank')" 
                               style="background: #265947; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 4px;">
                         View Provider
                       </button>

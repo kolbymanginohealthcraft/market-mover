@@ -74,7 +74,7 @@ export default function NetworkTab() {
   };
   
   const handleViewProvider = (providerDhc) => {
-    navigate(`/app/provider/${providerDhc}/overview`);
+    navigate(`/app/${providerDhc}`);
   };
 
   const handleTagClick = (providerDhc, tag) => {

@@ -828,7 +828,7 @@ export default function ProviderSearch() {
                                 className={styles.providerName}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate(`/app/provider/${provider.dhc}/overview`);
+                                  navigate(`/app/${provider.dhc}`);
                                 }}
                                 style={{ cursor: 'pointer' }}
                               >

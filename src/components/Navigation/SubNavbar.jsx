@@ -5,7 +5,7 @@ export default function SubNavbar({ providerId: providerDhc }) {
   const location = useLocation();
   const search = location.search; // Preserve query params like ?marketId=xxx&radius=10
 
-  const prefix = providerDhc ? `/app/provider/${providerDhc}` : "";
+  const prefix = providerDhc ? `/app/${providerDhc}` : "";
 
   return (
     <nav className={styles.subNavbar}>

@@ -682,3 +682,53 @@
     margin-left: 16px;
   }
 }
+
+/* Market CTA Styles */
+.marketCta {
+  background: linear-gradient(135deg, #EBF4FF 0%, #E0F2FE 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.marketCtaContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.marketCtaContent p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #1E40AF;
+  font-weight: 500;
+}
+
+.marketCtaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  white-space: nowrap;
+}
+
+.marketCtaButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+}
+
+.marketCtaButton:active {
+  transform: translateY(0);
+}

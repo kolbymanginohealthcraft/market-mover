@@ -36,7 +36,7 @@ export default function ActivityPanel({
   const getActivityLink = (activity) => {
     const links = {
       'search_providers': `/app/search?search=${encodeURIComponent(activity.target_name)}`,
-      'view_provider': `/app/provider/${activity.target_id}?fromActivity=true`,
+      'view_provider': `/app/${activity.target_id}?fromActivity=true`,
       'save_market': '#',
       'view_market': `/app/market/${activity.target_id}?fromActivity=true`
     };

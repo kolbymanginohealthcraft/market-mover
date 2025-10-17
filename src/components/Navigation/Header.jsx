@@ -17,7 +17,8 @@ import {
   Home,
   DollarSign,
   Mail,
-  FileText
+  FileText,
+  FileBarChart
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
@@ -136,12 +137,16 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'Search the Industry';
     } else if (location.pathname.includes('/markets')) {
       return 'Saved Markets';
-    } else if (location.pathname.includes('/provider/')) {
+    } else if (location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+\/market\//)) {
       return 'Provider Analysis';
+    } else if (location.pathname.match(/^\/app\/\d+$/)) {
+      return 'Provider Profile';
     } else if (location.pathname.includes('/market/')) {
       return 'Market Analysis';
     } else if (location.pathname.includes('/network')) {
       return 'My Network';
+    } else if (location.pathname.includes('/procedures')) {
+      return 'My Procedures';
     } else if (location.pathname.includes('/settings')) {
       return 'Account Settings';
     } else if (location.pathname.includes('/feedback')) {
@@ -181,8 +186,8 @@ const Header = ({ currentView, selectedMarket }) => {
       }
     }
     
-    // Provider Analysis Mode
-    if (location.pathname.includes('/provider/') && currentProvider) {
+    // Provider Analysis/Profile Mode
+    if ((location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+/)) && currentProvider) {
       return [
         { text: currentProvider.name, type: 'provider' },
         { text: `${currentProvider.street}, ${currentProvider.city}, ${currentProvider.state} ${currentProvider.zip}`, type: 'location' },
@@ -228,6 +233,10 @@ const Header = ({ currentView, selectedMarket }) => {
     } else if (currentPath.includes('/network')) {
       return [
         { text: 'Manage your provider network and relationships', type: 'description' }
+      ];
+    } else if (currentPath.includes('/procedures')) {
+      return [
+        { text: 'Tag and track procedure codes relevant to your business', type: 'description' }
       ];
     } else if (currentPath.includes('/settings')) {
       return [
@@ -276,6 +285,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return <MapPin size={18} />;
     } else if (location.pathname.includes('/network')) {
       return <Network size={18} />;
+    } else if (location.pathname.includes('/procedures')) {
+      return <FileBarChart size={18} />;
     } else if (location.pathname.includes('/settings')) {
       return <Settings size={18} />;
     } else {

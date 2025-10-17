@@ -42,7 +42,7 @@ export const ProviderCard = ({
 
         <div className={styles.cardActions}>
           <Link
-            to={`/app/provider/${provider.dhc}/overview`}
+            to={`/app/${provider.dhc}`}
             className={styles.viewDetailsButton}
             onClick={(e) => e.stopPropagation()}
           >

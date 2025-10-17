@@ -34,7 +34,7 @@ import Storyteller from "./Storyteller/Storyteller";
 import PageLayout from "../../../components/Layouts/PageLayout";
 
 // Inner component that uses the provider analysis context
-function ProviderDetailContent() {
+function ProviderMarketAnalysisContent() {
   const { dhc } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -124,7 +124,7 @@ function ProviderDetailContent() {
     
     return (
       <DetailedLoadingSpinner 
-        message="Loading provider analysis..." 
+        message="Loading market analysis..." 
         loadingStates={loadingStates}
         showProgress={true}
       />
@@ -146,7 +146,7 @@ function ProviderDetailContent() {
         <Route path="provider-density" element={<ProviderDensityPage radius={radiusInMiles} provider={provider} />} />
         <Route path="storyteller/*" element={
           (() => {
-            console.log('🔍 ProviderDetail - Data being passed to Storyteller:', {
+            console.log('🔍 ProviderMarketAnalysis - Data being passed to Storyteller:', {
               providerDhc: provider?.dhc,
               nearbyProvidersCount: nearbyProviders?.length || 0,
               nearbyDhcCcnsCount: nearbyDhcCcns?.length || 0,
@@ -184,7 +184,7 @@ function ProviderDetailContent() {
 }
 
 // Main component that provides the context
-export default function ProviderDetail() {
+export default function ProviderMarketAnalysis() {
   const { dhc } = useParams();
   const [searchParams] = useSearchParams();
   const radiusFromUrl = Number(searchParams.get("radius"));
@@ -195,7 +195,7 @@ export default function ProviderDetail() {
   useEffect(() => {
     const newRadius = radiusFromUrl || 10;
     if (newRadius !== radiusInMiles) {
-      console.log('🔄 ProviderDetail: Updating radius from URL:', radiusFromUrl, '→', newRadius);
+      console.log('🔄 ProviderMarketAnalysis: Updating radius from URL:', radiusFromUrl, '→', newRadius);
       setRadiusInMiles(newRadius);
     }
   }, [radiusFromUrl, radiusInMiles]);
@@ -205,7 +205,8 @@ export default function ProviderDetail() {
       provider={provider} 
       radiusInMiles={radiusInMiles}
     >
-      <ProviderDetailContent />
+      <ProviderMarketAnalysisContent />
     </ProviderAnalysisProvider>
   );
 }
+

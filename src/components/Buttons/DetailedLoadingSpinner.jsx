@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
 
+// Define the loading steps outside component to avoid recreating on every render
+const LOADING_STEPS = [
+  { key: 'batchData', label: 'Finding healthcare providers in your area' },
+  { key: 'censusData', label: 'Gathering population statistics' },
+  { key: 'providerIds', label: 'Collecting provider identifiers' },
+  { key: 'qualityMeasures', label: 'Preparing quality analysis tools' }
+];
+
 export default function DetailedLoadingSpinner({ 
   message = "Loading market analysis...",
   loadingStates = {},
@@ -8,18 +16,10 @@ export default function DetailedLoadingSpinner({
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
-  // Define the loading steps in order - user-friendly descriptions
-  const loadingSteps = [
-    { key: 'batchData', label: 'Finding healthcare providers in your area' },
-    { key: 'censusData', label: 'Gathering population statistics' },
-    { key: 'providerIds', label: 'Collecting provider identifiers' },
-    { key: 'qualityMeasures', label: 'Preparing quality analysis tools' }
-  ];
-
   // Update completed steps based on loading states
   useEffect(() => {
     const completed = new Set();
-    loadingSteps.forEach(step => {
+    LOADING_STEPS.forEach(step => {
       if (loadingStates[step.key] === false) { // false means loading is complete
         completed.add(step.key);
       }
@@ -29,13 +29,13 @@ export default function DetailedLoadingSpinner({
 
   // Update current step
   useEffect(() => {
-    const current = loadingSteps.findIndex(step => 
+    const current = LOADING_STEPS.findIndex(step => 
       loadingStates[step.key] === true || !completedSteps.has(step.key)
     );
     setCurrentStep(Math.max(0, current));
   }, [loadingStates, completedSteps]);
 
-  const totalSteps = loadingSteps.length;
+  const totalSteps = LOADING_STEPS.length;
   const completedCount = completedSteps.size;
   const progress = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
 
@@ -89,7 +89,7 @@ export default function DetailedLoadingSpinner({
             fontSize: "0.9rem",
             textAlign: "left"
           }}>
-            {loadingSteps.map((step, index) => {
+            {LOADING_STEPS.map((step, index) => {
               const isCompleted = completedSteps.has(step.key);
               const isCurrent = index === currentStep && !isCompleted;
               const isPending = index > currentStep;

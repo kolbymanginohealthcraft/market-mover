@@ -5,6 +5,7 @@ import {
   Navigate,
   useNavigate,
   useLocation,
+  useParams,
 } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { sessionSync, getStoredSession, isSessionValid } from "../utils/sessionSync";
@@ -16,6 +17,12 @@ import UnifiedSidebarLayout from "../components/Layouts/UnifiedSidebarLayout";
 
 import { ProviderContextProvider } from "../components/Context/ProviderContext";
 import { UserProvider, useUser } from "../components/Context/UserContext";
+
+// Helper component for legacy redirect
+function LegacyProviderRedirect() {
+  const { dhc } = useParams();
+  return <Navigate to={`/app/${dhc}`} replace />;
+}
 
 // Pages
 import LandingPage from "../pages/Public/Marketing/LandingPage";
@@ -45,12 +52,15 @@ import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
 import AdvancedSearch from "../pages/Private/Search/AdvancedSearch";
-import ProviderDetail from "../pages/Private/Results/ProviderDetail";
+import ProviderProfile from "../pages/Private/Results/ProviderProfile";
+import ProviderMarketAnalysis from "../pages/Private/Results/ProviderMarketAnalysis";
 import MarketDetail from "../pages/Private/Results/MarketDetail";
 import MarketsList from "../pages/Private/Markets/MarketsList";
 
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
 import Network from "../pages/Private/Network/Network";
+import Procedures from "../pages/Private/Procedures/Procedures";
+import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
@@ -107,7 +117,20 @@ function AppContent({ location }) {
             <Route path="search/advanced" element={<AdvancedSearch />} />
             <Route path="explore" element={<Explore />} />
             <Route path="feedback" element={<Feedback />} />
-            <Route path="provider/:dhc/*" element={<ProviderDetail />} />
+            
+            {/* Provider market analysis view - must come before the simpler provider route */}
+            <Route path=":dhc/market/*" element={<ProviderMarketAnalysis />} />
+            
+            {/* New simplified provider view with tabs */}
+            <Route path=":dhc/*" element={<ProviderProfile />} />
+            
+            {/* Legacy route - redirect to new format */}
+            <Route 
+              path="provider/:dhc/*" 
+              element={
+                <LegacyProviderRedirect />
+              } 
+            />
 
             <Route path="markets/*" element={<MarketsList />} />
             <Route path="market/:marketId/*" element={<MarketDetail />} />
@@ -120,6 +143,8 @@ function AppContent({ location }) {
             <Route path="policy-management" element={<PolicyManagement />} />
             <Route path="style-guide" element={<StyleGuide />} />
             <Route path="network/*" element={<Network />} />
+            <Route path="procedures/*" element={<Procedures />} />
+            <Route path="investigation/claims" element={<ClaimsDataInvestigation />} />
           </Route>
 
           {/* Fallback */}

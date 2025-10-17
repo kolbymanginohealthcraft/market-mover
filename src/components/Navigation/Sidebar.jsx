@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Radius,
   Check,
-  X
+  X,
+  FileBarChart
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useState, useRef, useEffect } from 'react';
@@ -34,8 +35,10 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const tooltipRef = useRef(null);
 
   const isActive = (path) => location.pathname.includes(path);
-  const isProviderPage = location.pathname.includes('/provider/');
-  const isMarketPage = location.pathname.includes('/market/') && !location.pathname.includes('/market/create');
+  // Check for both legacy provider pages and new provider market analysis pages
+  const isProviderPage = location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+\/market\//);
+  // Market pages are only the standalone market analysis (not provider-based)
+  const isMarketPage = location.pathname.match(/^\/app\/market\/[^/]+/) && !location.pathname.includes('/market/create');
 
   // Read radius from URL params for provider pages
   const currentRadius = isProviderPage ? (Number(searchParams.get('radius')) || 10) : 10;
@@ -163,6 +166,27 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             >
               <Network size={14} />
               {!isCollapsed && 'My Network'}
+              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
+            </div>
+          )}
+          {hasTeam ? (
+            <Link 
+              to="/app/procedures" 
+              className={`${styles.navItem} ${isActive('/procedures') ? styles.active : ''}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Procedures')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FileBarChart size={14} />
+              {!isCollapsed && 'My Procedures'}
+            </Link>
+          ) : (
+            <div 
+              className={`${styles.navItem} ${styles.disabled}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Procedures - Join or create a team to access procedure tagging features')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FileBarChart size={14} />
+              {!isCollapsed && 'My Procedures'}
               {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
             </div>
           )}
