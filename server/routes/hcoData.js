@@ -101,6 +101,81 @@ router.get("/stats", async (req, res) => {
 
     const [firmTypeResults] = await vendorBigQuery.query({ query: firmTypeQuery });
 
+    // Query for breakdown by taxonomy classification
+    const taxonomyClassificationQuery = `
+      WITH nearby_hcos AS (
+        SELECT 
+          *,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hco_flat\`
+        WHERE 
+          primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      )
+      SELECT
+        primary_taxonomy_classification,
+        COUNT(*) as count,
+        ROUND(AVG(distance_miles), 2) as avg_distance
+      FROM nearby_hcos
+      WHERE primary_taxonomy_classification IS NOT NULL
+      GROUP BY primary_taxonomy_classification
+      ORDER BY count DESC
+      LIMIT 30
+    `;
+
+    const [taxonomyClassificationResults] = await vendorBigQuery.query({ query: taxonomyClassificationQuery });
+
+    // Query for breakdown by consolidated specialty
+    const consolidatedSpecialtyQuery = `
+      WITH nearby_hcos AS (
+        SELECT 
+          *,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hco_flat\`
+        WHERE 
+          primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      )
+      SELECT
+        primary_taxonomy_consolidated_specialty,
+        COUNT(*) as count,
+        ROUND(AVG(distance_miles), 2) as avg_distance
+      FROM nearby_hcos
+      WHERE primary_taxonomy_consolidated_specialty IS NOT NULL
+      GROUP BY primary_taxonomy_consolidated_specialty
+      ORDER BY count DESC
+      LIMIT 30
+    `;
+
+    const [consolidatedSpecialtyResults] = await vendorBigQuery.query({ query: consolidatedSpecialtyQuery });
+
+    // Query for breakdown by taxonomy grouping
+    const taxonomyGroupingQuery = `
+      WITH nearby_hcos AS (
+        SELECT 
+          *,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hco_flat\`
+        WHERE 
+          primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      )
+      SELECT
+        primary_taxonomy_grouping,
+        COUNT(*) as count,
+        ROUND(AVG(distance_miles), 2) as avg_distance
+      FROM nearby_hcos
+      WHERE primary_taxonomy_grouping IS NOT NULL
+      GROUP BY primary_taxonomy_grouping
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    const [taxonomyGroupingResults] = await vendorBigQuery.query({ query: taxonomyGroupingQuery });
+
     // Query for breakdown by state
     const stateQuery = `
       WITH nearby_hcos AS (
@@ -189,6 +264,21 @@ router.get("/stats", async (req, res) => {
         count: parseInt(row.count),
         avg_distance: parseFloat(row.avg_distance),
       })),
+      breakdown_by_taxonomy_classification: taxonomyClassificationResults.map((row) => ({
+        classification: row.primary_taxonomy_classification,
+        count: parseInt(row.count),
+        avg_distance: parseFloat(row.avg_distance),
+      })),
+      breakdown_by_consolidated_specialty: consolidatedSpecialtyResults.map((row) => ({
+        specialty: row.primary_taxonomy_consolidated_specialty,
+        count: parseInt(row.count),
+        avg_distance: parseFloat(row.avg_distance),
+      })),
+      breakdown_by_taxonomy_grouping: taxonomyGroupingResults.map((row) => ({
+        grouping: row.primary_taxonomy_grouping,
+        count: parseInt(row.count),
+        avg_distance: parseFloat(row.avg_distance),
+      })),
     });
   } catch (error) {
     console.error("Error fetching HCO data:", error);
@@ -234,6 +324,9 @@ router.get("/sample", async (req, res) => {
         healthcare_organization_name,
         definitive_firm_type,
         definitive_firm_type_full,
+        primary_taxonomy_classification,
+        primary_taxonomy_consolidated_specialty,
+        primary_taxonomy_grouping,
         primary_address_line_1,
         primary_address_city,
         primary_address_state_or_province,
@@ -273,6 +366,11 @@ router.get("/sample", async (req, res) => {
         healthcare_organization_name: row.healthcare_organization_name,
         firm_type: row.definitive_firm_type,
         firm_type_full: row.definitive_firm_type_full,
+        taxonomy: {
+          classification: row.primary_taxonomy_classification,
+          consolidated_specialty: row.primary_taxonomy_consolidated_specialty,
+          grouping: row.primary_taxonomy_grouping,
+        },
         address: {
           line_1: row.primary_address_line_1,
           city: row.primary_address_city,

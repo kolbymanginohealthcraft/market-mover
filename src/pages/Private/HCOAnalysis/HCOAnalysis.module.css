@@ -92,8 +92,10 @@
   border-bottom: none;
 }
 
-/* Sample Button */
-.sampleButton {
+/* Action Buttons */
+.actionButton,
+.sampleButton,
+.mapButton {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -109,13 +111,41 @@
   font-family: inherit;
 }
 
-.sampleButton:hover {
+.actionButton:hover,
+.sampleButton:hover,
+.mapButton:hover {
   background: var(--primary-teal-dark);
 }
 
-.sampleButton:disabled {
+.actionButton:disabled,
+.sampleButton:disabled,
+.mapButton:disabled {
   background: var(--gray-300);
   cursor: not-allowed;
+}
+
+.actionButton {
+  background: #10b981;
+}
+
+.actionButton:hover {
+  background: #059669;
+}
+
+.actionButton:disabled {
+  background: var(--gray-300);
+}
+
+.mapButton {
+  background: #6366f1;
+}
+
+.mapButton:hover {
+  background: #4f46e5;
+}
+
+.mapButton:disabled {
+  background: var(--gray-300);
 }
 
 /* Query Time Badge */
@@ -237,6 +267,14 @@
   letter-spacing: 0.5px;
 }
 
+.mapHint,
+.sectionHint {
+  margin: -8px 0 16px 0;
+  font-size: 12px;
+  color: var(--gray-500);
+  font-style: italic;
+}
+
 /* Table Styles */
 .table {
   overflow-x: auto;
@@ -262,6 +300,17 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.sortableHeader:hover {
+  background: var(--gray-100);
+  color: var(--primary-teal);
 }
 
 .table td {

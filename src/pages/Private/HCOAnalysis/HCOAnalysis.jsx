@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './HCOAnalysis.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
-import { MapPin, ChevronDown, Database, Play } from 'lucide-react';
+import HCOMap from './HCOMap';
+import { MapPin, ChevronDown, Database, Play, Map as MapIcon } from 'lucide-react';
 
 export default function HCOAnalysis() {
   const [markets, setMarkets] = useState([]);
@@ -14,6 +15,14 @@ export default function HCOAnalysis() {
   const [sampleData, setSampleData] = useState([]);
   const [showSampleData, setShowSampleData] = useState(false);
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+  const [mapData, setMapData] = useState([]);
+  const [showMap, setShowMap] = useState(false);
+  const [loadingMap, setLoadingMap] = useState(false);
+  const [allOrganizations, setAllOrganizations] = useState([]);
+  const [showAllOrgs, setShowAllOrgs] = useState(false);
+  const [loadingAllOrgs, setLoadingAllOrgs] = useState(false);
+  const [sortField, setSortField] = useState('distance_miles');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   // Fetch user's saved markets
   useEffect(() => {
@@ -111,10 +120,136 @@ export default function HCOAnalysis() {
     }
   };
 
+  const fetchMapData = async () => {
+    if (!selectedMarket) return;
+
+    try {
+      setLoadingMap(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        latitude: selectedMarket.latitude,
+        longitude: selectedMarket.longitude,
+        radius: selectedMarket.radius_miles,
+        limit: 10000, // Load up to 10k for mapping (clustering will handle it)
+      });
+
+      const response = await fetch(`/api/hco-data/sample?${params}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch map data');
+      }
+
+      const data = await response.json();
+      setMapData(data.organizations || []);
+      setShowMap(true);
+    } catch (err) {
+      console.error('Error fetching map data:', err);
+      setError(err.message);
+    } finally {
+      setLoadingMap(false);
+    }
+  };
+
   const handleMarketSelect = (market) => {
     setSelectedMarket(market);
     setShowSampleData(false);
+    setShowMap(false);
+    setShowAllOrgs(false);
+    setMapData([]);
+    setAllOrganizations([]);
     fetchHCOStats(market);
+  };
+
+  const fetchAllOrganizations = async () => {
+    if (!selectedMarket) return;
+
+    try {
+      setLoadingAllOrgs(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        latitude: selectedMarket.latitude,
+        longitude: selectedMarket.longitude,
+        radius: selectedMarket.radius_miles,
+        limit: 50000, // Load up to 50k organizations
+      });
+
+      const response = await fetch(`/api/hco-data/sample?${params}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch organizations');
+      }
+
+      const data = await response.json();
+      setAllOrganizations(data.organizations || []);
+      setShowAllOrgs(true);
+    } catch (err) {
+      console.error('Error fetching all organizations:', err);
+      setError(err.message);
+    } finally {
+      setLoadingAllOrgs(false);
+    }
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortedOrganizations = () => {
+    if (!allOrganizations.length) return [];
+    
+    const sorted = [...allOrganizations].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortField) {
+        case 'name':
+          aVal = a.name || '';
+          bVal = b.name || '';
+          break;
+        case 'classification':
+          aVal = a.taxonomy?.classification || '';
+          bVal = b.taxonomy?.classification || '';
+          break;
+        case 'specialty':
+          aVal = a.taxonomy?.consolidated_specialty || '';
+          bVal = b.taxonomy?.consolidated_specialty || '';
+          break;
+        case 'city':
+          aVal = a.address.city || '';
+          bVal = b.address.city || '';
+          break;
+        case 'state':
+          aVal = a.address.state || '';
+          bVal = b.address.state || '';
+          break;
+        case 'distance_miles':
+          aVal = a.distance_miles;
+          bVal = b.distance_miles;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (typeof aVal === 'string') {
+        return sortDirection === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      } else {
+        return sortDirection === 'asc' 
+          ? aVal - bVal
+          : bVal - aVal;
+      }
+    });
+    
+    return sorted;
   };
 
   const formatNumber = (num) => {
@@ -181,14 +316,32 @@ export default function HCOAnalysis() {
         </Dropdown>
 
         {selectedMarket && !loading && stats && (
-          <button
-            className={styles.sampleButton}
-            onClick={fetchSampleData}
-            disabled={loading}
-          >
-            <Play size={14} />
-            {showSampleData ? 'Refresh Sample' : 'Load Sample Data'}
-          </button>
+          <>
+            <button
+              className={styles.actionButton}
+              onClick={fetchAllOrganizations}
+              disabled={loadingAllOrgs}
+            >
+              <Database size={14} />
+              {loadingAllOrgs ? 'Loading...' : showAllOrgs ? 'Refresh List' : 'View All Organizations'}
+            </button>
+            <button
+              className={styles.sampleButton}
+              onClick={fetchSampleData}
+              disabled={loading}
+            >
+              <Play size={14} />
+              {showSampleData ? 'Refresh Sample' : 'Load Sample (50)'}
+            </button>
+            <button
+              className={styles.mapButton}
+              onClick={fetchMapData}
+              disabled={loadingMap}
+            >
+              <MapIcon size={14} />
+              {loadingMap ? 'Loading Map...' : showMap ? 'Refresh Map' : 'Load on Map'}
+            </button>
+          </>
         )}
         
         {stats?.parameters && (
@@ -307,32 +460,117 @@ export default function HCOAnalysis() {
               </div>
             </div>
 
-              {/* Breakdown by Firm Type */}
-              <div className={styles.section}>
-                <h3>Breakdown by Organization Type</h3>
-                <div className={styles.table}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Type</th>
-                        <th>Count</th>
-                        <th>% of Total</th>
-                        <th>Avg Distance</th>
+            {/* Breakdown by Taxonomy Classification */}
+            <div className={styles.section}>
+              <h3>Breakdown by Service Type (Taxonomy Classification)</h3>
+              <p className={styles.sectionHint}>What types of healthcare services are provided in this market</p>
+              <div className={styles.table}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Service Type</th>
+                      <th>Count</th>
+                      <th>% of Total</th>
+                      <th>Avg Distance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.breakdown_by_taxonomy_classification.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row.classification}</td>
+                        <td>{formatNumber(row.count)}</td>
+                        <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                        <td>{row.avg_distance} mi</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {stats.breakdown_by_firm_type.map((row, idx) => (
-                        <tr key={idx}>
-                          <td>{row.firm_type_full || row.firm_type}</td>
-                          <td>{formatNumber(row.count)}</td>
-                          <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
-                          <td>{row.avg_distance} mi</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+            </div>
+
+            {/* Breakdown by Consolidated Specialty */}
+            <div className={styles.section}>
+              <h3>Breakdown by Specialty Category</h3>
+              <p className={styles.sectionHint}>Consolidated specialty groupings for easier analysis</p>
+              <div className={styles.table}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Specialty</th>
+                      <th>Count</th>
+                      <th>% of Total</th>
+                      <th>Avg Distance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.breakdown_by_consolidated_specialty.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row.specialty}</td>
+                        <td>{formatNumber(row.count)}</td>
+                        <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                        <td>{row.avg_distance} mi</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Breakdown by Taxonomy Grouping */}
+            <div className={styles.section}>
+              <h3>Breakdown by Industry Grouping</h3>
+              <p className={styles.sectionHint}>High-level industry categories</p>
+              <div className={styles.table}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Industry Group</th>
+                      <th>Count</th>
+                      <th>% of Total</th>
+                      <th>Avg Distance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.breakdown_by_taxonomy_grouping.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row.grouping}</td>
+                        <td>{formatNumber(row.count)}</td>
+                        <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                        <td>{row.avg_distance} mi</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Breakdown by Firm Type */}
+            <div className={styles.section}>
+              <h3>Breakdown by Organization Type (Definitive)</h3>
+              <p className={styles.sectionHint}>Organizational structure classification (36% coverage)</p>
+              <div className={styles.table}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Count</th>
+                      <th>% of Total</th>
+                      <th>Avg Distance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.breakdown_by_firm_type.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row.firm_type_full || row.firm_type}</td>
+                        <td>{formatNumber(row.count)}</td>
+                        <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                        <td>{row.avg_distance} mi</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
               {/* Breakdown by State */}
               <div className={styles.section}>
@@ -390,38 +628,117 @@ export default function HCOAnalysis() {
                 </div>
               </div>
 
+            {/* All Organizations Listing */}
+            {showAllOrgs && allOrganizations.length > 0 && (
+              <div className={styles.section}>
+                <h3>All Organizations ({formatNumber(allOrganizations.length)})</h3>
+                <p className={styles.sectionHint}>
+                  Click column headers to sort • All organizations within {selectedMarket.radius_miles} mile radius
+                </p>
+                <div className={styles.table}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th 
+                          onClick={() => handleSort('name')}
+                          className={styles.sortableHeader}
+                        >
+                          Name {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          onClick={() => handleSort('classification')}
+                          className={styles.sortableHeader}
+                        >
+                          Service Type {sortField === 'classification' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          onClick={() => handleSort('specialty')}
+                          className={styles.sortableHeader}
+                        >
+                          Specialty {sortField === 'specialty' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          onClick={() => handleSort('city')}
+                          className={styles.sortableHeader}
+                        >
+                          City {sortField === 'city' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          onClick={() => handleSort('state')}
+                          className={styles.sortableHeader}
+                        >
+                          State {sortField === 'state' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          onClick={() => handleSort('distance_miles')}
+                          className={styles.sortableHeader}
+                        >
+                          Distance {sortField === 'distance_miles' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getSortedOrganizations().map((org, idx) => (
+                        <tr key={idx}>
+                          <td>{org.name}</td>
+                          <td>{org.taxonomy?.classification || '-'}</td>
+                          <td>{org.taxonomy?.consolidated_specialty || '-'}</td>
+                          <td>{org.address.city}</td>
+                          <td>{org.address.state}</td>
+                          <td>{org.distance_miles.toFixed(2)} mi</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* Sample Data Table */}
             {showSampleData && sampleData.length > 0 && (
-                <div className={styles.section}>
-                  <h3>Sample Organizations (Nearest 50)</h3>
-                  <div className={styles.table}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Type</th>
-                          <th>City, State</th>
-                          <th>Distance</th>
-                          <th>Hospital Parent</th>
-                          <th>Network</th>
+              <div className={styles.section}>
+                <h3>Sample Organizations (Nearest 50)</h3>
+                <div className={styles.table}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Service Type</th>
+                        <th>Specialty</th>
+                        <th>City, State</th>
+                        <th>Distance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sampleData.map((org, idx) => (
+                        <tr key={idx}>
+                          <td>{org.name}</td>
+                          <td>{org.taxonomy?.classification || 'N/A'}</td>
+                          <td>{org.taxonomy?.consolidated_specialty || 'N/A'}</td>
+                          <td>
+                            {org.address.city}, {org.address.state}
+                          </td>
+                          <td>{org.distance_miles.toFixed(2)} mi</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {sampleData.map((org, idx) => (
-                          <tr key={idx}>
-                            <td>{org.name}</td>
-                            <td>{org.firm_type || 'N/A'}</td>
-                            <td>
-                              {org.address.city}, {org.address.state}
-                            </td>
-                            <td>{org.distance_miles.toFixed(2)} mi</td>
-                            <td>{org.relationships.hospital_parent_name || '-'}</td>
-                            <td>{org.relationships.network_name || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Map Visualization */}
+            {showMap && mapData.length > 0 && (
+              <div className={styles.section}>
+                <h3>Map Visualization ({formatNumber(mapData.length)} organizations)</h3>
+                <p className={styles.mapHint}>
+                  Click clusters to zoom in • Click individual markers for details
+                </p>
+                <HCOMap
+                  center={{ lat: selectedMarket.latitude, lng: selectedMarket.longitude }}
+                  radius={selectedMarket.radius_miles}
+                  organizations={mapData}
+                />
               </div>
             )}
           </div>
