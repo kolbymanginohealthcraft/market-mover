@@ -1,14 +1,23 @@
 /* Search Input Container */
 .searchContainer {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
 }
 
-/* Search Input Styles - Matching global ControlsRow styles */
+/* Search Icon */
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+
+/* Search Input Styles - Matching global ControlsRow styles exactly */
 .searchInput {
   padding: 6px 12px;
-  padding-right: 32px;
+  padding-left: 34px;
+  padding-right: 34px;
   border: 1px solid var(--gray-200);
   border-radius: 4px;
   font-size: 13px;
@@ -19,26 +28,23 @@
   height: 28px;
   box-sizing: border-box;
   line-height: 1;
+  color: var(--gray-700);
+  font-family: inherit;
 }
 
-.searchInput:focus {
-  outline: none;
-  border-color: var(--primary-teal);
-  background: var(--white);
-  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+.searchInput::placeholder {
+  color: var(--gray-400);
 }
+
+/* Global focus styles from base.css will apply automatically */
 
 /* Clear Button */
 .clearButton {
   position: absolute;
   right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--gray-500);
-  font-size: 16px;
-  font-weight: bold;
+  color: #ef4444;
   cursor: pointer;
   padding: 2px;
   border-radius: 2px;
@@ -50,8 +56,8 @@
 }
 
 .clearButton:hover {
-  color: var(--gray-700);
-  background: var(--gray-100);
+  color: #dc2626;
+  background: #fee;
 }
 
 /* Responsive Design */

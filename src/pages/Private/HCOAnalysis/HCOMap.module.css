@@ -1,13 +1,20 @@
 .mapContainer {
   width: 100%;
+  height: 100%;
+  flex: 1;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* When used outside tab context (if needed) */
+.mapContainer.standalone {
   height: 500px;
   border-radius: 8px;
-  overflow: hidden;
   border: 1px solid var(--gray-200);
 }
 
 @media (max-width: 768px) {
-  .mapContainer {
+  .mapContainer.standalone {
     height: 400px;
   }
 }

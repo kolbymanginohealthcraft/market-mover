@@ -339,7 +339,11 @@ export default function HCOMap({ center, radius, organizations = [] }) {
   }, [map, organizations]);
 
   return (
-    <div className={styles.mapContainer} ref={mapContainerRef} />
+    <div 
+      className={styles.mapContainer} 
+      ref={mapContainerRef}
+      style={{ marginTop: '12px' }}
+    />
   );
 }
 

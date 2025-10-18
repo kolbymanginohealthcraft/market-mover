@@ -54,6 +54,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -85,6 +86,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -111,6 +113,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -136,6 +139,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -161,6 +165,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -186,6 +191,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -211,6 +217,7 @@ router.get("/stats", async (req, res) => {
         WHERE 
           primary_address_lat IS NOT NULL 
           AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
       )
       SELECT
@@ -346,6 +353,7 @@ router.get("/sample", async (req, res) => {
       WHERE 
         primary_address_lat IS NOT NULL 
         AND primary_address_long IS NOT NULL
+        AND npi_deactivation_date IS NULL
         AND ${distanceFormula} <= ${radiusMiles}
       ORDER BY distance_miles ASC
       LIMIT ${limitNum}
@@ -367,9 +375,9 @@ router.get("/sample", async (req, res) => {
         firm_type: row.definitive_firm_type,
         firm_type_full: row.definitive_firm_type_full,
         taxonomy: {
+          grouping: row.primary_taxonomy_grouping,
           classification: row.primary_taxonomy_classification,
           consolidated_specialty: row.primary_taxonomy_consolidated_specialty,
-          grouping: row.primary_taxonomy_grouping,
         },
         address: {
           line_1: row.primary_address_line_1,

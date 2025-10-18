@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { Search, X } from 'lucide-react';
 import styles from './SearchInput.module.css';
 
 const SearchInput = ({ 
@@ -10,6 +11,8 @@ const SearchInput = ({
   ...props 
 }) => {
   const [internalValue, setInternalValue] = useState('');
+  const [escapeCount, setEscapeCount] = useState(0);
+  const escapeTimeoutRef = useRef(null);
   
   // Use controlled or uncontrolled value
   const searchValue = value !== undefined ? value : internalValue;
@@ -24,6 +27,8 @@ const SearchInput = ({
       setInternalValue(newValue);
       if (onChange) onChange(e);
     }
+    // Reset escape count when user types
+    setEscapeCount(0);
   };
 
   const handleClear = () => {
@@ -38,18 +43,37 @@ const SearchInput = ({
       setInternalValue('');
     }
     if (onClear) onClear();
+    setEscapeCount(0);
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
-      handleClear();
-      e.target.blur(); // Remove focus from the input
+      // Clear any existing timeout
+      if (escapeTimeoutRef.current) {
+        clearTimeout(escapeTimeoutRef.current);
+      }
+
+      if (searchValue && escapeCount === 0) {
+        // First escape: clear the search
+        handleClear();
+        setEscapeCount(1);
+        
+        // Reset escape count after 1 second
+        escapeTimeoutRef.current = setTimeout(() => {
+          setEscapeCount(0);
+        }, 1000);
+      } else {
+        // Second escape (or no search value): blur the input
+        e.target.blur();
+        setEscapeCount(0);
+      }
     }
     if (props.onKeyDown) props.onKeyDown(e);
   };
 
   return (
     <div className={`${styles.searchContainer} ${className}`}>
+      <Search size={14} className={styles.searchIcon} />
       <input
         type="text"
         placeholder={placeholder}
@@ -66,7 +90,7 @@ const SearchInput = ({
           type="button"
           aria-label="Clear search"
         >
-          ×
+          <X size={14} />
         </button>
       )}
     </div>
