@@ -103,11 +103,12 @@ router.get("/stats", async (req, res) => {
 
     const [firmTypeResults] = await vendorBigQuery.query({ query: firmTypeQuery });
 
-    // Query for breakdown by taxonomy classification
+    // Query for breakdown by taxonomy classification with procedure volume
     const taxonomyClassificationQuery = `
       WITH nearby_hcos AS (
         SELECT 
-          *,
+          npi,
+          primary_taxonomy_classification,
           ${distanceFormula} as distance_miles
         FROM \`aegis_access.hco_flat\`
         WHERE 
@@ -115,25 +116,39 @@ router.get("/stats", async (req, res) => {
           AND primary_address_long IS NOT NULL
           AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
+      ),
+      procedure_volumes AS (
+        SELECT 
+          billing_provider_npi,
+          SUM(count) as total_procedures
+        FROM \`aegis_access.volume_procedure\`
+        WHERE 
+          date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND billing_provider_npi IN (SELECT npi FROM nearby_hcos)
+        GROUP BY billing_provider_npi
       )
       SELECT
-        primary_taxonomy_classification,
-        COUNT(*) as count,
-        ROUND(AVG(distance_miles), 2) as avg_distance
-      FROM nearby_hcos
-      WHERE primary_taxonomy_classification IS NOT NULL
-      GROUP BY primary_taxonomy_classification
+        h.primary_taxonomy_classification,
+        COUNT(DISTINCT h.npi) as count,
+        COUNTIF(v.total_procedures IS NOT NULL) as orgs_with_procedures,
+        SUM(IFNULL(v.total_procedures, 0)) as total_procedures,
+        ROUND(AVG(h.distance_miles), 2) as avg_distance
+      FROM nearby_hcos h
+      LEFT JOIN procedure_volumes v ON h.npi = v.billing_provider_npi
+      WHERE h.primary_taxonomy_classification IS NOT NULL
+      GROUP BY h.primary_taxonomy_classification
       ORDER BY count DESC
       LIMIT 30
     `;
 
     const [taxonomyClassificationResults] = await vendorBigQuery.query({ query: taxonomyClassificationQuery });
 
-    // Query for breakdown by consolidated specialty
+    // Query for breakdown by consolidated specialty with procedure volume
     const consolidatedSpecialtyQuery = `
       WITH nearby_hcos AS (
         SELECT 
-          *,
+          npi,
+          primary_taxonomy_consolidated_specialty,
           ${distanceFormula} as distance_miles
         FROM \`aegis_access.hco_flat\`
         WHERE 
@@ -141,14 +156,27 @@ router.get("/stats", async (req, res) => {
           AND primary_address_long IS NOT NULL
           AND npi_deactivation_date IS NULL
           AND ${distanceFormula} <= ${radiusMiles}
+      ),
+      procedure_volumes AS (
+        SELECT 
+          billing_provider_npi,
+          SUM(count) as total_procedures
+        FROM \`aegis_access.volume_procedure\`
+        WHERE 
+          date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND billing_provider_npi IN (SELECT npi FROM nearby_hcos)
+        GROUP BY billing_provider_npi
       )
       SELECT
-        primary_taxonomy_consolidated_specialty,
-        COUNT(*) as count,
-        ROUND(AVG(distance_miles), 2) as avg_distance
-      FROM nearby_hcos
-      WHERE primary_taxonomy_consolidated_specialty IS NOT NULL
-      GROUP BY primary_taxonomy_consolidated_specialty
+        h.primary_taxonomy_consolidated_specialty,
+        COUNT(DISTINCT h.npi) as count,
+        COUNTIF(v.total_procedures IS NOT NULL) as orgs_with_procedures,
+        SUM(IFNULL(v.total_procedures, 0)) as total_procedures,
+        ROUND(AVG(h.distance_miles), 2) as avg_distance
+      FROM nearby_hcos h
+      LEFT JOIN procedure_volumes v ON h.npi = v.billing_provider_npi
+      WHERE h.primary_taxonomy_consolidated_specialty IS NOT NULL
+      GROUP BY h.primary_taxonomy_consolidated_specialty
       ORDER BY count DESC
       LIMIT 30
     `;
@@ -234,6 +262,86 @@ router.get("/stats", async (req, res) => {
 
     const [cityResults] = await vendorBigQuery.query({ query: cityQuery });
 
+    // Query for top hospital parents with procedure volume
+    const hospitalParentQuery = `
+      WITH nearby_hcos AS (
+        SELECT 
+          npi,
+          hospital_parent_name,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hco_flat\`
+        WHERE 
+          primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      ),
+      procedure_volumes AS (
+        SELECT 
+          billing_provider_npi,
+          SUM(count) as total_procedures
+        FROM \`aegis_access.volume_procedure\`
+        WHERE 
+          date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND billing_provider_npi IN (SELECT npi FROM nearby_hcos)
+        GROUP BY billing_provider_npi
+      )
+      SELECT
+        h.hospital_parent_name,
+        COUNT(DISTINCT h.npi) as count,
+        COUNTIF(v.total_procedures IS NOT NULL) as orgs_with_procedures,
+        SUM(IFNULL(v.total_procedures, 0)) as total_procedures,
+        ROUND(AVG(h.distance_miles), 2) as avg_distance
+      FROM nearby_hcos h
+      LEFT JOIN procedure_volumes v ON h.npi = v.billing_provider_npi
+      WHERE h.hospital_parent_name IS NOT NULL
+      GROUP BY h.hospital_parent_name
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    const [hospitalParentResults] = await vendorBigQuery.query({ query: hospitalParentQuery });
+
+    // Query for top networks with procedure volume
+    const networkQuery = `
+      WITH nearby_hcos AS (
+        SELECT 
+          npi,
+          network_name,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hco_flat\`
+        WHERE 
+          primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      ),
+      procedure_volumes AS (
+        SELECT 
+          billing_provider_npi,
+          SUM(count) as total_procedures
+        FROM \`aegis_access.volume_procedure\`
+        WHERE 
+          date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND billing_provider_npi IN (SELECT npi FROM nearby_hcos)
+        GROUP BY billing_provider_npi
+      )
+      SELECT
+        h.network_name,
+        COUNT(DISTINCT h.npi) as count,
+        COUNTIF(v.total_procedures IS NOT NULL) as orgs_with_procedures,
+        SUM(IFNULL(v.total_procedures, 0)) as total_procedures,
+        ROUND(AVG(h.distance_miles), 2) as avg_distance
+      FROM nearby_hcos h
+      LEFT JOIN procedure_volumes v ON h.npi = v.billing_provider_npi
+      WHERE h.network_name IS NOT NULL
+      GROUP BY h.network_name
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    const [networkResults] = await vendorBigQuery.query({ query: networkQuery });
+
     res.json({
       parameters: {
         latitude: lat,
@@ -274,16 +382,34 @@ router.get("/stats", async (req, res) => {
       breakdown_by_taxonomy_classification: taxonomyClassificationResults.map((row) => ({
         classification: row.primary_taxonomy_classification,
         count: parseInt(row.count),
+        orgs_with_procedures: parseInt(row.orgs_with_procedures || 0),
+        total_procedures: parseInt(row.total_procedures || 0),
         avg_distance: parseFloat(row.avg_distance),
       })),
       breakdown_by_consolidated_specialty: consolidatedSpecialtyResults.map((row) => ({
         specialty: row.primary_taxonomy_consolidated_specialty,
         count: parseInt(row.count),
+        orgs_with_procedures: parseInt(row.orgs_with_procedures || 0),
+        total_procedures: parseInt(row.total_procedures || 0),
         avg_distance: parseFloat(row.avg_distance),
       })),
       breakdown_by_taxonomy_grouping: taxonomyGroupingResults.map((row) => ({
         grouping: row.primary_taxonomy_grouping,
         count: parseInt(row.count),
+        avg_distance: parseFloat(row.avg_distance),
+      })),
+      breakdown_by_hospital_parent: hospitalParentResults.map((row) => ({
+        hospital_parent_name: row.hospital_parent_name,
+        count: parseInt(row.count),
+        orgs_with_procedures: parseInt(row.orgs_with_procedures || 0),
+        total_procedures: parseInt(row.total_procedures || 0),
+        avg_distance: parseFloat(row.avg_distance),
+      })),
+      breakdown_by_network: networkResults.map((row) => ({
+        network_name: row.network_name,
+        count: parseInt(row.count),
+        orgs_with_procedures: parseInt(row.orgs_with_procedures || 0),
+        total_procedures: parseInt(row.total_procedures || 0),
         avg_distance: parseFloat(row.avg_distance),
       })),
     });
@@ -325,37 +451,55 @@ router.get("/sample", async (req, res) => {
     const distanceFormula = getDistanceFormula(lat, lng);
 
     const sampleQuery = `
+      WITH nearby_hcos AS (
+        SELECT 
+          npi,
+          name,
+          healthcare_organization_name,
+          definitive_id,
+          definitive_name,
+          definitive_firm_type,
+          definitive_firm_type_full,
+          primary_taxonomy_classification,
+          primary_taxonomy_consolidated_specialty,
+          primary_taxonomy_grouping,
+          primary_address_line_1,
+          primary_address_city,
+          primary_address_state_or_province,
+          primary_address_zip5,
+          primary_address_lat,
+          primary_address_long,
+          primary_address_county,
+          hospital_parent_id,
+          hospital_parent_name,
+          physician_group_parent_id,
+          physician_group_parent_name,
+          network_id,
+          network_name,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hco_flat\`
+        WHERE 
+          primary_address_lat IS NOT NULL 
+          AND primary_address_long IS NOT NULL
+          AND npi_deactivation_date IS NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      ),
+      procedure_volumes AS (
+        SELECT 
+          billing_provider_npi,
+          SUM(count) as total_procedures
+        FROM \`aegis_access.volume_procedure\`
+        WHERE 
+          date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND billing_provider_npi IN (SELECT npi FROM nearby_hcos)
+        GROUP BY billing_provider_npi
+      )
       SELECT 
-        npi,
-        name,
-        healthcare_organization_name,
-        definitive_firm_type,
-        definitive_firm_type_full,
-        primary_taxonomy_classification,
-        primary_taxonomy_consolidated_specialty,
-        primary_taxonomy_grouping,
-        primary_address_line_1,
-        primary_address_city,
-        primary_address_state_or_province,
-        primary_address_zip5,
-        primary_address_lat,
-        primary_address_long,
-        primary_address_county,
-        definitive_id,
-        hospital_parent_id,
-        hospital_parent_name,
-        physician_group_parent_id,
-        physician_group_parent_name,
-        network_id,
-        network_name,
-        ${distanceFormula} as distance_miles
-      FROM \`aegis_access.hco_flat\`
-      WHERE 
-        primary_address_lat IS NOT NULL 
-        AND primary_address_long IS NOT NULL
-        AND npi_deactivation_date IS NULL
-        AND ${distanceFormula} <= ${radiusMiles}
-      ORDER BY distance_miles ASC
+        h.*,
+        IFNULL(v.total_procedures, 0) as procedure_volume_12mo
+      FROM nearby_hcos h
+      LEFT JOIN procedure_volumes v ON h.npi = v.billing_provider_npi
+      ORDER BY h.distance_miles ASC
       LIMIT ${limitNum}
     `;
 
@@ -390,6 +534,7 @@ router.get("/sample", async (req, res) => {
         },
         relationships: {
           definitive_id: row.definitive_id,
+          definitive_name: row.definitive_name,
           hospital_parent_id: row.hospital_parent_id,
           hospital_parent_name: row.hospital_parent_name,
           physician_group_parent_id: row.physician_group_parent_id,
@@ -398,12 +543,243 @@ router.get("/sample", async (req, res) => {
           network_name: row.network_name,
         },
         distance_miles: parseFloat(row.distance_miles),
+        procedure_volume_12mo: parseInt(row.procedure_volume_12mo || 0),
       })),
     });
   } catch (error) {
     console.error("Error fetching HCO sample data:", error);
     res.status(500).json({
       error: "Failed to fetch HCO sample data",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/hco-data/stats-by-tract
+ * ENHANCED APPROACH: Uses public census tract data for more accurate geographic filtering
+ * Instead of simple radius, this:
+ * 1. Finds census tracts within radius
+ * 2. Matches HCOs to their census tract (using ST_CONTAINS for exact geographic membership)
+ * 3. Returns only HCOs that are actually in those tracts
+ * 
+ * Advantages over simple radius:
+ * - More accurate (respects real geographic boundaries)
+ * - Enables demographic filtering (can filter tracts by income, age, etc.)
+ * - Faster (single BigQuery query vs two-step process)
+ * - No data transfer between BigQuery instances
+ * 
+ * Query params: latitude, longitude, radius (in miles)
+ */
+router.get("/stats-by-tract", async (req, res) => {
+  try {
+    const { latitude, longitude, radius } = req.query;
+
+    if (!latitude || !longitude || !radius) {
+      return res.status(400).json({
+        error: "Missing required parameters: latitude, longitude, radius",
+      });
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const radiusMiles = parseFloat(radius);
+    const radiusMeters = radiusMiles * 1609.34;
+
+    if (isNaN(lat) || isNaN(lng) || isNaN(radiusMiles)) {
+      return res.status(400).json({
+        error: "Invalid parameters: latitude, longitude, and radius must be numbers",
+      });
+    }
+
+    console.log(`🗺️ Fetching HCO stats using census tract approach for ${lat}, ${lng} with ${radiusMiles}mi radius`);
+
+    const distanceFormula = getDistanceFormula(lat, lng);
+
+    // UNIFIED QUERY: Get census tracts in radius AND match HCOs to those tracts
+    const unifiedQuery = `
+      WITH market_tracts AS (
+        -- Step 1: Find census tracts within the specified radius
+        SELECT 
+          geo_id,
+          state_fips_code,
+          county_fips_code,
+          tract_ce,
+          tract_geom,
+          internal_point_lat,
+          internal_point_lon
+        FROM \`bigquery-public-data.geo_census_tracts.us_census_tracts_national\`
+        WHERE ST_DISTANCE(
+          ST_GEOGPOINT(CAST(internal_point_lon AS FLOAT64), CAST(internal_point_lat AS FLOAT64)),
+          ST_GEOGPOINT(${lng}, ${lat})
+        ) <= ${radiusMeters}
+      ),
+      hcos_in_market AS (
+        -- Step 2: Match HCOs to census tracts
+        SELECT 
+          h.*,
+          ${distanceFormula} as distance_miles,
+          (
+            SELECT t.geo_id
+            FROM market_tracts t
+            WHERE ST_CONTAINS(
+              ST_GEOGFROMTEXT(t.tract_geom),
+              ST_GEOGPOINT(h.primary_address_long, h.primary_address_lat)
+            )
+            LIMIT 1
+          ) as census_tract_id
+        FROM \`aegis_access.hco_flat\` h
+        WHERE 
+          h.primary_address_lat IS NOT NULL 
+          AND h.primary_address_long IS NOT NULL
+          AND h.npi_deactivation_date IS NULL
+          AND ${distanceFormula} <= ${radiusMiles}  -- Pre-filter by radius for performance
+      )
+      SELECT
+        COUNT(*) as total_organizations,
+        COUNT(DISTINCT definitive_firm_type) as distinct_firm_types,
+        COUNT(DISTINCT primary_address_state_or_province) as distinct_states,
+        COUNT(DISTINCT primary_address_city) as distinct_cities,
+        COUNT(DISTINCT primary_address_zip5) as distinct_zip_codes,
+        COUNT(DISTINCT census_tract_id) as distinct_census_tracts,
+        COUNTIF(definitive_id IS NOT NULL) as with_definitive_id,
+        COUNTIF(hospital_parent_id IS NOT NULL) as with_hospital_parent,
+        COUNTIF(physician_group_parent_id IS NOT NULL) as with_physician_group_parent,
+        COUNTIF(network_id IS NOT NULL) as with_network_affiliation,
+        COUNTIF(census_tract_id IS NOT NULL) as matched_to_tract,
+        COUNTIF(census_tract_id IS NULL) as unmatched_to_tract,
+        ROUND(AVG(distance_miles), 2) as avg_distance_miles,
+        ROUND(MIN(distance_miles), 2) as min_distance_miles,
+        ROUND(MAX(distance_miles), 2) as max_distance_miles
+      FROM hcos_in_market
+      WHERE census_tract_id IS NOT NULL  -- Only HCOs that matched to a tract
+    `;
+
+    const [statsResults] = await vendorBigQuery.query({ query: unifiedQuery });
+    const stats = statsResults[0];
+
+    console.log(`✅ Found ${stats.total_organizations} HCOs in ${stats.distinct_census_tracts} census tracts`);
+
+    res.json({
+      stats,
+      method: 'census_tract_based',
+      query_info: {
+        center: { lat, lng },
+        radius_miles: radiusMiles,
+        tracts_used: stats.distinct_census_tracts || 0,
+        match_rate: stats.total_organizations > 0 
+          ? `${Math.round((stats.matched_to_tract / stats.total_organizations) * 100)}%` 
+          : 'N/A'
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching HCO stats (census tract method):", error);
+    res.status(500).json({
+      error: "Failed to fetch HCO stats using census tract method",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/hco-data/sample-by-tract
+ * Get sample HCO data using census tract filtering
+ * Similar to /sample but uses the enhanced census tract approach
+ * Query params: latitude, longitude, radius, limit (optional, default 100)
+ */
+router.get("/sample-by-tract", async (req, res) => {
+  try {
+    const { latitude, longitude, radius, limit = 100 } = req.query;
+
+    if (!latitude || !longitude || !radius) {
+      return res.status(400).json({
+        error: "Missing required parameters: latitude, longitude, radius",
+      });
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const radiusMiles = parseFloat(radius);
+    const radiusMeters = radiusMiles * 1609.34;
+    const limitNum = parseInt(limit);
+
+    if (isNaN(lat) || isNaN(lng) || isNaN(radiusMiles)) {
+      return res.status(400).json({
+        error: "Invalid parameters: latitude, longitude, and radius must be numbers",
+      });
+    }
+
+    console.log(`🗺️ Fetching HCO sample data using census tract approach (limit: ${limitNum})`);
+
+    const distanceFormula = getDistanceFormula(lat, lng);
+
+    // Query with census tract matching AND procedure volume
+    const sampleQuery = `
+      WITH market_tracts AS (
+        SELECT 
+          geo_id,
+          tract_geom
+        FROM \`bigquery-public-data.geo_census_tracts.us_census_tracts_national\`
+        WHERE ST_DISTANCE(
+          ST_GEOGPOINT(CAST(internal_point_lon AS FLOAT64), CAST(internal_point_lat AS FLOAT64)),
+          ST_GEOGPOINT(${lng}, ${lat})
+        ) <= ${radiusMeters}
+      ),
+      nearby_hcos AS (
+        SELECT 
+          h.*,
+          ${distanceFormula} as distance_miles,
+          (
+            SELECT t.geo_id
+            FROM market_tracts t
+            WHERE ST_CONTAINS(
+              ST_GEOGFROMTEXT(t.tract_geom),
+              ST_GEOGPOINT(h.primary_address_long, h.primary_address_lat)
+            )
+            LIMIT 1
+          ) as census_tract_id
+        FROM \`aegis_access.hco_flat\` h
+        WHERE 
+          h.primary_address_lat IS NOT NULL 
+          AND h.primary_address_long IS NOT NULL
+          AND h.npi_deactivation_date IS NULL
+          AND ${distanceFormula} <= ${radiusMiles}
+      ),
+      procedure_volumes AS (
+        SELECT 
+          billing_provider_npi,
+          SUM(count) as total_procedures
+        FROM \`aegis_access.volume_procedure\`
+        WHERE 
+          date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND billing_provider_npi IN (SELECT npi FROM nearby_hcos WHERE census_tract_id IS NOT NULL)
+        GROUP BY billing_provider_npi
+      )
+      SELECT 
+        h.*,
+        IFNULL(v.total_procedures, 0) as procedure_volume_12mo
+      FROM nearby_hcos h
+      LEFT JOIN procedure_volumes v ON h.npi = v.billing_provider_npi
+      WHERE h.census_tract_id IS NOT NULL  -- Only HCOs matched to tracts
+      ORDER BY h.distance_miles ASC
+      LIMIT ${limitNum}
+    `;
+
+    const [results] = await vendorBigQuery.query({ query: sampleQuery });
+
+    console.log(`✅ Retrieved ${results.length} HCOs using census tract method`);
+
+    res.json({
+      data: results,
+      count: results.length,
+      method: 'census_tract_based'
+    });
+
+  } catch (error) {
+    console.error("Error fetching HCO sample data (census tract method):", error);
+    res.status(500).json({
+      error: "Failed to fetch HCO sample data using census tract method",
       details: error.message,
     });
   }

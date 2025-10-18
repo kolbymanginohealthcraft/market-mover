@@ -269,6 +269,59 @@
   font-weight: 400;
 }
 
+/* Procedure Filter Content */
+.procedureFilterContent {
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.procedureFilterCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gray-700);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.procedureFilterCheckbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.procedureFilterThreshold {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.thresholdLabel {
+  font-size: 11px;
+  color: var(--gray-600);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.thresholdInput {
+  padding: 6px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--gray-700);
+  background: white;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.thresholdInput:focus {
+  outline: none;
+  border-color: var(--primary-teal);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
+
 /* Main Content Area */
 .mainContent {
   flex: 1;
@@ -423,6 +476,13 @@
   letter-spacing: 0.5px;
 }
 
+.sectionHint {
+  margin: -8px 0 16px 0;
+  font-size: 12px;
+  color: var(--gray-500);
+  font-style: italic;
+}
+
 /* Table Styles */
 .table {
   overflow-x: auto;
@@ -462,6 +522,11 @@
 
 .table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.procedureCount {
+  font-weight: 600;
+  color: var(--primary-teal);
 }
 
 /* Listing Content */
@@ -612,6 +677,46 @@
   font-size: 12px;
   color: var(--gray-600);
   font-style: italic;
+}
+
+/* Geography Content */
+.geographyContent {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 140px);
+  overflow-y: auto;
+  margin: -20px;
+  padding: 20px;
+}
+
+/* Boundary Type Selector */
+.boundaryTypeSelector {
+  display: flex;
+  gap: 8px;
+}
+
+.boundaryTypeButton {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--gray-300);
+  background: white;
+  color: var(--gray-700);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.boundaryTypeButton:hover {
+  background: var(--gray-50);
+  border-color: var(--teal-500);
+}
+
+.boundaryTypeButton.active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
 }
 
 /* Responsive Design */

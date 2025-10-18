@@ -26,6 +26,10 @@ export default function HCOAnalysis() {
     definitive_firm_type: [],
   });
   
+  // Procedure volume filter
+  const [hasProcedures, setHasProcedures] = useState(false);
+  const [minProcedures, setMinProcedures] = useState('');
+  
   // Filter dropdown states
   const [openFilterDropdown, setOpenFilterDropdown] = useState(null);
   
@@ -171,9 +175,12 @@ export default function HCOAnalysis() {
     }
   };
 
+
   const handleMarketSelect = (market) => {
     setSelectedMarket(market);
     setFilters({ taxonomy_grouping: [], taxonomy_classification: [], consolidated_specialty: [], definitive_firm_type: [] });
+    setHasProcedures(false);
+    setMinProcedures('');
     setAllOrganizations([]);
     setMapData([]);
     setActiveTab('overview');
@@ -204,12 +211,14 @@ export default function HCOAnalysis() {
 
   const clearAllFilters = () => {
     setFilters({ taxonomy_grouping: [], taxonomy_classification: [], consolidated_specialty: [], definitive_firm_type: [] });
+    setHasProcedures(false);
+    setMinProcedures('');
     setFilterSearch('');
     setCurrentPage(1);
   };
 
   const hasActiveFilters = () => {
-    return Object.values(filters).some(arr => arr.length > 0);
+    return Object.values(filters).some(arr => arr.length > 0) || hasProcedures || minProcedures;
   };
 
   const applyFilters = (data, includeSearch = false) => {
@@ -238,6 +247,16 @@ export default function HCOAnalysis() {
       filtered = filtered.filter(org => 
         filters.definitive_firm_type.includes(org.firm_type)
       );
+    }
+    
+    // Apply procedure volume filters
+    if (hasProcedures) {
+      filtered = filtered.filter(org => org.procedure_volume_12mo > 0);
+    }
+    
+    if (minProcedures && !isNaN(parseInt(minProcedures))) {
+      const threshold = parseInt(minProcedures);
+      filtered = filtered.filter(org => org.procedure_volume_12mo >= threshold);
     }
     
     // Apply search (only for listing view)
@@ -394,6 +413,10 @@ export default function HCOAnalysis() {
         case 'distance_miles':
           aVal = a.distance_miles;
           bVal = b.distance_miles;
+          break;
+        case 'procedures':
+          aVal = a.procedure_volume_12mo || 0;
+          bVal = b.procedure_volume_12mo || 0;
           break;
         default:
           return 0;
@@ -675,6 +698,46 @@ export default function HCOAnalysis() {
                 )}
               </Dropdown>
             </div>
+
+            {/* Procedure Volume Filter */}
+            <div className={styles.filterSection}>
+              <div className={styles.filterSectionTrigger} style={{ cursor: 'default' }}>
+                <span className={styles.filterSectionLabel}>
+                  <FilterIcon size={12} />
+                  Procedure Volume
+                </span>
+                {(hasProcedures || minProcedures) && (
+                  <span className={styles.filterCount}>ON</span>
+                )}
+              </div>
+              <div className={styles.procedureFilterContent}>
+                <label className={styles.procedureFilterCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={hasProcedures}
+                    onChange={(e) => {
+                      setHasProcedures(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  <span>Only show orgs with procedures</span>
+                </label>
+                <div className={styles.procedureFilterThreshold}>
+                  <label className={styles.thresholdLabel}>Minimum procedures:</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={minProcedures}
+                    onChange={(e) => {
+                      setMinProcedures(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className={styles.thresholdInput}
+                    min="0"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -820,13 +883,16 @@ export default function HCOAnalysis() {
                     {/* Top Service Types */}
                     <div className={styles.section}>
                       <h3>Top Service Types</h3>
+                      <p className={styles.sectionHint}>Includes procedure volume data from the last 12 months</p>
                       <div className={styles.table}>
                         <table>
                           <thead>
                             <tr>
                               <th>Service Type</th>
-                              <th>Count</th>
+                              <th>Orgs</th>
                               <th>% of Total</th>
+                              <th>Total Procedures (12mo)</th>
+                              <th>Orgs w/ Procedures</th>
                               <th>Avg Distance</th>
                             </tr>
                           </thead>
@@ -836,6 +902,15 @@ export default function HCOAnalysis() {
                                 <td>{row.classification}</td>
                                 <td>{formatNumber(row.count)}</td>
                                 <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                                <td className={styles.procedureCount}>
+                                  {row.total_procedures > 0 ? formatNumber(row.total_procedures) : '-'}
+                                </td>
+                                <td>
+                                  {row.orgs_with_procedures > 0 
+                                    ? `${formatNumber(row.orgs_with_procedures)} (${formatPercent(row.orgs_with_procedures, row.count)})`
+                                    : '-'
+                                  }
+                                </td>
                                 <td>{row.avg_distance} mi</td>
                               </tr>
                             ))}
@@ -847,13 +922,16 @@ export default function HCOAnalysis() {
                     {/* Top Specialties */}
                     <div className={styles.section}>
                       <h3>Top Specialties</h3>
+                      <p className={styles.sectionHint}>Includes procedure volume data from the last 12 months</p>
                       <div className={styles.table}>
                         <table>
                           <thead>
                             <tr>
                               <th>Specialty</th>
-                              <th>Count</th>
+                              <th>Orgs</th>
                               <th>% of Total</th>
+                              <th>Total Procedures (12mo)</th>
+                              <th>Orgs w/ Procedures</th>
                               <th>Avg Distance</th>
                             </tr>
                           </thead>
@@ -863,6 +941,15 @@ export default function HCOAnalysis() {
                                 <td>{row.specialty}</td>
                                 <td>{formatNumber(row.count)}</td>
                                 <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                                <td className={styles.procedureCount}>
+                                  {row.total_procedures > 0 ? formatNumber(row.total_procedures) : '-'}
+                                </td>
+                                <td>
+                                  {row.orgs_with_procedures > 0 
+                                    ? `${formatNumber(row.orgs_with_procedures)} (${formatPercent(row.orgs_with_procedures, row.count)})`
+                                    : '-'
+                                  }
+                                </td>
                                 <td>{row.avg_distance} mi</td>
                               </tr>
                             ))}
@@ -870,6 +957,88 @@ export default function HCOAnalysis() {
                         </table>
                       </div>
                     </div>
+
+                    {/* Top Hospital Parents */}
+                    {stats.breakdown_by_hospital_parent?.length > 0 && (
+                      <div className={styles.section}>
+                        <h3>Top Hospital Parents</h3>
+                        <p className={styles.sectionHint}>Organizations affiliated with major health systems ({stats.stats.with_hospital_parent.toLocaleString()} total) • Includes procedure volume</p>
+                        <div className={styles.table}>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Hospital System</th>
+                                <th>Affiliated Orgs</th>
+                                <th>% of Total</th>
+                                <th>Total Procedures (12mo)</th>
+                                <th>Orgs w/ Procedures</th>
+                                <th>Avg Distance</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stats.breakdown_by_hospital_parent.slice(0, 10).map((row, idx) => (
+                                <tr key={idx}>
+                                  <td>{row.hospital_parent_name}</td>
+                                  <td>{formatNumber(row.count)}</td>
+                                  <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                                  <td className={styles.procedureCount}>
+                                    {row.total_procedures > 0 ? formatNumber(row.total_procedures) : '-'}
+                                  </td>
+                                  <td>
+                                    {row.orgs_with_procedures > 0 
+                                      ? `${formatNumber(row.orgs_with_procedures)} (${formatPercent(row.orgs_with_procedures, row.count)})`
+                                      : '-'
+                                    }
+                                  </td>
+                                  <td>{row.avg_distance} mi</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Top Networks */}
+                    {stats.breakdown_by_network?.length > 0 && (
+                      <div className={styles.section}>
+                        <h3>Top Networks</h3>
+                        <p className={styles.sectionHint}>Organizations with network affiliations ({stats.stats.with_network_affiliation.toLocaleString()} total) • Includes procedure volume</p>
+                        <div className={styles.table}>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Network</th>
+                                <th>Affiliated Orgs</th>
+                                <th>% of Total</th>
+                                <th>Total Procedures (12mo)</th>
+                                <th>Orgs w/ Procedures</th>
+                                <th>Avg Distance</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stats.breakdown_by_network.slice(0, 10).map((row, idx) => (
+                                <tr key={idx}>
+                                  <td>{row.network_name}</td>
+                                  <td>{formatNumber(row.count)}</td>
+                                  <td>{formatPercent(row.count, stats.stats.total_organizations)}</td>
+                                  <td className={styles.procedureCount}>
+                                    {row.total_procedures > 0 ? formatNumber(row.total_procedures) : '-'}
+                                  </td>
+                                  <td>
+                                    {row.orgs_with_procedures > 0 
+                                      ? `${formatNumber(row.orgs_with_procedures)} (${formatPercent(row.orgs_with_procedures, row.count)})`
+                                      : '-'
+                                    }
+                                  </td>
+                                  <td>{row.avg_distance} mi</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -929,12 +1098,15 @@ export default function HCOAnalysis() {
                           <table className={styles.listingTable}>
                             <thead>
                               <tr>
+                                <th>NPI</th>
                                 <th 
                                   onClick={() => handleSort('name')}
                                   className={styles.sortableHeader}
                                 >
                                   Name {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
                                 </th>
+                                <th>Definitive ID</th>
+                                <th>Definitive Name</th>
                                 <th 
                                   onClick={() => handleSort('classification')}
                                   className={styles.sortableHeader}
@@ -947,6 +1119,14 @@ export default function HCOAnalysis() {
                                 >
                                   Specialty {sortField === 'specialty' && (sortDirection === 'asc' ? '↑' : '↓')}
                                 </th>
+                                <th 
+                                  onClick={() => handleSort('procedures')}
+                                  className={styles.sortableHeader}
+                                >
+                                  Procedures (12mo) {sortField === 'procedures' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                </th>
+                                <th>Hospital Parent</th>
+                                <th>Network</th>
                                 <th 
                                   onClick={() => handleSort('city')}
                                   className={styles.sortableHeader}
@@ -970,9 +1150,17 @@ export default function HCOAnalysis() {
                             <tbody>
                               {getPaginatedOrganizations().map((org, idx) => (
                                 <tr key={idx}>
+                                  <td>{org.npi}</td>
                                   <td>{org.name}</td>
+                                  <td>{org.relationships?.definitive_id || '-'}</td>
+                                  <td>{org.relationships?.definitive_name || '-'}</td>
                                   <td>{org.taxonomy?.classification || '-'}</td>
                                   <td>{org.taxonomy?.consolidated_specialty || '-'}</td>
+                                  <td className={styles.procedureCount}>
+                                    {org.procedure_volume_12mo > 0 ? formatNumber(org.procedure_volume_12mo) : '-'}
+                                  </td>
+                                  <td>{org.relationships?.hospital_parent_name || '-'}</td>
+                                  <td>{org.relationships?.network_name || '-'}</td>
                                   <td>{org.address.city}</td>
                                   <td>{org.address.state}</td>
                                   <td>{org.distance_miles.toFixed(2)} mi</td>
@@ -1018,6 +1206,7 @@ export default function HCOAnalysis() {
                     )}
                   </div>
                 )}
+
               </div>
             </>
           )}

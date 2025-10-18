@@ -1,0 +1,561 @@
+.container {
+  padding: 24px;
+  width: 100%;
+  max-width: none;
+}
+
+/* Controls Row - Global Style */
+.controlsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(90deg, var(--gray-50) 0%, #e6f7f0 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--gray-200);
+  gap: 16px;
+  margin: 0 0 12px 0;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+/* Dropdown Trigger Button */
+.dropdownTrigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.dropdownTrigger:hover {
+  border-color: var(--primary-teal);
+  background: var(--gray-50);
+}
+
+/* Dropdown Menu */
+.dropdownMenu {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  min-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--gray-700);
+  font-weight: 500;
+  line-height: 1.3;
+  font-family: inherit;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dropdownItem:hover {
+  background: rgba(0, 192, 139, 0.1);
+  color: var(--primary-teal-dark);
+}
+
+.dropdownItem:last-child {
+  border-bottom: none;
+}
+
+/* Query Time Badge */
+.queryTime {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+/* Content Layout */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Map and List Container */
+.mapAndListContainer {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Elements List */
+.elementsList {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.elementsList h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.elementsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.elementItem {
+  padding: 8px 12px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.elementItem:hover {
+  background: var(--gray-100);
+  border-color: var(--primary-teal);
+}
+
+/* Tract Info */
+.tractInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tractId {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.tractDetails {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.tractLocation {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+/* ZIP Info */
+.zipInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zipCode {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+/* County Info */
+.countyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.countyName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.countyDetails {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.countyLocation {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+/* Loading State */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--gray-500);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--gray-200);
+  border-top: 2px solid var(--primary-teal);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--gray-500);
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .mapAndListContainer {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .elementsList {
+    max-height: 400px;
+  }
+}
+
+/* Boundary Type Selector */
+.boundaryTypeSelector {
+  display: flex;
+  gap: 8px;
+}
+
+
+/* Map Section */
+.mapSection {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.mapSection h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+}
+
+.sectionHint {
+  color: var(--gray-600);
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+}
+
+.header p {
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.marketSelection {
+  margin-top: 32px;
+}
+
+.marketSelection h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 24px 0;
+}
+
+.marketGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.marketCard {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.marketCard:hover {
+  border-color: var(--blue-500);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.marketCard h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+}
+
+.marketLocation {
+  color: var(--gray-600);
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.marketRadius {
+  color: var(--blue-600);
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.marketCoordinates {
+  color: var(--gray-500);
+  margin: 0;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.analysisContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+
+.marketInfo h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 4px 0;
+}
+
+.marketInfo p {
+  color: var(--gray-600);
+  margin: 0;
+  font-size: 14px;
+}
+
+.boundaryControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.boundaryTypeSelector {
+  display: flex;
+  gap: 8px;
+}
+
+
+.backButton {
+  padding: 8px 16px;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  background: var(--gray-200);
+  border-color: var(--gray-400);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mapSection {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.mapSection h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+}
+
+.sectionHint {
+  color: var(--gray-600);
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top: 3px solid var(--blue-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.dataSection {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.dataSection h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 20px 0;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.summaryCard {
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.summaryCard h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 12px 0;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.summaryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.summaryTable th {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.summaryTable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+
+.summaryTable tr:last-child td {
+  border-bottom: none;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  color: var(--gray-500);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .boundaryTypeSelector {
+    justify-content: center;
+  }
+  
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
