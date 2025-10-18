@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import styles from "./ClaimsDataInvestigation.module.css";
 import Spinner from "../../../components/Buttons/Spinner";
+import Dropdown from "../../../components/Buttons/Dropdown";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
-import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin } from "lucide-react";
+import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown } from "lucide-react";
 
 /**
- * Power BI-Style Claims Data Investigation Tool
+ * Claims Data Investigation Tool
  * 
- * Simple interface:
- * - Drag fields to Columns (GROUP BY)
- * - Drag fields to Filters (WHERE)
+ * Interactive analysis interface:
+ * - Add fields to Columns (GROUP BY)
+ * - Add fields to Filters (WHERE)
  * - Always shows SUM(count) and SUM(charge_total)
  * - Results are always aggregated
  */
@@ -31,12 +32,15 @@ export default function ClaimsDataInvestigation() {
   // Filter options
   const [filterOptions, setFilterOptions] = useState({});
   const [loadingFilters, setLoadingFilters] = useState({});
+  const [editingFilter, setEditingFilter] = useState(null); // Track which filter is being edited
   
   // Field search
   const [fieldSearch, setFieldSearch] = useState('');
+  const [fieldSearchEscapeCount, setFieldSearchEscapeCount] = useState(0);
   
   // Results search
   const [resultsSearch, setResultsSearch] = useState('');
+  const [resultsSearchEscapeCount, setResultsSearchEscapeCount] = useState(0);
   
   // Saved markets
   const [savedMarkets, setSavedMarkets] = useState([]);
@@ -50,6 +54,15 @@ export default function ClaimsDataInvestigation() {
   
   // NPI field selector (which provider perspective to use)
   const [npiFieldType, setNpiFieldType] = useState('billing_provider_npi');
+  
+  // Metadata and default filters
+  const [maxDate, setMaxDate] = useState(null);
+  const [defaultDateRange, setDefaultDateRange] = useState(null);
+  
+  // Dropdown states
+  const [npiFieldDropdownOpen, setNpiFieldDropdownOpen] = useState(false);
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   
   // Fields that should use text input instead of dropdown (for comma-separated values)
   const TEXT_INPUT_FIELDS = [
@@ -162,6 +175,37 @@ export default function ClaimsDataInvestigation() {
 
   // Fetch saved markets and provider tags on mount
   useEffect(() => {
+    async function fetchMetadata() {
+      try {
+        const response = await fetch(apiUrl('/api/investigation/metadata/volume_procedure'));
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error('Failed to fetch metadata');
+        }
+        
+        const maxDateValue = new Date(result.data.maxDate.value);
+        setMaxDate(maxDateValue);
+        
+        // Calculate 12 months before max date
+        const minDate = new Date(maxDateValue);
+        minDate.setMonth(minDate.getMonth() - 11); // -11 to include current month = 12 months total
+        
+        // Format as YYYY-MM
+        const minDateStr = minDate.toISOString().substring(0, 7);
+        const maxDateStr = maxDateValue.toISOString().substring(0, 7);
+        
+        setDefaultDateRange({ min: minDateStr, max: maxDateStr });
+        
+        // Set default filter for last 12 months
+        setFilters({ date__month_grain: `${minDateStr},${maxDateStr}` });
+        
+        console.log(`📅 Default date range: ${minDateStr} to ${maxDateStr} (last 12 months)`);
+      } catch (err) {
+        console.error('Error fetching metadata:', err);
+      }
+    }
+    
     async function fetchMarkets() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -175,7 +219,7 @@ export default function ClaimsDataInvestigation() {
         
         if (error) throw error;
         setSavedMarkets(data || []);
-        console.log('📍 Loaded saved markets:', data?.length || 0);
+        console.log('Loaded saved markets:', data?.length || 0);
       } catch (err) {
         console.error('Error fetching markets:', err);
       }
@@ -215,7 +259,7 @@ export default function ClaimsDataInvestigation() {
         };
         
         setProviderTags(grouped);
-        console.log('🏷️ Loaded provider tags:', {
+        console.log('Loaded provider tags:', {
           me: grouped.me.length,
           partner: grouped.partner.length,
           competitor: grouped.competitor.length,
@@ -226,6 +270,7 @@ export default function ClaimsDataInvestigation() {
       }
     }
     
+    fetchMetadata();
     fetchMarkets();
     fetchProviderTags();
   }, []);
@@ -263,7 +308,7 @@ export default function ClaimsDataInvestigation() {
       if (!result.success) throw new Error('Failed to fetch market providers');
       
       const providers = result.data || [];
-      console.log(`📍 Market "${market.name}" has ${providers.length} providers`);
+      console.log(`Market "${market.name}" has ${providers.length} providers`);
       
       // Get NPIs for these providers
       const dhcs = providers.map(p => p.dhc).filter(Boolean);
@@ -283,7 +328,7 @@ export default function ClaimsDataInvestigation() {
       
       const npis = (npiResult.data || []).map(row => row.npi);
       setMarketNPIs(npis);
-      console.log(`📍 Market has ${npis.length} NPIs`);
+      console.log(`Market has ${npis.length} NPIs`);
       
       // Clear filter options so they reload with new market scope
       setFilterOptions({});
@@ -314,12 +359,12 @@ export default function ClaimsDataInvestigation() {
       const taggedProviders = providerTags[tagType] || [];
       if (taggedProviders.length === 0) {
         setTagNPIs([]);
-        console.log(`🏷️ No providers tagged as "${tagType}"`);
+        console.log(`No providers tagged as "${tagType}"`);
         return;
       }
       
       const dhcs = taggedProviders.map(t => t.provider_dhc).filter(Boolean);
-      console.log(`🏷️ Tag "${tagType}" has ${dhcs.length} providers`);
+      console.log(`Tag "${tagType}" has ${dhcs.length} providers`);
       
       // Get NPIs for these providers
       const npiResponse = await fetch(apiUrl('/api/related-npis'), {
@@ -333,7 +378,7 @@ export default function ClaimsDataInvestigation() {
       
       const npis = (npiResult.data || []).map(row => row.npi);
       setTagNPIs(npis);
-      console.log(`🏷️ Tag has ${npis.length} NPIs`);
+      console.log(`Tag has ${npis.length} NPIs`);
       
       // Clear filter options so they reload with new tag scope
       setFilterOptions({});
@@ -365,16 +410,21 @@ export default function ClaimsDataInvestigation() {
   }, {});
 
   // Fetch aggregated data
-  const fetchData = async () => {
+  const fetchData = async (overrides = {}) => {
     setLoading(true);
     setError(null);
     setQueryTime(null);
     
     const startTime = performance.now();
     
-    console.log('🔍 Sending query with columns:', columns);
-    console.log('🔍 Filters:', filters);
-    console.log('🔍 Exclude filters:', excludeFilters);
+    // Use overrides or fall back to state
+    const columnsToUse = overrides.columns !== undefined ? overrides.columns : columns;
+    const filtersToUse = overrides.filters !== undefined ? overrides.filters : filters;
+    const excludeFiltersToUse = overrides.excludeFilters !== undefined ? overrides.excludeFilters : excludeFilters;
+    
+    console.log('🔍 Sending query with columns:', columnsToUse);
+    console.log('🔍 Filters:', filtersToUse);
+    console.log('🔍 Exclude filters:', excludeFiltersToUse);
 
     try {
       // Determine which NPIs to use (priority: tag > market > all)
@@ -391,13 +441,13 @@ export default function ClaimsDataInvestigation() {
         body: JSON.stringify({
           npis: npisToUse,
           npiFieldType: npiFieldType, // Which NPI field to filter on
-          groupBy: columns,
+          groupBy: columnsToUse,
           aggregates: [
             { function: 'SUM', column: 'count', alias: 'total_count' },
             { function: 'SUM', column: 'charge_total', alias: 'total_charges' }
           ],
-          filters: filters,
-          excludeFilters: excludeFilters,
+          filters: filtersToUse,
+          excludeFilters: excludeFiltersToUse,
           search: resultsSearch,
           limit: limit
         })
@@ -483,6 +533,10 @@ export default function ClaimsDataInvestigation() {
       if (!TEXT_INPUT_FIELDS.includes(field) && !initialValue) {
         fetchFilterOptions(field);
       }
+      // Set editing state if no initial value (user needs to fill it in)
+      if (!initialValue) {
+        setEditingFilter(field);
+      }
       // Clear data when configuration changes
       setData(null);
     } else if (initialValue) {
@@ -495,6 +549,7 @@ export default function ClaimsDataInvestigation() {
     const updated = { ...filters };
     delete updated[field];
     setFilters(updated);
+    setEditingFilter(null); // Clear editing state
     // Clear data when configuration changes
     setData(null);
   };
@@ -506,12 +561,29 @@ export default function ClaimsDataInvestigation() {
   };
   
   // Handle cell click for drill-down (include filter)
-  const handleCellClick = (field, value) => {
+  const handleCellClick = async (field, value) => {
     // Don't drill down on measure columns
     if (field === 'total_count' || field === 'total_charges') return;
     
-    // Add or update filter with this value
-    addFilter(field, String(value));
+    // Calculate new columns (remove this field if it exists)
+    const newColumns = columns.includes(field) 
+      ? columns.filter(c => c !== field) 
+      : columns;
+    
+    // Calculate new filters (add or update this field)
+    const stringValue = String(value);
+    const newFilters = { ...filters, [field]: stringValue };
+    
+    // Update state
+    setColumns(newColumns);
+    setFilters(newFilters);
+    setData(null);
+    
+    // Immediately run analysis with the new values (don't wait for state to update)
+    fetchData({
+      columns: newColumns,
+      filters: newFilters
+    });
   };
   
   // Handle cell right-click for exclusion
@@ -521,19 +593,36 @@ export default function ClaimsDataInvestigation() {
     // Don't drill down on measure columns
     if (field === 'total_count' || field === 'total_charges') return;
     
-    // Add or update exclude filter with this value
-    if (!Object.keys(excludeFilters).includes(field)) {
-      setExcludeFilters({ ...excludeFilters, [field]: String(value) });
-    } else {
-      setExcludeFilters({ ...excludeFilters, [field]: String(value) });
-    }
-    setData(null); // Clear data when filter changes
+    // Calculate new columns (remove this field if it exists)
+    const newColumns = columns.includes(field) 
+      ? columns.filter(c => c !== field) 
+      : columns;
+    
+    // Calculate new exclude filters (add or update this field)
+    const stringValue = String(value);
+    const newExcludeFilters = { ...excludeFilters, [field]: stringValue };
+    
+    // Update state
+    setColumns(newColumns);
+    setExcludeFilters(newExcludeFilters);
+    setData(null);
+    
+    // Immediately run analysis with the new values
+    fetchData({
+      columns: newColumns,
+      excludeFilters: newExcludeFilters
+    });
   };
   
   // Clear all configuration
   const clearAll = () => {
     setColumns([]);
-    setFilters({});
+    // Reset to default date range filter if available
+    if (defaultDateRange) {
+      setFilters({ date__month_grain: `${defaultDateRange.min},${defaultDateRange.max}` });
+    } else {
+      setFilters({});
+    }
     setExcludeFilters({});
     setSelectedMarket(null);
     setMarketNPIs(null);
@@ -543,6 +632,40 @@ export default function ClaimsDataInvestigation() {
     setFieldSearch('');
     setData(null);
     setError(null);
+  };
+
+  // Handle escape key for field search
+  const handleFieldSearchEscape = (e) => {
+    if (e.key === 'Escape') {
+      if (fieldSearch && fieldSearchEscapeCount === 0) {
+        // First escape: clear the search
+        setFieldSearch('');
+        setFieldSearchEscapeCount(1);
+        // Reset the count after a short delay
+        setTimeout(() => setFieldSearchEscapeCount(0), 100);
+      } else {
+        // Second escape (or first if no value): exit focus
+        e.target.blur();
+        setFieldSearchEscapeCount(0);
+      }
+    }
+  };
+
+  // Handle escape key for results search
+  const handleResultsSearchEscape = (e) => {
+    if (e.key === 'Escape') {
+      if (resultsSearch && resultsSearchEscapeCount === 0) {
+        // First escape: clear the search
+        setResultsSearch('');
+        setResultsSearchEscapeCount(1);
+        // Reset the count after a short delay
+        setTimeout(() => setResultsSearchEscapeCount(0), 100);
+      } else {
+        // Second escape (or first if no value): exit focus
+        e.target.blur();
+        setResultsSearchEscapeCount(0);
+      }
+    }
   };
 
   // Export CSV
@@ -594,132 +717,202 @@ export default function ClaimsDataInvestigation() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <Database size={28} />
-          <div>
-            <h1>Claims Data Explorer</h1>
-            <p className={styles.subtitle}>
-              Power BI-style analysis: Add columns and filters, get instant summaries
-            </p>
-          </div>
-        </div>
+      {/* Top Controls Bar */}
+      <div className={styles.controlsBar}>
+        {queryTime !== null && (
+          <span className={styles.queryTime}>
+            {queryTime < 1000 ? `${queryTime.toFixed(0)}ms` : `${(queryTime / 1000).toFixed(2)}s`}
+          </span>
+        )}
         
-        <div className={styles.headerRight}>
-          {queryTime !== null && (
-            <span className={styles.queryTime}>
-              ⚡ {queryTime < 1000 ? `${queryTime.toFixed(0)}ms` : `${(queryTime / 1000).toFixed(2)}s`}
-            </span>
-          )}
-          
-          {(providerTags || savedMarkets.length > 0) && (
-            <div className={styles.npiPerspectiveSelector}>
-              <label>Filter On:</label>
-              <select
-                value={npiFieldType}
-                onChange={(e) => {
-                  setNpiFieldType(e.target.value);
-                  setData(null);
-                }}
-                className={styles.perspectiveSelect}
-                title="Choose which provider type to filter by"
-              >
-                <option value="billing_provider_npi">Billing Provider</option>
-                <option value="performing_provider_npi">Performing Provider</option>
-                <option value="facility_provider_npi">Facility</option>
-                <option value="service_location_provider_npi">Service Location</option>
-              </select>
-            </div>
-          )}
-          
-          {providerTags && (
-            <div className={styles.tagSelector}>
-              <FilterIcon size={16} />
-              <select
-                value={selectedTag || ''}
-                onChange={(e) => handleTagSelect(e.target.value)}
-                className={styles.tagSelect}
-              >
-                <option value="">All Providers (No Tag Filter)</option>
-                {providerTags.me?.length > 0 && (
-                  <option value="me">🏥 My Providers ({providerTags.me.length})</option>
-                )}
-                {providerTags.partner?.length > 0 && (
-                  <option value="partner">🤝 Partners ({providerTags.partner.length})</option>
-                )}
-                {providerTags.competitor?.length > 0 && (
-                  <option value="competitor">⚔️ Competitors ({providerTags.competitor.length})</option>
-                )}
-                {providerTags.target?.length > 0 && (
-                  <option value="target">🎯 Targets ({providerTags.target.length})</option>
-                )}
-              </select>
-              {selectedTag && tagNPIs && (
-                <span className={styles.tagBadge}>
-                  {tagNPIs.length} NPIs
-                </span>
-              )}
-            </div>
-          )}
-          
-          {savedMarkets.length > 0 && (
-            <div className={styles.marketSelector}>
-              <MapPin size={16} />
-              <select
-                value={selectedMarket?.id || ''}
-                onChange={(e) => handleMarketSelect(e.target.value)}
-                className={styles.marketSelect}
-              >
-                <option value="">All Data (No Market Filter)</option>
-                {savedMarkets.map(market => (
-                  <option key={market.id} value={market.id}>
-                    📍 {market.name} ({market.radius_miles}mi)
-                  </option>
-                ))}
-              </select>
-              {selectedMarket && marketNPIs && (
-                <span className={styles.marketBadge}>
-                  {marketNPIs.length} NPIs
-                </span>
-              )}
-            </div>
-          )}
-          
-          <div className={styles.headerControls}>
-            {(columns.length > 0 || Object.keys(filters).length > 0 || Object.keys(excludeFilters).length > 0 || selectedMarket || selectedTag) && (
+        {(providerTags || savedMarkets.length > 0) && (
+          <Dropdown
+            trigger={
+              <button className="sectionHeaderButton">
+                Filter On: {npiFieldType === 'billing_provider_npi' ? 'Billing' : 
+                           npiFieldType === 'performing_provider_npi' ? 'Performing' :
+                           npiFieldType === 'facility_provider_npi' ? 'Facility' : 'Service Location'}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={npiFieldDropdownOpen}
+            onToggle={setNpiFieldDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                setNpiFieldType('billing_provider_npi');
+                setData(null);
+                setNpiFieldDropdownOpen(false);
+              }}
+            >
+              Billing Provider
+            </button>
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                setNpiFieldType('performing_provider_npi');
+                setData(null);
+                setNpiFieldDropdownOpen(false);
+              }}
+            >
+              Performing Provider
+            </button>
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                setNpiFieldType('facility_provider_npi');
+                setData(null);
+                setNpiFieldDropdownOpen(false);
+              }}
+            >
+              Facility
+            </button>
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                setNpiFieldType('service_location_provider_npi');
+                setData(null);
+                setNpiFieldDropdownOpen(false);
+              }}
+            >
+              Service Location
+            </button>
+          </Dropdown>
+        )}
+        
+        {providerTags && (
+          <Dropdown
+            trigger={
+              <button className="sectionHeaderButton">
+                <FilterIcon size={14} />
+                {selectedTag ? 
+                  `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} (${tagNPIs?.length || 0})` : 
+                  'Network Tag'}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={tagDropdownOpen}
+            onToggle={setTagDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleTagSelect('');
+                setTagDropdownOpen(false);
+              }}
+            >
+              All Providers
+            </button>
+            {providerTags.me?.length > 0 && (
               <button 
-                onClick={clearAll}
-                className={styles.clearAllButton}
-                title="Clear all columns, filters, market, and tag selections"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('me');
+                  setTagDropdownOpen(false);
+                }}
               >
-                <X size={16} />
-                Clear All
+                My Providers ({providerTags.me.length})
               </button>
             )}
-            
-            <label className={styles.limitLabel}>
-              Limit:
-              <input
-                type="number"
-                value={limit}
-                onChange={(e) => setLimit(parseInt(e.target.value))}
-                min={10}
-                max={1000}
-                className={styles.limitInput}
-              />
-            </label>
-            
+            {providerTags.partner?.length > 0 && (
+              <button 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('partner');
+                  setTagDropdownOpen(false);
+                }}
+              >
+                Partners ({providerTags.partner.length})
+              </button>
+            )}
+            {providerTags.competitor?.length > 0 && (
+              <button 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('competitor');
+                  setTagDropdownOpen(false);
+                }}
+              >
+                Competitors ({providerTags.competitor.length})
+              </button>
+            )}
+            {providerTags.target?.length > 0 && (
+              <button 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('target');
+                  setTagDropdownOpen(false);
+                }}
+              >
+                Targets ({providerTags.target.length})
+              </button>
+            )}
+          </Dropdown>
+        )}
+        
+        {savedMarkets.length > 0 && (
+          <Dropdown
+            trigger={
+              <button className="sectionHeaderButton">
+                <MapPin size={14} />
+                {selectedMarket ? 
+                  `${selectedMarket.name} (${marketNPIs?.length || 0})` : 
+                  'Saved Market'}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={marketDropdownOpen}
+            onToggle={setMarketDropdownOpen}
+            className={styles.dropdownMenu}
+          >
             <button 
-              onClick={fetchData}
-              className={styles.runButton}
-              disabled={loading}
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleMarketSelect('');
+                setMarketDropdownOpen(false);
+              }}
             >
-              <Play size={18} />
-              <span>{loading ? 'Loading...' : 'Run Analysis'}</span>
+              No Market
             </button>
-          </div>
-        </div>
+            {savedMarkets.map(market => (
+              <button 
+                key={market.id}
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleMarketSelect(market.id);
+                  setMarketDropdownOpen(false);
+                }}
+              >
+                {market.name} ({market.radius_miles}mi)
+              </button>
+            ))}
+          </Dropdown>
+        )}
+        
+        <div className={styles.spacer}></div>
+        
+        {(columns.length > 0 || Object.keys(filters).length > 0 || Object.keys(excludeFilters).length > 0 || selectedMarket || selectedTag) && (
+          <button 
+            onClick={clearAll}
+            className="sectionHeaderButton"
+            title="Clear all columns, filters, market, and tag selections"
+          >
+            <X size={14} />
+            Clear All
+          </button>
+        )}
+        
+        <button 
+          onClick={fetchData}
+          className="sectionHeaderButton primary"
+          disabled={loading}
+        >
+          <Play size={14} />
+          <span>{loading ? 'Loading...' : 'Run Analysis'}</span>
+        </button>
       </div>
 
       {/* Main Layout */}
@@ -730,19 +923,23 @@ export default function ClaimsDataInvestigation() {
           <div className={styles.sidebarHeader}>
             <h3>Available Fields</h3>
             <p>Click to add to Columns or Filters</p>
-            <div className={styles.searchBox}>
-              <Search size={16} />
+            <div className="searchBarContainer">
+              <div className="searchIcon">
+                <Search size={16} />
+              </div>
               <input
                 type="text"
                 value={fieldSearch}
                 onChange={(e) => setFieldSearch(e.target.value)}
+                onKeyDown={handleFieldSearchEscape}
                 placeholder="Search fields..."
-                className={styles.searchInput}
+                className="searchInput"
               />
               {fieldSearch && (
                 <button 
                   onClick={() => setFieldSearch('')}
-                  className={styles.clearSearch}
+                  className="clearButton"
+                  title="Clear search"
                 >
                   <X size={14} />
                 </button>
@@ -844,67 +1041,120 @@ export default function ClaimsDataInvestigation() {
                     Add fields from the left sidebar to filter your data
                   </p>
                 ) : (
-                  <div className={styles.filterList}>
+                  <div className={styles.chipList}>
+                    {/* Include Filters */}
                     {Object.entries(filters).map(([field, value]) => {
+                      // Check if this is the default date range filter
+                      const isDefaultDateRange = field === 'date__month_grain' && 
+                                                  defaultDateRange && 
+                                                  value === `${defaultDateRange.min},${defaultDateRange.max}`;
+                      
+                      const isEditing = editingFilter === field || !value; // Edit if clicked or empty
                       const isTextField = TEXT_INPUT_FIELDS.includes(field);
-                      const isLoading = loadingFilters[field];
                       const hasOptions = filterOptions[field] && Array.isArray(filterOptions[field]);
+                      const isLoading = loadingFilters[field];
+                      
+                      if (isEditing && !isDefaultDateRange) {
+                        // Show editable interface
+                        return (
+                          <div key={field} className={styles.filterEditor}>
+                            <label>{allFields[field]}:</label>
+                            {isTextField ? (
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => updateFilter(field, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    setEditingFilter(null);
+                                    if (value) fetchData();
+                                  }
+                                }}
+                                onBlur={() => setEditingFilter(null)}
+                                placeholder="Enter value"
+                                className={styles.input}
+                                autoFocus
+                              />
+                            ) : hasOptions ? (
+                              <select
+                                value={value}
+                                onChange={(e) => {
+                                  updateFilter(field, e.target.value);
+                                  setEditingFilter(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && value) {
+                                    setEditingFilter(null);
+                                    fetchData();
+                                  }
+                                }}
+                                onBlur={() => setEditingFilter(null)}
+                                className={styles.select}
+                                autoFocus
+                              >
+                                <option value="">Select...</option>
+                                {filterOptions[field].map((option, idx) => {
+                                  const displayValue = option.value?.value || option.value;
+                                  let stringValue;
+                                  if (displayValue instanceof Date) {
+                                    stringValue = displayValue.toISOString().substring(0, 7);
+                                  } else if (typeof displayValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(displayValue)) {
+                                    stringValue = displayValue.substring(0, 7);
+                                  } else {
+                                    stringValue = String(displayValue);
+                                  }
+                                  return (
+                                    <option key={idx} value={stringValue}>
+                                      {stringValue}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => updateFilter(field, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    setEditingFilter(null);
+                                    if (value) fetchData();
+                                  }
+                                }}
+                                onBlur={() => setEditingFilter(null)}
+                                placeholder={isLoading ? "Loading..." : "Enter value"}
+                                className={styles.input}
+                                disabled={isLoading}
+                                autoFocus
+                              />
+                            )}
+                            <button onClick={() => removeFilter(field)} className={styles.removeButton}>
+                              <X size={14} />
+                            </button>
+                          </div>
+                        );
+                      }
+                      
+                      // Show chip (read-only)
+                      const displayLabel = isDefaultDateRange ? 'Last 12 Months' : allFields[field];
+                      const displayValue = isDefaultDateRange 
+                        ? `${defaultDateRange.min} to ${defaultDateRange.max}` 
+                        : value;
                       
                       return (
-                        <div key={field} className={styles.filterRow}>
-                          <label>
-                            {allFields[field]}:
-                            {isLoading && <span className={styles.loadingIndicator}>Loading...</span>}
-                          </label>
-                          
-                          {isTextField ? (
-                            <input
-                              type="text"
-                              value={value}
-                              onChange={(e) => updateFilter(field, e.target.value)}
-                              placeholder="Enter value(s), comma-separated"
-                              className={styles.input}
-                            />
-                          ) : hasOptions ? (
-                            <select
-                              value={value}
-                              onChange={(e) => updateFilter(field, e.target.value)}
-                              className={styles.select}
-                              disabled={isLoading}
-                            >
-                              <option value="">All</option>
-                              {filterOptions[field].map((option, idx) => {
-                                // Convert value to string (handles Date objects, numbers, etc.)
-                                const displayValue = option.value?.value || option.value;
-                                let stringValue;
-                                if (displayValue instanceof Date) {
-                                  // Format as YYYY-MM for month-level data
-                                  stringValue = displayValue.toISOString().substring(0, 7);
-                                } else if (typeof displayValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(displayValue)) {
-                                  // Handle YYYY-MM-DD string, convert to YYYY-MM
-                                  stringValue = displayValue.substring(0, 7);
-                                } else {
-                                  stringValue = String(displayValue);
-                                }
-                                
-                                return (
-                                  <option key={idx} value={stringValue}>
-                                    {stringValue}
-                                  </option>
-                                );
-                              })}
-                            </select>
-                          ) : (
-                            <select className={styles.select} disabled>
-                              <option>Loading options...</option>
-                            </select>
-                          )}
-
-                          <button 
-                            onClick={() => removeFilter(field)}
-                            className={styles.removeButton}
-                          >
-                            <X size={16} />
+                        <div 
+                          key={field} 
+                          className={styles.chip}
+                          onClick={() => !isDefaultDateRange && setEditingFilter(field)}
+                          style={{ cursor: isDefaultDateRange ? 'default' : 'pointer' }}
+                          title={isDefaultDateRange ? '' : 'Click to edit'}
+                        >
+                          <span>{displayLabel}: {displayValue}</span>
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            removeFilter(field);
+                          }}>
+                            <X size={14} />
                           </button>
                         </div>
                       );
@@ -912,32 +1162,15 @@ export default function ClaimsDataInvestigation() {
                     
                     {/* Exclusion Filters */}
                     {Object.entries(excludeFilters).map(([field, value]) => (
-                      <div key={`exclude_${field}`} className={`${styles.filterRow} ${styles.excludeFilter}`}>
-                        <label>
-                          {allFields[field]}: <span className={styles.excludeLabel}>NOT</span>
-                        </label>
-                        
-                        <input
-                          type="text"
-                          value={value}
-                          onChange={(e) => {
-                            setExcludeFilters({ ...excludeFilters, [field]: e.target.value });
-                            setData(null);
-                          }}
-                          placeholder="Excluded value"
-                          className={styles.input}
-                        />
-
-                        <button 
-                          onClick={() => {
-                            const updated = { ...excludeFilters };
-                            delete updated[field];
-                            setExcludeFilters(updated);
-                            setData(null);
-                          }}
-                          className={styles.removeButton}
-                        >
-                          <X size={16} />
+                      <div key={`exclude_${field}`} className={`${styles.chip} ${styles.excludeChip}`}>
+                        <span>{allFields[field]}: NOT {value}</span>
+                        <button onClick={() => {
+                          const updated = { ...excludeFilters };
+                          delete updated[field];
+                          setExcludeFilters(updated);
+                          setData(null);
+                        }}>
+                          <X size={14} />
                         </button>
                       </div>
                     ))}
@@ -956,22 +1189,19 @@ export default function ClaimsDataInvestigation() {
           {/* Results Panel */}
           <div className={styles.resultsPanel}>
             <div className={styles.resultsHeader}>
-              <div>
-                <h3>Results</h3>
-                {data && data.length > 0 && (
-                  <p className={styles.resultsHint}>
-                    💡 Click any cell to filter | Right-click to exclude
-                  </p>
-                )}
-              </div>
-              <div className={styles.resultsHeaderRight}>
+              <h3>Results</h3>
+              
+              <div className={styles.resultsControls}>
                 {columns.length > 0 && (
-                  <div className={styles.resultsSearchBox}>
-                    <Search size={16} />
+                  <div className="searchBarContainer">
+                    <div className="searchIcon">
+                      <Search size={16} />
+                    </div>
                     <input
                       type="text"
                       value={resultsSearch}
                       onChange={(e) => setResultsSearch(e.target.value)}
+                      onKeyDown={handleResultsSearchEscape}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           setData(null);
@@ -979,40 +1209,44 @@ export default function ClaimsDataInvestigation() {
                         }
                       }}
                       placeholder={`Search in ${columns.map(c => allFields[c]).join(', ')}...`}
-                      className={styles.resultsSearchInput}
+                      className="searchInput"
                     />
                     {resultsSearch && (
-                      <>
-                        <button 
-                          onClick={() => {
-                            setResultsSearch('');
-                            setData(null);
-                          }}
-                          className={styles.clearSearch}
-                        >
-                          <X size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setData(null);
-                            fetchData();
-                          }}
-                          className={styles.searchButton}
-                        >
-                          <Search size={14} />
-                        </button>
-                      </>
+                      <button 
+                        onClick={() => {
+                          setResultsSearch('');
+                          setData(null);
+                        }}
+                        className="clearButton"
+                        title="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
                     )}
                   </div>
                 )}
+                
+                {resultsSearch && (
+                  <button
+                    onClick={() => {
+                      setData(null);
+                      fetchData();
+                    }}
+                    className="sectionHeaderButton primary"
+                  >
+                    <Search size={14} />
+                    Search
+                  </button>
+                )}
+                
                 {data && data.length > 0 && (
-                  <div className={styles.resultsActions}>
+                  <>
                     <span className={styles.rowCount}>{data.length} rows</span>
-                    <button onClick={exportToCSV} className={styles.exportButton}>
-                      <Download size={16} />
+                    <button onClick={exportToCSV} className="sectionHeaderButton">
+                      <Download size={14} />
                       Export CSV
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1051,8 +1285,17 @@ export default function ClaimsDataInvestigation() {
               }));
               
               return (
-                <div className={styles.tableWrapper}>
-                  <table className={styles.dataTable}>
+                <div className={styles.tableContainer}>
+                  {loading && (
+                    <div className={styles.loadingOverlay}>
+                      <div className={styles.loadingContent}>
+                        <Spinner />
+                        <span>Loading...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className={styles.tableWrapper}>
+                    <table className={styles.dataTable}>
                     <thead>
                       <tr>
                         {columns.map(col => (
@@ -1136,6 +1379,7 @@ export default function ClaimsDataInvestigation() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               );
             })()}

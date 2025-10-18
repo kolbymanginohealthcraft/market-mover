@@ -4,9 +4,11 @@ import {
   Search, 
   MapPin, 
   Building2,
+  Building,
   FileText,
   Shield,
   Users,
+  UserCheck,
   BarChart3,
   Bookmark,
   Network,
@@ -20,7 +22,8 @@ import {
   Radius,
   Check,
   X,
-  FileBarChart
+  FileBarChart,
+  Database
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useState, useRef, useEffect } from 'react';
@@ -127,6 +130,40 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             <Search size={14} />
             {!isCollapsed && 'Search the Industry'}
           </Link>
+          
+          <Link 
+            to="/app/investigation/claims" 
+            className={`${styles.navItem} ${isActive('/investigation/claims') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Claims Data Explorer')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Database size={14} />
+            {!isCollapsed && 'Claims Data Explorer'}
+          </Link>
+          
+          <Link 
+            to="/app/investigation/hco" 
+            className={`${styles.navItem} ${isActive('/investigation/hco') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'HCO Analysis (Test)')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Building size={14} />
+            {!isCollapsed && 'HCO Analysis (Test)'}
+          </Link>
+          
+          <Link 
+            to="/app/investigation/hcp" 
+            className={`${styles.navItem} ${isActive('/investigation/hcp') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'HCP Analysis (Test)')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <UserCheck size={14} />
+            {!isCollapsed && 'HCP Analysis (Test)'}
+          </Link>
+          
+          {/* Section divider */}
+          {!isCollapsed && <div className={styles.sectionDivider}>My Parameters</div>}
+          
           {hasTeam ? (
             <Link 
               to="/app/markets" 

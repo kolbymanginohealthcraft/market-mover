@@ -147,6 +147,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'My Network';
     } else if (location.pathname.includes('/procedures')) {
       return 'My Procedures';
+    } else if (location.pathname.includes('/investigation/claims')) {
+      return 'Claims Data Explorer';
     } else if (location.pathname.includes('/settings')) {
       return 'Account Settings';
     } else if (location.pathname.includes('/feedback')) {
@@ -237,6 +239,10 @@ const Header = ({ currentView, selectedMarket }) => {
     } else if (currentPath.includes('/procedures')) {
       return [
         { text: 'Tag and track procedure codes relevant to your business', type: 'description' }
+      ];
+    } else if (currentPath.includes('/investigation/claims')) {
+      return [
+        { text: 'Interactive claims analysis with dynamic filtering and aggregation', type: 'description' }
       ];
     } else if (currentPath.includes('/settings')) {
       return [

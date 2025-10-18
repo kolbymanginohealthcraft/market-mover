@@ -24,6 +24,8 @@ import catchment from "./server/routes/catchment.js";
 import batchData from "./server/routes/batchData.js";
 import zipCodes from "./server/routes/zipCodes.js";
 import investigation from "./server/routes/investigation.js";
+import hcoData from "./server/routes/hcoData.js";
+import hcpData from "./server/routes/hcpData.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
@@ -73,6 +75,8 @@ app.use("/api", catchment);
 app.use("/api", batchData);
 app.use("/api", zipCodes);
 app.use("/api", investigation);
+app.use("/api/hco-data", hcoData);
+app.use("/api/hcp-data", hcpData);
 
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);

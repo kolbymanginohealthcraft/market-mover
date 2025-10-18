@@ -61,6 +61,8 @@ import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarke
 import Network from "../pages/Private/Network/Network";
 import Procedures from "../pages/Private/Procedures/Procedures";
 import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
+import HCOAnalysis from "../pages/Private/HCOAnalysis/HCOAnalysis";
+import HCPAnalysis from "../pages/Private/HCPAnalysis/HCPAnalysis";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
@@ -145,6 +147,8 @@ function AppContent({ location }) {
             <Route path="network/*" element={<Network />} />
             <Route path="procedures/*" element={<Procedures />} />
             <Route path="investigation/claims" element={<ClaimsDataInvestigation />} />
+            <Route path="investigation/hco" element={<HCOAnalysis />} />
+            <Route path="investigation/hcp" element={<HCPAnalysis />} />
           </Route>
 
           {/* Fallback */}

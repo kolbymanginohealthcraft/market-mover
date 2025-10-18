@@ -9,6 +9,46 @@ const router = express.Router();
  * This is a standalone endpoint for data exploration without business logic
  */
 
+// Get metadata for a view (including max_date)
+router.get("/investigation/metadata/:viewName", async (req, res) => {
+  try {
+    const { viewName } = req.params;
+    
+    console.log("📊 Investigation: Fetching metadata for", viewName);
+
+    const query = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = @viewName
+      LIMIT 1
+    `;
+
+    const params = { viewName };
+    const [rows] = await vendorBigQueryClient.query({ query, params });
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No metadata found for view: ${viewName}`
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        viewName,
+        maxDate: rows[0].max_date
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error fetching metadata:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // Get raw procedure data with optional column selection
 router.post("/investigation/raw-procedure-data", async (req, res) => {
   try {
@@ -360,7 +400,16 @@ router.post("/investigation/aggregate-data", async (req, res) => {
           if (Array.isArray(value)) {
             processedValue = value.map(v => `${v}-01`);
           } else if (typeof value === 'string' && value.includes(',')) {
-            processedValue = value.split(',').map(v => `${v.trim()}-01`);
+            const values = value.split(',').map(v => `${v.trim()}-01`);
+            // If exactly 2 values, treat as a range (BETWEEN)
+            if (values.length === 2) {
+              whereClauses.push(`${filterExpression} BETWEEN @${paramName}_min AND @${paramName}_max`);
+              params[`${paramName}_min`] = values[0];
+              params[`${paramName}_max`] = values[1];
+              return; // Skip the normal processing below
+            } else {
+              processedValue = values;
+            }
           } else {
             processedValue = `${value}-01`;
           }
@@ -407,16 +456,25 @@ router.post("/investigation/aggregate-data", async (req, res) => {
         let paramName = `exclude_${column.replace(/[^a-zA-Z0-9_]/g, '_')}`;
         let processedValue = value;
         
-        if (column === 'date__month_grain') {
-          // Month field - convert YYYY-MM string to DATE
-          if (Array.isArray(value)) {
-            processedValue = value.map(v => `${v}-01`);
-          } else if (typeof value === 'string' && value.includes(',')) {
-            processedValue = value.split(',').map(v => `${v.trim()}-01`);
+      if (column === 'date__month_grain') {
+        // Month field - convert YYYY-MM string to DATE
+        if (Array.isArray(value)) {
+          processedValue = value.map(v => `${v}-01`);
+        } else if (typeof value === 'string' && value.includes(',')) {
+          const values = value.split(',').map(v => `${v.trim()}-01`);
+          // If exactly 2 values, treat as a range (BETWEEN)
+          if (values.length === 2) {
+            whereClauses.push(`${filterExpression} BETWEEN @${paramName}_min AND @${paramName}_max`);
+            params[`${paramName}_min`] = values[0];
+            params[`${paramName}_max`] = values[1];
+            return; // Skip the normal processing below
           } else {
-            processedValue = `${value}-01`;
+            processedValue = values;
           }
-        } else if (column === '_year') {
+        } else {
+          processedValue = `${value}-01`;
+        }
+      } else if (column === '_year') {
           filterExpression = 'EXTRACT(YEAR FROM date__month_grain)';
           paramName = 'exclude_year';
           if (Array.isArray(value)) {
