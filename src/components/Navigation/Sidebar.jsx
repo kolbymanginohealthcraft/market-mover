@@ -152,16 +152,6 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/investigation/referral-pathways" 
-            className={`${styles.navItem} ${isActive('/investigation/referral-pathways') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Referral Pathways')}
-            onMouseLeave={handleMouseLeave}
-          >
-            <Users size={14} />
-            {!isCollapsed && 'Referral Pathways'}
-          </Link>
-          
-          <Link 
             to="/app/investigation/hco" 
             className={`${styles.navItem} ${isActive('/investigation/hco') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'HCO Analysis (Test)')}

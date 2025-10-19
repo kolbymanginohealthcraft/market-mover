@@ -4,7 +4,7 @@ import Spinner from "../../../components/Buttons/Spinner";
 import Dropdown from "../../../components/Buttons/Dropdown";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
-import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown } from "lucide-react";
+import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 
 /**
  * Claims Data Investigation Tool
@@ -22,6 +22,11 @@ export default function ClaimsDataInvestigation() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [queryTime, setQueryTime] = useState(null);
+  
+  // Pathway drill-down state
+  const [pathwayModal, setPathwayModal] = useState(null); // { row, direction, data, loading }
+  const [pathwayData, setPathwayData] = useState(null);
+  const [pathwayLoading, setPathwayLoading] = useState(false);
   
   // Query configuration
   const [columns, setColumns] = useState([]);
@@ -470,6 +475,74 @@ export default function ClaimsDataInvestigation() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Query pathways for a specific row (upstream or downstream)
+  const queryPathways = async (row, direction) => {
+    setPathwayModal({ row, direction, loading: true, data: null });
+    setPathwayLoading(true);
+
+    try {
+      // Build filters from the row data
+      const pathwayFilters = {};
+      
+      // Map columns from the row to pathway filters
+      columns.forEach(col => {
+        if (row[col] !== null && row[col] !== undefined) {
+          // Handle values that might be objects (BigQuery returns)
+          const value = row[col]?.value !== undefined ? row[col].value : row[col];
+          pathwayFilters[col] = value;
+        }
+      });
+
+      // Add existing filters
+      Object.entries(filters).forEach(([key, value]) => {
+        pathwayFilters[key] = value;
+      });
+
+      console.log('🔍 Pathway query request:', {
+        direction,
+        filters: pathwayFilters,
+        groupBy: direction === 'upstream' 
+          ? ['billing_provider_name', 'facility_provider_name', 'taxonomy_classification']
+          : ['billing_provider_name', 'code', 'service_line_description']
+      });
+
+      // Query pathways table
+      const response = await fetch('/api/patient-journey/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupBy: direction === 'upstream' 
+            ? ['billing_provider_name', 'facility_provider_name', 'taxonomy_classification']
+            : ['billing_provider_name', 'code', 'service_line_description'],
+          aggregates: [
+            { function: 'COUNT', column: '*', alias: 'total_count' },
+            { function: 'SUM', column: 'charges_total', alias: 'total_charges' }
+          ],
+          filters: pathwayFilters,
+          limit: 50,
+          direction
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pathway data');
+      }
+
+      const result = await response.json();
+      setPathwayModal(prev => ({ ...prev, loading: false, data: result.data }));
+      
+    } catch (err) {
+      console.error('Error querying pathways:', err);
+      setPathwayModal(prev => ({ ...prev, loading: false, error: err.message }));
+    } finally {
+      setPathwayLoading(false);
+    }
+  };
+
+  const closePathwayModal = () => {
+    setPathwayModal(null);
   };
 
   // Fetch filter options for a specific field
@@ -1297,6 +1370,7 @@ export default function ClaimsDataInvestigation() {
                     <table className={styles.dataTable}>
                     <thead>
                       <tr>
+                        <th className={styles.actionColumn}>Pathways</th>
                         {columns.map(col => (
                           <th key={col}>{allFields[col]}</th>
                         ))}
@@ -1318,6 +1392,25 @@ export default function ClaimsDataInvestigation() {
                         
                         return (
                           <tr key={index}>
+                            {/* Pathway Action Buttons */}
+                            <td className={styles.actionCell}>
+                              <div className={styles.pathwayActions}>
+                                <button
+                                  className={styles.pathwayButton}
+                                  onClick={() => queryPathways(row, 'upstream')}
+                                  title="See where these patients came from"
+                                >
+                                  <ArrowUp size={12} />
+                                </button>
+                                <button
+                                  className={styles.pathwayButton}
+                                  onClick={() => queryPathways(row, 'downstream')}
+                                  title="See where these patients went next"
+                                >
+                                  <ArrowDown size={12} />
+                                </button>
+                              </div>
+                            </td>
                             {columns.map(col => (
                               <td 
                                 key={col}
@@ -1385,6 +1478,88 @@ export default function ClaimsDataInvestigation() {
           </div>
         </div>
       </div>
+
+      {/* Pathway Modal */}
+      {pathwayModal && (
+        <div className={styles.modalOverlay} onClick={closePathwayModal}>
+          <div className={styles.pathwayModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitle}>
+                {pathwayModal.direction === 'upstream' ? (
+                  <>
+                    <ArrowUp size={16} />
+                    Upstream: Where did these patients come from?
+                  </>
+                ) : (
+                  <>
+                    <ArrowDown size={16} />
+                    Downstream: Where did these patients go next?
+                  </>
+                )}
+              </div>
+              <button className={styles.modalClose} onClick={closePathwayModal}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className={styles.modalContext}>
+              <strong>Context:</strong> {columns.map(col => `${allFields[col]}: ${pathwayModal.row[col]}`).join(' | ')}
+            </div>
+
+            <div className={styles.modalContent}>
+              {pathwayModal.loading && (
+                <div className={styles.modalLoading}>
+                  <Spinner size={24} />
+                  <p>Querying 240 billion pathway records...</p>
+                </div>
+              )}
+
+              {pathwayModal.error && (
+                <div className={styles.modalError}>
+                  {pathwayModal.error}
+                </div>
+              )}
+
+              {pathwayModal.data && pathwayModal.data.length > 0 && (
+                <div className={styles.pathwayResults}>
+                  <table className={styles.pathwayTable}>
+                    <thead>
+                      <tr>
+                        {Object.keys(pathwayModal.data[0]).map(key => (
+                          <th key={key}>{key.replace(/_/g, ' ').toUpperCase()}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pathwayModal.data.map((row, idx) => (
+                        <tr key={idx}>
+                          {Object.values(row).map((value, colIdx) => {
+                            const displayValue = value && typeof value === 'object' && value.value !== undefined
+                              ? value.value
+                              : value;
+                            
+                            const formattedValue = typeof displayValue === 'number'
+                              ? new Intl.NumberFormat().format(displayValue)
+                              : displayValue;
+
+                            return <td key={colIdx}>{formattedValue || '-'}</td>;
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {pathwayModal.data && pathwayModal.data.length === 0 && !pathwayModal.loading && (
+                <div className={styles.modalEmpty}>
+                  No pathway data found for this selection
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
