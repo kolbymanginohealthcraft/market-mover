@@ -2,18 +2,44 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import styles from './GeographyMap.module.css';
+import { getColorForValue, formatMetricValue, getMetricLabel } from '../../../utils/demographicColors';
 
-export default function GeographyMap({ center, radius, boundaryType = 'tracts' }) {
+export default function GeographyMap({ 
+  center, 
+  radius, 
+  boundaryType = 'tracts',
+  demographicMetric = null,
+  useDemographics = false,
+  showColors = true,
+  hoveredTractId = null,
+  onDemographicStatsUpdate = null,
+  onDemographicFeaturesUpdate = null
+}) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [demographicData, setDemographicData] = useState(null);
+  const previousHoveredId = useRef(null);
+  const featuresData = useRef(null);
 
   useEffect(() => {
-    if (!center || !radius) return;
+    console.log('🔄 GeographyMap useEffect triggered', {
+      hasCenter: !!center,
+      hasRadius: !!radius,
+      useDemographics,
+      demographicMetric,
+      boundaryType
+    });
+    
+    if (!center || !radius) {
+      console.log('⚠️ Missing center or radius, skipping');
+      return;
+    }
 
     // Initialize map
     if (!map.current) {
+      console.log('🗺️ Initializing new map');
       map.current = new maplibregl.Map({
         container: mapContainer.current,
         style: {
@@ -52,7 +78,46 @@ export default function GeographyMap({ center, radius, boundaryType = 'tracts' }
     return () => {
       // Cleanup is handled when component unmounts completely
     };
-  }, [center, radius, boundaryType]);
+  }, [center, radius, boundaryType, demographicMetric, useDemographics, showColors]);
+
+  // Handle hover highlighting from list
+  useEffect(() => {
+    if (!map.current || !map.current.getSource('boundaries') || !featuresData.current) return;
+
+    // Remove hover from previously hovered feature
+    if (previousHoveredId.current !== null) {
+      try {
+        map.current.setFeatureState(
+          { source: 'boundaries', id: previousHoveredId.current },
+          { hover: false }
+        );
+      } catch (e) {
+        console.warn('Could not remove hover state:', e);
+      }
+    }
+
+    // Add hover to newly hovered feature
+    if (hoveredTractId !== null && featuresData.current) {
+      // Find the feature index by geo_id
+      const featureIndex = featuresData.current.findIndex(
+        f => f.properties.geo_id === hoveredTractId
+      );
+      
+      if (featureIndex !== -1) {
+        try {
+          map.current.setFeatureState(
+            { source: 'boundaries', id: featureIndex },
+            { hover: true }
+          );
+          previousHoveredId.current = featureIndex;
+        } catch (e) {
+          console.warn('Could not set hover state:', e);
+        }
+      }
+    } else {
+      previousHoveredId.current = null;
+    }
+  }, [hoveredTractId]);
 
   const getZoomLevel = (radiusMiles) => {
     if (radiusMiles <= 5) return 11;
@@ -67,20 +132,83 @@ export default function GeographyMap({ center, radius, boundaryType = 'tracts' }
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams({
-        latitude: center.lat,
-        longitude: center.lng,
-        radius: radius,
-        type: boundaryType
+      console.log('🔍 loadBoundaries called with:', {
+        useDemographics,
+        demographicMetric,
+        boundaryType,
+        center,
+        radius
       });
 
-      const response = await fetch(`/api/market-geography/boundaries?${params}`);
+      let geojson;
       
-      if (!response.ok) {
-        throw new Error('Failed to load boundary data');
-      }
+      // Load demographic data or regular boundaries based on mode
+      if (useDemographics && demographicMetric && boundaryType === 'tracts') {
+        console.log('📊 Loading demographics data...');
+        const params = new URLSearchParams({
+          latitude: center.lat,
+          longitude: center.lng,
+          radius: radius,
+          metric: demographicMetric,
+          year: '2023'
+        });
 
-      const geojson = await response.json();
+        console.log('🌐 Fetching:', `/api/market-geography/demographics-map?${params}`);
+        const response = await fetch(`/api/market-geography/demographics-map?${params}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to load demographic data');
+        }
+
+        const data = await response.json();
+        console.log('✅ Demographics data received:', {
+          featureCount: data.features?.length,
+          metadata: data.metadata,
+          sampleFeature: data.features?.[0]
+        });
+        
+        geojson = data;
+        setDemographicData(data.metadata);
+        
+        // Notify parent component of demographic stats
+        if (onDemographicStatsUpdate && data.metadata) {
+          onDemographicStatsUpdate(data.metadata);
+        }
+        
+        // Notify parent component of demographic features for the list
+        if (onDemographicFeaturesUpdate && data.features) {
+          onDemographicFeaturesUpdate(data.features);
+        }
+      } else {
+        console.log('🗺️ Loading regular boundaries (non-demographics mode)');
+        // Regular boundaries mode
+        const params = new URLSearchParams({
+          latitude: center.lat,
+          longitude: center.lng,
+          radius: radius,
+          type: boundaryType
+        });
+
+        console.log('🌐 Fetching:', `/api/market-geography/boundaries?${params}`);
+        const response = await fetch(`/api/market-geography/boundaries?${params}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to load boundary data');
+        }
+
+        geojson = await response.json();
+        setDemographicData(null);
+        
+        // Clear demographic stats in parent
+        if (onDemographicStatsUpdate) {
+          onDemographicStatsUpdate(null);
+        }
+        
+        // Clear demographic features in parent
+        if (onDemographicFeaturesUpdate) {
+          onDemographicFeaturesUpdate(null);
+        }
+      }
 
       // Remove existing layers and sources
       if (map.current.getLayer('boundaries-fill')) {
@@ -108,51 +236,178 @@ export default function GeographyMap({ center, radius, boundaryType = 'tracts' }
         map.current.removeSource('center-marker');
       }
 
-      // Add boundary polygons
+      // Add boundary polygons with feature IDs for feature-state
+      // Add unique IDs to each feature for feature-state to work
+      const geojsonWithIds = {
+        ...geojson,
+        features: geojson.features.map((feature, index) => ({
+          ...feature,
+          id: index // MapLibre requires numeric IDs
+        }))
+      };
+      
+      // Store features data for hover effect
+      featuresData.current = geojsonWithIds.features;
+      
       map.current.addSource('boundaries', {
         type: 'geojson',
-        data: geojson
+        data: geojsonWithIds,
+        promoteId: 'id' // Use the id field for feature-state
       });
 
       // Check if features are points or polygons
       const firstFeature = geojson.features[0];
       const isPoint = firstFeature && firstFeature.geometry.type === 'Point';
 
-      if (isPoint) {
-        // For points (census tracts), add circle markers
-        map.current.addLayer({
-          id: 'boundaries-fill',
-          type: 'circle',
-          source: 'boundaries',
-          paint: {
-            'circle-radius': 6,
-            'circle-color': getBoundaryColor(boundaryType),
-            'circle-opacity': 0.6,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': getBoundaryOutlineColor(boundaryType)
+      // Determine colors based on demographics mode
+      if (useDemographics && demographicMetric && demographicData?.statistics?.breaks) {
+        const breaks = demographicData.statistics.breaks;
+        
+        console.log('🎨 Building color expression for metric:', demographicMetric);
+        console.log('📊 Breaks:', breaks);
+        console.log('📍 Features count:', geojson.features.length);
+        console.log('📋 Sample feature properties:', geojson.features[0]?.properties);
+        console.log('🎨 showColors:', showColors);
+        
+        // Build color expression based on showColors toggle
+        let colorExpression;
+        
+        if (showColors) {
+          // Build step expression for discrete color classes based on quantile breaks
+          // Use step instead of interpolate for clearer class boundaries
+          const stepPairs = [];
+          for (let i = 0; i < breaks.length - 1; i++) {
+            const midPoint = (breaks[i] + breaks[i + 1]) / 2;
+            const color = getColorForValue(midPoint, breaks, demographicMetric);
+            console.log(`🎨 Break ${i}: ${breaks[i]} - ${breaks[i + 1]} -> ${color}`);
+            stepPairs.push(breaks[i + 1]); // The threshold value
+            stepPairs.push(color); // The color to use when >= this threshold
           }
-        });
-      } else {
-        // For polygons (ZIPs, counties), add fill and outline
-        map.current.addLayer({
-          id: 'boundaries-fill',
-          type: 'fill',
-          source: 'boundaries',
-          paint: {
-            'fill-color': getBoundaryColor(boundaryType),
-            'fill-opacity': 0.3
-          }
-        });
 
-        map.current.addLayer({
-          id: 'boundaries-outline',
-          type: 'line',
-          source: 'boundaries',
-          paint: {
-            'line-color': getBoundaryOutlineColor(boundaryType),
-            'line-width': 2
-          }
-        });
+          const baseColor = getColorForValue(breaks[0], breaks, demographicMetric);
+          console.log('🎨 Base color (lowest):', baseColor);
+          console.log('🎨 Step pairs:', stepPairs);
+
+          colorExpression = [
+            'case',
+            // Check if has_data is false or metric_value is null
+            ['!', ['get', 'has_data']],
+            '#e0e0e0', // No data color
+            [
+              'step',
+              ['get', 'metric_value'],
+              baseColor, // Base color for lowest values
+              ...stepPairs
+            ]
+          ];
+        } else {
+          // When colors are off, use a single neutral color
+          colorExpression = '#d0d0d0';
+        }
+        
+        console.log('🎨 Final color expression:', JSON.stringify(colorExpression, null, 2));
+
+        if (isPoint) {
+          // For points, use circles with demographic colors
+          map.current.addLayer({
+            id: 'boundaries-fill',
+            type: 'circle',
+            source: 'boundaries',
+            paint: {
+              'circle-radius': 6,
+              'circle-color': colorExpression,
+              'circle-opacity': 0.8,
+              'circle-stroke-width': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                3, // Thicker stroke when hovered
+                1
+              ],
+              'circle-stroke-color': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                '#FFD700', // Gold when hovered
+                '#ffffff'
+              ]
+            }
+          });
+        } else {
+          // For polygons, use fills with demographic colors
+          map.current.addLayer({
+            id: 'boundaries-fill',
+            type: 'fill',
+            source: 'boundaries',
+            paint: {
+              'fill-color': colorExpression,
+              'fill-opacity': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                0.95, // More opaque when hovered
+                0.75
+              ]
+            }
+          });
+
+          // Add clear borders to distinguish between tracts
+          map.current.addLayer({
+            id: 'boundaries-outline',
+            type: 'line',
+            source: 'boundaries',
+            paint: {
+              'line-color': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                '#FFD700', // Gold when hovered
+                '#333333'
+              ],
+              'line-width': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                3, // Thicker when hovered
+                1.5
+              ],
+              'line-opacity': 1
+            }
+          });
+        }
+      } else {
+        // Regular boundary visualization (non-demographic)
+        if (isPoint) {
+          // For points (census tracts), add circle markers
+          map.current.addLayer({
+            id: 'boundaries-fill',
+            type: 'circle',
+            source: 'boundaries',
+            paint: {
+              'circle-radius': 6,
+              'circle-color': getBoundaryColor(boundaryType),
+              'circle-opacity': 0.6,
+              'circle-stroke-width': 2,
+              'circle-stroke-color': getBoundaryOutlineColor(boundaryType)
+            }
+          });
+        } else {
+          // For polygons (ZIPs, counties), add fill and outline
+          map.current.addLayer({
+            id: 'boundaries-fill',
+            type: 'fill',
+            source: 'boundaries',
+            paint: {
+              'fill-color': getBoundaryColor(boundaryType),
+              'fill-opacity': 0.3
+            }
+          });
+
+          map.current.addLayer({
+            id: 'boundaries-outline',
+            type: 'line',
+            source: 'boundaries',
+            paint: {
+              'line-color': getBoundaryOutlineColor(boundaryType),
+              'line-width': 2
+            }
+          });
+        }
       }
 
       // Add market radius circle with consistent styling
@@ -232,12 +487,29 @@ export default function GeographyMap({ center, radius, boundaryType = 'tracts' }
         const properties = e.features[0].properties;
         let description = '';
         
-        if (boundaryType === 'tracts') {
-          description = `<strong>Census Tract</strong><br/>ID: ${properties.geo_id}`;
-        } else if (boundaryType === 'zips') {
-          description = `<strong>ZIP Code</strong><br/>${properties.zip_code}`;
-        } else if (boundaryType === 'counties') {
-          description = `<strong>County</strong><br/>${properties.county_name}`;
+        if (useDemographics && demographicMetric) {
+          // Demographic popup
+          description = `
+            <div style="min-width: 200px;">
+              <strong>${getMetricLabel(demographicMetric)}</strong><br/>
+              <div style="font-size: 18px; font-weight: 600; color: #2c3e50; margin: 8px 0;">
+                ${formatMetricValue(properties.metric_value, demographicMetric)}
+              </div>
+              <div style="font-size: 11px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+                Census Tract: ${properties.geo_id || 'N/A'}<br/>
+                Population: ${properties.total_population ? properties.total_population.toLocaleString() : 'N/A'}
+              </div>
+            </div>
+          `;
+        } else {
+          // Regular boundary popup
+          if (boundaryType === 'tracts') {
+            description = `<strong>Census Tract</strong><br/>ID: ${properties.geo_id}`;
+          } else if (boundaryType === 'zips') {
+            description = `<strong>ZIP Code</strong><br/>${properties.zip_code}`;
+          } else if (boundaryType === 'counties') {
+            description = `<strong>County</strong><br/>${properties.county_name}`;
+          }
         }
 
         new maplibregl.Popup()
@@ -254,9 +526,11 @@ export default function GeographyMap({ center, radius, boundaryType = 'tracts' }
         map.current.getCanvas().style.cursor = '';
       });
 
+      console.log('✅ Boundaries loaded successfully');
       setLoading(false);
     } catch (err) {
-      console.error('Error loading boundaries:', err);
+      console.error('❌ Error loading boundaries:', err);
+      console.error('Error stack:', err.stack);
       setError(err.message);
       setLoading(false);
     }

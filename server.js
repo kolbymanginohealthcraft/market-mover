@@ -27,6 +27,7 @@ import investigation from "./server/routes/investigation.js";
 import hcoData from "./server/routes/hcoData.js";
 import hcpData from "./server/routes/hcpData.js";
 import marketGeography from "./server/routes/marketGeography.js";
+import referralPathways from "./server/routes/referralPathways.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
@@ -79,6 +80,7 @@ app.use("/api", investigation);
 app.use("/api/hco-data", hcoData);
 app.use("/api/hcp-data", hcpData);
 app.use("/api/market-geography", marketGeography);
+app.use("/api/referral-pathways", referralPathways);
 
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);

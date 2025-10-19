@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import GeographyMap from './GeographyMap';
 import Dropdown from '../../../components/Buttons/Dropdown';
-import { MapPin, ChevronDown } from 'lucide-react';
+import DemographicLegend from '../../../components/UI/DemographicLegend';
+import { MapPin, ChevronDown, Activity } from 'lucide-react';
+import { DEMOGRAPHIC_METRICS, getMetricsByCategory, formatMetricValue } from '../../../utils/demographicColors';
 import styles from './GeographyAnalysis.module.css';
 
 export default function GeographyAnalysis() {
@@ -15,6 +17,15 @@ export default function GeographyAnalysis() {
   const [boundaryType, setBoundaryType] = useState('tracts');
   const [boundaryElements, setBoundaryElements] = useState([]);
   const [loadingBoundaries, setLoadingBoundaries] = useState(false);
+  
+  // Demographics state
+  const [useDemographics, setUseDemographics] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState('median_income');
+  const [metricDropdownOpen, setMetricDropdownOpen] = useState(false);
+  const [demographicStats, setDemographicStats] = useState(null);
+  const [showColors, setShowColors] = useState(true);
+  const [hoveredTractId, setHoveredTractId] = useState(null);
+  const mapComponentRef = useRef(null);
 
   const fetchMarkets = useCallback(async () => {
     try {
@@ -53,6 +64,17 @@ export default function GeographyAnalysis() {
   const handleMarketSelect = useCallback((market) => {
     setSelectedMarket(market);
     setBoundaryElements([]);
+    setDemographicStats(null);
+  }, []);
+
+  // Callback to receive demographic statistics from the map component
+  const handleDemographicStatsUpdate = useCallback((stats) => {
+    setDemographicStats(stats);
+  }, []);
+
+  // Callback to receive demographic features data from the map
+  const handleDemographicFeaturesUpdate = useCallback((features) => {
+    setBoundaryElements(features || []);
   }, []);
 
   const fetchBoundaryElements = useCallback(async () => {
@@ -147,24 +169,95 @@ export default function GeographyAnalysis() {
         {selectedMarket && (
           <div className={styles.boundaryTypeSelector}>
             <button
-              className={`sectionHeaderButton ${boundaryType === 'tracts' ? 'primary' : ''}`}
-              onClick={() => setBoundaryType('tracts')}
+              className={`sectionHeaderButton ${boundaryType === 'tracts' && !useDemographics ? 'primary' : ''}`}
+              onClick={() => {
+                setBoundaryType('tracts');
+                setUseDemographics(false);
+              }}
             >
               Census Tracts
             </button>
             <button
               className={`sectionHeaderButton ${boundaryType === 'zips' ? 'primary' : ''}`}
-              onClick={() => setBoundaryType('zips')}
+              onClick={() => {
+                setBoundaryType('zips');
+                setUseDemographics(false);
+              }}
             >
               ZIP Codes
             </button>
             <button
               className={`sectionHeaderButton ${boundaryType === 'counties' ? 'primary' : ''}`}
-              onClick={() => setBoundaryType('counties')}
+              onClick={() => {
+                setBoundaryType('counties');
+                setUseDemographics(false);
+              }}
             >
               Counties
             </button>
+            <button
+              className={`sectionHeaderButton ${useDemographics ? 'primary' : ''}`}
+              onClick={() => {
+                console.log('📊 Demographics button clicked');
+                setBoundaryType('tracts');
+                setUseDemographics(true);
+                console.log('📊 Setting useDemographics to true');
+              }}
+            >
+              <Activity size={14} style={{ marginRight: '4px' }} />
+              Demographics
+            </button>
           </div>
+        )}
+
+        {/* Demographic Metric Selector - Only show when demographics mode is active */}
+        {selectedMarket && useDemographics && (
+          <>
+            <Dropdown
+              trigger={
+                <button className={styles.metricDropdownTrigger}>
+                  {DEMOGRAPHIC_METRICS.find(m => m.id === selectedMetric)?.label || 'Select Metric'}
+                  <ChevronDown size={14} />
+                </button>
+              }
+              isOpen={metricDropdownOpen}
+              onToggle={setMetricDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              {Object.entries(getMetricsByCategory()).map(([category, metrics]) => (
+                <div key={category}>
+                  <div className={styles.dropdownCategory}>{category}</div>
+                  {metrics.map((metric) => (
+                    <button
+                      key={metric.id}
+                      className={styles.dropdownItem}
+                      onClick={() => {
+                        setSelectedMetric(metric.id);
+                        setMetricDropdownOpen(false);
+                      }}
+                      style={{
+                        fontWeight: selectedMetric === metric.id ? '600' : '500',
+                        background: selectedMetric === metric.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                      }}
+                    >
+                      <div>{metric.label}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                        {metric.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </Dropdown>
+            
+            <button
+              className={`sectionHeaderButton ${showColors ? 'primary' : ''}`}
+              onClick={() => setShowColors(!showColors)}
+              title={showColors ? 'Hide Colors' : 'Show Colors'}
+            >
+              {showColors ? '🎨 Colors On' : '⚪ Colors Off'}
+            </button>
+          </>
         )}
 
         {/* Market Info - Only show when market is selected */}
@@ -178,75 +271,136 @@ export default function GeographyAnalysis() {
       {selectedMarket ? (
         <div className={styles.content}>
           <div className={styles.mapAndListContainer}>
-            <div className={styles.mapSection}>
-              <h3>Geographic Boundaries</h3>
-              <p className={styles.sectionHint}>
-                {boundaryType === 'tracts' && 'Census tracts that intersect with your market radius (blue points - click for details)'}
-                {boundaryType === 'zips' && 'ZIP codes that intersect with your market radius (green polygons - click for details)'}
-                {boundaryType === 'counties' && 'Counties that intersect with your market radius (purple polygons - click for details)'}
-                {' • Red dashed circle shows your market radius'}
-              </p>
-              <GeographyMap
-                key={`${selectedMarket.id}-${boundaryType}`}
-                center={mapCenter}
-                radius={selectedMarket.radius_miles}
-                boundaryType={boundaryType}
-              />
-            </div>
+            <GeographyMap
+              key={`${selectedMarket.id}-${boundaryType}-${useDemographics ? selectedMetric : 'boundary'}`}
+              center={mapCenter}
+              radius={selectedMarket.radius_miles}
+              boundaryType={boundaryType}
+              demographicMetric={selectedMetric}
+              useDemographics={useDemographics}
+              showColors={showColors}
+              hoveredTractId={hoveredTractId}
+              onDemographicStatsUpdate={(stats) => {
+                console.log('📈 Demographic stats received in parent:', stats);
+                handleDemographicStatsUpdate(stats);
+              }}
+              onDemographicFeaturesUpdate={handleDemographicFeaturesUpdate}
+            />
 
             <div className={styles.elementsList}>
               <h3>
-                {boundaryType === 'tracts' && 'Census Tracts'}
-                {boundaryType === 'zips' && 'ZIP Codes'}
-                {boundaryType === 'counties' && 'Counties'}
+                {useDemographics && DEMOGRAPHIC_METRICS.find(m => m.id === selectedMetric)?.label}
+                {!useDemographics && boundaryType === 'tracts' && 'Census Tracts'}
+                {!useDemographics && boundaryType === 'zips' && 'ZIP Codes'}
+                {!useDemographics && boundaryType === 'counties' && 'Counties'}
                 {loadingBoundaries && ' (Loading...)'}
                 {!loadingBoundaries && boundaryElements.length > 0 && ` (${boundaryElements.length})`}
               </h3>
               
+              {useDemographics && demographicStats && (
+                <div className={styles.demographicsSummary}>
+                  <div className={styles.summaryStats}>
+                    <div className={styles.summaryStatItem}>
+                      <span className={styles.summaryStatLabel}>Min:</span>
+                      <span className={styles.summaryStatValue}>
+                        {formatMetricValue(demographicStats.statistics.min, selectedMetric)}
+                      </span>
+                    </div>
+                    <div className={styles.summaryStatItem}>
+                      <span className={styles.summaryStatLabel}>Median:</span>
+                      <span className={styles.summaryStatValue}>
+                        {formatMetricValue(demographicStats.statistics.median, selectedMetric)}
+                      </span>
+                    </div>
+                    <div className={styles.summaryStatItem}>
+                      <span className={styles.summaryStatLabel}>Max:</span>
+                      <span className={styles.summaryStatValue}>
+                        {formatMetricValue(demographicStats.statistics.max, selectedMetric)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {loadingBoundaries ? (
                 <div className={styles.loadingState}>
                   <div className={styles.spinner}></div>
-                  <p>Loading {boundaryType}...</p>
+                  <p>Loading {useDemographics ? 'demographic data' : boundaryType}...</p>
                 </div>
               ) : boundaryElements.length > 0 ? (
                 <div className={styles.elementsContainer}>
-                  {boundaryElements.map((element, index) => (
-                    <div key={index} className={styles.elementItem}>
-                      {boundaryType === 'tracts' && (
+                  {boundaryElements
+                    .sort((a, b) => {
+                      // Sort by metric value in demographics mode, descending
+                      if (useDemographics && a.properties.metric_value && b.properties.metric_value) {
+                        return b.properties.metric_value - a.properties.metric_value;
+                      }
+                      return 0;
+                    })
+                    .map((element, index) => (
+                    <div 
+                      key={index} 
+                      className={styles.elementItem}
+                      onMouseEnter={() => useDemographics ? setHoveredTractId(element.properties.geo_id) : null}
+                      onMouseLeave={() => useDemographics ? setHoveredTractId(null) : null}
+                    >
+                      {useDemographics ? (
                         <div className={styles.tractInfo}>
-                          <div className={styles.tractId}>{element.properties.geo_id}</div>
+                          <div className={styles.tractId}>
+                            {element.properties.geo_id || 'Tract ID N/A'}
+                          </div>
                           <div className={styles.tractDetails}>
-                            {element.properties.state_fips_code && element.properties.county_fips_code && (
-                              <span className={styles.tractLocation}>
-                                State: {element.properties.state_fips_code}, County: {element.properties.county_fips_code}
-                              </span>
+                            <div className={styles.metricValue}>
+                              {element.properties.has_data 
+                                ? formatMetricValue(element.properties.metric_value, selectedMetric)
+                                : 'No data'}
+                            </div>
+                            {element.properties.total_population && (
+                              <div className={styles.tractLocation}>
+                                Pop: {element.properties.total_population.toLocaleString()}
+                              </div>
                             )}
                           </div>
                         </div>
-                      )}
-                      {boundaryType === 'zips' && (
-                        <div className={styles.zipInfo}>
-                          <div className={styles.zipCode}>{element.properties.zip_code}</div>
-                        </div>
-                      )}
-                      {boundaryType === 'counties' && (
-                        <div className={styles.countyInfo}>
-                          <div className={styles.countyName}>{element.properties.county_name}</div>
-                          <div className={styles.countyDetails}>
-                            {element.properties.state_fips_code && (
-                              <span className={styles.countyLocation}>
-                                State: {element.properties.state_fips_code}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      ) : (
+                        <>
+                          {boundaryType === 'tracts' && (
+                            <div className={styles.tractInfo}>
+                              <div className={styles.tractId}>{element.properties.geo_id}</div>
+                              <div className={styles.tractDetails}>
+                                {element.properties.state_fips_code && element.properties.county_fips_code && (
+                                  <span className={styles.tractLocation}>
+                                    State: {element.properties.state_fips_code}, County: {element.properties.county_fips_code}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {boundaryType === 'zips' && (
+                            <div className={styles.zipInfo}>
+                              <div className={styles.zipCode}>{element.properties.zip_code}</div>
+                            </div>
+                          )}
+                          {boundaryType === 'counties' && (
+                            <div className={styles.countyInfo}>
+                              <div className={styles.countyName}>{element.properties.county_name}</div>
+                              <div className={styles.countyDetails}>
+                                {element.properties.state_fips_code && (
+                                  <span className={styles.countyLocation}>
+                                    State: {element.properties.state_fips_code}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className={styles.emptyState}>
-                  <p>No {boundaryType} found within this market radius.</p>
+                  <p>No {useDemographics ? 'data' : boundaryType} found within this market radius.</p>
                 </div>
               )}
             </div>

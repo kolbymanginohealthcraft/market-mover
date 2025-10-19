@@ -1188,6 +1188,13 @@ export default function ClaimsDataInvestigation() {
 
           {/* Results Panel */}
           <div className={styles.resultsPanel}>
+            {/* Loading Overlay - Always show when loading */}
+            {loading && (
+              <div className={styles.loadingOverlay}>
+                <Spinner />
+              </div>
+            )}
+            
             <div className={styles.resultsHeader}>
               <h3>Results</h3>
               
@@ -1286,14 +1293,6 @@ export default function ClaimsDataInvestigation() {
               
               return (
                 <div className={styles.tableContainer}>
-                  {loading && (
-                    <div className={styles.loadingOverlay}>
-                      <div className={styles.loadingContent}>
-                        <Spinner />
-                        <span>Loading...</span>
-                      </div>
-                    </div>
-                  )}
                   <div className={styles.tableWrapper}>
                     <table className={styles.dataTable}>
                     <thead>

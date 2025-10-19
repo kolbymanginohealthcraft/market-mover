@@ -1,9 +1,10 @@
 .container {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--gray-50);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .controlsBar {
@@ -427,6 +428,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: 20px 24px;
+  position: relative; /* For loading overlay positioning */
 }
 
 .resultsHeader {
@@ -470,33 +472,18 @@
 
 .loadingOverlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(2px);
+  top: -20px;
+  left: -24px;
+  right: -24px;
+  bottom: -20px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-}
-
-.loadingContent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 24px 32px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.loadingContent span {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--gray-700);
+  z-index: 100;
+  pointer-events: none;
 }
 
 .emptyState {

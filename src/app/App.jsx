@@ -64,6 +64,7 @@ import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataIn
 import HCOAnalysis from "../pages/Private/HCOAnalysis/HCOAnalysis";
 import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
 import HCPAnalysis from "../pages/Private/HCPAnalysis/HCPAnalysis";
+import ReferralPathways from "../pages/Private/ReferralPathways/ReferralPathways";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
@@ -151,6 +152,7 @@ function AppContent({ location }) {
             <Route path="investigation/hco" element={<HCOAnalysis />} />
             <Route path="investigation/geography" element={<GeographyAnalysis />} />
             <Route path="investigation/hcp" element={<HCPAnalysis />} />
+            <Route path="investigation/referral-pathways" element={<ReferralPathways />} />
           </Route>
 
           {/* Fallback */}
