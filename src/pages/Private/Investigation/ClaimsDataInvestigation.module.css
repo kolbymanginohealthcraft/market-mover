@@ -777,6 +777,365 @@
   margin-right: 8px;
 }
 
+/* Pathway Controls */
+.pathwayControls {
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.presetButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.presetLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+}
+
+.presetButton {
+  padding: 6px 14px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.presetButton:hover {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+  color: var(--brand-600);
+}
+
+.fieldSelectorToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.fieldSelectorToggle:hover {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+}
+
+.refreshButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: #00C08B;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 192, 139, 0.3);
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: #00a878;
+  box-shadow: 0 4px 10px rgba(0, 192, 139, 0.4);
+  transform: translateY(-1px);
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Pathway Field Selector */
+.pathwayFieldSelector {
+  padding: 16px 24px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pathwayFieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pathwayFieldGroupName {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pathwayFieldList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pathwayFieldItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pathwayFilterIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 50%;
+  color: var(--gray-400);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pathwayFilterIcon:hover {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+  color: var(--brand-600);
+}
+
+.pathwayFieldChip {
+  padding: 8px 14px;
+  background: white;
+  border: 2px solid var(--gray-300);
+  border-radius: 18px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.pathwayFieldChip:hover {
+  border-color: var(--brand-400);
+  background: var(--brand-50);
+  transform: translateY(-1px);
+}
+
+.pathwayFieldChipSelected {
+  background: #00C08B;
+  border-color: #00C08B;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 192, 139, 0.3);
+}
+
+.pathwayFieldChipSelected:hover {
+  background: #00a878;
+  border-color: #00a878;
+  box-shadow: 0 4px 12px rgba(0, 192, 139, 0.4);
+}
+
+/* Pathway Active Filters */
+.pathwayActiveFilters {
+  padding: 12px 24px;
+  background: var(--yellow-50);
+  border-bottom: 1px solid var(--yellow-200);
+}
+
+.pathwayActiveFiltersHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pathwayActiveFiltersHeader span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.clearFiltersBtn {
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clearFiltersBtn:hover {
+  border-color: var(--red-500);
+  color: var(--red-600);
+  background: var(--red-50);
+}
+
+.pathwayFilterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pathwayFilterChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--yellow-300);
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.pathwayFilterChip button {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.pathwayFilterChip button:hover {
+  color: var(--red-600);
+}
+
+/* Filter Modal (for pathway filters) */
+.filterModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11000;
+}
+
+.filterModal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.filterModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.filterModalHeader h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.filterModalHeader button {
+  background: transparent;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.filterModalHeader button:hover {
+  color: var(--gray-700);
+}
+
+.filterModalContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.filterOption {
+  padding: 8px 0;
+}
+
+.filterOption label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-700);
+}
+
+.filterOption input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.filterModalFooter {
+  padding: 14px 20px;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.filterApplyButton {
+  padding: 10px 24px;
+  background: #00C08B;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 192, 139, 0.3);
+}
+
+.filterApplyButton:hover {
+  background: #00a878;
+  box-shadow: 0 4px 10px rgba(0, 192, 139, 0.4);
+  transform: translateY(-1px);
+}
+
 .modalContent {
   flex: 1;
   overflow: auto;

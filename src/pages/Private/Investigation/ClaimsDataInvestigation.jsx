@@ -24,9 +24,14 @@ export default function ClaimsDataInvestigation() {
   const [queryTime, setQueryTime] = useState(null);
   
   // Pathway drill-down state
-  const [pathwayModal, setPathwayModal] = useState(null); // { row, direction, data, loading }
+  const [pathwayModal, setPathwayModal] = useState(null); // { row, direction, data, loading, groupBy }
   const [pathwayData, setPathwayData] = useState(null);
   const [pathwayLoading, setPathwayLoading] = useState(false);
+  const [pathwayGroupBy, setPathwayGroupBy] = useState([]);
+  const [pathwayFilters, setPathwayFilters] = useState({}); // Additional filters for pathway results
+  const [showPathwayFieldSelector, setShowPathwayFieldSelector] = useState(false);
+  const [editingPathwayFilter, setEditingPathwayFilter] = useState(null);
+  const [pathwayFilterOptions, setPathwayFilterOptions] = useState({});
   
   // Query configuration
   const [columns, setColumns] = useState([]);
@@ -477,35 +482,109 @@ export default function ClaimsDataInvestigation() {
     }
   };
 
+  // Pathway field groups for the modal
+  const PATHWAY_FIELD_GROUPS = {
+    "Provider Identity": [
+      { value: "billing_provider_name", label: "Provider Name" },
+      { value: "facility_provider_name", label: "Facility Name" },
+      { value: "service_location_provider_name", label: "Service Location" },
+      { value: "performing_provider_name", label: "Performing Provider" },
+    ],
+    "Provider Type": [
+      { value: "billing_provider_taxonomy_classification", label: "Taxonomy Classification" },
+      { value: "billing_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
+      { value: "billing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
+    ],
+    "Geography": [
+      { value: "billing_provider_state", label: "Provider State" },
+      { value: "billing_provider_city", label: "Provider City" },
+      { value: "billing_provider_county", label: "Provider County" },
+    ],
+    "Procedures & Services": [
+      { value: "code", label: "Procedure Code" },
+      { value: "code_description", label: "Code Description" },
+      { value: "service_line_description", label: "Service Line" },
+      { value: "subservice_line_description", label: "Sub-Service Line" },
+      { value: "service_category_description", label: "Service Category" },
+    ],
+    "Patient Demographics": [
+      { value: "patient_age_bracket", label: "Age Bracket" },
+      { value: "patient_gender", label: "Gender" },
+      { value: "patient_state", label: "Patient State" },
+      { value: "patient_zip3", label: "Patient ZIP3" },
+    ],
+    "Payor": [
+      { value: "payor_group", label: "Payor Group" },
+      { value: "type_of_coverage", label: "Coverage Type" },
+    ],
+    "Temporal": [
+      { value: "date__month_grain", label: "Month" },
+    ],
+  };
+
+  // Preset pathway views
+  const PATHWAY_PRESETS = {
+    upstream: [
+      { name: "By Provider", fields: ['billing_provider_name', 'billing_provider_state'] },
+      { name: "By Provider Type", fields: ['billing_provider_taxonomy_classification'] },
+      { name: "Provider + Type", fields: ['billing_provider_name', 'billing_provider_taxonomy_classification'] },
+      { name: "By Geography", fields: ['billing_provider_state', 'billing_provider_city'] },
+      { name: "By Demographics", fields: ['patient_age_bracket', 'patient_gender'] },
+    ],
+    downstream: [
+      { name: "By Provider", fields: ['billing_provider_name', 'billing_provider_state'] },
+      { name: "By Provider Type", fields: ['billing_provider_taxonomy_classification'] },
+      { name: "Provider + Type", fields: ['billing_provider_name', 'billing_provider_taxonomy_classification'] },
+      { name: "By Code", fields: ['code', 'code_description'] },
+      { name: "By Service Line", fields: ['service_line_description'] },
+      { name: "By Payor", fields: ['payor_group'] },
+    ]
+  };
+
   // Query pathways for a specific row (upstream or downstream)
-  const queryPathways = async (row, direction) => {
-    setPathwayModal({ row, direction, loading: true, data: null });
+  const queryPathways = async (row, direction, customGroupBy = null) => {
+    // If this is initial click, set default groupBy
+    const defaultGroupBy = direction === 'upstream' 
+      ? ['billing_provider_name', 'billing_provider_state']
+      : ['billing_provider_name', 'code', 'service_line_description'];
+    
+    const groupByToUse = customGroupBy || pathwayGroupBy.length > 0 ? pathwayGroupBy : defaultGroupBy;
+    
+    setPathwayModal({ row, direction, loading: true, data: null, groupBy: groupByToUse });
     setPathwayLoading(true);
+    
+    // Set pathway group by if not already set
+    if (pathwayGroupBy.length === 0) {
+      setPathwayGroupBy(defaultGroupBy);
+    }
 
     try {
       // Build filters from the row data
-      const pathwayFilters = {};
+      const combinedFilters = {};
       
       // Map columns from the row to pathway filters
       columns.forEach(col => {
         if (row[col] !== null && row[col] !== undefined) {
           // Handle values that might be objects (BigQuery returns)
           const value = row[col]?.value !== undefined ? row[col].value : row[col];
-          pathwayFilters[col] = value;
+          combinedFilters[col] = value;
         }
       });
 
-      // Add existing filters
+      // Add existing filters from main query
       Object.entries(filters).forEach(([key, value]) => {
-        pathwayFilters[key] = value;
+        combinedFilters[key] = value;
+      });
+      
+      // Add pathway-specific filters (from modal)
+      Object.entries(pathwayFilters).forEach(([key, value]) => {
+        combinedFilters[key] = value;
       });
 
       console.log('🔍 Pathway query request:', {
         direction,
-        filters: pathwayFilters,
-        groupBy: direction === 'upstream' 
-          ? ['billing_provider_name', 'facility_provider_name', 'taxonomy_classification']
-          : ['billing_provider_name', 'code', 'service_line_description']
+        filters: combinedFilters,
+        groupBy: groupByToUse
       });
 
       // Query pathways table
@@ -513,15 +592,13 @@ export default function ClaimsDataInvestigation() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          groupBy: direction === 'upstream' 
-            ? ['billing_provider_name', 'facility_provider_name', 'taxonomy_classification']
-            : ['billing_provider_name', 'code', 'service_line_description'],
+          groupBy: groupByToUse,
           aggregates: [
             { function: 'COUNT', column: '*', alias: 'total_count' },
             { function: 'SUM', column: 'charges_total', alias: 'total_charges' }
           ],
-          filters: pathwayFilters,
-          limit: 50,
+          filters: combinedFilters,
+          limit: 100,
           direction
         })
       });
@@ -543,6 +620,103 @@ export default function ClaimsDataInvestigation() {
 
   const closePathwayModal = () => {
     setPathwayModal(null);
+    setPathwayGroupBy([]);
+    setPathwayFilters({});
+    setShowPathwayFieldSelector(false);
+    setEditingPathwayFilter(null);
+    setPathwayFilterOptions({});
+  };
+
+  const togglePathwayField = (field) => {
+    setPathwayGroupBy(prev => 
+      prev.includes(field) 
+        ? prev.filter(f => f !== field)
+        : [...prev, field]
+    );
+  };
+
+  const applyPathwayPreset = (preset) => {
+    setPathwayGroupBy(preset.fields);
+    // Re-run query with new grouping
+    if (pathwayModal) {
+      queryPathways(pathwayModal.row, pathwayModal.direction, preset.fields);
+    }
+  };
+
+  const refreshPathwayQuery = () => {
+    if (pathwayModal && pathwayGroupBy.length > 0) {
+      queryPathways(pathwayModal.row, pathwayModal.direction, pathwayGroupBy);
+    }
+  };
+
+  const addPathwayFilter = async (field) => {
+    setEditingPathwayFilter(field);
+    
+    try {
+      // Build current filters to send for distinct values
+      const combinedFilters = {};
+      
+      // Add row context
+      columns.forEach(col => {
+        if (pathwayModal.row[col] !== null && pathwayModal.row[col] !== undefined) {
+          const value = pathwayModal.row[col]?.value !== undefined ? pathwayModal.row[col].value : pathwayModal.row[col];
+          combinedFilters[col] = value;
+        }
+      });
+      
+      // Add existing filters
+      Object.entries(filters).forEach(([key, value]) => {
+        combinedFilters[key] = value;
+      });
+      
+      // Add pathway filters
+      Object.entries(pathwayFilters).forEach(([key, value]) => {
+        combinedFilters[key] = value;
+      });
+
+      const response = await fetch('/api/patient-journey/distinct-values', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          column: field,
+          filters: combinedFilters,
+          limit: 100,
+          direction: pathwayModal.direction
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch filter options');
+
+      const result = await response.json();
+      setPathwayFilterOptions(prev => ({
+        ...prev,
+        [field]: result.data
+      }));
+    } catch (err) {
+      console.error('Error fetching pathway filter options:', err);
+    }
+  };
+
+  const togglePathwayFilterValue = (field, value) => {
+    setPathwayFilters(prev => {
+      const currentValues = prev[field] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+      return { ...prev, [field]: newValues };
+    });
+  };
+
+  const removePathwayFilter = (field) => {
+    setPathwayFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[field];
+      return newFilters;
+    });
+  };
+
+  const clearAllPathwayFilters = () => {
+    setPathwayFilters({});
   };
 
   // Fetch filter options for a specific field
@@ -1506,6 +1680,103 @@ export default function ClaimsDataInvestigation() {
               <strong>Context:</strong> {columns.map(col => `${allFields[col]}: ${pathwayModal.row[col]}`).join(' | ')}
             </div>
 
+            {/* Pathway Controls */}
+            <div className={styles.pathwayControls}>
+              {/* Preset Views */}
+              <div className={styles.presetButtons}>
+                <span className={styles.presetLabel}>View by:</span>
+                {PATHWAY_PRESETS[pathwayModal.direction].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    className={styles.presetButton}
+                    onClick={() => applyPathwayPreset(preset)}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Field Selector Toggle */}
+              <button
+                className={styles.fieldSelectorToggle}
+                onClick={() => setShowPathwayFieldSelector(!showPathwayFieldSelector)}
+              >
+                <Columns3 size={14} />
+                Custom Fields ({pathwayGroupBy.length})
+                <ChevronDown size={14} style={{ transform: showPathwayFieldSelector ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+
+              {/* Refresh Button */}
+              {pathwayGroupBy.length > 0 && (
+                <button
+                  className={styles.refreshButton}
+                  onClick={refreshPathwayQuery}
+                  disabled={pathwayLoading}
+                >
+                  <Play size={14} />
+                  Refresh
+                </button>
+              )}
+            </div>
+
+            {/* Active Pathway Filters */}
+            {Object.keys(pathwayFilters).length > 0 && (
+              <div className={styles.pathwayActiveFilters}>
+                <div className={styles.pathwayActiveFiltersHeader}>
+                  <span><FilterIcon size={14} /> Active Filters ({Object.keys(pathwayFilters).length})</span>
+                  <button className={styles.clearFiltersBtn} onClick={clearAllPathwayFilters}>
+                    Clear All
+                  </button>
+                </div>
+                <div className={styles.pathwayFilterChips}>
+                  {Object.entries(pathwayFilters).map(([field, value]) => {
+                    const fieldLabel = Object.values(PATHWAY_FIELD_GROUPS)
+                      .flat()
+                      .find(f => f.value === field)?.label || field;
+                    return (
+                      <div key={field} className={styles.pathwayFilterChip}>
+                        {fieldLabel}: {Array.isArray(value) ? `${value.length} selected` : value}
+                        <button onClick={() => removePathwayFilter(field)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Field Selector (Collapsible) */}
+            {showPathwayFieldSelector && (
+              <div className={styles.pathwayFieldSelector}>
+                {Object.entries(PATHWAY_FIELD_GROUPS).map(([groupName, fields]) => (
+                  <div key={groupName} className={styles.pathwayFieldGroup}>
+                    <div className={styles.pathwayFieldGroupName}>{groupName}</div>
+                    <div className={styles.pathwayFieldList}>
+                      {fields.map(field => (
+                        <div key={field.value} className={styles.pathwayFieldItem}>
+                          <button
+                            className={`${styles.pathwayFieldChip} ${pathwayGroupBy.includes(field.value) ? styles.pathwayFieldChipSelected : ''}`}
+                            onClick={() => togglePathwayField(field.value)}
+                          >
+                            {field.label}
+                            {pathwayGroupBy.includes(field.value) && ' ✓'}
+                          </button>
+                          <button
+                            className={styles.pathwayFilterIcon}
+                            onClick={() => addPathwayFilter(field.value)}
+                            title="Add filter"
+                          >
+                            <FilterIcon size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className={styles.modalContent}>
               {pathwayModal.loading && (
                 <div className={styles.modalLoading}>
@@ -1556,6 +1827,45 @@ export default function ClaimsDataInvestigation() {
                   No pathway data found for this selection
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pathway Filter Modal */}
+      {editingPathwayFilter && pathwayFilterOptions[editingPathwayFilter] && (
+        <div className={styles.filterModalOverlay} onClick={() => setEditingPathwayFilter(null)}>
+          <div className={styles.filterModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.filterModalHeader}>
+              <h3>Filter: {Object.values(PATHWAY_FIELD_GROUPS).flat().find(f => f.value === editingPathwayFilter)?.label}</h3>
+              <button onClick={() => setEditingPathwayFilter(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.filterModalContent}>
+              {pathwayFilterOptions[editingPathwayFilter].map((option, idx) => (
+                <div key={idx} className={styles.filterOption}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={(pathwayFilters[editingPathwayFilter] || []).includes(option.value)}
+                      onChange={() => togglePathwayFilterValue(editingPathwayFilter, option.value)}
+                    />
+                    {option.value} ({formatNumber(option.count)})
+                  </label>
+                </div>
+              ))}
+            </div>
+            <div className={styles.filterModalFooter}>
+              <button 
+                onClick={() => {
+                  setEditingPathwayFilter(null);
+                  refreshPathwayQuery();
+                }} 
+                className={styles.filterApplyButton}
+              >
+                Apply & Refresh
+              </button>
             </div>
           </div>
         </div>

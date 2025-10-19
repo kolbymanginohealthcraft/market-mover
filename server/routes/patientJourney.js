@@ -310,8 +310,20 @@ router.post("/distinct-values", async (req, res) => {
 
     const startTime = Date.now();
 
+    // Determine mapping direction based on pathway direction
+    let mappingDirection = null;
+    if (direction === 'upstream') {
+      mappingDirection = 'outbound'; // We want to see outbound provider values
+    } else if (direction === 'downstream') {
+      mappingDirection = 'inbound'; // We want to see inbound provider values
+    } else {
+      mappingDirection = 'outbound'; // Default for 'current'
+    }
+
     // Map the column to pathway field
-    const pathwayField = mapField(column, direction === 'current' ? 'outbound' : direction);
+    const pathwayField = mapField(column, mappingDirection);
+    
+    console.log(`🔍 Distinct values for: ${column} → ${pathwayField} (direction: ${direction}, mapping: ${mappingDirection})`);
 
     // Build WHERE clause from filters
     const whereConditions = [];
@@ -324,10 +336,27 @@ router.post("/distinct-values", async (req, res) => {
     whereConditions.push(`date__month_grain >= '${dateString}'`);
 
     Object.entries(filters).forEach(([field, value]) => {
-      const mappedField = mapField(field, direction === 'current' ? 'outbound' : direction);
+      if (field === 'date__month_grain') return; // Skip date, handled separately
+      if (!value) return;
+      
+      // Map field based on direction for WHERE clause
+      let filterMappingDirection = null;
+      if (direction === 'upstream') {
+        filterMappingDirection = 'inbound'; // Filters apply to inbound side
+      } else if (direction === 'downstream') {
+        filterMappingDirection = 'outbound'; // Filters apply to outbound side
+      } else {
+        filterMappingDirection = 'outbound'; // Default
+      }
+      
+      const mappedField = mapField(field, filterMappingDirection);
+      
       if (Array.isArray(value) && value.length > 0) {
-        const valueList = value.map(v => `'${v}'`).join(',');
+        const valueList = value.map(v => `'${String(v).replace(/'/g, "\\'")}'`).join(',');
         whereConditions.push(`${mappedField} IN (${valueList})`);
+      } else if (value !== null && value !== undefined) {
+        const escapedValue = String(value).replace(/'/g, "\\'");
+        whereConditions.push(`${mappedField} = '${escapedValue}'`);
       }
     });
 
