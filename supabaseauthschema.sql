@@ -81,10 +81,30 @@ CREATE TABLE auth.mfa_factors (
   CONSTRAINT mfa_factors_pkey PRIMARY KEY (id),
   CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE auth.oauth_authorizations (
+  id uuid NOT NULL,
+  authorization_id text NOT NULL UNIQUE,
+  client_id uuid NOT NULL,
+  user_id uuid,
+  redirect_uri text NOT NULL CHECK (char_length(redirect_uri) <= 2048),
+  scope text NOT NULL CHECK (char_length(scope) <= 4096),
+  state text CHECK (char_length(state) <= 4096),
+  resource text CHECK (char_length(resource) <= 2048),
+  code_challenge text CHECK (char_length(code_challenge) <= 128),
+  code_challenge_method USER-DEFINED,
+  response_type USER-DEFINED NOT NULL DEFAULT 'code'::auth.oauth_response_type,
+  status USER-DEFINED NOT NULL DEFAULT 'pending'::auth.oauth_authorization_status,
+  authorization_code text UNIQUE CHECK (char_length(authorization_code) <= 255),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL DEFAULT (now() + '00:03:00'::interval),
+  approved_at timestamp with time zone,
+  CONSTRAINT oauth_authorizations_pkey PRIMARY KEY (id),
+  CONSTRAINT oauth_authorizations_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id),
+  CONSTRAINT oauth_authorizations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE auth.oauth_clients (
   id uuid NOT NULL,
-  client_id text NOT NULL UNIQUE,
-  client_secret_hash text NOT NULL,
+  client_secret_hash text,
   registration_type USER-DEFINED NOT NULL,
   redirect_uris text NOT NULL,
   grant_types text NOT NULL,
@@ -94,7 +114,19 @@ CREATE TABLE auth.oauth_clients (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   deleted_at timestamp with time zone,
+  client_type USER-DEFINED NOT NULL DEFAULT 'confidential'::auth.oauth_client_type,
   CONSTRAINT oauth_clients_pkey PRIMARY KEY (id)
+);
+CREATE TABLE auth.oauth_consents (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  client_id uuid NOT NULL,
+  scopes text NOT NULL CHECK (char_length(scopes) <= 2048),
+  granted_at timestamp with time zone NOT NULL DEFAULT now(),
+  revoked_at timestamp with time zone,
+  CONSTRAINT oauth_consents_pkey PRIMARY KEY (id),
+  CONSTRAINT oauth_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT oauth_consents_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id)
 );
 CREATE TABLE auth.one_time_tokens (
   id uuid NOT NULL,
@@ -162,7 +194,9 @@ CREATE TABLE auth.sessions (
   user_agent text,
   ip inet,
   tag text,
+  oauth_client_id uuid,
   CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_oauth_client_id_fkey FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id),
   CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE auth.sso_domains (

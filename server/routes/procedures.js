@@ -260,11 +260,11 @@ router.post("/procedures-by-service-line", async (req, res) => {
 // Get procedure reference codes with search and pagination
 router.get("/procedures-reference", async (req, res) => {
   try {
-    const { search = '', limit = 100, offset = 0, category = '', line = '', subservice = '' } = req.query;
-    console.log("🔍 Fetching procedure reference codes...", { search, limit, offset, category, line, subservice });
+    const { search = '', limit = 100, offset = 0, category = '', line = '', subservice = '', is_surgery = '' } = req.query;
+    console.log("🔍 Fetching procedure reference codes...", { search, limit, offset, category, line, subservice, is_surgery });
     
     // Check cache first
-    const cacheKey = `procedures-reference-${search}-${category}-${line}-${subservice}-${limit}-${offset}`;
+    const cacheKey = `procedures-reference-${search}-${category}-${line}-${subservice}-${is_surgery}-${limit}-${offset}`;
     const cachedResult = cache.get(cacheKey);
     if (cachedResult) {
       console.log("✅ Returning cached results");
@@ -310,6 +310,12 @@ router.get("/procedures-reference", async (req, res) => {
     if (subservice && subservice.trim().length > 0) {
       whereConditions.push('subservice_line_code = @subservice');
       params.subservice = subservice;
+    }
+    
+    // Is surgery filter
+    if (is_surgery && is_surgery.trim().length > 0) {
+      whereConditions.push('is_surgery = @is_surgery');
+      params.is_surgery = is_surgery === 'true';
     }
     
     const whereClause = whereConditions.length > 0 

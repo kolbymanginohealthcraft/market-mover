@@ -232,6 +232,53 @@ const SubNavigation = () => {
     );
   }
 
+  // Handle Diagnoses page navigation
+  const isDiagnosesPage = location.pathname.includes('/diagnoses') || location.pathname === '/app/diagnoses';
+  
+  if (isDiagnosesPage) {
+    if (!teamLoading && !hasTeam) {
+      return (
+        <nav className={styles.subNavigation}>
+          <div className={styles.navLeft}>
+            <div className={`${styles.tab} ${styles.disabled}`} style={{ cursor: 'not-allowed' }}>
+              <Lock size={16} />
+              Team Required
+            </div>
+          </div>
+          <div className={styles.navRight}>
+            <div className={styles.teamRequiredMessage}>
+              Join or create a team to access diagnosis tagging features
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // Determine the current view from the URL
+    const currentView = location.pathname.includes('/diagnoses/browse') ? 'browse' : 'tags';
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          <Link
+            to="/app/diagnoses/tags"
+            className={`${styles.tab} ${currentView === 'tags' ? styles.active : ''}`}
+          >
+            <Bookmark size={16} />
+            My Tags
+          </Link>
+          <Link
+            to="/app/diagnoses/browse"
+            className={`${styles.tab} ${currentView === 'browse' ? styles.active : ''}`}
+          >
+            <Search size={16} />
+            Browse All
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+
   // Handle new provider market analysis pages (/app/:dhc/market/*)
   if (location.pathname.match(/^\/app\/\d+\/market\//)) {
     const pathSegments = location.pathname.split('/');

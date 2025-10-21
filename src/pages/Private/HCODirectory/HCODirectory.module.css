@@ -1,0 +1,501 @@
+.container {
+  padding: 24px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gray-50);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.headerLeft {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.headerLeft h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.headerLeft p {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.mainLayout {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 300px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--gray-200);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebarHeader {
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.sidebarHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterGroup {
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.filterLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+
+.select,
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--gray-900);
+  background: white;
+}
+
+.select:focus,
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 192, 139, 0.1);
+}
+
+.marketInfo {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--gray-50);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--gray-600);
+  text-align: center;
+}
+
+.filterHeader {
+  width: 100%;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-900);
+  transition: color 0.2s;
+}
+
+.filterHeader:hover {
+  color: var(--primary);
+}
+
+.filterBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: var(--primary);
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.filterContent {
+  margin-top: 8px;
+}
+
+.filterLoading {
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.filterList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.filterCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
+}
+
+.filterCheckbox:hover {
+  background: var(--gray-50);
+}
+
+.filterCheckbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.filterCheckbox span {
+  flex: 1;
+  color: var(--gray-700);
+}
+
+.filterCount {
+  font-size: 12px !important;
+  color: var(--gray-500) !important;
+  flex: 0 !important;
+}
+
+.booleanFilter {
+  margin-bottom: 12px;
+}
+
+.booleanFilter:last-child {
+  margin-bottom: 0;
+}
+
+.booleanFilter label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+.booleanButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.booleanButton {
+  flex: 1;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.booleanButton:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
+}
+
+.booleanButton.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.resultsHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--gray-50);
+}
+
+.resultsInfo h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.resultsInfo p {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.resultsActions {
+  display: flex;
+  gap: 8px;
+}
+
+.loadingState,
+.errorState,
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.loadingState p,
+.emptyState p {
+  margin: 12px 0 4px 0;
+  color: var(--gray-600);
+  font-size: 14px;
+}
+
+.emptyState h2 {
+  margin: 16px 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.emptyState button {
+  margin-top: 16px;
+}
+
+.errorState p {
+  color: var(--error);
+  font-weight: 500;
+}
+
+.tableWrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.resultsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.resultsTable thead {
+  position: sticky;
+  top: 0;
+  background: var(--gray-50);
+  z-index: 1;
+}
+
+.resultsTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.resultsTable tbody tr {
+  border-bottom: 1px solid var(--gray-100);
+  transition: background 0.2s;
+}
+
+.resultsTable tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.resultsTable td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--gray-900);
+}
+
+.orgCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orgName {
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.orgNpi {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.firmType {
+  font-size: 13px;
+  color: var(--gray-700);
+}
+
+.taxonomyCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.taxonomyMain {
+  font-size: 13px;
+  color: var(--gray-900);
+}
+
+.taxonomySub {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.locationCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zip {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.affiliationCell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--primary);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.independent {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-style: italic;
+}
+
+.viewButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 192, 139, 0.3);
+  white-space: nowrap;
+}
+
+.viewButton:hover {
+  background: #00a878;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.4);
+}
+
+.viewButton:active {
+  transform: translateY(0);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.paginationButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 192, 139, 0.2);
+}
+
+.paginationButton:hover:not(:disabled) {
+  background: #00a878;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 192, 139, 0.3);
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-400);
+  transform: none;
+  box-shadow: none;
+}
+
+.paginationInfo {
+  font-size: 14px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+

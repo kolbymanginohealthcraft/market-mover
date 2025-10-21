@@ -3,6 +3,7 @@ import { supabase } from '../../../app/supabaseClient';
 import { Plus, Search as SearchIcon, Tag, ChevronDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
+import ProcedureTooltip from '../../../components/UI/ProcedureTooltip';
 import styles from './Procedures.module.css';
 
 export default function ProceduresBrowseView() {
@@ -20,9 +21,11 @@ export default function ProceduresBrowseView() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLine, setSelectedLine] = useState('all');
   const [selectedSubservice, setSelectedSubservice] = useState('all');
+  const [isSurgery, setIsSurgery] = useState('all');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [lineDropdownOpen, setLineDropdownOpen] = useState(false);
   const [subserviceDropdownOpen, setSubserviceDropdownOpen] = useState(false);
+  const [surgeryDropdownOpen, setSurgeryDropdownOpen] = useState(false);
 
   async function fetchProcedureTags() {
     try {
@@ -124,7 +127,8 @@ export default function ProceduresBrowseView() {
         offset: offset.toString(),
         category: selectedCategory !== 'all' ? selectedCategory : '',
         line: selectedLine !== 'all' ? selectedLine : '',
-        subservice: selectedSubservice !== 'all' ? selectedSubservice : ''
+        subservice: selectedSubservice !== 'all' ? selectedSubservice : '',
+        is_surgery: isSurgery !== 'all' ? isSurgery : ''
       });
       
       const response = await fetch(`/api/procedures-reference?${params}`);
@@ -148,7 +152,7 @@ export default function ProceduresBrowseView() {
     } finally {
       setSearchLoading(false);
     }
-  }, [searchTerm, currentPage, itemsPerPage, selectedCategory, selectedLine, selectedSubservice]);
+  }, [searchTerm, currentPage, itemsPerPage, selectedCategory, selectedLine, selectedSubservice, isSurgery]);
 
   async function enrichWithVolumeData(codes) {
     try {
@@ -215,6 +219,10 @@ export default function ProceduresBrowseView() {
   }, [selectedLine]);
 
   useEffect(() => {
+    setCurrentPage(1);
+  }, [isSurgery]);
+
+  useEffect(() => {
     fetchReferenceCodes();
   }, [fetchReferenceCodes]);
 
@@ -272,7 +280,7 @@ export default function ProceduresBrowseView() {
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
-    <div className={styles.viewContainer}>
+    <>
       {/* Search and Pagination Controls */}
       <ControlsRow
         leftContent={
@@ -291,31 +299,15 @@ export default function ProceduresBrowseView() {
           </div>
         }
         rightContent={
-          !searchLoading && referenceCodes.length > 0 && (
+          totalCount > 0 && (
             <div className={styles.paginationControls}>
-              <div className={styles.pageSizeSelector}>
-                <label htmlFor="pageSize">Show:</label>
-                <select 
-                  id="pageSize" 
-                  className={styles.pageSizeSelect}
-                  value={itemsPerPage} 
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
               <span className={styles.resultsCount}>
-                Showing {referenceCodes.length} of {totalCount.toLocaleString()} procedures
+                Showing {referenceCodes.length} of {totalCount.toLocaleString()}
               </span>
               <button 
                 className={styles.paginationButton}
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || searchLoading}
               >
                 Previous
               </button>
@@ -325,7 +317,7 @@ export default function ProceduresBrowseView() {
               <button 
                 className={styles.paginationButton}
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || searchLoading}
               >
                 Next
               </button>
@@ -448,6 +440,46 @@ export default function ProceduresBrowseView() {
                 </div>
               ))}
             </Dropdown>
+
+            <Dropdown
+              trigger={
+                <button className="sectionHeaderButton">
+                  {isSurgery === 'all' ? 'All Types' : isSurgery === 'true' ? 'Surgery Only' : 'Non-Surgery Only'}
+                  <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                </button>
+              }
+              isOpen={surgeryDropdownOpen}
+              onToggle={setSurgeryDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setIsSurgery('all');
+                  setSurgeryDropdownOpen(false);
+                }}
+              >
+                All Types
+              </div>
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setIsSurgery('true');
+                  setSurgeryDropdownOpen(false);
+                }}
+              >
+                Surgery Only
+              </div>
+              <div 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setIsSurgery('false');
+                  setSurgeryDropdownOpen(false);
+                }}
+              >
+                Non-Surgery Only
+              </div>
+            </Dropdown>
           </>
         }
       />
@@ -495,8 +527,18 @@ export default function ProceduresBrowseView() {
                         <code>{proc.code}</code>
                       </td>
                       <td>{proc.code_system || 'N/A'}</td>
-                      <td className={styles.summaryCell} title={proc.code_description}>
-                        {proc.code_summary || 'N/A'}
+                      <td className={styles.summaryCell}>
+                        <ProcedureTooltip
+                          code={proc.code}
+                          summary={proc.code_summary}
+                          description={proc.code_description}
+                          category={proc.service_category_description}
+                          serviceLine={proc.service_line_description}
+                          subserviceLine={proc.subservice_line_description}
+                          isSurgery={proc.is_surgery}
+                        >
+                          {proc.code_summary || 'N/A'}
+                        </ProcedureTooltip>
                       </td>
                       <td>{proc.service_category_description || 'N/A'}</td>
                       <td>{proc.service_line_description || 'N/A'}</td>
@@ -534,7 +576,7 @@ export default function ProceduresBrowseView() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
 

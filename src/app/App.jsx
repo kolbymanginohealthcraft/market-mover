@@ -60,10 +60,14 @@ import MarketsList from "../pages/Private/Markets/MarketsList";
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
 import Network from "../pages/Private/Network/Network";
 import Procedures from "../pages/Private/Procedures/Procedures";
+import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
 import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
-import HCOAnalysis from "../pages/Private/HCOAnalysis/HCOAnalysis";
+import HCOAnalysisV2 from "../pages/Private/HCOAnalysis/HCOAnalysisV2";
+import HCODirectory from "../pages/Private/HCODirectory/HCODirectory";
+import HCOProfile from "../pages/Private/HCODirectory/HCOProfile";
 import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
-import HCPAnalysis from "../pages/Private/HCPAnalysis/HCPAnalysis";
+import HCPAnalysisV2 from "../pages/Private/HCPAnalysis/HCPAnalysisV2";
+import ReferralPathways from "../pages/Private/ReferralPathways/ReferralPathways";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 
@@ -147,10 +151,14 @@ function AppContent({ location }) {
             <Route path="style-guide" element={<StyleGuide />} />
             <Route path="network/*" element={<Network />} />
             <Route path="procedures/*" element={<Procedures />} />
+            <Route path="diagnoses/*" element={<Diagnoses />} />
             <Route path="investigation/claims" element={<ClaimsDataInvestigation />} />
-            <Route path="investigation/hco" element={<HCOAnalysis />} />
+            <Route path="investigation/hco" element={<HCOAnalysisV2 />} />
+            <Route path="hco-directory" element={<HCODirectory />} />
+            <Route path="hco-directory/:npi" element={<HCOProfile />} />
             <Route path="investigation/geography" element={<GeographyAnalysis />} />
-            <Route path="investigation/hcp" element={<HCPAnalysis />} />
+            <Route path="investigation/hcp" element={<HCPAnalysisV2 />} />
+            <Route path="investigation/referral-pathways" element={<ReferralPathways />} />
           </Route>
 
           {/* Fallback */}

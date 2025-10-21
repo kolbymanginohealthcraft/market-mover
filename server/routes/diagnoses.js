@@ -22,29 +22,42 @@ router.post("/diagnoses-volume", async (req, res) => {
       });
     }
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_diagnosis table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     let query;
     let params = {};
     
     if (npis && Array.isArray(npis) && npis.length > 0) {
       // Filter by specific NPIs
       query = `
-        WITH latest_date AS (
-          SELECT MAX(date__month_grain) as max_date
-          FROM \`aegis_access.volume_diagnosis\`
-          WHERE billing_provider_npi IN UNNEST(@npis)
-        )
         SELECT 
           date__month_grain,
           CAST(date__month_grain AS STRING) as date_string,
           SUM(count) as total_count
-        FROM \`aegis_access.volume_diagnosis\`, latest_date
+        FROM \`aegis_access.volume_diagnosis\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(latest_date.max_date, INTERVAL 11 MONTH)
+          AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY date__month_grain
         ORDER BY date__month_grain DESC
         LIMIT 12
       `;
-      params = { npis };
+      params = { npis, maxDate };
     } else {
       // No NPIs provided, get all data (fallback)
       query = `
@@ -53,15 +66,18 @@ router.post("/diagnoses-volume", async (req, res) => {
           CAST(date__month_grain AS STRING) as date_string,
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
+        WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY date__month_grain
         ORDER BY date__month_grain DESC
         LIMIT 12
       `;
+      params = { maxDate };
     }
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: Object.keys(params).length > 0 ? params : undefined
+      params
     });
     
     console.log(`✅ Retrieved ${rows.length} months of diagnosis volume data`);
@@ -74,10 +90,13 @@ router.post("/diagnoses-volume", async (req, res) => {
       success: true,
       data: rows,
       timestamp: new Date().toISOString(),
+      metadata: {
+        maxDate: maxDate
+      },
       debug: {
         npisRequested: npis?.length || 0,
         monthsReturned: rows.length,
-        dateFilter: "Last 12 months"
+        dateFilter: `Last 12 months (through ${maxDate})`
       }
     });
     
@@ -101,25 +120,50 @@ router.get("/diagnoses-volume", async (req, res) => {
   try {
     console.log("🔍 Fetching diagnosis volume data (GET endpoint)...");
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_diagnosis table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     const query = `
       SELECT 
         date__month_grain,
         CAST(date__month_grain AS STRING) as date_string,
         SUM(count) as total_count
       FROM \`aegis_access.volume_diagnosis\`
+      WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+        AND date__month_grain <= @maxDate
       GROUP BY date__month_grain
       ORDER BY date__month_grain DESC
       LIMIT 12
     `;
     
-    const [rows] = await vendorBigQueryClient.query({ query });
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params: { maxDate }
+    });
     
     console.log(`✅ Retrieved ${rows.length} months of diagnosis volume data`);
     
     res.json({
       success: true,
       data: rows,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      metadata: {
+        maxDate: maxDate
+      }
     });
     
   } catch (error) {
@@ -195,6 +239,23 @@ router.post("/diagnoses-by-provider", async (req, res) => {
     const { npis } = req.body;
     console.log("🔍 Fetching diagnosis data by provider...", { npis: npis?.length || 0 });
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_diagnosis table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     let query;
     let params = {};
     
@@ -205,26 +266,30 @@ router.post("/diagnoses-by-provider", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY billing_provider_npi
         ORDER BY total_count DESC
       `;
-      params = { npis };
+      params = { npis, maxDate };
     } else {
       query = `
         SELECT 
           billing_provider_npi,
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
+        WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY billing_provider_npi
         ORDER BY total_count DESC
         LIMIT 20
       `;
+      params = { maxDate };
     }
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: Object.keys(params).length > 0 ? params : undefined
+      params
     });
     
     console.log(`✅ Retrieved ${rows.length} providers of diagnosis data`);
@@ -237,7 +302,7 @@ router.post("/diagnoses-by-provider", async (req, res) => {
       debug: {
         npisRequested: npis?.length || 0,
         npisWithData: rows.length,
-        dateFilter: "Last 12 months"
+        dateFilter: `Last 12 months (through ${maxDate})`
       }
     });
     
@@ -258,6 +323,23 @@ router.post("/diagnoses-by-service-line", async (req, res) => {
     const { npis } = req.body;
     console.log("🔍 Fetching diagnosis data by service line...", { npis: npis?.length || 0 });
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_diagnosis table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     let query;
     let params = {};
     
@@ -268,26 +350,30 @@ router.post("/diagnoses-by-service-line", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY service_line_description
         ORDER BY total_count DESC
       `;
-      params = { npis };
+      params = { npis, maxDate };
     } else {
       query = `
         SELECT 
           service_line_description,
           SUM(count) as total_count
         FROM \`aegis_access.volume_diagnosis\`
+        WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY service_line_description
         ORDER BY total_count DESC
         LIMIT 20
       `;
+      params = { maxDate };
     }
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: Object.keys(params).length > 0 ? params : undefined
+      params
     });
     
     console.log(`✅ Retrieved ${rows.length} service lines of diagnosis data`);
@@ -624,6 +710,337 @@ router.get("/diagnoses-debug-tables", async (req, res) => {
   }
 });
 
+// Get diagnosis reference codes with search and pagination
+router.get("/diagnoses-reference", async (req, res) => {
+  try {
+    const { search = '', limit = 100, offset = 0, category = '', line = '', subservice = '', code_system = '' } = req.query;
+    console.log("🔍 Fetching diagnosis reference codes...", { search, limit, offset, category, line, subservice, code_system });
+    
+    // Check cache first
+    const cacheKey = `diagnoses-reference-${search}-${category}-${line}-${subservice}-${code_system}-${limit}-${offset}`;
+    const cachedResult = cache.get(cacheKey);
+    if (cachedResult) {
+      console.log("✅ Returning cached results");
+      return res.json({
+        success: true,
+        data: cachedResult.data,
+        pagination: cachedResult.pagination,
+        timestamp: new Date().toISOString(),
+        cached: true
+      });
+    }
+    
+    // Build WHERE clause - optimized for BigQuery
+    const whereConditions = [];
+    let params = {};
+    
+    // Search filter
+    if (search && search.trim().length > 0) {
+      const searchTerm = search.trim().toUpperCase();
+      whereConditions.push(`(
+        UPPER(code) LIKE @codeSearch
+        OR UPPER(code_summary) LIKE @textSearch
+        OR UPPER(service_line_description) LIKE @textSearch
+        OR UPPER(code_description) LIKE @textSearch
+      )`);
+      params.codeSearch = `${searchTerm}%`;
+      params.textSearch = `%${searchTerm}%`;
+    }
+    
+    // Code system filter
+    if (code_system && code_system.trim().length > 0) {
+      whereConditions.push('code_system = @code_system');
+      params.code_system = code_system;
+    }
+    
+    // Category filter
+    if (category && category.trim().length > 0) {
+      whereConditions.push('service_category_code = @category');
+      params.category = category;
+    }
+    
+    // Service line filter
+    if (line && line.trim().length > 0) {
+      whereConditions.push('service_line_code = @line');
+      params.line = line;
+    }
+    
+    // Subservice filter
+    if (subservice && subservice.trim().length > 0) {
+      whereConditions.push('subservice_line_code = @subservice');
+      params.subservice = subservice;
+    }
+    
+    const whereClause = whereConditions.length > 0 
+      ? `WHERE ${whereConditions.join(' AND ')}`
+      : '';
+    
+    // Single optimized query with window function for count
+    const query = `
+      SELECT 
+        *,
+        COUNT(*) OVER() as total_count
+      FROM \`aegis_access.reference_code_diagnosis\`
+      ${whereClause}
+      ORDER BY code
+      LIMIT @limit
+      OFFSET @offset
+    `;
+    
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params: { ...params, limit: parseInt(limit), offset: parseInt(offset) }
+    });
+    
+    const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+    
+    // Remove total_count from each row
+    const cleanRows = rows.map(row => {
+      const { total_count, ...rest } = row;
+      return rest;
+    });
+    
+    console.log(`✅ Retrieved ${cleanRows.length} diagnosis codes (${totalCount} total) in single query`);
+    
+    const result = {
+      data: cleanRows,
+      pagination: {
+        total: totalCount,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: (parseInt(offset) + cleanRows.length) < totalCount
+      }
+    };
+    
+    // Cache the result for 5 minutes
+    cache.set(cacheKey, result, 300000);
+    
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error("❌ Error fetching diagnosis reference codes:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch diagnosis reference codes",
+      error: error.message,
+      details: {
+        code: error.code,
+        status: error.status
+      }
+    });
+  }
+});
+
+// Get diagnosis hierarchy structure
+router.get("/diagnoses-hierarchy", async (req, res) => {
+  try {
+    console.log("🔍 Fetching diagnosis hierarchy...");
+    
+    // Check cache first
+    const cachedResult = cache.get("diagnoses-hierarchy");
+    if (cachedResult) {
+      console.log("✅ Returning cached hierarchy");
+      return res.json({
+        success: true,
+        data: cachedResult,
+        timestamp: new Date().toISOString(),
+        cached: true
+      });
+    }
+    
+    // Simplified query - just get distinct values
+    const query = `
+      SELECT DISTINCT
+        code_system,
+        service_category_code,
+        service_category_description,
+        service_line_code,
+        service_line_description,
+        subservice_line_code,
+        subservice_line_description
+      FROM \`aegis_access.reference_code_diagnosis\`
+      WHERE service_category_code IS NOT NULL
+        AND service_line_code IS NOT NULL
+        AND subservice_line_code IS NOT NULL
+      ORDER BY service_category_description, service_line_description, subservice_line_description
+      LIMIT 10000
+    `;
+    
+    console.log("📊 Executing hierarchy query...");
+    
+    const [rows] = await vendorBigQueryClient.query({ query });
+    
+    console.log(`✅ Retrieved ${rows.length} unique hierarchy combinations`);
+    
+    if (rows.length > 0) {
+      console.log("📋 Sample row:", JSON.stringify(rows[0], null, 2));
+    }
+    
+    // Cache for 1 hour (hierarchy doesn't change often)
+    cache.set("diagnoses-hierarchy", rows, 3600000);
+    
+    res.json({
+      success: true,
+      data: rows,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error("❌ Error fetching diagnosis hierarchy:", error);
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      errors: error.errors
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch diagnosis hierarchy",
+      error: error.message,
+      details: {
+        code: error.code,
+        status: error.status,
+        errors: error.errors
+      }
+    });
+  }
+});
+
+// Get diagnosis details for specific codes
+router.post("/diagnoses-details", async (req, res) => {
+  try {
+    const { codes } = req.body;
+    
+    if (!codes || !Array.isArray(codes) || codes.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    console.log("🔍 Fetching diagnosis details for codes...", { count: codes.length });
+    
+    const query = `
+      SELECT *
+      FROM \`aegis_access.reference_code_diagnosis\`
+      WHERE code IN UNNEST(@codes)
+      ORDER BY code
+    `;
+    
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params: { codes }
+    });
+    
+    console.log(`✅ Retrieved details for ${rows.length} diagnosis codes`);
+    
+    res.json({
+      success: true,
+      data: rows,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error("❌ Error fetching diagnosis details:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch diagnosis details",
+      error: error.message,
+      details: {
+        code: error.code,
+        status: error.status
+      }
+    });
+  }
+});
+
+// Get diagnosis volume totals for specific codes (last 12 months)
+router.post("/diagnoses-volume-by-code", async (req, res) => {
+  try {
+    const { codes } = req.body;
+    
+    if (!codes || !Array.isArray(codes) || codes.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    console.log("🔍 Fetching diagnosis volume for codes...", { count: codes.length });
+    console.log("📋 Codes requested:", codes.slice(0, 10)); // Log first 10 codes
+    
+    // First, get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_diagnosis table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
+    // Now query volume data using the correct date range
+    const query = `
+      SELECT 
+        code,
+        SUM(count) as total_volume
+      FROM \`aegis_access.volume_diagnosis\`
+      WHERE code IN UNNEST(@codes)
+        AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+        AND date__month_grain <= @maxDate
+      GROUP BY code
+      ORDER BY total_volume DESC
+    `;
+    
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params: { codes, maxDate }
+    });
+    
+    console.log(`✅ Retrieved volume data for ${rows.length} diagnosis codes (period: ${maxDate})`);
+    if (rows.length > 0) {
+      console.log(`📊 Sample results:`, rows.slice(0, 5));
+    } else {
+      console.log(`⚠️ NO VOLUME DATA FOUND for any of the ${codes.length} codes`);
+    }
+    
+    res.json({
+      success: true,
+      data: rows,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        maxDate: maxDate ? (maxDate.value || maxDate) : null
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Error fetching diagnosis volume:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch diagnosis volume",
+      error: error.message,
+      details: {
+        code: error.code,
+        status: error.status
+      }
+    });
+  }
+});
+
 // Test endpoint to verify BigQuery clients
 router.get("/diagnoses-test-clients", async (req, res) => {
   try {
@@ -681,6 +1098,136 @@ router.get("/diagnoses-test-clients", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to test BigQuery clients",
+      error: error.message
+    });
+  }
+});
+
+// Test endpoint to check code overlap between reference and volume tables
+router.get("/diagnoses-test-code-overlap", async (req, res) => {
+  try {
+    console.log("🔍 Testing code overlap between reference_code_diagnosis and volume_diagnosis...");
+    
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_diagnosis table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
+    // Get sample codes from reference_code_diagnosis
+    const referenceCodesQuery = `
+      SELECT code
+      FROM \`aegis_access.reference_code_diagnosis\`
+      LIMIT 100
+    `;
+    
+    const [referenceCodes] = await vendorBigQueryClient.query({ query: referenceCodesQuery });
+    console.log(`📋 Got ${referenceCodes.length} codes from reference_code_diagnosis`);
+    
+    // Sample first 10 codes for detailed checking
+    const sampleCodes = referenceCodes.slice(0, 10).map(r => r.code);
+    console.log(`🔍 Sample codes:`, sampleCodes);
+    
+    // Check if these codes exist in volume_diagnosis within our timeframe
+    const volumeCheckQuery = `
+      SELECT 
+        code,
+        COUNT(*) as row_count,
+        SUM(count) as total_volume,
+        MIN(date__month_grain) as earliest_date,
+        MAX(date__month_grain) as latest_date
+      FROM \`aegis_access.volume_diagnosis\`
+      WHERE code IN UNNEST(@codes)
+        AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+        AND date__month_grain <= @maxDate
+      GROUP BY code
+      ORDER BY total_volume DESC
+    `;
+    
+    const [volumeMatches] = await vendorBigQueryClient.query({ 
+      query: volumeCheckQuery,
+      params: { codes: sampleCodes, maxDate }
+    });
+    
+    console.log(`✅ Found ${volumeMatches.length} matching codes in volume_diagnosis`);
+    
+    // Also check: What codes ARE in the volume table?
+    const volumeCodesQuery = `
+      SELECT 
+        code,
+        SUM(count) as total_volume
+      FROM \`aegis_access.volume_diagnosis\`
+      WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+        AND date__month_grain <= @maxDate
+      GROUP BY code
+      ORDER BY total_volume DESC
+      LIMIT 20
+    `;
+    
+    const [topVolumeCodes] = await vendorBigQueryClient.query({ 
+      query: volumeCodesQuery,
+      params: { maxDate }
+    });
+    
+    console.log(`📊 Top codes in volume_diagnosis:`, topVolumeCodes.slice(0, 5));
+    
+    // Check if any of the top volume codes exist in reference table
+    const topCodes = topVolumeCodes.map(v => v.code);
+    const reverseCheckQuery = `
+      SELECT code
+      FROM \`aegis_access.reference_code_diagnosis\`
+      WHERE code IN UNNEST(@codes)
+    `;
+    
+    const [reverseMatches] = await vendorBigQueryClient.query({ 
+      query: reverseCheckQuery,
+      params: { codes: topCodes }
+    });
+    
+    res.json({
+      success: true,
+      metadata: {
+        maxDate: maxDate ? maxDate.value || maxDate : null,
+        dateRange: `12 months ending ${maxDate ? (maxDate.value || maxDate) : 'unknown'}`
+      },
+      test1_reference_to_volume: {
+        sampleCodesFromReference: sampleCodes,
+        matchesFoundInVolume: volumeMatches.length,
+        matchedCodes: volumeMatches
+      },
+      test2_volume_to_reference: {
+        topCodesInVolume: topVolumeCodes,
+        foundInReference: reverseMatches.length,
+        matchedCodes: reverseMatches.map(r => r.code)
+      },
+      summary: {
+        referenceSampleSize: sampleCodes.length,
+        volumeMatchesForReferenceCodes: volumeMatches.length,
+        topVolumeCodesChecked: topCodes.length,
+        topVolumeCodesInReference: reverseMatches.length,
+        conclusion: reverseMatches.length > 0 
+          ? `✅ Found ${reverseMatches.length} codes that exist in BOTH tables`
+          : `❌ NO OVERLAP - The codes in reference_code_diagnosis do not match the codes in volume_diagnosis`
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Error testing code overlap:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to test code overlap",
       error: error.message
     });
   }

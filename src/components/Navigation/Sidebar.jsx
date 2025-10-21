@@ -23,7 +23,8 @@ import {
   Check,
   X,
   FileBarChart,
-  Database
+  Database,
+  GitBranch
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useState, useRef, useEffect } from 'react';
@@ -154,21 +155,41 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           <Link 
             to="/app/investigation/hco" 
             className={`${styles.navItem} ${isActive('/investigation/hco') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'HCO Analysis (Test)')}
+            onMouseEnter={(e) => handleMouseEnter(e, 'HCO Directory')}
             onMouseLeave={handleMouseLeave}
           >
             <Building size={14} />
-            {!isCollapsed && 'HCO Analysis (Test)'}
+            {!isCollapsed && 'HCO Directory'}
+          </Link>
+          
+          <Link 
+            to="/app/hco-directory" 
+            className={`${styles.navItem} ${isActive('/hco-directory') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'HCO Advanced Directory')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Building2 size={14} />
+            {!isCollapsed && 'HCO Advanced Directory'}
           </Link>
           
           <Link 
             to="/app/investigation/hcp" 
             className={`${styles.navItem} ${isActive('/investigation/hcp') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'HCP Analysis (Test)')}
+            onMouseEnter={(e) => handleMouseEnter(e, 'HCP Directory')}
             onMouseLeave={handleMouseLeave}
           >
             <UserCheck size={14} />
-            {!isCollapsed && 'HCP Analysis (Test)'}
+            {!isCollapsed && 'HCP Directory'}
+          </Link>
+          
+          <Link 
+            to="/app/investigation/referral-pathways" 
+            className={`${styles.navItem} ${isActive('/investigation/referral-pathways') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Referral Pathways')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <GitBranch size={14} />
+            {!isCollapsed && 'Referral Pathways'}
           </Link>
           
           {/* Section divider */}
@@ -234,6 +255,27 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             >
               <FileBarChart size={14} />
               {!isCollapsed && 'My Procedures'}
+              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
+            </div>
+          )}
+          {hasTeam ? (
+            <Link 
+              to="/app/diagnoses" 
+              className={`${styles.navItem} ${isActive('/diagnoses') ? styles.active : ''}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Diagnoses')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FileBarChart size={14} />
+              {!isCollapsed && 'My Diagnoses'}
+            </Link>
+          ) : (
+            <div 
+              className={`${styles.navItem} ${styles.disabled}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Diagnoses - Join or create a team to access diagnosis tagging features')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FileBarChart size={14} />
+              {!isCollapsed && 'My Diagnoses'}
               {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
             </div>
           )}

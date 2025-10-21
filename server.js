@@ -26,8 +26,10 @@ import zipCodes from "./server/routes/zipCodes.js";
 import investigation from "./server/routes/investigation.js";
 import hcoData from "./server/routes/hcoData.js";
 import hcpData from "./server/routes/hcpData.js";
+import hcoDirectory from "./server/routes/hcoDirectory.js";
 import marketGeography from "./server/routes/marketGeography.js";
 import patientJourney from "./server/routes/patientJourney.js";
+import referralPathways from "./server/routes/referralPathways.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
@@ -79,8 +81,10 @@ app.use("/api", zipCodes);
 app.use("/api", investigation);
 app.use("/api/hco-data", hcoData);
 app.use("/api/hcp-data", hcpData);
+app.use("/api/hco-directory", hcoDirectory);
 app.use("/api/market-geography", marketGeography);
 app.use("/api/patient-journey", patientJourney);
+app.use("/api/referral-pathways", referralPathways);
 
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);

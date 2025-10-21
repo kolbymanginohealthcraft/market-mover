@@ -80,6 +80,10 @@ export default function ClaimsDataInvestigation() {
     'performing_provider_npi',
     'facility_provider_npi',
     'service_location_provider_npi',
+    'billing_provider_name',
+    'facility_provider_name',
+    'service_location_provider_name',
+    'performing_provider_name',
     'code',
     'drg_code',
     'revenue_code',
@@ -95,35 +99,33 @@ export default function ClaimsDataInvestigation() {
       { value: "_year_quarter", label: "Year-Quarter" },
     ],
     "Billing Provider": [
-      { value: "billing_provider_npi", label: "NPI" },
       { value: "billing_provider_name", label: "Name" },
+      { value: "billing_provider_npi", label: "NPI" },
+      { value: "billing_provider_taxonomy_classification", label: "Taxonomy Classification" },
+      { value: "billing_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
+      { value: "billing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
       { value: "billing_provider_state", label: "State" },
       { value: "billing_provider_city", label: "City" },
       { value: "billing_provider_county", label: "County" },
-      { value: "billing_provider_taxonomy_classification", label: "Taxonomy Classification" },
-      { value: "billing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
-      { value: "billing_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
     ],
     "Facility Provider": [
-      { value: "facility_provider_npi", label: "NPI" },
       { value: "facility_provider_name", label: "Name" },
+      { value: "facility_provider_npi", label: "NPI" },
+      { value: "facility_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "facility_provider_state", label: "State" },
       { value: "facility_provider_city", label: "City" },
       { value: "facility_provider_county", label: "County" },
-      { value: "facility_provider_taxonomy_classification", label: "Taxonomy Classification" },
     ],
     "Service Location Provider": [
-      { value: "service_location_provider_npi", label: "NPI" },
       { value: "service_location_provider_name", label: "Name" },
+      { value: "service_location_provider_npi", label: "NPI" },
       { value: "service_location_provider_state", label: "State" },
       { value: "service_location_provider_city", label: "City" },
       { value: "service_location_provider_county", label: "County" },
-      { value: "service_location_provider_us_region", label: "US Region" },
-      { value: "service_location_provider_us_division", label: "US Division" },
     ],
     "Performing Provider": [
-      { value: "performing_provider_npi", label: "NPI" },
       { value: "performing_provider_name", label: "Name" },
+      { value: "performing_provider_npi", label: "NPI" },
       { value: "performing_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "performing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
     ],
@@ -818,8 +820,10 @@ export default function ClaimsDataInvestigation() {
       : columns;
     
     // Calculate new filters (add or update this field)
+    // Use array to preserve values that contain commas (e.g., "Office visit, established")
     const stringValue = String(value);
-    const newFilters = { ...filters, [field]: stringValue };
+    const filterValue = [stringValue]; // Wrap in array to prevent comma-splitting in backend
+    const newFilters = { ...filters, [field]: filterValue };
     
     // Update state
     setColumns(newColumns);
@@ -846,8 +850,10 @@ export default function ClaimsDataInvestigation() {
       : columns;
     
     // Calculate new exclude filters (add or update this field)
+    // Use array to preserve values that contain commas (e.g., "Office visit, established")
     const stringValue = String(value);
-    const newExcludeFilters = { ...excludeFilters, [field]: stringValue };
+    const filterValue = [stringValue]; // Wrap in array to prevent comma-splitting in backend
+    const newExcludeFilters = { ...excludeFilters, [field]: filterValue };
     
     // Update state
     setColumns(newColumns);
@@ -1132,8 +1138,15 @@ export default function ClaimsDataInvestigation() {
                   handleMarketSelect(market.id);
                   setMarketDropdownOpen(false);
                 }}
+                style={{
+                  fontWeight: selectedMarket === market.id ? '600' : '500',
+                  background: selectedMarket === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                }}
               >
-                {market.name} ({market.radius_miles}mi)
+                <div>{market.name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                  {market.city}, {market.state} • {market.radius_miles} mi
+                </div>
               </button>
             ))}
           </Dropdown>
@@ -1296,25 +1309,28 @@ export default function ClaimsDataInvestigation() {
                                                   defaultDateRange && 
                                                   value === `${defaultDateRange.min},${defaultDateRange.max}`;
                       
-                      const isEditing = editingFilter === field || !value; // Edit if clicked or empty
+                      const isEditing = editingFilter === field || !value || (Array.isArray(value) && value.length === 0); // Edit if clicked or empty
                       const isTextField = TEXT_INPUT_FIELDS.includes(field);
                       const hasOptions = filterOptions[field] && Array.isArray(filterOptions[field]);
                       const isLoading = loadingFilters[field];
                       
                       if (isEditing && !isDefaultDateRange) {
                         // Show editable interface
+                        // Convert array values to string for editing
+                        const editValue = Array.isArray(value) ? value.join(', ') : (value || '');
+                        
                         return (
                           <div key={field} className={styles.filterEditor}>
                             <label>{allFields[field]}:</label>
                             {isTextField ? (
                               <input
                                 type="text"
-                                value={value}
+                                value={editValue}
                                 onChange={(e) => updateFilter(field, e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     setEditingFilter(null);
-                                    if (value) fetchData();
+                                    if (editValue) fetchData();
                                   }
                                 }}
                                 onBlur={() => setEditingFilter(null)}
@@ -1324,13 +1340,13 @@ export default function ClaimsDataInvestigation() {
                               />
                             ) : hasOptions ? (
                               <select
-                                value={value}
+                                value={editValue}
                                 onChange={(e) => {
                                   updateFilter(field, e.target.value);
                                   setEditingFilter(null);
                                 }}
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && value) {
+                                  if (e.key === 'Enter' && editValue) {
                                     setEditingFilter(null);
                                     fetchData();
                                   }
@@ -1360,12 +1376,12 @@ export default function ClaimsDataInvestigation() {
                             ) : (
                               <input
                                 type="text"
-                                value={value}
+                                value={editValue}
                                 onChange={(e) => updateFilter(field, e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     setEditingFilter(null);
-                                    if (value) fetchData();
+                                    if (editValue) fetchData();
                                   }
                                 }}
                                 onBlur={() => setEditingFilter(null)}
@@ -1384,9 +1400,17 @@ export default function ClaimsDataInvestigation() {
                       
                       // Show chip (read-only)
                       const displayLabel = isDefaultDateRange ? 'Last 12 Months' : allFields[field];
-                      const displayValue = isDefaultDateRange 
-                        ? `${defaultDateRange.min} to ${defaultDateRange.max}` 
-                        : value;
+                      
+                      // Handle array values (from breadcrumb clicks)
+                      let displayValue;
+                      if (isDefaultDateRange) {
+                        displayValue = `${defaultDateRange.min} to ${defaultDateRange.max}`;
+                      } else if (Array.isArray(value)) {
+                        // Array value - show elements
+                        displayValue = value.length === 1 ? value[0] : value.join(', ');
+                      } else {
+                        displayValue = value;
+                      }
                       
                       return (
                         <div 
@@ -1408,19 +1432,26 @@ export default function ClaimsDataInvestigation() {
                     })}
                     
                     {/* Exclusion Filters */}
-                    {Object.entries(excludeFilters).map(([field, value]) => (
-                      <div key={`exclude_${field}`} className={`${styles.chip} ${styles.excludeChip}`}>
-                        <span>{allFields[field]}: NOT {value}</span>
-                        <button onClick={() => {
-                          const updated = { ...excludeFilters };
-                          delete updated[field];
-                          setExcludeFilters(updated);
-                          setData(null);
-                        }}>
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+                    {Object.entries(excludeFilters).map(([field, value]) => {
+                      // Handle array values (from breadcrumb clicks)
+                      const displayValue = Array.isArray(value) 
+                        ? (value.length === 1 ? value[0] : value.join(', '))
+                        : value;
+                      
+                      return (
+                        <div key={`exclude_${field}`} className={`${styles.chip} ${styles.excludeChip}`}>
+                          <span>{allFields[field]}: NOT {displayValue}</span>
+                          <button onClick={() => {
+                            const updated = { ...excludeFilters };
+                            delete updated[field];
+                            setExcludeFilters(updated);
+                            setData(null);
+                          }}>
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1531,10 +1562,12 @@ export default function ClaimsDataInvestigation() {
               // Calculate max values for conditional formatting
               const maxCount = Math.max(...data.map(row => {
                 const val = row.total_count;
+                if (val === null || val === undefined) return 0;
                 return typeof val === 'object' ? parseFloat(val.toString()) : parseFloat(val) || 0;
               }));
               const maxCharges = Math.max(...data.map(row => {
                 const val = row.total_charges;
+                if (val === null || val === undefined) return 0;
                 return typeof val === 'object' ? parseFloat(val.toString()) : parseFloat(val) || 0;
               }));
               
@@ -1554,12 +1587,16 @@ export default function ClaimsDataInvestigation() {
                     </thead>
                     <tbody>
                       {data.map((row, index) => {
-                        const countValue = typeof row.total_count === 'object' 
-                          ? parseFloat(row.total_count.toString()) 
-                          : parseFloat(row.total_count) || 0;
-                        const chargesValue = typeof row.total_charges === 'object'
-                          ? parseFloat(row.total_charges.toString())
-                          : parseFloat(row.total_charges) || 0;
+                        const countValue = row.total_count === null || row.total_count === undefined
+                          ? 0
+                          : typeof row.total_count === 'object' 
+                            ? parseFloat(row.total_count.toString()) 
+                            : parseFloat(row.total_count) || 0;
+                        const chargesValue = row.total_charges === null || row.total_charges === undefined
+                          ? 0
+                          : typeof row.total_charges === 'object'
+                            ? parseFloat(row.total_charges.toString())
+                            : parseFloat(row.total_charges) || 0;
                         
                         const countPercent = maxCount > 0 ? (countValue / maxCount) * 100 : 0;
                         const chargesPercent = maxCharges > 0 ? (chargesValue / maxCharges) * 100 : 0;

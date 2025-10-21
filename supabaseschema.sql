@@ -220,11 +220,19 @@ CREATE TABLE public.team_custom_colors (
   CONSTRAINT team_custom_colors_pkey PRIMARY KEY (id),
   CONSTRAINT team_custom_colors_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
+CREATE TABLE public.team_diagnosis_tags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid,
+  diagnosis_code text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_diagnosis_tags_pkey PRIMARY KEY (id),
+  CONSTRAINT team_diagnosis_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
 CREATE TABLE public.team_procedure_tags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   team_id uuid,
   procedure_code text NOT NULL,
-  tag_type text NOT NULL CHECK (tag_type = ANY (ARRAY['me'::text, 'partner'::text, 'competitor'::text, 'target'::text])),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT team_procedure_tags_pkey PRIMARY KEY (id),

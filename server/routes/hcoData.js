@@ -1,6 +1,7 @@
 // server/routes/hcoData.js
 import express from "express";
 import vendorBigQuery from "../utils/vendorBigQueryClient.js";
+import cache from "../utils/cache.js";
 
 const router = express.Router();
 
@@ -16,6 +17,138 @@ function getDistanceFormula(centerLat, centerLng) {
     ) / 1609.34
   `;
 }
+
+/**
+ * GET /api/hco-data/national-overview
+ * Get national-level statistics for HCOs (fast, cached)
+ * No query params needed - returns pre-aggregated national data
+ */
+router.get("/national-overview", async (req, res) => {
+  try {
+    const cacheKey = 'hco-national-overview-v2';
+    const cached = cache.get(cacheKey);
+    
+    if (cached) {
+      console.log('✅ Returning cached national HCO overview');
+      return res.json({
+        success: true,
+        ...cached,
+        cached: true
+      });
+    }
+
+    console.log('📊 Fetching national HCO overview (will be cached)...');
+
+    // Query for national statistics - aggregated, not individual rows
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total_organizations,
+        COUNT(DISTINCT definitive_firm_type) as distinct_firm_types,
+        COUNT(DISTINCT CASE 
+          WHEN LENGTH(primary_address_state_or_province) = 2 
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+          THEN primary_address_state_or_province 
+        END) as distinct_states,
+        COUNTIF(hospital_parent_id IS NOT NULL) as with_hospital_parent,
+        COUNTIF(physician_group_parent_id IS NOT NULL) as with_physician_group_parent,
+        COUNTIF(network_id IS NOT NULL) as with_network_affiliation,
+        COUNTIF(definitive_id IS NOT NULL) as with_definitive_id
+      FROM \`aegis_access.hco_flat\`
+      WHERE npi_deactivation_date IS NULL
+    `;
+
+    // Top firm types
+    const firmTypesQuery = `
+      SELECT
+        definitive_firm_type,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND definitive_firm_type IS NOT NULL
+      GROUP BY definitive_firm_type
+      ORDER BY count DESC
+      LIMIT 15
+    `;
+
+    // State distribution - filter to valid US states only (2-letter codes)
+    const statesQuery = `
+      SELECT
+        primary_address_state_or_province as state,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND primary_address_state_or_province IS NOT NULL
+        AND LENGTH(primary_address_state_or_province) = 2
+        AND primary_address_state_or_province IN (
+          'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+          'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+          'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+          'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+          'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+          'DC'
+        )
+      GROUP BY primary_address_state_or_province
+      ORDER BY count DESC
+    `;
+
+    // Taxonomy breakdown
+    const taxonomyQuery = `
+      SELECT
+        primary_taxonomy_classification as classification,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND primary_taxonomy_classification IS NOT NULL
+      GROUP BY primary_taxonomy_classification
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    // Execute all queries in parallel
+    const [
+      [overallStats],
+      [firmTypes],
+      [states],
+      [taxonomy]
+    ] = await Promise.all([
+      vendorBigQuery.query({ query: statsQuery }),
+      vendorBigQuery.query({ query: firmTypesQuery }),
+      vendorBigQuery.query({ query: statesQuery }),
+      vendorBigQuery.query({ query: taxonomyQuery })
+    ]);
+
+    const result = {
+      success: true,
+      data: {
+        overall: overallStats[0],
+        firmTypes: firmTypes,
+        states: states,
+        taxonomy: taxonomy
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Cache for 1 hour (national stats don't change often)
+    cache.set(cacheKey, result, 3600);
+    
+    console.log(`✅ National HCO overview complete: ${overallStats[0].total_organizations?.toLocaleString()} organizations`);
+
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error fetching national HCO overview:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 
 /**
  * GET /api/hco-data/stats
@@ -60,7 +193,18 @@ router.get("/stats", async (req, res) => {
       SELECT
         COUNT(*) as total_organizations,
         COUNT(DISTINCT definitive_firm_type) as distinct_firm_types,
-        COUNT(DISTINCT primary_address_state_or_province) as distinct_states,
+        COUNT(DISTINCT CASE 
+          WHEN LENGTH(primary_address_state_or_province) = 2 
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+          THEN primary_address_state_or_province 
+        END) as distinct_states,
         COUNT(DISTINCT primary_address_city) as distinct_cities,
         COUNT(DISTINCT primary_address_zip5) as distinct_zip_codes,
         COUNTIF(definitive_id IS NOT NULL) as with_definitive_id,
@@ -638,7 +782,18 @@ router.get("/stats-by-tract", async (req, res) => {
       SELECT
         COUNT(*) as total_organizations,
         COUNT(DISTINCT definitive_firm_type) as distinct_firm_types,
-        COUNT(DISTINCT primary_address_state_or_province) as distinct_states,
+        COUNT(DISTINCT CASE 
+          WHEN LENGTH(primary_address_state_or_province) = 2 
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+          THEN primary_address_state_or_province 
+        END) as distinct_states,
         COUNT(DISTINCT primary_address_city) as distinct_cities,
         COUNT(DISTINCT primary_address_zip5) as distinct_zip_codes,
         COUNT(DISTINCT census_tract_id) as distinct_census_tracts,
@@ -781,6 +936,374 @@ router.get("/sample-by-tract", async (req, res) => {
     res.status(500).json({
       error: "Failed to fetch HCO sample data using census tract method",
       details: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/hco-data/search
+ * Search and filter HCOs nationally or within a market
+ * Returns BOTH count (unlimited) and results (limited)
+ * Request body: { search, states, firmTypes, hasHospitalParent, hasNetwork, latitude, longitude, radius, limit }
+ */
+router.post("/search", async (req, res) => {
+  try {
+    const {
+      search = '',
+      states = [],
+      firmTypes = [],
+      taxonomyClassifications = [],
+      hasHospitalParent = null,
+      hasNetwork = null,
+      latitude = null,
+      longitude = null,
+      radius = null,
+      limit = 500
+    } = req.body;
+
+    console.log('🔍 HCO Search:', {
+      search: search ? `"${search}"` : 'none',
+      states: states.length,
+      firmTypes: firmTypes.length,
+      taxonomyClassifications: taxonomyClassifications.length,
+      hasHospitalParent,
+      hasNetwork,
+      hasLocation: !!(latitude && longitude && radius),
+      limit
+    });
+
+    // Build WHERE clauses
+    const whereClauses = ['npi_deactivation_date IS NULL'];
+    const params = { limit: parseInt(limit) };
+
+    // Search by name or NPI
+    if (search && search.trim()) {
+      whereClauses.push('(LOWER(healthcare_organization_name) LIKE @searchTerm OR CAST(npi AS STRING) LIKE @searchTerm)');
+      params.searchTerm = `%${search.trim().toLowerCase()}%`;
+    }
+
+    // State filter
+    if (states && Array.isArray(states) && states.length > 0) {
+      whereClauses.push('primary_address_state_or_province IN UNNEST(@states)');
+      params.states = states;
+    }
+
+    // Firm type filter
+    if (firmTypes && Array.isArray(firmTypes) && firmTypes.length > 0) {
+      whereClauses.push('definitive_firm_type IN UNNEST(@firmTypes)');
+      params.firmTypes = firmTypes;
+    }
+
+    // Taxonomy classification filter
+    if (taxonomyClassifications && Array.isArray(taxonomyClassifications) && taxonomyClassifications.length > 0) {
+      whereClauses.push('primary_taxonomy_classification IN UNNEST(@taxonomyClassifications)');
+      params.taxonomyClassifications = taxonomyClassifications;
+    }
+
+    // Hospital parent filter
+    if (hasHospitalParent === true) {
+      whereClauses.push('hospital_parent_id IS NOT NULL');
+    } else if (hasHospitalParent === false) {
+      whereClauses.push('hospital_parent_id IS NULL');
+    }
+
+    // Network filter
+    if (hasNetwork === true) {
+      whereClauses.push('network_id IS NOT NULL');
+    } else if (hasNetwork === false) {
+      whereClauses.push('network_id IS NULL');
+    }
+
+    // Geographic filter (if provided)
+    let selectClause = `
+      npi,
+      COALESCE(healthcare_organization_name, name) as name,
+      definitive_firm_type as firm_type,
+      primary_address_city as city,
+      primary_address_state_or_province as state,
+      primary_address_zip5 as zip,
+      primary_taxonomy_classification as taxonomy_classification,
+      hospital_parent_id,
+      physician_group_parent_id,
+      network_id,
+      definitive_id
+    `;
+
+    if (latitude && longitude && radius) {
+      const distanceFormula = getDistanceFormula(parseFloat(latitude), parseFloat(longitude));
+      whereClauses.push(`${distanceFormula} <= ${parseFloat(radius)}`);
+      selectClause += `, ${distanceFormula} as distance_miles`;
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+    
+    // Query 1: Get total count (no limit)
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+    `;
+    
+    // Query 2: Get actual results (with limit)
+    const resultsQuery = `
+      SELECT ${selectClause}
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+      ORDER BY ${latitude && longitude && radius ? 'distance_miles ASC' : 'healthcare_organization_name ASC'}
+      LIMIT @limit
+    `;
+    
+    // Query 3: Get aggregated stats
+    const statsQuery = `
+      SELECT
+        COUNT(DISTINCT definitive_firm_type) as distinct_firm_types,
+        COUNT(DISTINCT CASE 
+          WHEN LENGTH(primary_address_state_or_province) = 2 
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+          THEN primary_address_state_or_province 
+        END) as distinct_states,
+        COUNT(DISTINCT primary_address_city) as distinct_cities,
+        COUNTIF(hospital_parent_id IS NOT NULL) as with_hospital_parent,
+        COUNTIF(network_id IS NOT NULL) as with_network
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+    `;
+
+    console.log('📊 Executing search queries (count + results + stats + breakdowns)...');
+    
+    // Create params without limit for count/stats queries
+    const countParams = { ...params };
+    delete countParams.limit;
+    
+    // Breakdown queries - analyze ALL matching records
+    const firmTypesBreakdownQuery = `
+      SELECT
+        definitive_firm_type as firm_type,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+        AND definitive_firm_type IS NOT NULL
+      GROUP BY definitive_firm_type
+      ORDER BY count DESC
+    `;
+    
+    const statesBreakdownQuery = `
+      SELECT
+        primary_address_state_or_province as state,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+        AND primary_address_state_or_province IS NOT NULL
+      GROUP BY primary_address_state_or_province
+      ORDER BY count DESC
+    `;
+    
+    const citiesBreakdownQuery = `
+      SELECT
+        CONCAT(primary_address_city, ', ', primary_address_state_or_province) as city,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+        AND primary_address_city IS NOT NULL
+        AND primary_address_state_or_province IS NOT NULL
+      GROUP BY primary_address_city, primary_address_state_or_province
+      ORDER BY count DESC
+    `;
+    
+    const taxonomiesBreakdownQuery = `
+      SELECT
+        primary_taxonomy_classification as taxonomy,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+        AND primary_taxonomy_classification IS NOT NULL
+      GROUP BY primary_taxonomy_classification
+      ORDER BY count DESC
+    `;
+    
+    const affiliationsBreakdownQuery = `
+      SELECT
+        COUNTIF(hospital_parent_id IS NOT NULL) as hospital_parent,
+        COUNTIF(network_id IS NOT NULL) as network,
+        COUNTIF(hospital_parent_id IS NULL AND network_id IS NULL) as independent
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereClause}
+    `;
+    
+    // Execute queries in parallel (including breakdown queries)
+    const [
+      [countResult],
+      [rows],
+      [statsResult],
+      [firmTypesBreakdown],
+      [statesBreakdown],
+      [citiesBreakdown],
+      [taxonomiesBreakdown],
+      [affiliationsBreakdown]
+    ] = await Promise.all([
+      vendorBigQuery.query({ query: countQuery, params: countParams }),
+      vendorBigQuery.query({ query: resultsQuery, params }),
+      vendorBigQuery.query({ query: statsQuery, params: countParams }),
+      vendorBigQuery.query({ query: firmTypesBreakdownQuery, params: countParams }),
+      vendorBigQuery.query({ query: statesBreakdownQuery, params: countParams }),
+      vendorBigQuery.query({ query: citiesBreakdownQuery, params: countParams }),
+      vendorBigQuery.query({ query: taxonomiesBreakdownQuery, params: countParams }),
+      vendorBigQuery.query({ query: affiliationsBreakdownQuery, params: countParams })
+    ]);
+
+    const totalCount = parseInt(countResult[0].total);
+    console.log(`✅ Found ${totalCount} total organizations (showing ${rows.length})`);
+
+    res.json({
+      success: true,
+      data: {
+        organizations: rows,
+        count: rows.length,
+        totalCount: totalCount,
+        stats: statsResult[0],
+        limited: totalCount > limit,
+        breakdowns: {
+          firmTypes: firmTypesBreakdown,
+          states: statesBreakdown,
+          cities: citiesBreakdown.map(c => ({ name: c.city, count: parseInt(c.count) })),
+          taxonomies: taxonomiesBreakdown,
+          affiliations: affiliationsBreakdown[0]
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error("❌ Error searching HCOs:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/hco-data/service-summary
+ * Get service/procedure summary for a set of HCO NPIs
+ * Request body: { npis, npiField, limit }
+ */
+router.post("/service-summary", async (req, res) => {
+  try {
+    const {
+      npis = [],
+      npiField = 'billing_provider_npi', // or facility_provider_npi
+      limit = 50
+    } = req.body;
+
+    if (!Array.isArray(npis) || npis.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "NPIs array is required and must not be empty"
+      });
+    }
+
+    console.log('💼 HCO Service Summary:', {
+      npis: npis.length,
+      npiField,
+      limit
+    });
+
+    // Top procedures by volume
+    const topProceduresQuery = `
+      SELECT
+        code,
+        code_description,
+        service_line_description,
+        SUM(count) as total_count,
+        SUM(charge_total) as total_charges,
+        COUNT(DISTINCT ${npiField}) as unique_providers
+      FROM \`aegis_access.volume_procedure\`
+      WHERE ${npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND code IS NOT NULL
+      GROUP BY code, code_description, service_line_description
+      ORDER BY total_count DESC
+      LIMIT @limit
+    `;
+
+    // Service line summary
+    const serviceLineQuery = `
+      SELECT
+        service_line_description,
+        service_category_description,
+        SUM(count) as total_count,
+        SUM(charge_total) as total_charges,
+        COUNT(DISTINCT ${npiField}) as unique_providers,
+        COUNT(DISTINCT code) as unique_codes
+      FROM \`aegis_access.volume_procedure\`
+      WHERE ${npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND service_line_description IS NOT NULL
+      GROUP BY service_line_description, service_category_description
+      ORDER BY total_count DESC
+      LIMIT 20
+    `;
+
+    // Overall summary
+    const summaryQuery = `
+      SELECT
+        SUM(count) as total_procedures,
+        SUM(charge_total) as total_charges,
+        COUNT(DISTINCT ${npiField}) as providers_with_claims,
+        COUNT(DISTINCT code) as unique_codes,
+        COUNT(DISTINCT service_line_description) as unique_service_lines
+      FROM \`aegis_access.volume_procedure\`
+      WHERE ${npiField} IN UNNEST(@npis)
+        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+    `;
+
+    const params = { 
+      npis, 
+      limit: parseInt(limit)
+    };
+
+    console.log('📊 Executing service summary queries...');
+    
+    // Execute all queries in parallel
+    const [
+      [topProcedures],
+      [serviceLines],
+      [summary]
+    ] = await Promise.all([
+      vendorBigQuery.query({ query: topProceduresQuery, params }),
+      vendorBigQuery.query({ query: serviceLineQuery, params }),
+      vendorBigQuery.query({ query: summaryQuery, params })
+    ]);
+
+    console.log(`✅ Service summary complete: ${summary[0].total_procedures?.toLocaleString()} procedures`);
+
+    res.json({
+      success: true,
+      data: {
+        summary: summary[0],
+        topProcedures: topProcedures,
+        serviceLines: serviceLines
+      },
+      metadata: {
+        npis: npis.length,
+        npiField,
+        timeframe: 'Last 12 months'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching service summary:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
     });
   }
 });

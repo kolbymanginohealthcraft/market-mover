@@ -1,0 +1,157 @@
+/* Trigger Wrapper - positioned container like Dropdown */
+.triggerWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Trigger - the actual hoverable text */
+.trigger {
+  cursor: help;
+  border-bottom: 1px dotted #9ca3af;
+  padding-bottom: 1px;
+  display: inline-block;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.trigger:hover {
+  border-bottom-color: #2563eb;
+  color: #2563eb;
+}
+
+/* Tooltip Container - absolutely positioned like Dropdown */
+.tooltip {
+  position: absolute;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  width: 380px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  z-index: 10000;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+/* Tooltip opens downward (appears below trigger) */
+.tooltipDown {
+  top: calc(100% + 8px);
+}
+
+/* Tooltip opens upward (appears above trigger) */
+.tooltipUp {
+  bottom: calc(100% + 8px);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Arrow - points up when tooltip is below */
+.tooltipDown::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Arrow - points down when tooltip is above */
+.tooltipUp::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Header with code */
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.tooltipCode {
+  background: #f3f4f6;
+  color: #1f2937;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+}
+
+/* Summary - primary description */
+.tooltipSummary {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* Full description - secondary */
+.tooltipDescription {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Meta information */
+.tooltipMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.metaItem {
+  background: #f9fafb;
+  color: #6b7280;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tooltip {
+    width: 320px;
+    padding: 12px;
+  }
+  
+  .tooltipSummary {
+    font-size: 13px;
+  }
+  
+  .tooltipDescription {
+    font-size: 12px;
+  }
+}
+

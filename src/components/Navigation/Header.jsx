@@ -147,6 +147,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'My Network';
     } else if (location.pathname.includes('/procedures')) {
       return 'My Procedures';
+    } else if (location.pathname.includes('/diagnoses')) {
+      return 'My Diagnoses';
     } else if (location.pathname.includes('/investigation/claims')) {
       return 'Claims Data Explorer';
     } else if (location.pathname.includes('/settings')) {

@@ -159,18 +159,18 @@
   contain: layout;
 }
 
-.procedureTable {
+.diagnosisTable {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
   contain: layout style;
 }
 
-.procedureTable thead {
+.diagnosisTable thead {
   background: #f9fafb;
 }
 
-.procedureTable th {
+.diagnosisTable th {
   text-align: left;
   padding: 12px 16px;
   font-size: 14px;
@@ -183,20 +183,20 @@
   z-index: 1;
 }
 
-.procedureTable tbody tr {
+.diagnosisTable tbody tr {
   border-bottom: 1px solid #f3f4f6;
   contain: layout style;
 }
 
-.procedureTable tbody tr:last-child {
+.diagnosisTable tbody tr:last-child {
   border-bottom: none;
 }
 
-.procedureTable tbody tr:hover {
+.diagnosisTable tbody tr:hover {
   background: #f9fafb;
 }
 
-.procedureTable td {
+.diagnosisTable td {
   padding: 12px 16px;
   font-size: 14px;
   color: #374151;
@@ -254,11 +254,44 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  min-width: 200px;
-  max-height: 300px;
-  overflow-y: auto;
+  min-width: 250px;
+  max-height: 350px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.dropdownHeader {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f9fafb;
+  align-items: center;
+}
+
+.dropdownContent {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+.dropdownContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdownContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.dropdownContent::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dropdownContent::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .dropdownItem {
@@ -364,12 +397,12 @@
     overflow-x: auto;
   }
 
-  .procedureTable {
+  .diagnosisTable {
     min-width: 1200px;
   }
 
-  .procedureTable th,
-  .procedureTable td {
+  .diagnosisTable th,
+  .diagnosisTable td {
     padding: 8px 12px;
     font-size: 13px;
   }

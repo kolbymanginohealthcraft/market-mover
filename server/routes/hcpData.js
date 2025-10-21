@@ -1,6 +1,7 @@
 // server/routes/hcpData.js
 import express from "express";
 import vendorBigQuery from "../utils/vendorBigQueryClient.js";
+import cache from "../utils/cache.js";
 
 const router = express.Router();
 
@@ -16,6 +17,125 @@ function getDistanceFormula(centerLat, centerLng) {
     ) / 1609.34
   `;
 }
+
+/**
+ * GET /api/hcp-data/national-overview
+ * Get national-level statistics for HCPs (fast, cached)
+ * No query params needed - returns pre-aggregated national data
+ */
+router.get("/national-overview", async (req, res) => {
+  try {
+    const cacheKey = 'hcp-national-overview-v3'; // v3: fixed gender values
+    const cached = cache.get(cacheKey);
+    
+    if (cached) {
+      console.log('✅ Returning cached national HCP overview');
+      return res.json({
+        success: true,
+        ...cached,
+        cached: true
+      });
+    }
+
+    console.log('📊 Fetching national HCP overview (will be cached)...');
+
+    // Query for national statistics - aggregated, not individual rows
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total_providers,
+        COUNT(DISTINCT primary_taxonomy_consolidated_specialty) as distinct_specialties,
+        COUNT(DISTINCT CASE 
+          WHEN LENGTH(primary_address_state_or_province) = 2 
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+          THEN primary_address_state_or_province 
+        END) as distinct_states,
+        COUNT(DISTINCT primary_address_city) as distinct_cities,
+        COUNTIF(atlas_affiliation_primary_hospital_parent_id IS NOT NULL) as with_hospital_affiliation,
+        COUNTIF(atlas_affiliation_primary_physician_group_parent_id IS NOT NULL) as with_physician_group_affiliation,
+        COUNTIF(atlas_affiliation_primary_network_id IS NOT NULL) as with_network_affiliation,
+        COUNTIF(atlas_affiliation_primary_definitive_id IS NOT NULL) as with_atlas_affiliation,
+        COUNTIF(LOWER(gender) = 'male') as male_providers,
+        COUNTIF(LOWER(gender) = 'female') as female_providers
+      FROM \`aegis_access.hcp_flat\`
+      WHERE npi_deactivation_date IS NULL
+    `;
+
+    // Top specialties
+    const specialtiesQuery = `
+      SELECT
+        primary_taxonomy_consolidated_specialty as specialty,
+        COUNT(*) as count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND primary_taxonomy_consolidated_specialty IS NOT NULL
+      GROUP BY primary_taxonomy_consolidated_specialty
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    // State distribution - filter to valid US states only (2-letter codes)
+    const statesQuery = `
+      SELECT
+        primary_address_state_or_province as state,
+        COUNT(*) as count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND primary_address_state_or_province IS NOT NULL
+        AND LENGTH(primary_address_state_or_province) = 2
+        AND primary_address_state_or_province IN (
+          'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+          'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+          'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+          'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+          'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+          'DC'
+        )
+      GROUP BY primary_address_state_or_province
+      ORDER BY count DESC
+    `;
+
+    // Execute all queries in parallel
+    const [
+      [overallStats],
+      [specialties],
+      [states]
+    ] = await Promise.all([
+      vendorBigQuery.query({ query: statsQuery }),
+      vendorBigQuery.query({ query: specialtiesQuery }),
+      vendorBigQuery.query({ query: statesQuery })
+    ]);
+
+    const result = {
+      success: true,
+      data: {
+        overall: overallStats[0],
+        specialties: specialties,
+        states: states
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Cache for 1 hour (national stats don't change often)
+    cache.set(cacheKey, result, 3600);
+    
+    console.log(`✅ National HCP overview complete: ${overallStats[0].total_providers?.toLocaleString()} providers`);
+
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error fetching national HCP overview:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 
 /**
  * GET /api/hcp-data/stats
@@ -350,6 +470,362 @@ router.get("/sample", async (req, res) => {
     res.status(500).json({
       error: "Failed to fetch HCP sample data",
       details: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/hcp-data/search
+ * Search and filter HCPs nationally or within a market
+ * Request body: { search, states, consolidatedSpecialty, gender, hasHospitalAffiliation, hasNetworkAffiliation, latitude, longitude, radius, limit }
+ * Caches national (no filter) results for performance
+ */
+router.post("/search", async (req, res) => {
+  try {
+    const {
+      search = '',
+      states = [],
+      consolidatedSpecialty = [],
+      gender = [],
+      hasHospitalAffiliation = null,
+      hasPhysicianGroupAffiliation = null,
+      hasNetworkAffiliation = null,
+      latitude = null,
+      longitude = null,
+      radius = null,
+      limit = 500
+    } = req.body;
+
+    console.log('🔍 HCP Search:', {
+      search: search ? `"${search}"` : 'none',
+      states: states.length,
+      specialties: consolidatedSpecialty.length,
+      gender: gender.length,
+      hasHospitalAffiliation,
+      hasNetworkAffiliation,
+      hasLocation: !!(latitude && longitude && radius),
+      limit
+    });
+
+    // Check if this is a national (unfiltered) request that can be cached
+    const isNationalRequest = !search && 
+                              states.length === 0 && 
+                              consolidatedSpecialty.length === 0 && 
+                              gender.length === 0 && 
+                              hasHospitalAffiliation === null && 
+                              hasPhysicianGroupAffiliation === null &&
+                              hasNetworkAffiliation === null &&
+                              !latitude && !longitude && !radius;
+    
+    if (isNationalRequest) {
+      const cacheKey = `hcp-national-search-v3-limit-${limit}`;
+      const cached = cache.get(cacheKey);
+      
+      if (cached) {
+        console.log('✅ Returning cached national HCP search results');
+        return res.json({
+          ...cached,
+          cached: true
+        });
+      }
+    }
+
+    // Build WHERE clauses
+    const whereClauses = ['npi_deactivation_date IS NULL'];
+    const params = { limit: parseInt(limit) };
+
+    // Search by name or NPI
+    if (search && search.trim()) {
+      whereClauses.push('(LOWER(name_full_formatted) LIKE @searchTerm OR npi LIKE @searchTerm)');
+      params.searchTerm = `%${search.trim().toLowerCase()}%`;
+    }
+
+    // State filter
+    if (states && Array.isArray(states) && states.length > 0) {
+      whereClauses.push('primary_address_state_or_province IN UNNEST(@states)');
+      params.states = states;
+    }
+
+    // Specialty filter
+    if (consolidatedSpecialty && Array.isArray(consolidatedSpecialty) && consolidatedSpecialty.length > 0) {
+      whereClauses.push('primary_taxonomy_consolidated_specialty IN UNNEST(@specialties)');
+      params.specialties = consolidatedSpecialty;
+    }
+
+    // Gender filter
+    if (gender && Array.isArray(gender) && gender.length > 0) {
+      whereClauses.push('gender IN UNNEST(@gender)');
+      params.gender = gender;
+    }
+
+    // Hospital affiliation filter
+    if (hasHospitalAffiliation === true) {
+      whereClauses.push('atlas_affiliation_primary_hospital_parent_id IS NOT NULL');
+    } else if (hasHospitalAffiliation === false) {
+      whereClauses.push('atlas_affiliation_primary_hospital_parent_id IS NULL');
+    }
+
+    // Physician group affiliation filter
+    if (hasPhysicianGroupAffiliation === true) {
+      whereClauses.push('atlas_affiliation_primary_physician_group_parent_id IS NOT NULL');
+    } else if (hasPhysicianGroupAffiliation === false) {
+      whereClauses.push('atlas_affiliation_primary_physician_group_parent_id IS NULL');
+    }
+
+    // Network filter
+    if (hasNetworkAffiliation === true) {
+      whereClauses.push('atlas_affiliation_primary_network_id IS NOT NULL');
+    } else if (hasNetworkAffiliation === false) {
+      whereClauses.push('atlas_affiliation_primary_network_id IS NULL');
+    }
+
+    // Geographic filter (if provided)
+    let selectClause = `
+      npi,
+      name_full_formatted as name,
+      primary_taxonomy_consolidated_specialty as consolidated_specialty,
+      primary_address_city as city,
+      primary_address_state_or_province as state,
+      primary_address_zip5 as zip,
+      gender,
+      birth_year,
+      atlas_affiliation_primary_hospital_parent_id as hospital_affiliation,
+      atlas_affiliation_primary_physician_group_parent_id as physician_group_affiliation,
+      atlas_affiliation_primary_network_id as network_affiliation
+    `;
+
+    if (latitude && longitude && radius) {
+      const distanceFormula = getDistanceFormula(parseFloat(latitude), parseFloat(longitude));
+      whereClauses.push(`${distanceFormula} <= ${parseFloat(radius)}`);
+      selectClause += `, ${distanceFormula} as distance_miles`;
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+    
+    // Query 1: Get total count (no limit)
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+    `;
+    
+    // Query 2: Get actual results (with limit)
+    const resultsQuery = `
+      SELECT ${selectClause}
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+      ORDER BY ${latitude && longitude && radius ? 'distance_miles ASC' : 'name_full_formatted ASC'}
+      LIMIT @limit
+    `;
+    
+    // Query 3: Get aggregated stats
+    const statsQuery = `
+      SELECT
+        COUNT(DISTINCT primary_taxonomy_consolidated_specialty) as distinct_specialties,
+        COUNT(DISTINCT CASE 
+          WHEN LENGTH(primary_address_state_or_province) = 2 
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+          THEN primary_address_state_or_province 
+        END) as distinct_states,
+        COUNT(DISTINCT primary_address_city) as distinct_cities,
+        COUNTIF(LOWER(gender) = 'male') as male_count,
+        COUNTIF(LOWER(gender) = 'female') as female_count,
+        COUNTIF(atlas_affiliation_primary_hospital_parent_id IS NOT NULL) as with_hospital_affiliation,
+        COUNTIF(atlas_affiliation_primary_network_id IS NOT NULL) as with_network
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+    `;
+
+    console.log('📊 Executing search queries (count + results + stats + breakdowns)...');
+    
+    // Create params without limit for count/stats queries
+    const countParams = { ...params };
+    delete countParams.limit;
+    
+    // Breakdown queries - analyze ALL matching records
+    const specialtiesBreakdownQuery = `
+      SELECT
+        primary_taxonomy_consolidated_specialty as specialty,
+        COUNT(*) as count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+        AND primary_taxonomy_consolidated_specialty IS NOT NULL
+      GROUP BY primary_taxonomy_consolidated_specialty
+      ORDER BY count DESC
+      LIMIT 15
+    `;
+    
+    const statesBreakdownQuery = `
+      SELECT
+        primary_address_state_or_province as state,
+        COUNT(*) as count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+        AND primary_address_state_or_province IS NOT NULL
+      GROUP BY primary_address_state_or_province
+      ORDER BY count DESC
+      LIMIT 15
+    `;
+    
+    const citiesBreakdownQuery = `
+      SELECT
+        CONCAT(primary_address_city, ', ', primary_address_state_or_province) as city,
+        COUNT(*) as count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+        AND primary_address_city IS NOT NULL
+        AND primary_address_state_or_province IS NOT NULL
+      GROUP BY primary_address_city, primary_address_state_or_province
+      ORDER BY count DESC
+      LIMIT 15
+    `;
+    
+    const genderBreakdownQuery = `
+      SELECT
+        CASE 
+          WHEN LOWER(gender) = 'male' THEN 'male'
+          WHEN LOWER(gender) = 'female' THEN 'female'
+          ELSE 'other'
+        END as gender,
+        COUNT(*) as count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+      GROUP BY gender
+    `;
+    
+    const affiliationsBreakdownQuery = `
+      SELECT
+        COUNTIF(atlas_affiliation_primary_hospital_parent_id IS NOT NULL) as hospital,
+        COUNTIF(atlas_affiliation_primary_physician_group_parent_id IS NOT NULL) as physician_group,
+        COUNTIF(atlas_affiliation_primary_network_id IS NOT NULL) as network,
+        COUNTIF(atlas_affiliation_primary_hospital_parent_id IS NULL 
+                AND atlas_affiliation_primary_physician_group_parent_id IS NULL 
+                AND atlas_affiliation_primary_network_id IS NULL) as independent
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereClause}
+    `;
+    
+    // For national requests, also fetch filter options
+    let filterOptionsPromises = [];
+    if (isNationalRequest) {
+      // States query
+      const statesQuery = `
+        SELECT
+          primary_address_state_or_province as state,
+          COUNT(*) as count
+        FROM \`aegis_access.hcp_flat\`
+        WHERE npi_deactivation_date IS NULL
+          AND primary_address_state_or_province IS NOT NULL
+          AND LENGTH(primary_address_state_or_province) = 2
+          AND primary_address_state_or_province IN (
+            'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+            'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+            'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+            'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+            'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+            'DC'
+          )
+        GROUP BY primary_address_state_or_province
+        ORDER BY count DESC
+      `;
+      
+      // Specialties query
+      const specialtiesQuery = `
+        SELECT
+          primary_taxonomy_consolidated_specialty as specialty,
+          COUNT(*) as count
+        FROM \`aegis_access.hcp_flat\`
+        WHERE npi_deactivation_date IS NULL
+          AND primary_taxonomy_consolidated_specialty IS NOT NULL
+        GROUP BY primary_taxonomy_consolidated_specialty
+        ORDER BY count DESC
+        LIMIT 100
+      `;
+      
+      filterOptionsPromises = [
+        vendorBigQuery.query({ query: statesQuery }),
+        vendorBigQuery.query({ query: specialtiesQuery })
+      ];
+    }
+    
+    // Execute queries in parallel (including breakdown queries)
+    const queryResults = await Promise.all([
+      vendorBigQuery.query({ query: countQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      vendorBigQuery.query({ query: resultsQuery, params }),
+      vendorBigQuery.query({ query: statsQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      vendorBigQuery.query({ query: specialtiesBreakdownQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      vendorBigQuery.query({ query: statesBreakdownQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      vendorBigQuery.query({ query: citiesBreakdownQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      vendorBigQuery.query({ query: genderBreakdownQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      vendorBigQuery.query({ query: affiliationsBreakdownQuery, params: Object.keys(countParams).length > 0 ? countParams : undefined }),
+      ...filterOptionsPromises
+    ]);
+    
+    const [countResult] = queryResults[0];
+    const [rows] = queryResults[1];
+    const [statsResult] = queryResults[2];
+    const [specialtiesBreakdown] = queryResults[3];
+    const [statesBreakdown] = queryResults[4];
+    const [citiesBreakdown] = queryResults[5];
+    const [genderBreakdown] = queryResults[6];
+    const [affiliationsBreakdown] = queryResults[7];
+    
+    const totalCount = parseInt(countResult[0].total);
+    console.log(`✅ Found ${totalCount} total practitioners (showing ${rows.length})`);
+    console.log(`📊 Stats:`, statsResult[0]);
+
+    const response = {
+      success: true,
+      data: {
+        practitioners: rows,
+        count: rows.length,
+        totalCount: totalCount,
+        stats: statsResult[0],
+        limited: totalCount > limit,
+        breakdowns: {
+          specialties: specialtiesBreakdown,
+          states: statesBreakdown,
+          cities: citiesBreakdown.map(c => ({ name: c.city, count: parseInt(c.count) })),
+          gender: genderBreakdown.map(g => ({ gender: g.gender, count: parseInt(g.count) })),
+          affiliations: affiliationsBreakdown[0]
+        }
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add filter options for national requests
+    if (isNationalRequest) {
+      const baseIndex = 8; // Breakdown queries end at index 7
+      const [statesData] = queryResults[baseIndex];
+      const [specialtiesData] = queryResults[baseIndex + 1];
+      
+      response.data.filterOptions = {
+        states: statesData,
+        specialties: specialtiesData
+      };
+    }
+    
+    // Cache national requests
+    if (isNationalRequest) {
+      const cacheKey = `hcp-national-search-v3-limit-${limit}`;
+      cache.set(cacheKey, response, 3600); // Cache for 1 hour (v3: added breakdowns)
+      console.log('💾 Cached national HCP search results');
+    }
+
+    res.json(response);
+
+  } catch (err) {
+    console.error("❌ Error searching HCPs:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
     });
   }
 });
