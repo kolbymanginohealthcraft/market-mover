@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Building, TrendingUp, Download, ChevronRight, ChevronDown, MapPin } from 'lucide-react';
+import { Building, TrendingUp, Download, ChevronRight, ChevronDown, MapPin, ArrowRight, X } from 'lucide-react';
 import styles from './ReferralPathways.module.css';
 import { apiUrl } from '../../../utils/api';
 import ReferralPathwaysMap from './ReferralPathwaysMap';
@@ -19,6 +19,10 @@ const ReferralPathways = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [inboundFacilityInfo, setInboundFacilityInfo] = useState(null);
+  
+  // Downstream analysis modal
+  const [downstreamModal, setDownstreamModal] = useState(null); // { facility, data } or null
+  const [downstreamLoading, setDownstreamLoading] = useState(false);
 
   // Fetch metadata on mount to get max_date
   useEffect(() => {
@@ -45,7 +49,8 @@ const ReferralPathways = () => {
           npi: inboundNPI,
           name: result.data.definitive_name,
           latitude: result.data.latitude,
-          longitude: result.data.longitude
+          longitude: result.data.longitude,
+          taxonomy_classification: result.data.taxonomy_classification
         });
       }
     } catch (err) {
@@ -261,6 +266,65 @@ const ReferralPathways = () => {
   // Run analysis
   const handleRunAnalysis = () => {
     fetchReferralSources();
+  };
+
+  // Fetch downstream facilities (where does this facility send patients?)
+  const fetchDownstreamFacilities = async (facility) => {
+    setDownstreamLoading(true);
+    
+    try {
+      // Use the first NPI from the facility
+      const outboundNPI = facility.npis?.[0] || facility.outbound_facility_provider_npi;
+      
+      console.log(`🔄 Fetching downstream facilities for ${facility.definitive_name || facility.outbound_facility_provider_name}`);
+      
+      const response = await fetch(apiUrl('/api/referral-pathways/downstream-facilities'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          outboundNPI, // This facility is sending patients
+          dateFrom: dateRange.from,
+          dateTo: dateRange.to,
+          leadUpPeriodMax,
+          filterByTaxonomy: inboundFacilityInfo?.taxonomy_classification, // Only show same type as your facility
+          limit: 200
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Calculate distances from the selected facility
+        const facilitiesWithDistance = result.data.map(f => {
+          const distance = facility.latitude && f.latitude
+            ? calculateDistance(
+                facility.latitude,
+                facility.longitude,
+                f.latitude,
+                f.longitude
+              )
+            : null;
+          
+          return {
+            ...f,
+            distance: distance ? Math.round(distance * 10) / 10 : null
+          };
+        }).filter(f => f.distance === null || f.distance <= maxDistance);
+
+        // Sort by referrals
+        facilitiesWithDistance.sort((a, b) => (b.total_referrals || 0) - (a.total_referrals || 0));
+
+        setDownstreamModal({
+          facility,
+          data: facilitiesWithDistance,
+          totalReferrals: facilitiesWithDistance.reduce((sum, f) => sum + (f.total_referrals || 0), 0)
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching downstream facilities:', err);
+    } finally {
+      setDownstreamLoading(false);
+    }
   };
 
   // Export to CSV (all facilities)
@@ -507,6 +571,7 @@ const ReferralPathways = () => {
                                         <th className={styles.numberColumn}>Referrals</th>
                                         <th className={styles.numberColumn}>Avg Monthly</th>
                                         <th className={styles.numberColumn}>Charges</th>
+                                        <th className={styles.actionColumn}>Downstream</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -544,6 +609,18 @@ const ReferralPathways = () => {
                                           <td className={styles.numberColumn}>{formatNumber(facility.total_referrals)}</td>
                                           <td className={styles.numberColumn}>{formatNumber(facility.avg_monthly_referrals)}</td>
                                           <td className={styles.numberColumn}>{formatCurrency(facility.total_charges)}</td>
+                                          <td className={styles.actionColumn}>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                fetchDownstreamFacilities(facility);
+                                              }}
+                                              className={styles.downstreamButton}
+                                              title="See where this facility sends patients"
+                                            >
+                                              <ArrowRight size={14} />
+                                            </button>
+                                          </td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -582,6 +659,111 @@ const ReferralPathways = () => {
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingSpinner}></div>
           <p>Analyzing referral pathways...</p>
+        </div>
+      )}
+
+      {/* Downstream Analysis Modal */}
+      {downstreamModal && (
+        <div className={styles.modal} onClick={() => setDownstreamModal(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h3 className={styles.modalTitle}>
+                  Downstream Facilities from {downstreamModal.facility.definitive_name || downstreamModal.facility.outbound_facility_provider_name}
+                </h3>
+                <p className={styles.modalSubtitle}>
+                  Where does this facility send patients to facilities like yours?
+                  {inboundFacilityInfo?.taxonomy_classification && ` (Showing only: ${inboundFacilityInfo.taxonomy_classification})`}
+                </p>
+              </div>
+              <button onClick={() => setDownstreamModal(null)} className={styles.modalClose}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className={styles.modalStats}>
+              <div className={styles.modalStat}>
+                <span className={styles.modalStatLabel}>Your Referrals</span>
+                <span className={styles.modalStatValue}>
+                  {formatNumber(downstreamModal.facility.total_referrals)}
+                </span>
+              </div>
+              <div className={styles.modalStat}>
+                <span className={styles.modalStatLabel}>Total Downstream</span>
+                <span className={styles.modalStatValue}>
+                  {formatNumber(downstreamModal.totalReferrals)}
+                </span>
+              </div>
+              <div className={styles.modalStat}>
+                <span className={styles.modalStatLabel}>Your Share</span>
+                <span className={styles.modalStatValue} style={{ color: 'var(--primary-teal)' }}>
+                  {downstreamModal.totalReferrals > 0 
+                    ? ((downstreamModal.facility.total_referrals / downstreamModal.totalReferrals) * 100).toFixed(1) + '%'
+                    : '-'
+                  }
+                </span>
+              </div>
+              <div className={styles.modalStat}>
+                <span className={styles.modalStatLabel}>Competitors</span>
+                <span className={styles.modalStatValue}>
+                  {downstreamModal.data.length - 1}
+                </span>
+              </div>
+            </div>
+
+            {downstreamLoading ? (
+              <div className={styles.modalLoading}>
+                <div className={styles.loadingSpinner}></div>
+                <p>Loading downstream facilities...</p>
+              </div>
+            ) : (
+              <div className={styles.modalTableContainer}>
+                <table className={styles.modalTable}>
+                  <thead>
+                    <tr>
+                      <th>Receiving Facility</th>
+                      <th>Location</th>
+                      <th className={styles.numberColumn}>Distance</th>
+                      <th className={styles.numberColumn}>Referrals</th>
+                      <th className={styles.numberColumn}>% of Total</th>
+                      <th className={styles.numberColumn}>Charges</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {downstreamModal.data.map((f, idx) => {
+                      const isYourFacility = (f.npis?.[0] || f.outbound_facility_provider_npi) === inboundNPI;
+                      const sharePercent = downstreamModal.totalReferrals > 0
+                        ? ((f.total_referrals / downstreamModal.totalReferrals) * 100).toFixed(1)
+                        : 0;
+
+                      return (
+                        <tr key={idx} className={isYourFacility ? styles.yourFacilityRow : ''}>
+                          <td>
+                            <div className={styles.facilityName}>
+                              {f.definitive_name || f.outbound_facility_provider_name}
+                              {isYourFacility && <span className={styles.youBadge}>YOU</span>}
+                            </div>
+                            {f.npis && f.npis.length > 1 && (
+                              <div className={styles.npiText}>{f.npis.length} NPIs</div>
+                            )}
+                          </td>
+                          <td className={styles.locationText}>
+                            {f.outbound_facility_provider_city}, {f.outbound_facility_provider_state}
+                          </td>
+                          <td className={styles.numberColumn}>
+                            {f.distance ? `${f.distance} mi` : '-'}
+                          </td>
+                          <td className={styles.numberColumn}>{formatNumber(f.total_referrals)}</td>
+                          <td className={styles.numberColumn}>{sharePercent}%</td>
+                          <td className={styles.numberColumn}>{formatCurrency(f.total_charges)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

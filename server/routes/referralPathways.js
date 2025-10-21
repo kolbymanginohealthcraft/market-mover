@@ -72,7 +72,8 @@ router.get("/facility-location/:npi", async (req, res) => {
         definitive_id,
         definitive_name,
         primary_address_lat as latitude,
-        primary_address_long as longitude
+        primary_address_long as longitude,
+        primary_taxonomy_classification as taxonomy_classification
       FROM \`aegis_access.hco_flat\`
       WHERE npi = @npi
       LIMIT 1
@@ -922,6 +923,233 @@ router.post("/trends", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch trends",
+      error: error.message
+    });
+  }
+});
+
+// Get downstream facilities (where does this facility send patients?)
+router.post("/downstream-facilities", async (req, res) => {
+  try {
+    const { 
+      outboundNPI,
+      dateFrom,
+      dateTo,
+      leadUpPeriodMax = null,
+      filterByTaxonomy = null, // Filter to only show same type of facilities
+      limit = 100 
+    } = req.body;
+
+    console.log("⬇️ Referral Pathways: Fetching downstream facilities", {
+      outboundNPI,
+      dateFrom,
+      dateTo,
+      leadUpPeriodMax,
+      filterByTaxonomy
+    });
+
+    if (!outboundNPI) {
+      return res.status(400).json({
+        success: false,
+        message: "outboundNPI is required"
+      });
+    }
+
+    // Build WHERE clause - FLIP the perspective
+    const whereClauses = [
+      'outbound_facility_provider_npi = @outboundNPI', // This facility is sending
+      'inbound_facility_provider_npi IS NOT NULL',
+      'outbound_facility_provider_npi != inbound_facility_provider_npi', // No self-referrals
+      "outbound_facility_provider_npi_type = '2'",
+      "inbound_facility_provider_npi_type = '2'"
+    ];
+    
+    const params = { 
+      outboundNPI,
+      limit: parseInt(limit)
+    };
+
+    if (dateFrom) {
+      whereClauses.push('date__month_grain >= @dateFrom');
+      params.dateFrom = dateFrom;
+    }
+    if (dateTo) {
+      whereClauses.push('date__month_grain <= @dateTo');
+      params.dateTo = dateTo;
+    }
+    if (leadUpPeriodMax !== null && leadUpPeriodMax !== undefined) {
+      whereClauses.push('lead_up_period_days_max <= @leadUpPeriodMax');
+      params.leadUpPeriodMax = parseInt(leadUpPeriodMax);
+    }
+
+    // Filter by taxonomy classification if provided (to compare with same type of facilities)
+    if (filterByTaxonomy) {
+      whereClauses.push('inbound_facility_provider_taxonomy_classification = @filterByTaxonomy');
+      params.filterByTaxonomy = filterByTaxonomy;
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    // Query for INBOUND facilities (where this facility sends patients)
+    const query = `
+      SELECT 
+        inbound_facility_provider_npi as outbound_facility_provider_npi,
+        MAX(inbound_facility_provider_name) as outbound_facility_provider_name,
+        MAX(inbound_facility_provider_city) as outbound_facility_provider_city,
+        MAX(inbound_facility_provider_state) as outbound_facility_provider_state,
+        MAX(inbound_facility_provider_county) as outbound_facility_provider_county,
+        MAX(inbound_facility_provider_taxonomy_classification) as outbound_facility_provider_taxonomy_classification,
+        SUM(inbound_count) as total_referrals,
+        SUM(charges_total) as total_charges,
+        MIN(date__month_grain) as earliest_referral,
+        MAX(date__month_grain) as latest_referral,
+        COUNT(DISTINCT date__month_grain) as months_with_activity,
+        ROUND(SUM(inbound_count) / COUNT(DISTINCT date__month_grain), 1) as avg_monthly_referrals
+      FROM \`aegis_access.pathways_provider_overall\`
+      WHERE ${whereClause}
+      GROUP BY inbound_facility_provider_npi
+      ORDER BY total_referrals DESC
+      LIMIT @limit
+    `;
+
+    console.log("🔍 Executing downstream query");
+
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params
+    });
+
+    console.log(`✅ Retrieved ${rows.length} downstream facilities`);
+
+    // Sanitize dates
+    let sanitizedRows = rows.map(row => {
+      const sanitizedRow = {};
+      Object.keys(row).forEach(key => {
+        const value = row[key];
+        if (value instanceof Date) {
+          sanitizedRow[key] = value.toISOString().split('T')[0];
+        } else if (value && typeof value === 'object' && value.value !== undefined) {
+          if (value.value instanceof Date) {
+            sanitizedRow[key] = value.value.toISOString().split('T')[0];
+          } else {
+            sanitizedRow[key] = value.value;
+          }
+        } else {
+          sanitizedRow[key] = value;
+        }
+      });
+      return sanitizedRow;
+    });
+
+    // Enrich with definitive names from hco_flat
+    if (sanitizedRows.length > 0) {
+      try {
+        const npis = sanitizedRows.map(row => row.outbound_facility_provider_npi).filter(Boolean);
+        
+        if (npis.length > 0) {
+          console.log(`🏥 Fetching definitive names and locations for ${npis.length} downstream facilities`);
+          
+          const nameQuery = `
+            SELECT 
+              npi,
+              definitive_id,
+              definitive_name,
+              primary_address_lat as latitude,
+              primary_address_long as longitude
+            FROM \`aegis_access.hco_flat\`
+            WHERE npi IN UNNEST(@npis)
+          `;
+          
+          const [nameRows] = await vendorBigQueryClient.query({ 
+            query: nameQuery,
+            params: { npis }
+          });
+          
+          const nameMap = {};
+          nameRows.forEach(row => {
+            nameMap[row.npi] = {
+              definitive_id: row.definitive_id,
+              definitive_name: row.definitive_name,
+              latitude: row.latitude,
+              longitude: row.longitude
+            };
+          });
+          
+          sanitizedRows.forEach(row => {
+            if (row.outbound_facility_provider_npi && nameMap[row.outbound_facility_provider_npi]) {
+              const definitiveInfo = nameMap[row.outbound_facility_provider_npi];
+              row.definitive_id = definitiveInfo.definitive_id;
+              row.definitive_name = definitiveInfo.definitive_name;
+              row.latitude = definitiveInfo.latitude;
+              row.longitude = definitiveInfo.longitude;
+            }
+          });
+
+          // Aggregate by definitive_id
+          const definitiveMap = {};
+          sanitizedRows.forEach(row => {
+            const defId = row.definitive_id || row.outbound_facility_provider_npi;
+            
+            if (!definitiveMap[defId]) {
+              definitiveMap[defId] = {
+                ...row,
+                total_referrals: Number(row.total_referrals) || 0,
+                total_charges: Number(row.total_charges) || 0,
+                avg_monthly_referrals: Number(row.avg_monthly_referrals) || 0,
+                months_with_activity: Number(row.months_with_activity) || 0,
+                latitude: row.latitude,
+                longitude: row.longitude,
+                npis: [row.outbound_facility_provider_npi],
+                original_names: row.outbound_facility_provider_name ? [row.outbound_facility_provider_name] : []
+              };
+            } else {
+              definitiveMap[defId].total_referrals += Number(row.total_referrals) || 0;
+              definitiveMap[defId].total_charges += Number(row.total_charges) || 0;
+              definitiveMap[defId].avg_monthly_referrals += Number(row.avg_monthly_referrals) || 0;
+              definitiveMap[defId].months_with_activity = Math.max(
+                definitiveMap[defId].months_with_activity || 0,
+                Number(row.months_with_activity) || 0
+              );
+              if (row.latest_referral > definitiveMap[defId].latest_referral) {
+                definitiveMap[defId].latest_referral = row.latest_referral;
+              }
+              if (!definitiveMap[defId].latitude && row.latitude) {
+                definitiveMap[defId].latitude = row.latitude;
+                definitiveMap[defId].longitude = row.longitude;
+              }
+              definitiveMap[defId].npis.push(row.outbound_facility_provider_npi);
+              if (row.outbound_facility_provider_name && !definitiveMap[defId].original_names.includes(row.outbound_facility_provider_name)) {
+                definitiveMap[defId].original_names.push(row.outbound_facility_provider_name);
+              }
+            }
+          });
+
+          sanitizedRows = Object.values(definitiveMap)
+            .sort((a, b) => b.total_referrals - a.total_referrals)
+            .slice(0, parseInt(limit));
+
+          console.log(`✅ Aggregated ${sanitizedRows.length} unique downstream facilities`);
+        }
+      } catch (err) {
+        console.error('⚠️ Error fetching definitive names (non-fatal):', err.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: sanitizedRows,
+      metadata: {
+        rowCount: sanitizedRows.length,
+        outboundNPI
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching downstream facilities:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch downstream facilities",
       error: error.message
     });
   }
