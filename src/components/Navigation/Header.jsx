@@ -18,7 +18,8 @@ import {
   DollarSign,
   Mail,
   FileText,
-  FileBarChart
+  FileBarChart,
+  TrendingUp
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
@@ -151,6 +152,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'My Diagnoses';
     } else if (location.pathname.includes('/investigation/claims')) {
       return 'Claims Data Explorer';
+    } else if (location.pathname.includes('/investigation/referral-pathways')) {
+      return 'Referral Pathways';
     } else if (location.pathname.includes('/settings')) {
       return 'Account Settings';
     } else if (location.pathname.includes('/feedback')) {
@@ -246,6 +249,10 @@ const Header = ({ currentView, selectedMarket }) => {
       return [
         { text: 'Interactive claims analysis with dynamic filtering and aggregation', type: 'description' }
       ];
+    } else if (currentPath.includes('/investigation/referral-pathways')) {
+      return [
+        { text: 'Analyze inbound referral patterns and sources', type: 'description' }
+      ];
     } else if (currentPath.includes('/settings')) {
       return [
         { text: 'Manage your profile and preferences', type: 'description' }
@@ -295,6 +302,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return <Network size={18} />;
     } else if (location.pathname.includes('/procedures')) {
       return <FileBarChart size={18} />;
+    } else if (location.pathname.includes('/investigation/referral-pathways')) {
+      return <TrendingUp size={18} />;
     } else if (location.pathname.includes('/settings')) {
       return <Settings size={18} />;
     } else {

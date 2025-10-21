@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Building, TrendingUp, Filter, Download, ChevronRight, ChevronDown, BarChart3, Calendar, MapPin } from 'lucide-react';
+import { Building, TrendingUp, Download, ChevronRight, ChevronDown, MapPin } from 'lucide-react';
 import styles from './ReferralPathways.module.css';
 import { apiUrl } from '../../../utils/api';
 import ReferralPathwaysMap from './ReferralPathwaysMap';
@@ -12,20 +12,13 @@ const ReferralPathways = () => {
   const groupByLevel = 'outbound_facility_provider_taxonomy_classification'; // Fixed to taxonomy classification
   const [leadUpPeriodMax, setLeadUpPeriodMax] = useState(3); // Default 3 days
   const [maxDistance, setMaxDistance] = useState(100); // Default 100 miles
-  const [referralSources, setReferralSources] = useState([]);
-  const [trends, setTrends] = useState([]);
+  const [allFacilities, setAllFacilities] = useState([]); // All facilities loaded upfront
+  const [groupedData, setGroupedData] = useState([]); // Grouped by provider type for display
   const [expandedRow, setExpandedRow] = useState(null);
   const [expandedView, setExpandedView] = useState('table'); // 'table' or 'map' for drill-down
-  const [facilityDetails, setFacilityDetails] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('sources'); // 'sources' or 'trends'
   const [inboundFacilityInfo, setInboundFacilityInfo] = useState(null);
-  
-  // Filters
-  const [filters, setFilters] = useState({});
-  const [availableFilters, setAvailableFilters] = useState({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch metadata on mount to get max_date
   useEffect(() => {
@@ -124,7 +117,7 @@ const ReferralPathways = () => {
     }
   };
 
-  // Fetch referral sources
+  // Fetch all facilities upfront (faster overall)
   const fetchReferralSources = async () => {
     if (!inboundNPI || !dateRange.from || !dateRange.to) {
       return;
@@ -134,6 +127,7 @@ const ReferralPathways = () => {
     setError(null);
 
     try {
+      // Fetch all facilities at NPI level
       const response = await fetch(apiUrl('/api/referral-pathways/referral-sources'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,114 +135,15 @@ const ReferralPathways = () => {
           inboundNPI,
           dateFrom: dateRange.from,
           dateTo: dateRange.to,
-          groupByField: groupByLevel,
+          groupByField: 'outbound_facility_provider_npi', // Always fetch at NPI level
           leadUpPeriodMax,
-          filters,
-          limit: 100
+          limit: 200 // Get more facilities upfront
         })
       });
 
       const result = await response.json();
       
       if (result.success) {
-        setReferralSources(result.data);
-        setExpandedRow(null); // Reset expanded rows
-        setFacilityDetails({}); // Clear facility details
-      } else {
-        setError(result.message || 'Failed to fetch referral sources');
-      }
-    } catch (err) {
-      console.error('Error fetching referral sources:', err);
-      setError('Failed to fetch referral sources');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch trends
-  const fetchTrends = async () => {
-    if (!inboundNPI || !dateRange.from || !dateRange.to) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(apiUrl('/api/referral-pathways/trends'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inboundNPI,
-          dateFrom: dateRange.from,
-          dateTo: dateRange.to,
-          leadUpPeriodMax,
-          filters
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setTrends(result.data);
-      } else {
-        setError(result.message || 'Failed to fetch trends');
-      }
-    } catch (err) {
-      console.error('Error fetching trends:', err);
-      setError('Failed to fetch trends');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch facility details for drill-down
-  const fetchFacilityDetails = async (row) => {
-    const cacheKey = JSON.stringify({
-      groupByLevel,
-      row: row[groupByLevel]
-    });
-
-    // Check if already fetched
-    if (facilityDetails[cacheKey]) {
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const filterParams = {};
-      
-      // Add appropriate filter based on current grouping level
-      if (groupByLevel === 'outbound_facility_provider_taxonomy_classification') {
-        filterParams.taxonomyClassification = row.outbound_facility_provider_taxonomy_classification;
-      } else if (groupByLevel === 'outbound_facility_provider_taxonomy_specialization') {
-        filterParams.taxonomySpecialization = row.outbound_facility_provider_taxonomy_specialization;
-      } else if (groupByLevel === 'outbound_facility_provider_state') {
-        filterParams.state = row.outbound_facility_provider_state;
-      } else if (groupByLevel === 'outbound_facility_provider_county') {
-        filterParams.county = row.outbound_facility_provider_county;
-      }
-
-      const response = await fetch(apiUrl('/api/referral-pathways/facility-details'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inboundNPI,
-          dateFrom: dateRange.from,
-          dateTo: dateRange.to,
-          leadUpPeriodMax,
-          ...filterParams,
-          limit: 50
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log(`✅ Fetched ${result.data.length} facility details for drill-down`);
-        console.log('Sample facility:', result.data[0]);
-        
         // Calculate distances and filter
         let facilitiesWithDistance = result.data.map(facility => {
           const distance = inboundFacilityInfo?.latitude && facility.latitude
@@ -262,7 +157,7 @@ const ReferralPathways = () => {
           
           return {
             ...facility,
-            distance: distance ? Math.round(distance * 10) / 10 : null // One decimal place
+            distance: distance ? Math.round(distance * 10) / 10 : null
           };
         });
 
@@ -271,92 +166,123 @@ const ReferralPathways = () => {
           f.distance === null || f.distance <= maxDistance
         );
 
-        // Sort by distance (closest first), then by referrals
-        facilitiesWithDistance.sort((a, b) => {
-          if (a.distance === null && b.distance === null) return (b.total_referrals || 0) - (a.total_referrals || 0);
-          if (a.distance === null) return 1;
-          if (b.distance === null) return -1;
-          return a.distance - b.distance;
-        });
+        console.log(`✅ Loaded ${facilitiesWithDistance.length} facilities (filtered by ${maxDistance} miles)`);
 
-        console.log(`✅ After distance filter: ${facilitiesWithDistance.length} facilities within ${maxDistance} miles`);
+        // Store all facilities
+        setAllFacilities(facilitiesWithDistance);
+
+        // Group by taxonomy for display
+        groupFacilitiesByTaxonomy(facilitiesWithDistance);
         
-        setFacilityDetails(prev => ({
-          ...prev,
-          [cacheKey]: facilitiesWithDistance
-        }));
+        setExpandedRow(null); // Reset expanded rows
+      } else {
+        setError(result.message || 'Failed to fetch referral sources');
       }
     } catch (err) {
-      console.error('Error fetching facility details:', err);
+      console.error('Error fetching referral sources:', err);
+      setError('Failed to fetch referral sources');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle row expansion
+  // Group facilities by taxonomy classification (client-side)
+  const groupFacilitiesByTaxonomy = (facilities) => {
+    const grouped = {};
+    
+    facilities.forEach(facility => {
+      const taxonomy = facility.outbound_facility_provider_taxonomy_classification || 'Unknown';
+      
+      if (!grouped[taxonomy]) {
+        grouped[taxonomy] = {
+          taxonomy_classification: taxonomy,
+          facilities: [],
+          unique_facilities: 0,
+          total_referrals: 0,
+          total_charges: 0,
+          months_with_activity: 0,
+          latest_referral: null
+        };
+      }
+      
+      grouped[taxonomy].facilities.push(facility);
+      grouped[taxonomy].unique_facilities = grouped[taxonomy].facilities.length;
+      grouped[taxonomy].total_referrals += Number(facility.total_referrals) || 0;
+      grouped[taxonomy].total_charges += Number(facility.total_charges) || 0;
+      grouped[taxonomy].months_with_activity = Math.max(
+        grouped[taxonomy].months_with_activity,
+        Number(facility.months_with_activity) || 0
+      );
+      
+      if (!grouped[taxonomy].latest_referral || facility.latest_referral > grouped[taxonomy].latest_referral) {
+        grouped[taxonomy].latest_referral = facility.latest_referral;
+      }
+    });
+
+    // Convert to array and sort by total_referrals
+    const groupedArray = Object.values(grouped)
+      .sort((a, b) => b.total_referrals - a.total_referrals);
+
+    setGroupedData(groupedArray);
+  };
+
+  // Get facilities for a specific taxonomy (instant - already loaded)
+  const getFacilitiesForTaxonomy = (taxonomy) => {
+    const group = groupedData.find(g => g.taxonomy_classification === taxonomy);
+    if (!group) return [];
+    
+    // Sort by referrals (highest first), then by distance (closest first)
+    return group.facilities.sort((a, b) => {
+      const referralDiff = (b.total_referrals || 0) - (a.total_referrals || 0);
+      if (referralDiff !== 0) return referralDiff;
+      
+      // If referrals are equal, sort by distance
+      if (a.distance === null && b.distance === null) return 0;
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
+  };
+
+  // Handle row expansion (instant - no server call)
   const handleRowClick = (row, index) => {
     const newExpandedRow = expandedRow === index ? null : index;
     setExpandedRow(newExpandedRow);
     setExpandedView('table'); // Reset to table view when expanding
-
-    // Fetch facility details if expanding
-    if (newExpandedRow !== null) {
-      fetchFacilityDetails(row);
-    }
   };
 
-  // Clear facility details cache when distance changes (so it re-filters)
+  // Re-group when distance filter changes
   useEffect(() => {
-    setFacilityDetails({});
-    setExpandedRow(null);
+    if (allFacilities.length > 0) {
+      groupFacilitiesByTaxonomy(allFacilities);
+    }
   }, [maxDistance]);
 
   // Run analysis
   const handleRunAnalysis = () => {
-    if (activeTab === 'sources') {
-      fetchReferralSources();
-    } else {
-      fetchTrends();
-    }
+    fetchReferralSources();
   };
 
-  // Fetch filter options
-  const fetchFilterOptions = async (column) => {
-    try {
-      const response = await fetch(apiUrl('/api/referral-pathways/filter-options'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inboundNPI,
-          dateFrom: dateRange.from,
-          dateTo: dateRange.to,
-          column
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setAvailableFilters(prev => ({
-          ...prev,
-          [column]: result.data
-        }));
-      }
-    } catch (err) {
-      console.error('Error fetching filter options:', err);
-    }
-  };
-
-  // Export to CSV
+  // Export to CSV (all facilities)
   const exportToCSV = () => {
-    if (referralSources.length === 0) return;
+    if (allFacilities.length === 0) return;
 
-    const headers = Object.keys(referralSources[0]).join(',');
-    const rows = referralSources.map(row => 
-      Object.values(row).map(val => 
-        typeof val === 'string' && val.includes(',') ? `"${val}"` : val
-      ).join(',')
-    );
+    const headers = ['Definitive Name', 'NPIs', 'Taxonomy', 'City', 'State', 'Distance (mi)', 'Referrals', 'Charges', 'Months Active', 'Latest Activity'].join(',');
+    const rows = allFacilities.map(f => {
+      const npiList = f.npis ? f.npis.join('; ') : f.outbound_facility_provider_npi;
+      return [
+        f.definitive_name || f.outbound_facility_provider_name,
+        npiList,
+        f.outbound_facility_provider_taxonomy_classification,
+        f.outbound_facility_provider_city,
+        f.outbound_facility_provider_state,
+        f.distance || '',
+        f.total_referrals,
+        f.total_charges,
+        f.months_with_activity,
+        f.latest_referral
+      ].map(val => typeof val === 'string' && val.includes(',') ? `"${val}"` : val).join(',');
+    });
     
     const csv = [headers, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -413,20 +339,12 @@ const ReferralPathways = () => {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.headerIcon}>
-            <Building size={24} />
-          </div>
-          <div>
-            <h1 className={styles.title}>Referral Pathways Analysis</h1>
-            <p className={styles.subtitle}>
-              Analyze which facilities are sending patients to your organization
-            </p>
-          </div>
+      {/* Error Display */}
+      {error && (
+        <div className={styles.error}>
+          <strong>Error:</strong> {error}
         </div>
-      </div>
+      )}
 
       {/* Controls */}
       <div className={styles.controls}>
@@ -442,32 +360,6 @@ const ReferralPathways = () => {
               onChange={(e) => setInboundNPI(e.target.value)}
               className={styles.input}
               placeholder="Enter NPI"
-            />
-          </div>
-
-          <div className={styles.controlGroup}>
-            <label className={styles.label}>
-              <Calendar size={14} />
-              Date From
-            </label>
-            <input
-              type="date"
-              value={dateRange.from || ''}
-              onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.controlGroup}>
-            <label className={styles.label}>
-              <Calendar size={14} />
-              Date To
-            </label>
-            <input
-              type="date"
-              value={dateRange.to || ''}
-              onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-              className={styles.input}
             />
           </div>
 
@@ -509,95 +401,38 @@ const ReferralPathways = () => {
               <span>500 mi</span>
             </div>
           </div>
-        </div>
 
-        <div className={styles.controlsRow}>
-          <button 
-            onClick={handleRunAnalysis}
-            className={styles.runButton}
-            disabled={loading || !inboundNPI || !dateRange.from || !dateRange.to}
-          >
-            {loading ? 'Loading...' : 'Run Analysis'}
-          </button>
-
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className={styles.filterButton}
-          >
-            <Filter size={14} />
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
-      </div>
-
-      {/* Info Panel */}
-      {metadata && dateRange.from && dateRange.to && (
-        <div className={styles.infoPanel}>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Data as of:</span>
-            <span className={styles.infoValue}>
-              {formatMonthDisplay(metadata.maxDate.value || metadata.maxDate)}
-            </span>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Analyzing:</span>
-            <span className={styles.infoValue}>
-              Last 12 months ({formatMonthDisplay(dateRange.from)} to {formatMonthDisplay(dateRange.to)})
-            </span>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Max Lead Time:</span>
-            <span className={styles.infoValue}>{leadUpPeriodMax} days</span>
-          </div>
-          <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Max Distance:</span>
-            <span className={styles.infoValue}>{maxDistance} miles</span>
+          <div className={styles.controlGroup}>
+            <label className={styles.label} style={{ opacity: 0 }}>
+              Hidden
+            </label>
+            <button 
+              onClick={handleRunAnalysis}
+              className={styles.runButton}
+              disabled={loading || !inboundNPI || !dateRange.from || !dateRange.to}
+            >
+              {loading ? 'Loading...' : 'Run Analysis'}
+            </button>
           </div>
         </div>
-      )}
-
-      {/* Error Display */}
-      {error && (
-        <div className={styles.error}>
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className={styles.tabs}>
-        <button
-          className={`${styles.tab} ${activeTab === 'sources' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('sources')}
-        >
-          <Building size={14} />
-          Referral Sources
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'trends' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('trends')}
-        >
-          <TrendingUp size={14} />
-          Monthly Trends
-        </button>
       </div>
 
       {/* Content */}
       <div className={styles.content}>
-        {activeTab === 'sources' && (
-          <div className={styles.sourcesTab}>
-            {referralSources.length > 0 && (
+        <div className={styles.sourcesTab}>
+            {groupedData.length > 0 && (
               <div className={styles.tableActions}>
                 <div className={styles.tableInfo}>
-                  Showing {referralSources.length} {getGroupDisplayName().toLowerCase()} groups
+                  Showing {allFacilities.length} facilities in {groupedData.length} provider types
                 </div>
                 <button onClick={exportToCSV} className={styles.exportButton}>
                   <Download size={14} />
-                  Export CSV
+                  Export All Facilities
                 </button>
               </div>
             )}
 
-            {referralSources.length > 0 ? (
+            {groupedData.length > 0 ? (
               <div className={styles.tableContainer}>
                 <table className={styles.table}>
                   <thead>
@@ -612,58 +447,48 @@ const ReferralPathways = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {referralSources.map((row, index) => {
-                      const cacheKey = JSON.stringify({
-                        groupByLevel,
-                        row: row[groupByLevel]
-                      });
-                      const details = facilityDetails[cacheKey];
+                    {groupedData.map((group, index) => {
                       const isExpanded = expandedRow === index;
-                      const canExpand = true; // Always allow expansion to see individual facilities
+                      const facilities = getFacilitiesForTaxonomy(group.taxonomy_classification);
                       
-                      // Create unique key based on grouping field value
-                      const uniqueKey = `${groupByLevel}-${row[groupByLevel]}`;
-
                       return (
-                        <Fragment key={uniqueKey}>
+                        <Fragment key={group.taxonomy_classification}>
                           <tr 
-                            onClick={() => handleRowClick(row, index)}
-                            className={`${canExpand ? styles.clickableRow : ''} ${isExpanded ? styles.expandedRow : ''}`}
+                            onClick={() => handleRowClick(group, index)}
+                            className={`${styles.clickableRow} ${isExpanded ? styles.expandedRow : ''}`}
                           >
                             <td className={styles.expandColumn}>
-                              {canExpand && (
-                                isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
-                              )}
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </td>
                             <td className={styles.nameColumn}>
-                              {row[groupByLevel] || 'Unknown'}
+                              {group.taxonomy_classification}
                             </td>
-                            <td className={styles.numberColumn}>{formatNumber(row.unique_facilities)}</td>
-                            <td className={styles.numberColumn}>{formatNumber(row.total_referrals)}</td>
-                            <td className={styles.numberColumn}>{formatCurrency(row.total_charges)}</td>
-                            <td className={styles.numberColumn}>{row.months_with_activity}</td>
-                            <td className={styles.dateColumn}>{formatMonthDisplay(row.latest_referral)}</td>
+                            <td className={styles.numberColumn}>{formatNumber(group.unique_facilities)}</td>
+                            <td className={styles.numberColumn}>{formatNumber(group.total_referrals)}</td>
+                            <td className={styles.numberColumn}>{formatCurrency(group.total_charges)}</td>
+                            <td className={styles.numberColumn}>{group.months_with_activity}</td>
+                            <td className={styles.dateColumn}>{formatMonthDisplay(group.latest_referral)}</td>
                           </tr>
 
-                          {/* Expanded Details */}
-                          {isExpanded && details && (
+                          {/* Expanded Details - Instant, no loading! */}
+                          {isExpanded && facilities.length > 0 && (
                             <tr>
                               <td colSpan="7" className={styles.detailsCell}>
                                 <div className={styles.detailsContainer}>
                                   <div className={styles.detailsHeader}>
                                     <h4 className={styles.detailsTitle}>
-                                      Top Facilities ({details.length})
+                                      {facilities.length} Facilities
                                     </h4>
                                     <div className={styles.detailsTabs}>
                                       <button
                                         className={`${styles.detailsTab} ${expandedView === 'table' ? styles.detailsTabActive : ''}`}
-                                        onClick={() => setExpandedView('table')}
+                                        onClick={(e) => { e.stopPropagation(); setExpandedView('table'); }}
                                       >
                                         Table
                                       </button>
                                       <button
                                         className={`${styles.detailsTab} ${expandedView === 'map' ? styles.detailsTabActive : ''}`}
-                                        onClick={() => setExpandedView('map')}
+                                        onClick={(e) => { e.stopPropagation(); setExpandedView('map'); }}
                                       >
                                         <MapPin size={12} />
                                         Map
@@ -685,12 +510,14 @@ const ReferralPathways = () => {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {details.map((facility, idx) => (
+                                      {facilities.map((facility, idx) => (
                                         <tr key={`${facility.definitive_id || facility.outbound_facility_provider_npi}-${idx}`}>
                                           <td>
-                                            <div>{facility.definitive_name || facility.outbound_facility_provider_name}</div>
+                                            <div className={styles.facilityName}>
+                                              {facility.definitive_name || facility.outbound_facility_provider_name}
+                                            </div>
                                             {facility.original_names && facility.original_names.length > 0 && (
-                                              <div className={styles.alternativeName} style={{ fontSize: '11px', marginTop: '2px' }}>
+                                              <div className={styles.alternativeName}>
                                                 {facility.original_names.join(', ')}
                                               </div>
                                             )}
@@ -698,14 +525,14 @@ const ReferralPathways = () => {
                                           <td className={styles.npiText}>
                                             {facility.npis && facility.npis.length > 1 ? (
                                               <>
-                                                {facility.npis.join(', ')}
-                                                <div style={{ fontSize: '10px', color: '#a0aec0' }}>({facility.npis.length} NPIs)</div>
+                                                <div>{facility.npis.join(', ')}</div>
+                                                <div className={styles.npiCount}>({facility.npis.length} NPIs)</div>
                                               </>
                                             ) : (
-                                              facility.npis?.[0] || facility.outbound_facility_provider_npi
+                                              <div>{facility.npis?.[0] || facility.outbound_facility_provider_npi}</div>
                                             )}
                                             {facility.definitive_id && (
-                                              <div style={{ fontSize: '10px', color: '#a0aec0' }}>ID: {facility.definitive_id}</div>
+                                              <div className={styles.definitiveId}>ID: {facility.definitive_id}</div>
                                             )}
                                           </td>
                                           <td>
@@ -724,7 +551,7 @@ const ReferralPathways = () => {
                                   ) : (
                                     <div className={styles.detailsMapContainer}>
                                       <ReferralPathwaysMap 
-                                        facilities={details}
+                                        facilities={facilities}
                                         inboundFacility={inboundFacilityInfo}
                                       />
                                     </div>
@@ -747,44 +574,7 @@ const ReferralPathways = () => {
                 </div>
               )
             )}
-          </div>
-        )}
-
-        {activeTab === 'trends' && (
-          <div className={styles.trendsTab}>
-            {trends.length > 0 ? (
-              <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Month</th>
-                      <th className={styles.numberColumn}>Unique Facilities</th>
-                      <th className={styles.numberColumn}>Total Referrals</th>
-                      <th className={styles.numberColumn}>Total Charges</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trends.map((row) => (
-                      <tr key={row.month}>
-                        <td>{formatMonthDisplay(row.month)}</td>
-                        <td className={styles.numberColumn}>{formatNumber(row.unique_facilities)}</td>
-                        <td className={styles.numberColumn}>{formatNumber(row.total_referrals)}</td>
-                        <td className={styles.numberColumn}>{formatCurrency(row.total_charges)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              !loading && (
-                <div className={styles.emptyState}>
-                  <TrendingUp size={48} />
-                  <p>No trend data found. Click "Run Analysis" to get started.</p>
-                </div>
-              )
-            )}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Loading Overlay */}

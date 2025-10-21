@@ -120,9 +120,9 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
           type: 'line',
           source: 'connections',
           paint: {
-            'line-color': '#667eea',
-            'line-width': 1,
-            'line-opacity': 0.4
+            'line-color': '#dc2626',
+            'line-width': 1.5,
+            'line-opacity': 0.3
           }
         });
       }
@@ -176,8 +176,8 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
         source: 'outbound',
         paint: {
           'circle-radius': ['get', 'size'],
-          'circle-color': '#667eea',
-          'circle-stroke-width': 3,
+          'circle-color': '#00c08b',
+          'circle-stroke-width': 1,
           'circle-stroke-color': '#ffffff',
           'circle-opacity': 0.8
         }
@@ -208,9 +208,9 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
           type: 'circle',
           source: 'inbound',
           paint: {
-            'circle-radius': 12,
-            'circle-color': '#10b981',
-            'circle-stroke-width': 3,
+            'circle-radius': 14,
+            'circle-color': '#dc2626',
+            'circle-stroke-width': 1,
             'circle-stroke-color': '#ffffff',
             'circle-opacity': 1
           }
@@ -225,7 +225,7 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
             .setLngLat(coordinates)
             .setHTML(`
               <div style="padding: 8px; min-width: 200px;">
-                <strong style="color: #10b981;">Your Facility</strong>
+                <strong style="color: #dc2626;">Your Facility</strong>
                 <div style="margin-top: 4px; font-size: 12px;">
                   ${name}
                 </div>
@@ -255,7 +255,7 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
           .setLngLat(coordinates)
           .setHTML(`
             <div style="padding: 8px; min-width: 220px;">
-              <strong style="color: #667eea;">${name}</strong>
+              <strong style="color: #00c08b;">${name}</strong>
               ${npiCount > 1 ? 
                 `<div style="margin-top: 2px; font-size: 11px; color: #6b7280;">
                   ${npiCount} NPIs
@@ -269,7 +269,7 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
               </div>
               ${distance > 0 ? 
                 `<div style="margin-top: 4px; font-size: 11px; color: #6b7280;">
-                  ${distance} miles away
+                  ${distance.toFixed(1)} miles away
                 </div>` : ''
               }
               <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
@@ -301,13 +301,15 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
         }
       };
       document.addEventListener('keydown', handleKeyDown);
-      
-      // Cleanup listener
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-      };
+    };
 
-      // Fit map to show all markers
+    // Call addLayers (will wait for map load if needed)
+    addLayers();
+
+    // Fit bounds after layers are added (small delay to ensure layers are rendered)
+    setTimeout(() => {
+      if (!map.current) return;
+
       const bounds = new maplibregl.LngLatBounds();
       
       if (hasInbound) {
@@ -325,10 +327,7 @@ export default function ReferralPathwaysMap({ facilities, inboundFacility }) {
           duration: 800
         });
       }
-    };
-
-    // Call addLayers (will wait for map load if needed)
-    addLayers();
+    }, 100);
 
   }, [facilities, inboundFacility]);
 
