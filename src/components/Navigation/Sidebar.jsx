@@ -133,8 +133,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/investigation/claims" 
-            className={`${styles.navItem} ${isActive('/investigation/claims') ? styles.active : ''}`}
+            to="/app/claims" 
+            className={`${styles.navItem} ${isActive('/claims') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Claims Data Explorer')}
             onMouseLeave={handleMouseLeave}
           >
@@ -143,8 +143,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/investigation/geography" 
-            className={`${styles.navItem} ${isActive('/investigation/geography') ? styles.active : ''}`}
+            to="/app/geography" 
+            className={`${styles.navItem} ${isActive('/geography') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Geography Analysis (Test)')}
             onMouseLeave={handleMouseLeave}
           >
@@ -153,8 +153,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/investigation/hco" 
-            className={`${styles.navItem} ${isActive('/investigation/hco') ? styles.active : ''}`}
+            to="/app/hco" 
+            className={`${styles.navItem} ${isActive('/hco') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'HCO Directory')}
             onMouseLeave={handleMouseLeave}
           >
@@ -163,18 +163,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/hco-directory" 
-            className={`${styles.navItem} ${isActive('/hco-directory') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'HCO Advanced Directory')}
-            onMouseLeave={handleMouseLeave}
-          >
-            <Building2 size={14} />
-            {!isCollapsed && 'HCO Advanced Directory'}
-          </Link>
-          
-          <Link 
-            to="/app/investigation/hcp" 
-            className={`${styles.navItem} ${isActive('/investigation/hcp') ? styles.active : ''}`}
+            to="/app/hcp" 
+            className={`${styles.navItem} ${isActive('/hcp') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'HCP Directory')}
             onMouseLeave={handleMouseLeave}
           >
@@ -183,8 +173,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/investigation/referral-pathways" 
-            className={`${styles.navItem} ${isActive('/investigation/referral-pathways') ? styles.active : ''}`}
+            to="/app/referral-pathways" 
+            className={`${styles.navItem} ${isActive('/referral-pathways') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Referral Pathways')}
             onMouseLeave={handleMouseLeave}
           >
@@ -276,6 +266,27 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             >
               <FileBarChart size={14} />
               {!isCollapsed && 'My Diagnoses'}
+              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
+            </div>
+          )}
+          {hasTeam ? (
+            <Link 
+              to="/app/kpis" 
+              className={`${styles.navItem} ${isActive('/kpis') ? styles.active : ''}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My KPIs')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <Activity size={14} />
+              {!isCollapsed && 'My KPIs'}
+            </Link>
+          ) : (
+            <div 
+              className={`${styles.navItem} ${styles.disabled}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My KPIs - Join or create a team to access KPI tagging features')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <Activity size={14} />
+              {!isCollapsed && 'My KPIs'}
               {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
             </div>
           )}

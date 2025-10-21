@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../app/supabaseClient';
-import styles from './HCOAnalysisV2.module.css';
+import styles from './HCOAnalysis.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
-import { Building2, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List } from 'lucide-react';
+import SimpleLocationMap from '../../../components/Maps/SimpleLocationMap';
+import { 
+  Building2, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List, 
+  Info, FileText, Network, ArrowLeft, ChevronUp, GitBranch, ArrowUpCircle, ArrowDownCircle 
+} from 'lucide-react';
 
 /**
  * Healthcare Organizations Directory
@@ -14,7 +19,10 @@ import { Building2, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Downlo
  * - Clean, focused UI for provider discovery
  */
 
-export default function HCOAnalysisV2() {
+export default function HCOAnalysis() {
+  const { npi } = useParams();
+  const navigate = useNavigate();
+  
   // Markets
   const [markets, setMarkets] = useState([]);
   const [selectedMarket, setSelectedMarket] = useState(null);
@@ -41,7 +49,14 @@ export default function HCOAnalysisV2() {
     states: false,
     firmTypes: false,
     taxonomyClassifications: false,
-    affiliations: true // Keep affiliations open by default
+    affiliations: true,
+    basicInfo: true,
+    taxonomies: true,
+    procedures: true,
+    diagnoses: true,
+    upstream: true,
+    downstream: true,
+    allFields: false
   });
   
   // Filter options (populated from national overview or market data)
@@ -63,7 +78,22 @@ export default function HCOAnalysisV2() {
   const pageSize = 100;
   
   // Active tab
-  const [activeTab, setActiveTab] = useState('overview'); // overview, listing
+  const [activeTab, setActiveTab] = useState('overview'); // overview, listing, detail
+  
+  // Detail view state
+  const [selectedNPI, setSelectedNPI] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [volumeMetrics, setVolumeMetrics] = useState(null);
+  const [topProcedures, setTopProcedures] = useState([]);
+  const [diagnosisMetrics, setDiagnosisMetrics] = useState(null);
+  const [topDiagnoses, setTopDiagnoses] = useState([]);
+  const [pathways, setPathways] = useState({ upstream: [], downstream: [] });
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+  const [perspective, setPerspective] = useState('billing');
+  const [upstreamPerspective, setUpstreamPerspective] = useState('billing');
+  const [downstreamPerspective, setDownstreamPerspective] = useState('billing');
+  const [detailTab, setDetailTab] = useState('overview'); // overview, pathways
   
   // Fetch markets and auto-load national view on mount
   useEffect(() => {
@@ -72,6 +102,15 @@ export default function HCOAnalysisV2() {
     searchOrganizations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  // Load detail view if NPI is in URL
+  useEffect(() => {
+    if (npi) {
+      setSelectedNPI(npi);
+      setActiveTab('detail');
+      fetchProfile(npi);
+    }
+  }, [npi]);
   
   const fetchMarkets = async () => {
     try {
@@ -246,6 +285,67 @@ export default function HCOAnalysisV2() {
     return parseInt(num).toLocaleString();
   };
   
+  const formatCurrency = (num) => {
+    if (num === null || num === undefined) return '$0';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(num);
+  };
+  
+  const handleSelectOrganization = (npi) => {
+    setSelectedNPI(npi);
+    setActiveTab('detail');
+    navigate(`/app/hco/${npi}`);
+  };
+  
+  const handleBackToListing = () => {
+    setSelectedNPI(null);
+    setProfile(null);
+    setActiveTab('listing');
+    navigate('/app/hco');
+  };
+  
+  const fetchProfile = async (npi) => {
+    setLoadingProfile(true);
+    setProfileError(null);
+    
+    try {
+      const params = new URLSearchParams({
+        perspective,
+        upstreamPerspective,
+        downstreamPerspective
+      });
+      const response = await fetch(`/api/hco-directory/profile/${npi}?${params}`);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to load profile');
+      }
+      
+      setProfile(result.data.profile);
+      setVolumeMetrics(result.data.volumeMetrics);
+      setTopProcedures(result.data.topProcedures);
+      setDiagnosisMetrics(result.data.diagnosisMetrics);
+      setTopDiagnoses(result.data.topDiagnoses);
+      setPathways(result.data.pathways || { upstream: [], downstream: [] });
+      
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setProfileError(err.message);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (selectedNPI) {
+      fetchProfile(selectedNPI);
+    }
+  }, [perspective, upstreamPerspective, downstreamPerspective]);
+  
   // Get breakdowns from server response (based on ALL matching records)
   const getBreakdowns = () => {
     if (!results || !results.breakdowns) return null;
@@ -376,6 +476,15 @@ export default function HCOAnalysisV2() {
           <List size={16} />
           Listing
         </button>
+        {selectedNPI && (
+          <button 
+            className={`${styles.tab} ${activeTab === 'detail' ? styles.active : ''}`}
+            onClick={() => setActiveTab('detail')}
+          >
+            <Info size={16} />
+            Detail
+          </button>
+        )}
       </div>
 
       {/* Main Layout */}
@@ -852,7 +961,12 @@ export default function HCOAnalysisV2() {
                     </thead>
                     <tbody>
                       {paginatedResults.map((org, idx) => (
-                        <tr key={idx}>
+                        <tr 
+                          key={idx} 
+                          onClick={() => handleSelectOrganization(org.npi)}
+                          style={{ cursor: 'pointer' }}
+                          className={styles.clickableRow}
+                        >
                           <td>
                             <div className={styles.orgCell}>
                               <div className={styles.orgName}>{org.name}</div>
@@ -911,6 +1025,486 @@ export default function HCOAnalysisV2() {
               </div>
             )}
           </div>
+          )}
+          
+          {/* Detail Tab */}
+          {activeTab === 'detail' && selectedNPI && (
+            <div className={styles.detailView}>
+              {loadingProfile && (
+                <div className={styles.loadingOverlay}>
+                  <Spinner />
+                  <p>Loading organization profile...</p>
+                </div>
+              )}
+              
+              {profileError && (
+                <div className={styles.errorState}>
+                  <h2>Error Loading Profile</h2>
+                  <p>{profileError}</p>
+                  <button onClick={handleBackToListing} className="sectionHeaderButton">
+                    <ArrowLeft size={14} />
+                    Back to Listing
+                  </button>
+                </div>
+              )}
+              
+              {profile && !loadingProfile && (
+                <>
+                  {/* Profile Header */}
+                  <div className={styles.profileHeader}>
+                    <button onClick={handleBackToListing} className="sectionHeaderButton">
+                      <ArrowLeft size={14} />
+                      Back to Listing
+                    </button>
+                    <div className={styles.profileTitle}>
+                      <Building2 size={24} />
+                      <div>
+                        <h2>{profile.healthcare_organization_name || profile.name}</h2>
+                        <p>NPI: {profile.npi}</p>
+                      </div>
+                    </div>
+                    <div className={styles.perspectiveSelector}>
+                      <label>Perspective:</label>
+                      <select value={perspective} onChange={(e) => setPerspective(e.target.value)}>
+                        <option value="billing">Billing</option>
+                        <option value="facility">Facility</option>
+                        <option value="service_location">Service Location</option>
+                        <option value="performing">Performing</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Detail Tab Navigation */}
+                  <div className={styles.detailTabNav}>
+                    <button 
+                      className={`${styles.detailTab} ${detailTab === 'overview' ? styles.active : ''}`}
+                      onClick={() => setDetailTab('overview')}
+                    >
+                      <Info size={16} />
+                      Overview
+                    </button>
+                    <button 
+                      className={`${styles.detailTab} ${detailTab === 'pathways' ? styles.active : ''}`}
+                      onClick={() => setDetailTab('pathways')}
+                    >
+                      <GitBranch size={16} />
+                      Pathways
+                    </button>
+                  </div>
+                  
+                  <div className={styles.profileContent}>
+                    {/* Overview Tab */}
+                    {detailTab === 'overview' && (
+                      <div className={styles.overviewContent}>
+                        {/* Basic Info */}
+                        <div className={styles.profileSection}>
+                          <button 
+                            className={styles.sectionHeader}
+                            onClick={() => toggleSection('basicInfo')}
+                          >
+                            <div className={styles.sectionTitle}>
+                              <Info size={16} />
+                              <h3>Basic Information</h3>
+                            </div>
+                            {expandedSections.basicInfo ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                          {expandedSections.basicInfo && (
+                            <div className={styles.sectionContent}>
+                              <div className={styles.infoGrid}>
+                                <div className={styles.infoItem}>
+                                  <label>Organization Name</label>
+                                  <div>{profile.healthcare_organization_name || profile.name}</div>
+                                </div>
+                                <div className={styles.infoItem}>
+                                  <label>NPI</label>
+                                  <div>{profile.npi}</div>
+                                </div>
+                                {profile.definitive_id && (
+                                  <div className={styles.infoItem}>
+                                    <label>Definitive ID</label>
+                                    <div>{profile.definitive_id}</div>
+                                  </div>
+                                )}
+                                {profile.definitive_firm_type && (
+                                  <div className={styles.infoItem}>
+                                    <label>Firm Type</label>
+                                    <div>{profile.definitive_firm_type}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Address */}
+                        <div className={styles.profileSection}>
+                          <div className={styles.sectionHeader} style={{ cursor: 'default' }}>
+                            <div className={styles.sectionTitle}>
+                              <MapPin size={16} />
+                              <h3>Address & Location</h3>
+                            </div>
+                          </div>
+                          <div className={styles.sectionContent}>
+                            <div className={styles.addressBlock}>
+                              {profile.primary_address_line_1 && <div>{profile.primary_address_line_1}</div>}
+                              {profile.primary_address_line_2 && <div>{profile.primary_address_line_2}</div>}
+                              <div>
+                                {profile.primary_address_city && `${profile.primary_address_city}, `}
+                                {profile.primary_address_state_or_province} {profile.primary_address_zip5}
+                              </div>
+                              {profile.primary_address_county && (
+                                <div>{profile.primary_address_county} County</div>
+                              )}
+                            </div>
+                            {profile.primary_address_lat && profile.primary_address_long && (
+                              <div className={styles.mapContainer}>
+                                <SimpleLocationMap
+                                  center={{
+                                    lat: parseFloat(profile.primary_address_lat),
+                                    lng: parseFloat(profile.primary_address_long)
+                                  }}
+                                  zoom={15}
+                                  markerLabel={profile.healthcare_organization_name || profile.name}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Taxonomies */}
+                        <div className={styles.profileSection}>
+                          <button 
+                            className={styles.sectionHeader}
+                            onClick={() => toggleSection('taxonomies')}
+                          >
+                            <div className={styles.sectionTitle}>
+                              <FileText size={16} />
+                              <h3>Taxonomies</h3>
+                            </div>
+                            {expandedSections.taxonomies ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                          {expandedSections.taxonomies && (
+                            <div className={styles.sectionContent}>
+                              <div className={styles.infoGrid}>
+                                {profile.primary_taxonomy_code && (
+                                  <div className={styles.infoItem}>
+                                    <label>Taxonomy Code</label>
+                                    <div>{profile.primary_taxonomy_code}</div>
+                                  </div>
+                                )}
+                                {profile.primary_taxonomy_classification && (
+                                  <div className={styles.infoItem}>
+                                    <label>Classification</label>
+                                    <div>{profile.primary_taxonomy_classification}</div>
+                                  </div>
+                                )}
+                                {profile.primary_taxonomy_consolidated_specialty && (
+                                  <div className={styles.infoItem}>
+                                    <label>Consolidated Specialty</label>
+                                    <div>{profile.primary_taxonomy_consolidated_specialty}</div>
+                                  </div>
+                                )}
+                                {profile.primary_taxonomy_grouping && (
+                                  <div className={styles.infoItem}>
+                                    <label>Grouping</label>
+                                    <div>{profile.primary_taxonomy_grouping}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Affiliations */}
+                        <div className={styles.profileSection}>
+                          <button 
+                            className={styles.sectionHeader}
+                            onClick={() => toggleSection('affiliations')}
+                          >
+                            <div className={styles.sectionTitle}>
+                              <Network size={16} />
+                              <h3>Affiliations</h3>
+                            </div>
+                            {expandedSections.affiliations ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                          {expandedSections.affiliations && (
+                            <div className={styles.sectionContent}>
+                              <div className={styles.infoGrid}>
+                                <div className={styles.infoItem}>
+                                  <label>Hospital Parent</label>
+                                  <div>{profile.hospital_parent_name || 'None'}</div>
+                                </div>
+                                <div className={styles.infoItem}>
+                                  <label>Physician Group Parent</label>
+                                  <div>{profile.physician_group_parent_name || 'None'}</div>
+                                </div>
+                                <div className={styles.infoItem}>
+                                  <label>Network</label>
+                                  <div>{profile.network_name || 'None'}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Procedure Volume */}
+                        {volumeMetrics && (
+                          <div className={styles.profileSection}>
+                            <button 
+                              className={styles.sectionHeader}
+                              onClick={() => toggleSection('procedures')}
+                            >
+                              <div className={styles.sectionTitle}>
+                                <BarChart3 size={16} />
+                                <h3>Procedure Volume (Last 12 Months)</h3>
+                              </div>
+                              {expandedSections.procedures ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                            {expandedSections.procedures && (
+                              <div className={styles.sectionContent}>
+                                <div className={styles.metricsGrid}>
+                                  <div className={styles.metricCard}>
+                                    <label>Total Procedures</label>
+                                    <div className={styles.metricValue}>{formatNumber(volumeMetrics.totalProcedures)}</div>
+                                  </div>
+                                  <div className={styles.metricCard}>
+                                    <label>Total Charges</label>
+                                    <div className={styles.metricValue}>{formatCurrency(volumeMetrics.totalCharges)}</div>
+                                  </div>
+                                  <div className={styles.metricCard}>
+                                    <label>Unique Procedures</label>
+                                    <div className={styles.metricValue}>{formatNumber(volumeMetrics.uniqueProcedures)}</div>
+                                  </div>
+                                  <div className={styles.metricCard}>
+                                    <label>Months with Data</label>
+                                    <div className={styles.metricValue}>{volumeMetrics.monthsWithData}</div>
+                                  </div>
+                                </div>
+                                {topProcedures && topProcedures.length > 0 && (
+                                  <div className={styles.dataTable}>
+                                    <h4>Top Procedures</h4>
+                                    <table>
+                                      <thead>
+                                        <tr>
+                                          <th>Code</th>
+                                          <th>Description</th>
+                                          <th>Service Line</th>
+                                          <th>Count</th>
+                                          <th>Charges</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {topProcedures.map((proc, idx) => (
+                                          <tr key={idx}>
+                                            <td>{proc.code}</td>
+                                            <td>{proc.code_description || '-'}</td>
+                                            <td>{proc.service_line_description || '-'}</td>
+                                            <td>{formatNumber(proc.procedure_count)}</td>
+                                            <td>{formatCurrency(proc.total_charges)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Diagnosis Volume */}
+                        {diagnosisMetrics && (
+                          <div className={styles.profileSection}>
+                            <button 
+                              className={styles.sectionHeader}
+                              onClick={() => toggleSection('diagnoses')}
+                            >
+                              <div className={styles.sectionTitle}>
+                                <FileText size={16} />
+                                <h3>Diagnosis Volume (Last 12 Months)</h3>
+                              </div>
+                              {expandedSections.diagnoses ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                            {expandedSections.diagnoses && (
+                              <div className={styles.sectionContent}>
+                                <div className={styles.metricsGrid}>
+                                  <div className={styles.metricCard}>
+                                    <label>Total Diagnoses</label>
+                                    <div className={styles.metricValue}>{formatNumber(diagnosisMetrics.totalDiagnoses)}</div>
+                                  </div>
+                                  <div className={styles.metricCard}>
+                                    <label>Unique Diagnoses</label>
+                                    <div className={styles.metricValue}>{formatNumber(diagnosisMetrics.uniqueDiagnoses)}</div>
+                                  </div>
+                                  <div className={styles.metricCard}>
+                                    <label>Months with Data</label>
+                                    <div className={styles.metricValue}>{diagnosisMetrics.monthsWithData}</div>
+                                  </div>
+                                </div>
+                                {topDiagnoses && topDiagnoses.length > 0 && (
+                                  <div className={styles.dataTable}>
+                                    <h4>Top Diagnoses</h4>
+                                    <table>
+                                      <thead>
+                                        <tr>
+                                          <th>Code</th>
+                                          <th>Description</th>
+                                          <th>Count</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {topDiagnoses.map((diag, idx) => (
+                                          <tr key={idx}>
+                                            <td>{diag.code}</td>
+                                            <td>{diag.code_description || '-'}</td>
+                                            <td>{formatNumber(diag.diagnosis_count)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Pathways Tab */}
+                    {detailTab === 'pathways' && (
+                      <div className={styles.pathwaysContent}>
+                        {/* Upstream Pathways */}
+                        <div className={styles.profileSection}>
+                          <button 
+                            className={styles.sectionHeader}
+                            onClick={() => toggleSection('upstream')}
+                          >
+                            <div className={styles.sectionTitle}>
+                              <ArrowUpCircle size={16} />
+                              <h3>Upstream Pathways (Where Patients Came From)</h3>
+                            </div>
+                            {expandedSections.upstream ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                          {expandedSections.upstream && (
+                            <div className={styles.sectionContent}>
+                              <div className={styles.pathwayControls}>
+                                <p>Top 15 providers that sent patients to this organization (last 12 months, within 14 days)</p>
+                                <div className={styles.perspectiveSelector}>
+                                  <label>Show as:</label>
+                                  <select value={upstreamPerspective} onChange={(e) => setUpstreamPerspective(e.target.value)}>
+                                    <option value="billing">Billing</option>
+                                    <option value="facility">Facility</option>
+                                    <option value="service_location">Service Location</option>
+                                    <option value="performing">Performing</option>
+                                  </select>
+                                </div>
+                              </div>
+                              {pathways && pathways.upstream && pathways.upstream.length > 0 ? (
+                                <div className={styles.dataTable}>
+                                  <table>
+                                    <thead>
+                                      <tr>
+                                        <th>Rank</th>
+                                        <th>Provider</th>
+                                        <th>Taxonomy</th>
+                                        <th>Location</th>
+                                        <th>Patient Count</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {pathways.upstream.map((provider, idx) => (
+                                        <tr key={idx}>
+                                          <td>{idx + 1}</td>
+                                          <td>
+                                            <div>
+                                              <div style={{ fontWeight: '500' }}>{provider.provider_name}</div>
+                                              <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>NPI: {provider.npi}</div>
+                                            </div>
+                                          </td>
+                                          <td>{provider.taxonomy || '-'}</td>
+                                          <td>{provider.city}, {provider.state}</td>
+                                          <td>{formatNumber(provider.patient_count)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className={styles.noData}>No upstream pathway data available</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Downstream Pathways */}
+                        <div className={styles.profileSection}>
+                          <button 
+                            className={styles.sectionHeader}
+                            onClick={() => toggleSection('downstream')}
+                          >
+                            <div className={styles.sectionTitle}>
+                              <ArrowDownCircle size={16} />
+                              <h3>Downstream Pathways (Where Patients Went To)</h3>
+                            </div>
+                            {expandedSections.downstream ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                          {expandedSections.downstream && (
+                            <div className={styles.sectionContent}>
+                              <div className={styles.pathwayControls}>
+                                <p>Top 15 providers that received patients from this organization (last 12 months, within 14 days)</p>
+                                <div className={styles.perspectiveSelector}>
+                                  <label>Show as:</label>
+                                  <select value={downstreamPerspective} onChange={(e) => setDownstreamPerspective(e.target.value)}>
+                                    <option value="billing">Billing</option>
+                                    <option value="facility">Facility</option>
+                                    <option value="service_location">Service Location</option>
+                                    <option value="performing">Performing</option>
+                                  </select>
+                                </div>
+                              </div>
+                              {pathways && pathways.downstream && pathways.downstream.length > 0 ? (
+                                <div className={styles.dataTable}>
+                                  <table>
+                                    <thead>
+                                      <tr>
+                                        <th>Rank</th>
+                                        <th>Provider</th>
+                                        <th>Taxonomy</th>
+                                        <th>Location</th>
+                                        <th>Patient Count</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {pathways.downstream.map((provider, idx) => (
+                                        <tr key={idx}>
+                                          <td>{idx + 1}</td>
+                                          <td>
+                                            <div>
+                                              <div style={{ fontWeight: '500' }}>{provider.provider_name}</div>
+                                              <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>NPI: {provider.npi}</div>
+                                            </div>
+                                          </td>
+                                          <td>{provider.taxonomy || '-'}</td>
+                                          <td>{provider.city}, {provider.state}</td>
+                                          <td>{formatNumber(provider.patient_count)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className={styles.noData}>No downstream pathway data available</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

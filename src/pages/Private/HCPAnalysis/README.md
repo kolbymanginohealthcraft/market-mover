@@ -102,8 +102,8 @@ Result is in miles (meters divided by 1609.34).
 ## Navigation
 
 Access via:
-- Route: `/app/investigation/hcp`
-- Sidebar link: "HCP Analysis (Test)" under the HCO Analysis
+- Route: `/app/hcp`
+- Sidebar link: "HCP Directory" in the sidebar
 
 ## Comparison: HCO vs HCP
 

@@ -279,6 +279,53 @@ const SubNavigation = () => {
     );
   }
 
+  // Handle KPIs page navigation
+  const isKPIsPage = location.pathname.includes('/kpis') || location.pathname === '/app/kpis';
+  
+  if (isKPIsPage) {
+    if (!teamLoading && !hasTeam) {
+      return (
+        <nav className={styles.subNavigation}>
+          <div className={styles.navLeft}>
+            <div className={`${styles.tab} ${styles.disabled}`} style={{ cursor: 'not-allowed' }}>
+              <Lock size={16} />
+              Team Required
+            </div>
+          </div>
+          <div className={styles.navRight}>
+            <div className={styles.teamRequiredMessage}>
+              Join or create a team to access KPI tagging features
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // Determine the current view from the URL
+    const currentView = location.pathname.includes('/kpis/browse') ? 'browse' : 'tags';
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          <Link
+            to="/app/kpis/tags"
+            className={`${styles.tab} ${currentView === 'tags' ? styles.active : ''}`}
+          >
+            <Bookmark size={16} />
+            My Tags
+          </Link>
+          <Link
+            to="/app/kpis/browse"
+            className={`${styles.tab} ${currentView === 'browse' ? styles.active : ''}`}
+          >
+            <Search size={16} />
+            Browse All
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+
   // Handle new provider market analysis pages (/app/:dhc/market/*)
   if (location.pathname.match(/^\/app\/\d+\/market\//)) {
     const pathSegments = location.pathname.split('/');

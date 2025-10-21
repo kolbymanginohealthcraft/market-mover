@@ -61,10 +61,9 @@ import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarke
 import Network from "../pages/Private/Network/Network";
 import Procedures from "../pages/Private/Procedures/Procedures";
 import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
+import KPIs from "../pages/Private/KPIs/KPIsLayout";
 import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
-import HCOAnalysisV2 from "../pages/Private/HCOAnalysis/HCOAnalysisV2";
-import HCODirectory from "../pages/Private/HCODirectory/HCODirectory";
-import HCOProfile from "../pages/Private/HCODirectory/HCOProfile";
+import HCOAnalysis from "../pages/Private/HCOAnalysis/HCOAnalysis";
 import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
 import HCPAnalysisV2 from "../pages/Private/HCPAnalysis/HCPAnalysisV2";
 import ReferralPathways from "../pages/Private/ReferralPathways/ReferralPathways";
@@ -152,13 +151,13 @@ function AppContent({ location }) {
             <Route path="network/*" element={<Network />} />
             <Route path="procedures/*" element={<Procedures />} />
             <Route path="diagnoses/*" element={<Diagnoses />} />
-            <Route path="investigation/claims" element={<ClaimsDataInvestigation />} />
-            <Route path="investigation/hco" element={<HCOAnalysisV2 />} />
-            <Route path="hco-directory" element={<HCODirectory />} />
-            <Route path="hco-directory/:npi" element={<HCOProfile />} />
-            <Route path="investigation/geography" element={<GeographyAnalysis />} />
-            <Route path="investigation/hcp" element={<HCPAnalysisV2 />} />
-            <Route path="investigation/referral-pathways" element={<ReferralPathways />} />
+            <Route path="kpis/*" element={<KPIs />} />
+            <Route path="claims" element={<ClaimsDataInvestigation />} />
+            <Route path="hco" element={<HCOAnalysis />} />
+            <Route path="hco/:npi" element={<HCOAnalysis />} />
+            <Route path="geography" element={<GeographyAnalysis />} />
+            <Route path="hcp" element={<HCPAnalysisV2 />} />
+            <Route path="referral-pathways" element={<ReferralPathways />} />
           </Route>
 
           {/* Fallback */}

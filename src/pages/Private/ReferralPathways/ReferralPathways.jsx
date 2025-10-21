@@ -478,24 +478,24 @@ const ReferralPathways = () => {
               {loading ? 'Loading...' : 'Run Analysis'}
             </button>
           </div>
+
+          {allFacilities.length > 0 && (
+            <div className={styles.controlGroup}>
+              <label className={styles.label} style={{ opacity: 0 }}>
+                Hidden
+              </label>
+              <button onClick={exportToCSV} className={styles.exportButton}>
+                <Download size={14} />
+                Export All Facilities
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Content */}
       <div className={styles.content}>
         <div className={styles.sourcesTab}>
-            {groupedData.length > 0 && (
-              <div className={styles.tableActions}>
-                <div className={styles.tableInfo}>
-                  Showing {allFacilities.length} facilities in {groupedData.length} provider types
-                </div>
-                <button onClick={exportToCSV} className={styles.exportButton}>
-                  <Download size={14} />
-                  Export All Facilities
-                </button>
-              </div>
-            )}
-
             {groupedData.length > 0 ? (
               <div className={styles.tableContainer}>
                 <table className={styles.table}>
@@ -604,7 +604,7 @@ const ReferralPathways = () => {
                                             {facility.outbound_facility_provider_city}, {facility.outbound_facility_provider_state}
                                           </td>
                                           <td className={styles.numberColumn}>
-                                            {facility.distance ? `${facility.distance} mi` : '-'}
+                                            {facility.distance !== null ? `${facility.distance.toFixed(1)} mi` : '-'}
                                           </td>
                                           <td className={styles.numberColumn}>{formatNumber(facility.total_referrals)}</td>
                                           <td className={styles.numberColumn}>{formatNumber(facility.avg_monthly_referrals)}</td>
@@ -751,7 +751,7 @@ const ReferralPathways = () => {
                             {f.outbound_facility_provider_city}, {f.outbound_facility_provider_state}
                           </td>
                           <td className={styles.numberColumn}>
-                            {f.distance ? `${f.distance} mi` : '-'}
+                            {f.distance !== null ? `${f.distance.toFixed(1)} mi` : '-'}
                           </td>
                           <td className={styles.numberColumn}>{formatNumber(f.total_referrals)}</td>
                           <td className={styles.numberColumn}>{sharePercent}%</td>

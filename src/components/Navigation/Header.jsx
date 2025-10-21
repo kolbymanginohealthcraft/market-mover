@@ -19,7 +19,9 @@ import {
   Mail,
   FileText,
   FileBarChart,
-  TrendingUp
+  TrendingUp,
+  Database,
+  GitBranch
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
@@ -150,10 +152,16 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'My Procedures';
     } else if (location.pathname.includes('/diagnoses')) {
       return 'My Diagnoses';
-    } else if (location.pathname.includes('/investigation/claims')) {
+    } else if (location.pathname.includes('/claims')) {
       return 'Claims Data Explorer';
-    } else if (location.pathname.includes('/investigation/referral-pathways')) {
+    } else if (location.pathname.includes('/referral-pathways')) {
       return 'Referral Pathways';
+    } else if (location.pathname.includes('/geography')) {
+      return 'Geographic Market Analysis';
+    } else if (location.pathname.includes('/hco')) {
+      return 'Healthcare Organization Analysis';
+    } else if (location.pathname.includes('/hcp')) {
+      return 'Healthcare Professional Analysis';
     } else if (location.pathname.includes('/settings')) {
       return 'Account Settings';
     } else if (location.pathname.includes('/feedback')) {
@@ -245,13 +253,33 @@ const Header = ({ currentView, selectedMarket }) => {
       return [
         { text: 'Tag and track procedure codes relevant to your business', type: 'description' }
       ];
-    } else if (currentPath.includes('/investigation/claims')) {
+    } else if (currentPath.includes('/diagnoses')) {
+      return [
+        { text: 'Tag and track diagnosis codes relevant to your business', type: 'description' }
+      ];
+    } else if (currentPath.includes('/kpis')) {
+      return [
+        { text: 'Tag and track metrics and KPIs that matter to your team', type: 'description' }
+      ];
+    } else if (currentPath.includes('/claims')) {
       return [
         { text: 'Interactive claims analysis with dynamic filtering and aggregation', type: 'description' }
       ];
-    } else if (currentPath.includes('/investigation/referral-pathways')) {
+    } else if (currentPath.includes('/referral-pathways')) {
       return [
         { text: 'Analyze inbound referral patterns and sources', type: 'description' }
+      ];
+    } else if (currentPath.includes('/geography')) {
+      return [
+        { text: 'Analyze market dynamics across census tracts and ZIP codes', type: 'description' }
+      ];
+    } else if (currentPath.includes('/hco')) {
+      return [
+        { text: 'Explore healthcare organizations and facility performance metrics', type: 'description' }
+      ];
+    } else if (currentPath.includes('/hcp')) {
+      return [
+        { text: 'Analyze individual provider performance and practice patterns', type: 'description' }
       ];
     } else if (currentPath.includes('/settings')) {
       return [
@@ -302,8 +330,16 @@ const Header = ({ currentView, selectedMarket }) => {
       return <Network size={18} />;
     } else if (location.pathname.includes('/procedures')) {
       return <FileBarChart size={18} />;
-    } else if (location.pathname.includes('/investigation/referral-pathways')) {
-      return <TrendingUp size={18} />;
+    } else if (location.pathname.includes('/claims')) {
+      return <Database size={18} />;
+    } else if (location.pathname.includes('/referral-pathways')) {
+      return <GitBranch size={18} />;
+    } else if (location.pathname.includes('/geography')) {
+      return <MapPin size={18} />;
+    } else if (location.pathname.includes('/hco')) {
+      return <Building2 size={18} />;
+    } else if (location.pathname.includes('/hcp')) {
+      return <User size={18} />;
     } else if (location.pathname.includes('/settings')) {
       return <Settings size={18} />;
     } else {

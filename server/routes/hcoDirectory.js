@@ -541,7 +541,7 @@ router.get("/profile/:npi", async (req, res) => {
         AND code IS NOT NULL
       GROUP BY code, code_description, service_line_description
       ORDER BY procedure_count DESC
-      LIMIT 20
+      LIMIT 15
     `;
 
     // Get diagnosis volume for last 12 months
@@ -569,7 +569,7 @@ router.get("/profile/:npi", async (req, res) => {
         AND code IS NOT NULL
       GROUP BY code, code_description
       ORDER BY diagnosis_count DESC
-      LIMIT 20
+      LIMIT 15
     `;
 
     const [
@@ -652,7 +652,7 @@ router.get("/profile/:npi", async (req, res) => {
         ${upstreamProviderFields.state},
         ${upstreamProviderFields.city}
       ORDER BY patient_count DESC
-      LIMIT 50
+      LIMIT 15
     `;
 
     // DOWNSTREAM: Where did patients go TO after this HCO?
@@ -681,7 +681,7 @@ router.get("/profile/:npi", async (req, res) => {
         ${downstreamProviderFields.state},
         ${downstreamProviderFields.city}
       ORDER BY patient_count DESC
-      LIMIT 50
+      LIMIT 15
     `;
 
     const [

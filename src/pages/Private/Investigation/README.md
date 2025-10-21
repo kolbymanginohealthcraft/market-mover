@@ -10,7 +10,7 @@ This is a **standalone investigation environment** for exploring the `volume_pro
 
 ## Access
 
-Navigate to: `/app/investigation/claims`
+Navigate to: `/app/claims`
 
 ## Features
 

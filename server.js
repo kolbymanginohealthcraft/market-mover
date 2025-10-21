@@ -30,6 +30,7 @@ import hcoDirectory from "./server/routes/hcoDirectory.js";
 import marketGeography from "./server/routes/marketGeography.js";
 import patientJourney from "./server/routes/patientJourney.js";
 import referralPathways from "./server/routes/referralPathways.js";
+import kpis from "./server/routes/kpis.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
@@ -85,6 +86,7 @@ app.use("/api/hco-directory", hcoDirectory);
 app.use("/api/market-geography", marketGeography);
 app.use("/api/patient-journey", patientJourney);
 app.use("/api/referral-pathways", referralPathways);
+app.use("/api", kpis);
 
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);

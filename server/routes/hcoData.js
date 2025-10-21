@@ -1092,6 +1092,7 @@ router.post("/search", async (req, res) => {
         AND definitive_firm_type IS NOT NULL
       GROUP BY definitive_firm_type
       ORDER BY count DESC
+      LIMIT 15
     `;
     
     const statesBreakdownQuery = `
@@ -1103,6 +1104,7 @@ router.post("/search", async (req, res) => {
         AND primary_address_state_or_province IS NOT NULL
       GROUP BY primary_address_state_or_province
       ORDER BY count DESC
+      LIMIT 15
     `;
     
     const citiesBreakdownQuery = `
@@ -1115,6 +1117,7 @@ router.post("/search", async (req, res) => {
         AND primary_address_state_or_province IS NOT NULL
       GROUP BY primary_address_city, primary_address_state_or_province
       ORDER BY count DESC
+      LIMIT 15
     `;
     
     const taxonomiesBreakdownQuery = `
@@ -1126,6 +1129,7 @@ router.post("/search", async (req, res) => {
         AND primary_taxonomy_classification IS NOT NULL
       GROUP BY primary_taxonomy_classification
       ORDER BY count DESC
+      LIMIT 15
     `;
     
     const affiliationsBreakdownQuery = `
