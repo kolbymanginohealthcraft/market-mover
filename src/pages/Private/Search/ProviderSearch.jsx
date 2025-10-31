@@ -39,7 +39,6 @@ export default function ProviderSearch() {
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
-  const [selectedProvider, setSelectedProvider] = useState(null);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(25);
@@ -217,7 +216,6 @@ export default function ProviderSearch() {
     setLoading(true);
     setError(null);
     setCurrentPage(1);
-    setSelectedProvider(null);
     setHasSearched(true);
 
     const q = searchTerm || queryText.trim();
@@ -262,8 +260,6 @@ export default function ProviderSearch() {
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
         if (result.data.length > 0) {
-          setSelectedProvider(result.data[0]);
-          
           // Update filter options from search results
           const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
           const networks = Array.from(new Set(result.data.map(p => p.network).filter(Boolean))).sort();
@@ -420,10 +416,6 @@ export default function ProviderSearch() {
   };
 
   // Selection handlers
-  const handleProviderSelect = (provider) => {
-    setSelectedProvider(provider);
-  };
-
   const handleCheckboxChange = (providerDhc, checked) => {
     const newSelected = new Set(selectedProviders);
     if (checked) {
@@ -903,7 +895,6 @@ export default function ProviderSearch() {
                     {paginatedResults.map((provider) => (
                               <tr 
                         key={provider.dhc}
-                                className={selectedProvider?.dhc === provider.dhc ? styles.selectedRow : ""}
                       >
                                 <td>
                               <input

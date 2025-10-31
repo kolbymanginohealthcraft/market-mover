@@ -118,9 +118,11 @@ function AppContent({ location }) {
           <Route path="/app" element={user ? <UnifiedSidebarLayout isPublic={false} /> : <Navigate to="/" />}>
             <Route index element={<Navigate to="dashboard" />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="search" element={<Navigate to="search/basic" />} />
-            <Route path="search/basic" element={<ProviderSearch />} />
-            <Route path="search/advanced" element={<AdvancedSearch />} />
+            <Route path="search" element={<Navigate to="/app/search/orgs" replace />} />
+            <Route path="search/basic" element={<Navigate to="/app/search/orgs" replace />} />
+            <Route path="search/advanced" element={<Navigate to="/app/search/ind" replace />} />
+            <Route path="search/orgs" element={<ProviderSearch />} />
+            <Route path="search/ind" element={<AdvancedSearch />} />
             <Route path="explore" element={<Explore />} />
             <Route path="feedback" element={<Feedback />} />
             
