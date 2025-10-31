@@ -47,12 +47,16 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   // Read radius from URL params for provider pages
   const currentRadius = isProviderPage ? (Number(searchParams.get('radius')) || 10) : 10;
   const [pendingRadius, setPendingRadius] = useState(currentRadius);
+  const prevUrlRadiusRef = useRef(currentRadius);
   
   // Update pending radius when URL changes
   useEffect(() => {
     if (isProviderPage) {
       const urlRadius = Number(searchParams.get('radius')) || 10;
-      setPendingRadius(urlRadius);
+      if (urlRadius !== prevUrlRadiusRef.current) {
+        prevUrlRadiusRef.current = urlRadius;
+        setPendingRadius(urlRadius);
+      }
     }
   }, [searchParams, isProviderPage]);
 

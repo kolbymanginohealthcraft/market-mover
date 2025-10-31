@@ -1,0 +1,238 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+  margin: 0;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+.dateBanner,
+.infoBanner {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--gray-700);
+}
+
+.infoCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.infoCard h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.infoCard p {
+  margin: 0;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+.tableContainer {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 250px);
+}
+
+.metricsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  table-layout: fixed;
+}
+
+.metricsTable thead {
+  background: var(--gray-50);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.metricsTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-200);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricsTable th:nth-child(1) {
+  width: 40%;
+}
+
+.metricsTable th:nth-child(2),
+.metricsTable th:nth-child(3),
+.metricsTable th:nth-child(4) {
+  width: 20%;
+  text-align: right;
+}
+
+.metricsTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+
+.metricsTable td:nth-child(2),
+.metricsTable td:nth-child(3),
+.metricsTable td:nth-child(4) {
+  text-align: right;
+}
+
+.metricsTable tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.metricsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.metricName {
+  font-weight: 500;
+  color: var(--gray-900);
+  vertical-align: top;
+  padding-top: 12px;
+}
+
+.metricName.clickable {
+  cursor: pointer;
+  color: var(--primary-color, #10B981);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: all 0.2s ease;
+}
+
+.metricName.clickable:hover {
+  color: var(--primary-color-dark, #059669);
+  text-decoration-color: currentColor;
+}
+
+.period {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.value {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.nationalAverage {
+  font-family: 'Courier New', monospace;
+  color: var(--gray-600);
+}
+
+.percentile {
+  font-weight: 600;
+  text-align: right;
+}
+
+.percentile.excellent {
+  color: #059669;
+}
+
+.percentile.good {
+  color: #10b981;
+}
+
+.percentile.average {
+  color: #eab308;
+}
+
+.percentile.poor {
+  color: #f97316;
+}
+
+.percentile.veryPoor {
+  color: #dc2626;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.modalBody {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+

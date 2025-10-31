@@ -732,3 +732,93 @@
 .marketCtaButton:active {
   transform: translateY(0);
 }
+
+/* Time Period Header */
+.timePeriodHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 14px;
+}
+
+.timePeriodLabel {
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.timePeriodValue {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+/* Tab Navigation */
+.tabNav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--white);
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--gray-600);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--primary-teal-dark);
+  background: var(--gray-50);
+}
+
+.tab.active {
+  color: var(--primary-teal-dark);
+  border-bottom-color: var(--primary-teal);
+  background: var(--white);
+}
+
+.tabContent {
+  padding: 24px;
+}
+
+/* Compact Stats */
+.compactStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.compactStatCard {
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+
+.compactStatLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.compactStatValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-900);
+}

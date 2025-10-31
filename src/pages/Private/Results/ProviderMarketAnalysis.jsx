@@ -198,7 +198,7 @@ export default function ProviderMarketAnalysis() {
       console.log('🔄 ProviderMarketAnalysis: Updating radius from URL:', radiusFromUrl, '→', newRadius);
       setRadiusInMiles(newRadius);
     }
-  }, [radiusFromUrl, radiusInMiles]);
+  }, [radiusFromUrl]);
 
   return (
     <ProviderAnalysisProvider 

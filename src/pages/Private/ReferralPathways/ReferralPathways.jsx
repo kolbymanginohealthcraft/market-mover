@@ -27,6 +27,7 @@ const ReferralPathways = () => {
   const [inboundFacilityInfo, setInboundFacilityInfo] = useState(null);
   const [activeFacilityInfo, setActiveFacilityInfo] = useState(null); // Facility info for currently displayed results
   const [searchMedicareOnly, setSearchMedicareOnly] = useState(false); // Toggle between pathways_provider_overall and medicare_pathways_provider_overall
+  const [npiType, setNpiType] = useState('facility'); // 'facility' or 'service_location'
   
   // Downstream analysis modal
   const [downstreamModal, setDownstreamModal] = useState(null); // { facility, data } or null
@@ -164,21 +165,23 @@ const ReferralPathways = () => {
       
       const requestBody = searchDirection === 'receiver'
         ? {
-            inboundNPI: currentNPI, // DB field: inbound_facility_provider_npi
+            inboundNPI: currentNPI, // DB field: inbound_facility_provider_npi or inbound_service_location_provider_npi
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
-            groupByField: 'outbound_facility_provider_npi',
+            groupByField: `outbound_${npiType === 'facility' ? 'facility' : 'service_location'}_provider_npi`,
             leadUpPeriodMax,
             limit: 200,
-            tableName
+            tableName,
+            npiType
           }
         : {
-            outboundNPI: currentNPI, // DB field: outbound_facility_provider_npi
+            outboundNPI: currentNPI, // DB field: outbound_facility_provider_npi or outbound_service_location_provider_npi
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
             leadUpPeriodMax,
             limit: 200,
-            tableName
+            tableName,
+            npiType
           };
 
       const response = await fetch(apiUrl(endpoint), {
@@ -236,12 +239,24 @@ const ReferralPathways = () => {
     }
   };
 
+  // Helper to get field name prefix based on NPI type
+  const getNpiFieldPrefix = () => {
+    return npiType === 'facility' ? 'facility_provider' : 'service_location_provider';
+  };
+
+  // Helper to get a field value from a facility object dynamically
+  const getFacilityField = (facility, fieldSuffix) => {
+    const prefix = getNpiFieldPrefix();
+    const fieldName = `outbound_${prefix}_${fieldSuffix}`;
+    return facility[fieldName];
+  };
+
   // Group facilities by taxonomy classification (client-side)
   const groupFacilitiesByTaxonomy = (facilities) => {
     const grouped = {};
     
     facilities.forEach(facility => {
-      const taxonomy = facility.outbound_facility_provider_taxonomy_classification || 'Unknown';
+      const taxonomy = getFacilityField(facility, 'taxonomy_classification') || 'Unknown';
       
       if (!grouped[taxonomy]) {
         grouped[taxonomy] = {
@@ -319,9 +334,11 @@ const ReferralPathways = () => {
     
     try {
       // Use the first NPI from the facility
-      const outboundNPI = facility.npis?.[0] || facility.outbound_facility_provider_npi;
+      const npiField = `outbound_${getNpiFieldPrefix()}_npi`;
+      const nameField = `outbound_${getNpiFieldPrefix()}_name`;
+      const outboundNPI = facility.npis?.[0] || facility[npiField];
       
-      console.log(`🔄 Fetching downstream facilities for ${facility.definitive_name || facility.outbound_facility_provider_name}`);
+      console.log(`🔄 Fetching downstream facilities for ${facility.definitive_name || facility[nameField]}`);
       
       const tableName = searchMedicareOnly ? 'medicare_pathways_provider_overall' : 'pathways_provider_overall';
       
@@ -335,7 +352,8 @@ const ReferralPathways = () => {
           leadUpPeriodMax,
           filterByTaxonomy: inboundFacilityInfo?.taxonomy_classification, // Only show same type as your facility
           limit: 200,
-          tableName
+          tableName,
+          npiType
         })
       });
 
@@ -382,13 +400,14 @@ const ReferralPathways = () => {
     const currentNPI = searchDirection === 'receiver' ? receiverNPI : senderNPI;
     const headers = ['Definitive Name', 'NPIs', 'Taxonomy', 'City', 'State', 'Distance (mi)', 'Referrals', 'Charges', 'Months Active', 'Latest Activity'].join(',');
     const rows = allFacilities.map(f => {
-      const npiList = f.npis ? f.npis.join('; ') : f.outbound_facility_provider_npi;
+      const npiField = `outbound_${getNpiFieldPrefix()}_npi`;
+      const npiList = f.npis ? f.npis.join('; ') : f[npiField];
       return [
-        f.definitive_name || f.outbound_facility_provider_name,
+        f.definitive_name || getFacilityField(f, 'name'),
         npiList,
-        f.outbound_facility_provider_taxonomy_classification,
-        f.outbound_facility_provider_city,
-        f.outbound_facility_provider_state,
+        getFacilityField(f, 'taxonomy_classification'),
+        getFacilityField(f, 'city'),
+        getFacilityField(f, 'state'),
         f.distance || '',
         f.total_referrals,
         f.total_charges,
@@ -488,8 +507,30 @@ const ReferralPathways = () => {
 
           <div className={styles.controlGroup}>
             <label className={styles.label}>
+              NPI Type
+            </label>
+            <div className={styles.toggleGroup}>
+              <button
+                className={`${styles.toggleButton} ${npiType === 'facility' ? styles.toggleButtonActive : ''}`}
+                onClick={() => setNpiType('facility')}
+              >
+                Facility
+              </button>
+              <button
+                className={`${styles.toggleButton} ${npiType === 'service_location' ? styles.toggleButtonActive : ''}`}
+                onClick={() => setNpiType('service_location')}
+              >
+                Service Location
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.controlGroup}>
+            <label className={styles.label}>
               <Building size={14} />
-              {searchDirection === 'receiver' ? 'Receiver Facility NPI' : 'Sender Facility NPI'}
+              {searchDirection === 'receiver' 
+                ? `Receiver ${npiType === 'facility' ? 'Facility' : 'Service Location'} NPI`
+                : `Sender ${npiType === 'facility' ? 'Facility' : 'Service Location'} NPI`}
             </label>
             <input
               type="text"
@@ -688,11 +729,13 @@ const ReferralPathways = () => {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {facilities.map((facility, idx) => (
-                                        <tr key={`${facility.definitive_id || facility.outbound_facility_provider_npi}-${idx}`}>
+                                      {facilities.map((facility, idx) => {
+                                        const npiField = `outbound_${getNpiFieldPrefix()}_npi`;
+                                        return (
+                                        <tr key={`${facility.definitive_id || facility[npiField]}-${idx}`}>
                                           <td>
                                             <div className={styles.facilityName}>
-                                              {facility.definitive_name || facility.outbound_facility_provider_name}
+                                              {facility.definitive_name || getFacilityField(facility, 'name')}
                                             </div>
                                             {facility.original_names && facility.original_names.length > 0 && (
                                               <div className={styles.alternativeName}>
@@ -707,14 +750,14 @@ const ReferralPathways = () => {
                                                 <div className={styles.npiCount}>({facility.npis.length} NPIs)</div>
                                               </>
                                             ) : (
-                                              <div>{facility.npis?.[0] || facility.outbound_facility_provider_npi}</div>
+                                              <div>{facility.npis?.[0] || facility[npiField]}</div>
                                             )}
                                             {facility.definitive_id && (
                                               <div className={styles.definitiveId}>ID: {facility.definitive_id}</div>
                                             )}
                                           </td>
                                           <td>
-                                            {facility.outbound_facility_provider_city}, {facility.outbound_facility_provider_state}
+                                            {getFacilityField(facility, 'city')}, {getFacilityField(facility, 'state')}
                                           </td>
                                           <td className={styles.numberColumn}>
                                             {facility.distance !== null ? `${facility.distance.toFixed(1)} mi` : '-'}
@@ -735,7 +778,8 @@ const ReferralPathways = () => {
                                             </button>
                                           </td>
                                         </tr>
-                                      ))}
+                                        );
+                                      })}
                                     </tbody>
                                   </table>
                                   ) : (
@@ -782,7 +826,7 @@ const ReferralPathways = () => {
             <div className={styles.modalHeader}>
               <div>
                 <h3 className={styles.modalTitle}>
-                  Receivers from {downstreamModal.facility.definitive_name || downstreamModal.facility.outbound_facility_provider_name}
+                  Receivers from {downstreamModal.facility.definitive_name || getFacilityField(downstreamModal.facility, 'name')}
                 </h3>
                 <p className={styles.modalSubtitle}>
                   Where does this sender send patients to facilities like yours?
@@ -845,7 +889,8 @@ const ReferralPathways = () => {
                   <tbody>
                     {downstreamModal.data.map((f, idx) => {
                       // Check if this is the user's facility (comparing against receiver NPI)
-                      const isYourFacility = (f.npis?.[0] || f.outbound_facility_provider_npi) === receiverNPI;
+                      const npiField = `outbound_${getNpiFieldPrefix()}_npi`;
+                      const isYourFacility = (f.npis?.[0] || f[npiField]) === receiverNPI;
                       const sharePercent = downstreamModal.totalReferrals > 0
                         ? ((f.total_referrals / downstreamModal.totalReferrals) * 100).toFixed(1)
                         : 0;
@@ -854,7 +899,7 @@ const ReferralPathways = () => {
                         <tr key={idx} className={isYourFacility ? styles.yourFacilityRow : ''}>
                           <td>
                             <div className={styles.facilityName}>
-                              {f.definitive_name || f.outbound_facility_provider_name}
+                              {f.definitive_name || getFacilityField(f, 'name')}
                               {isYourFacility && <span className={styles.youBadge}>YOU</span>}
                             </div>
                             {f.npis && f.npis.length > 1 && (
@@ -862,7 +907,7 @@ const ReferralPathways = () => {
                             )}
                           </td>
                           <td className={styles.locationText}>
-                            {f.outbound_facility_provider_city}, {f.outbound_facility_provider_state}
+                            {getFacilityField(f, 'city')}, {getFacilityField(f, 'state')}
                           </td>
                           <td className={styles.numberColumn}>
                             {f.distance !== null ? `${f.distance.toFixed(1)} mi` : '-'}

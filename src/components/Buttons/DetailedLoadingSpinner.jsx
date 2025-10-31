@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 
 // Define the loading steps outside component to avoid recreating on every render
 const LOADING_STEPS = [
@@ -15,25 +15,60 @@ export default function DetailedLoadingSpinner({
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
+  const lastLoadingStatesKeyRef = useRef('');
+  const loadingStatesRef = useRef(loadingStates);
+  
+  // Create a stable string representation of loading states
+  const loadingStatesKey = useMemo(() => {
+    if (!loadingStates || Object.keys(loadingStates).length === 0) {
+      return '';
+    }
+    return JSON.stringify(loadingStates);
+  }, [loadingStates]);
+
+  // Always keep ref up to date
+  loadingStatesRef.current = loadingStates;
 
   // Update completed steps based on loading states
   useEffect(() => {
+    if (!loadingStatesKey) {
+      return;
+    }
+
+    // Only update if loadingStates actually changed
+    if (loadingStatesKey === lastLoadingStatesKeyRef.current) {
+      return;
+    }
+    
+    lastLoadingStatesKeyRef.current = loadingStatesKey;
+
     const completed = new Set();
     LOADING_STEPS.forEach(step => {
-      if (loadingStates[step.key] === false) { // false means loading is complete
+      const states = loadingStatesRef.current;
+      if (states && states[step.key] === false) { // false means loading is complete
         completed.add(step.key);
       }
     });
+    
     setCompletedSteps(completed);
-  }, [loadingStates]);
+  }, [loadingStatesKey]);
 
   // Update current step
   useEffect(() => {
+    if (!loadingStatesKey) {
+      return;
+    }
+    
+    const states = loadingStatesRef.current;
     const current = LOADING_STEPS.findIndex(step => 
-      loadingStates[step.key] === true || !completedSteps.has(step.key)
+      (states && states[step.key] === true) || !completedSteps.has(step.key)
     );
-    setCurrentStep(Math.max(0, current));
-  }, [loadingStates, completedSteps]);
+    const newStep = Math.max(0, current);
+    
+    if (newStep !== currentStep) {
+      setCurrentStep(newStep);
+    }
+  }, [loadingStatesKey, completedSteps, currentStep]);
 
   const totalSteps = LOADING_STEPS.length;
   const completedCount = completedSteps.size;

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   useParams,
   useNavigate,
@@ -17,7 +17,9 @@ import PageLayout from "../../../components/Layouts/PageLayout";
 import SimpleOverviewTab from "./Overview/SimpleOverviewTab";
 import SimpleClaimsTab from "./Claims/SimpleClaimsTab";
 import SimpleStorytellerTab from "./Storyteller/SimpleStorytellerTab";
+import { BarChart3, FileText } from "lucide-react";
 import styles from "./ProviderDetail.module.css";
+import claimsStyles from "./Claims/ClaimsTab.module.css";
 
 export default function ProviderProfile() {
   const { dhc } = useParams();
@@ -26,6 +28,9 @@ export default function ProviderProfile() {
   const { setCurrentProvider } = useProviderContext();
 
   const { provider, loading, error: providerError } = useProviderInfo(dhc);
+  const [claimsActiveTab, setClaimsActiveTab] = useState('procedures');
+  
+  const isClaimsRoute = location.pathname.includes('/claims');
 
   // Track provider view activity (only once per provider per session)
   useEffect(() => {
@@ -86,15 +91,35 @@ export default function ProviderProfile() {
   }
 
   return (
-    <PageLayout>
-      <Routes>
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<SimpleOverviewTab provider={provider} />} />
-        <Route path="claims" element={<SimpleClaimsTab provider={provider} />} />
-        <Route path="storyteller" element={<SimpleStorytellerTab provider={provider} />} />
-        <Route path="*" element={<Navigate to="overview" replace />} />
-      </Routes>
-    </PageLayout>
+    <>
+      {isClaimsRoute && (
+        <div className={claimsStyles.tabNav}>
+          <button
+            className={`${claimsStyles.tab} ${claimsActiveTab === 'procedures' ? claimsStyles.active : ''}`}
+            onClick={() => setClaimsActiveTab('procedures')}
+          >
+            <BarChart3 size={16} />
+            Procedures
+          </button>
+          <button
+            className={`${claimsStyles.tab} ${claimsActiveTab === 'diagnoses' ? claimsStyles.active : ''}`}
+            onClick={() => setClaimsActiveTab('diagnoses')}
+          >
+            <FileText size={16} />
+            Diagnoses
+          </button>
+        </div>
+      )}
+      <PageLayout>
+        <Routes>
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<SimpleOverviewTab provider={provider} />} />
+          <Route path="claims" element={<SimpleClaimsTab provider={provider} activeTab={claimsActiveTab} setActiveTab={setClaimsActiveTab} />} />
+          <Route path="storyteller/*" element={<SimpleStorytellerTab provider={provider} />} />
+          <Route path="*" element={<Navigate to="overview" replace />} />
+        </Routes>
+      </PageLayout>
+    </>
   );
 }
 

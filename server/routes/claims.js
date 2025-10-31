@@ -2,6 +2,8 @@ import express from "express";
 import vendorBigQueryClient from "../utils/vendorBigQueryClient.js";
 import cache from "../utils/cache.js";
 
+const vendorBigQuery = vendorBigQueryClient;
+
 const router = express.Router();
 
 // Constants
@@ -1263,6 +1265,188 @@ router.post("/claims-filters", async (req, res) => {
         status: error.status,
         name: error.name
       }
+    });
+  }
+});
+
+/**
+ * POST /api/provider-claims
+ * Get procedure and diagnosis volume data for a provider (by NPIs)
+ * Similar to HCO directory profile endpoint but aggregates across multiple NPIs
+ */
+router.post("/provider-claims", async (req, res) => {
+  try {
+    const { npis } = req.body;
+
+    if (!npis || !Array.isArray(npis) || npis.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "NPIs array is required and must not be empty"
+      });
+    }
+
+    console.log(`🏥 Fetching provider claims data for ${npis.length} NPIs`);
+
+    // Get max dates from reference metadata
+    const procedureMaxDateQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_procedure'
+      LIMIT 1
+    `;
+
+    const diagnosisMaxDateQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_diagnosis'
+      LIMIT 1
+    `;
+
+    const [
+      [procedureMaxDateResult],
+      [diagnosisMaxDateResult]
+    ] = await Promise.all([
+      vendorBigQuery.query({ query: procedureMaxDateQuery }),
+      vendorBigQuery.query({ query: diagnosisMaxDateQuery })
+    ]);
+
+    const procedureMaxDate = procedureMaxDateResult[0]?.max_date;
+    const diagnosisMaxDate = diagnosisMaxDateResult[0]?.max_date;
+
+    console.log(`📅 Max dates - Procedures: ${procedureMaxDate}, Diagnoses: ${diagnosisMaxDate}`);
+
+    // Calculate time period for display (last 12 months)
+    let timePeriod = null;
+    if (procedureMaxDate) {
+      // Handle BigQuery date object (has .value property) or direct date
+      const maxDateStr = procedureMaxDate.value || procedureMaxDate;
+      const maxDateValue = new Date(maxDateStr);
+      
+      // Calculate 12 months before max date
+      const minDate = new Date(maxDateValue);
+      minDate.setMonth(minDate.getMonth() - 11); // -11 to include current month = 12 months total
+      
+      // Format dates for display (e.g., "Jan 2024")
+      const formatDate = (date) => {
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      };
+      
+      timePeriod = {
+        from: formatDate(minDate),
+        to: formatDate(maxDateValue),
+        fromDate: minDate.toISOString().substring(0, 7), // YYYY-MM format
+        toDate: maxDateValue.toISOString().substring(0, 7) // YYYY-MM format
+      };
+    }
+
+    // Escape NPIs for SQL IN clause
+    const npiList = npis.map(npi => `'${npi.replace(/'/g, "''")}'`).join(',');
+    const npiField = 'service_location_provider_npi';
+
+    // Get procedure volume for last 12 months (aggregated across all NPIs)
+    const procedureVolumeQuery = `
+      SELECT
+        SUM(count) as total_procedures,
+        SUM(charge_total) as total_charges,
+        COUNT(DISTINCT code) as unique_procedures,
+        COUNT(DISTINCT date__month_grain) as months_with_data
+      FROM \`aegis_access.volume_procedure\`
+      WHERE ${npiField} IN (${npiList})
+        AND date__month_grain >= DATE_SUB(DATE('${procedureMaxDate.value}'), INTERVAL 11 MONTH)
+        AND date__month_grain <= DATE('${procedureMaxDate.value}')
+    `;
+
+    // Get top procedures (aggregated across all NPIs)
+    const topProceduresQuery = `
+      SELECT
+        code,
+        code_description,
+        service_line_description,
+        SUM(count) as procedure_count,
+        SUM(charge_total) as total_charges
+      FROM \`aegis_access.volume_procedure\`
+      WHERE ${npiField} IN (${npiList})
+        AND date__month_grain >= DATE_SUB(DATE('${procedureMaxDate.value}'), INTERVAL 11 MONTH)
+        AND date__month_grain <= DATE('${procedureMaxDate.value}')
+        AND code IS NOT NULL
+      GROUP BY code, code_description, service_line_description
+      ORDER BY procedure_count DESC
+      LIMIT 15
+    `;
+
+    // Get diagnosis volume for last 12 months (aggregated across all NPIs)
+    const diagnosisVolumeQuery = `
+      SELECT
+        SUM(count) as total_diagnoses,
+        COUNT(DISTINCT code) as unique_diagnoses,
+        COUNT(DISTINCT date__month_grain) as months_with_data
+      FROM \`aegis_access.volume_diagnosis\`
+      WHERE ${npiField} IN (${npiList})
+        AND date__month_grain >= DATE_SUB(DATE('${diagnosisMaxDate.value}'), INTERVAL 11 MONTH)
+        AND date__month_grain <= DATE('${diagnosisMaxDate.value}')
+    `;
+
+    // Get top diagnoses (aggregated across all NPIs)
+    const topDiagnosesQuery = `
+      SELECT
+        code,
+        code_description,
+        SUM(count) as diagnosis_count
+      FROM \`aegis_access.volume_diagnosis\`
+      WHERE ${npiField} IN (${npiList})
+        AND date__month_grain >= DATE_SUB(DATE('${diagnosisMaxDate.value}'), INTERVAL 11 MONTH)
+        AND date__month_grain <= DATE('${diagnosisMaxDate.value}')
+        AND code IS NOT NULL
+      GROUP BY code, code_description
+      ORDER BY diagnosis_count DESC
+      LIMIT 15
+    `;
+
+    const [
+      [volumeResults],
+      [procedureResults],
+      [diagnosisVolumeResults],
+      [diagnosisResults]
+    ] = await Promise.all([
+      vendorBigQuery.query({ query: procedureVolumeQuery }),
+      vendorBigQuery.query({ query: topProceduresQuery }),
+      vendorBigQuery.query({ query: diagnosisVolumeQuery }),
+      vendorBigQuery.query({ query: topDiagnosesQuery })
+    ]);
+
+    const volume = volumeResults[0] || {};
+    const topProcedures = procedureResults || [];
+    const diagnosisVolume = diagnosisVolumeResults[0] || {};
+    const topDiagnoses = diagnosisResults || [];
+
+    console.log(`✅ Provider claims data loaded - Procedures: ${topProcedures.length}, Diagnoses: ${topDiagnoses.length}`);
+
+    res.json({
+      success: true,
+      data: {
+        timePeriod,
+        volumeMetrics: {
+          totalProcedures: parseInt(volume.total_procedures || 0),
+          totalCharges: parseFloat(volume.total_charges || 0),
+          uniqueProcedures: parseInt(volume.unique_procedures || 0),
+          monthsWithData: parseInt(volume.months_with_data || 0)
+        },
+        topProcedures,
+        diagnosisMetrics: {
+          totalDiagnoses: parseInt(diagnosisVolume.total_diagnoses || 0),
+          uniqueDiagnoses: parseInt(diagnosisVolume.unique_diagnoses || 0),
+          monthsWithData: parseInt(diagnosisVolume.months_with_data || 0)
+        },
+        topDiagnoses
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching provider claims:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
     });
   }
 });

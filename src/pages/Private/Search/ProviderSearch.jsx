@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import styles from "./ProviderSearch.module.css";
 import PageLayout from "../../../components/Layouts/PageLayout";
-import ControlsRow from "../../../components/Layouts/ControlsRow";
+import Spinner from "../../../components/Buttons/Spinner";
 import { apiUrl } from '../../../utils/api';
 import { trackProviderSearch } from '../../../utils/activityTracker';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
@@ -24,15 +24,16 @@ import {
   X,
   Plus,
   Minus,
-  Lock
+  Lock,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  List
 } from 'lucide-react';
 
 export default function ProviderSearch() {
   const navigate = useNavigate();
   const location = useLocation();
-
-
-
 
   const [queryText, setQueryText] = useState("");
   const [lastSearchTerm, setLastSearchTerm] = useState("");
@@ -48,14 +49,21 @@ export default function ProviderSearch() {
   const [hasSearched, setHasSearched] = useState(false);
 
   // Filter states
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedNetworks, setSelectedNetworks] = useState([]);
   const [selectedCities, setSelectedCities] = useState([]);
   const [selectedStates, setSelectedStates] = useState([]);
-  const [showOnlyCCNs, setShowOnlyCCNs] = useState(false);
-  const [ccnProviderIds, setCcnProviderIds] = useState(new Set());
 
+  // Collapsible filter sections
+  const [expandedSections, setExpandedSections] = useState({
+    types: false,
+    networks: false,
+    cities: false,
+    states: false
+  });
+
+  // Show/hide filters sidebar
+  const [showFiltersSidebar, setShowFiltersSidebar] = useState(false);
 
 
   const searchInputRef = useRef(null);
@@ -63,6 +71,8 @@ export default function ProviderSearch() {
   const lastTrackedSearch = useRef("");
   const bulkDropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const escapeTimeoutRef = useRef(null);
+  const [escapeCount, setEscapeCount] = useState(0);
 
   // Selection and bulk actions
   const [selectedProviders, setSelectedProviders] = useState(new Set());
@@ -87,6 +97,7 @@ export default function ProviderSearch() {
   if (componentError) {
     return (
       <PageLayout>
+        <div className={styles.container}>
         <div className={styles.searchHeader}>
           <h2>Search Error</h2>
         </div>
@@ -94,6 +105,7 @@ export default function ProviderSearch() {
           <div className={styles.error}>
             <p>Something went wrong with the search page.</p>
             <button onClick={() => setComponentError(null)}>Try Again</button>
+            </div>
           </div>
         </div>
       </PageLayout>
@@ -105,7 +117,58 @@ export default function ProviderSearch() {
     searchInputRef.current?.focus();
   }, []);
 
+  // Load national overview and filter options on mount
+  useEffect(() => {
+    const loadNationalOverview = async () => {
+      setLoadingOverview(true);
+      try {
+        const response = await fetch(apiUrl('/api/search-providers-vendor/national-overview'));
+        if (!response.ok) {
+          setLoadingOverview(false);
+          return;
+        }
 
+        const result = await response.json();
+        if (result.success && result.data) {
+          setNationalOverview(result.data);
+          
+          // Set filter options from national overview (sorted alphabetically)
+          setFilterOptions({
+            types: (result.data.filterOptions?.types || []).slice().sort(),
+            networks: (result.data.filterOptions?.networks || []).slice().sort(),
+            cities: (result.data.filterOptions?.cities || []).slice().sort(),
+            states: (result.data.filterOptions?.states || []).slice().sort()
+          });
+
+          // Store counts if available from breakdowns
+          const typeCounts = {};
+          const stateCounts = {};
+          if (result.data.breakdowns?.types) {
+            result.data.breakdowns.types.forEach(item => {
+              typeCounts[item.name] = item.count;
+            });
+          }
+          if (result.data.breakdowns?.states) {
+            result.data.breakdowns.states.forEach(item => {
+              stateCounts[item.name] = item.count;
+            });
+          }
+          setFilterOptionCounts({
+            types: typeCounts,
+            networks: {},
+            cities: {},
+            states: stateCounts
+          });
+        }
+      } catch (err) {
+        console.error("Error loading national overview:", err);
+      } finally {
+        setLoadingOverview(false);
+      }
+    };
+
+    loadNationalOverview();
+  }, []);
 
   // Enhanced dropdown close hook that includes button toggle behavior
   const handleDropdownClose = () => {
@@ -150,166 +213,6 @@ export default function ProviderSearch() {
     isOpen: taggingProviderId && taggingProviderId !== 'bulk'
   });
 
-  // Initialize map when selected provider changes and has valid coordinates
-  useEffect(() => {
-    try {
-      console.log("🗺️ Map initialization effect triggered");
-      console.log("Selected provider:", selectedProvider);
-      console.log("Map container:", mapContainerRef.current);
-      console.log("Map ready:", mapReady);
-
-      // Clean up existing map if it exists
-      if (map && typeof map.remove === 'function') {
-        try {
-          console.log("🗺️ Cleaning up existing map");
-          map.remove();
-        } catch (error) {
-          console.error("🗺️ Error cleaning up existing map:", error);
-        }
-        setMap(null);
-        setMapReady(false);
-      }
-
-      // Check if we have a provider with valid coordinates
-      if (!selectedProvider?.latitude || !selectedProvider?.longitude ||
-        isNaN(selectedProvider.latitude) || isNaN(selectedProvider.longitude)) {
-        console.log("No valid provider coordinates, skipping map init");
-        return;
-      }
-
-      // Check if container is available
-      if (!mapContainerRef.current) {
-        console.log("Map container not available yet, skipping map init");
-        return;
-      }
-
-      // Add a small delay to ensure container is fully rendered
-      const initTimeout = setTimeout(() => {
-        console.log("🗺️ Creating MapLibre map...");
-
-        try {
-          // MapLibre GL JS - completely free, no API token needed!
-          const newMap = new maplibregl.Map({
-            container: mapContainerRef.current,
-            style: {
-              version: 8,
-              sources: {
-                'osm': {
-                  type: 'raster',
-                  tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                  tileSize: 256,
-                  attribution: '© OpenStreetMap contributors'
-                }
-              },
-              layers: [
-                {
-                  id: 'osm-tiles',
-                  type: 'raster',
-                  source: 'osm',
-                  minzoom: 0,
-                  maxzoom: 22
-                }
-              ]
-            },
-            center: [selectedProvider.longitude, selectedProvider.latitude],
-            zoom: 12
-          });
-
-          console.log("🗺️ Map created successfully");
-
-          // Add navigation controls
-          newMap.addControl(new maplibregl.NavigationControl(), 'top-left');
-          newMap.addControl(new maplibregl.FullscreenControl(), 'top-right');
-
-          // Add provider marker
-          const marker = new maplibregl.Marker({ color: '#00c08b' })
-            .setLngLat([selectedProvider.longitude, selectedProvider.latitude])
-            .setPopup(
-              new maplibregl.Popup({ offset: 25 })
-                .setHTML(`
-                  <div style="padding: 8px;">
-                    <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
-                      ${selectedProvider.name}
-                    </h4>
-                    <p style="margin: 0; font-size: 12px; color: #666;">
-                      ${selectedProvider.street}, ${selectedProvider.city}, ${selectedProvider.state}
-                    </p>
-                  </div>
-                `)
-            )
-            .addTo(newMap);
-
-          // Wait for the map to load
-          newMap.on('load', () => {
-            console.log("🗺️ Map loaded successfully");
-            setMapReady(true);
-          });
-
-          // Handle map load errors
-          newMap.on('error', (e) => {
-            console.error("🗺️ Map error:", e);
-          });
-
-          setMap(newMap);
-
-        } catch (error) {
-          console.error("🗺️ Error creating map:", error);
-          setMapReady(false);
-        }
-      }, 100); // 100ms delay
-
-      return () => {
-        clearTimeout(initTimeout);
-        // Clean up map safely
-        if (map && typeof map.remove === 'function') {
-          try {
-            console.log("🗺️ Cleaning up map on unmount");
-            map.remove();
-          } catch (error) {
-            console.error("🗺️ Error cleaning up map:", error);
-          }
-        }
-        setMap(null);
-        setMapReady(false);
-      };
-    } catch (error) {
-      console.error("🗺️ Error in map initialization effect:", error);
-    }
-  }, [selectedProvider]);
-
-  // Fetch CCNs for filtered results
-  useEffect(() => {
-    const fetchCCNs = async () => {
-      if (!results.length) return;
-
-      const dhcIds = results.map(p => p.dhc).filter(Boolean);
-      if (!dhcIds.length) return;
-
-      try {
-        const response = await fetch(apiUrl('/api/related-ccns'), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dhc_ids: dhcIds }),
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const result = await response.json();
-
-        if (result.success) {
-          const ccnSet = new Set(result.data.map(row => row.dhc));
-          setCcnProviderIds(ccnSet);
-        } else {
-          setCcnProviderIds(new Set());
-        }
-      } catch (err) {
-        console.error("❌ Error fetching CCNs:", err);
-        setCcnProviderIds(new Set());
-      }
-    };
-
-    fetchCCNs();
-  }, [results]);
-
   const handleSearch = async (searchTerm = null, fromUrl = false) => {
     setLoading(true);
     setError(null);
@@ -318,11 +221,39 @@ export default function ProviderSearch() {
     setHasSearched(true);
 
     const q = searchTerm || queryText.trim();
-    if (!q) return;
+    
+    // Allow search if there's a search term OR active filters
+    if (!q && !hasActiveFilters) {
+      setLoading(false);
+        return;
+      }
 
-    setLastSearchTerm(q);
+    if (q) {
+      setLastSearchTerm(q);
+    }
+
     try {
-      const response = await fetch(apiUrl(`/api/search-providers?search=${encodeURIComponent(q)}`));
+      // Build query params
+      const params = new URLSearchParams();
+      if (q) {
+        params.append('search', q);
+      }
+      
+      // Add filter parameters
+      if (selectedTypes.length > 0) {
+        selectedTypes.forEach(type => params.append('types', type));
+      }
+      if (selectedNetworks.length > 0) {
+        selectedNetworks.forEach(network => params.append('networks', network));
+      }
+      if (selectedCities.length > 0) {
+        selectedCities.forEach(city => params.append('cities', city));
+      }
+      if (selectedStates.length > 0) {
+        selectedStates.forEach(state => params.append('states', state));
+      }
+
+      const response = await fetch(apiUrl(`/api/search-providers-vendor?${params.toString()}`));
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
@@ -332,6 +263,34 @@ export default function ProviderSearch() {
         setResults(result.data);
         if (result.data.length > 0) {
           setSelectedProvider(result.data[0]);
+          
+          // Update filter options from search results
+          const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
+          const networks = Array.from(new Set(result.data.map(p => p.network).filter(Boolean))).sort();
+          const cities = Array.from(new Set(result.data.map(p => p.city).filter(Boolean))).sort();
+          const states = Array.from(new Set(result.data.map(p => p.state).filter(Boolean))).sort();
+
+          setFilterOptions({
+            types,
+            networks,
+            cities,
+            states
+          });
+
+          // Update filter counts from search results
+          const typeCounts = {};
+          const stateCounts = {};
+          types.forEach(type => {
+            typeCounts[type] = result.data.filter(p => (p.type || "Unknown") === type).length;
+          });
+          states.forEach(state => {
+            stateCounts[state] = result.data.filter(p => p.state === state).length;
+          });
+          setFilterOptionCounts(prev => ({
+            ...prev,
+            types: typeCounts,
+            states: stateCounts
+          }));
         }
         if (lastTrackedSearch.current !== q) {
           await trackProviderSearch(q, result.data.length);
@@ -358,47 +317,57 @@ export default function ProviderSearch() {
     setLoading(false);
   };
 
-  // Extract unique filter options from results
-  const allTypes = Array.from(new Set(results.map(p => p.type || "Unknown"))).sort();
-  const allNetworks = Array.from(new Set(results.map(p => p.network).filter(Boolean))).sort();
-  const allCities = Array.from(new Set(results.map(p => p.city).filter(Boolean))).sort();
-  const allStates = Array.from(new Set(results.map(p => p.state).filter(Boolean))).sort();
+  // Filter options state - populated from national overview or search results
+  const [filterOptions, setFilterOptions] = useState({
+    types: [],
+    networks: [],
+    cities: [],
+    states: []
+  });
+
+  // Filter option counts (for displaying counts in filters)
+  const [filterOptionCounts, setFilterOptionCounts] = useState({
+    types: {},
+    networks: {},
+    cities: {},
+    states: {}
+  });
+
+  // National overview state for summary before search
+  const [nationalOverview, setNationalOverview] = useState(null);
+  const [loadingOverview, setLoadingOverview] = useState(false);
 
   // Apply filters to results
   const filteredResults = results.filter(provider => {
-    // Provider type filter
     if (selectedTypes.length > 0 && !selectedTypes.includes(provider.type || "Unknown")) {
       return false;
     }
-
-    // Network filter
     if (selectedNetworks.length > 0 && !selectedNetworks.includes(provider.network)) {
       return false;
     }
-
-    // City filter
     if (selectedCities.length > 0 && !selectedCities.includes(provider.city)) {
       return false;
     }
-
-    // State filter
     if (selectedStates.length > 0 && !selectedStates.includes(provider.state)) {
       return false;
     }
-
-    // CCN filter
-    if (showOnlyCCNs && !ccnProviderIds.has(provider.dhc)) {
-      return false;
-    }
-
     return true;
   });
 
-  // Dynamic filter options based on current filtered results
-  const availableTypes = Array.from(new Set(filteredResults.map(p => p.type || "Unknown"))).sort();
-  const availableNetworks = Array.from(new Set(filteredResults.map(p => p.network).filter(Boolean))).sort();
-  const availableCities = Array.from(new Set(filteredResults.map(p => p.city).filter(Boolean))).sort();
-  const availableStates = Array.from(new Set(filteredResults.map(p => p.state).filter(Boolean))).sort();
+  // Extract unique filter options from FILTERED results (updates as filters are applied)
+  const allTypes = filteredResults.length > 0 
+    ? Array.from(new Set(filteredResults.map(p => p.type || "Unknown"))).sort()
+    : filterOptions.types;
+  const allNetworks = filteredResults.length > 0
+    ? Array.from(new Set(filteredResults.map(p => p.network).filter(Boolean))).sort()
+    : filterOptions.networks;
+  const allCities = filteredResults.length > 0
+    ? Array.from(new Set(filteredResults.map(p => p.city).filter(Boolean))).sort()
+    : filterOptions.cities;
+  const allStates = filteredResults.length > 0
+    ? Array.from(new Set(filteredResults.map(p => p.state).filter(Boolean))).sort()
+    : filterOptions.states;
+
 
   // Filter functions
   const toggleType = (type) => {
@@ -430,7 +399,15 @@ export default function ProviderSearch() {
     setSelectedNetworks([]);
     setSelectedCities([]);
     setSelectedStates([]);
-    setShowOnlyCCNs(false);
+    setQueryText("");
+    // This will trigger the auto-search effect to clear results
+  };
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
@@ -478,17 +455,14 @@ export default function ProviderSearch() {
         selectedProviders.has(p.dhc)
       );
 
-      // Add all selected providers with the specified tag
       for (const provider of selectedProviderObjects) {
         await addTeamProviderTag(provider.dhc, tagType);
       }
 
-      // Clear selection after successful save
       setSelectedProviders(new Set());
       setShowBulkActions(false);
       setTaggingProviderId(null);
 
-      // Show success message
       const tagLabel = tagType === 'me' ? 'Me' :
         tagType === 'partner' ? 'Partner' :
           tagType === 'competitor' ? 'Competitor' :
@@ -503,185 +477,208 @@ export default function ProviderSearch() {
   };
 
   const hasActiveFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
-    selectedCities.length > 0 || selectedStates.length > 0 || showOnlyCCNs;
+    selectedCities.length > 0 || selectedStates.length > 0;
 
-
+  const formatNumber = (num) => {
+    if (num === null || num === undefined) return '0';
+    return parseInt(num).toLocaleString();
+  };
 
   try {
     return (
-      <PageLayout>
-        <div className={styles.page}>
-          {/* Search Header */}
-          <div className={styles.searchHeader}>
-            <ControlsRow
-              leftContent={
-                <div></div>
-              }
-              rightContent={
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {/* Results Count */}
-                  {hasSearched && (
-                    <span className={styles.resultsCount}>
-                      {filteredResults.length > 0
-                        ? `Results ${startIndex + 1}-${Math.min(endIndex, filteredResults.length)} of ${filteredResults.length}`
-                        : 'Results 0 of 0'
+      <PageLayout fullWidth>
+        <div className={styles.container}>
+          {/* Top Controls Bar */}
+          <div className={styles.controlsBar}>
+            {/* Search Bar with Search Button */}
+            <div style={{ flex: 1, maxWidth: '400px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <div className="searchBarContainer">
+                  <div className="searchIcon">
+                    <Search size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    value={queryText}
+                    onChange={(e) => {
+                      setQueryText(e.target.value);
+                      setEscapeCount(0);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearch();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        if (escapeTimeoutRef.current) {
+                          clearTimeout(escapeTimeoutRef.current);
+                        }
+                        if (queryText && escapeCount === 0) {
+                          setQueryText('');
+                          setEscapeCount(1);
+                          escapeTimeoutRef.current = setTimeout(() => setEscapeCount(0), 1000);
+                        } else {
+                          searchInputRef.current?.blur();
+                          setEscapeCount(0);
+                        }
                       }
-                    </span>
-                  )}
-
-                  {/* Select All Button */}
-                  {paginatedResults.length > 0 && (
-                    <label className={`${styles.selectAllLabel} ${!hasTeam ? styles.disabled : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
-                        onChange={hasTeam ? handleSelectAll : undefined}
-                        disabled={!hasTeam}
-                      />
-                      <span>
-                        Select All
-                        {!hasTeam && <Lock size={10} style={{ marginLeft: '4px' }} />}
-                      </span>
-                    </label>
-                  )}
-
-                  {/* Bulk Actions */}
-                  {showBulkActions && hasTeam && (
-                    <div className={styles.bulkActions}>
-                      <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
-                        <button
-                          ref={bulkButtonRef}
-                          className={styles.glassmorphismButton}
-                          onClick={handleBulkButtonClick}
-                        >
-                          Tag
-                        </button>
-                        {taggingProviderId === 'bulk' && (
-                          <div className={styles.dropdown}>
-                            <button
-                              className={styles.glassmorphismButton}
-                              onClick={() => handleBulkTag('me')}
-                              disabled={bulkActionLoading}
-                            >
-                              {bulkActionLoading ? 'Tagging...' : 'Me'}
-                            </button>
-                            <button
-                              className={styles.glassmorphismButton}
-                              onClick={() => handleBulkTag('partner')}
-                              disabled={bulkActionLoading}
-                            >
-                              {bulkActionLoading ? 'Tagging...' : 'Partner'}
-                            </button>
-                            <button
-                              className={styles.glassmorphismButton}
-                              onClick={() => handleBulkTag('competitor')}
-                              disabled={bulkActionLoading}
-                            >
-                              {bulkActionLoading ? 'Tagging...' : 'Competitor'}
-                            </button>
-                            <button
-                              className={styles.glassmorphismButton}
-                              onClick={() => handleBulkTag('target')}
-                              disabled={bulkActionLoading}
-                            >
-                              {bulkActionLoading ? 'Tagging...' : 'Target'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className={styles.pagination}>
-                      <button
-                        className={styles.glassmorphismButton}
-                        disabled={currentPage === 1}
-                        onClick={() => goToPage(currentPage - 1)}
-                      >
-                        Previous
-                      </button>
-                      <span className={styles.pageInfo}>
-                        {currentPage} of {totalPages}
-                      </span>
-                      <button
-                        className={styles.glassmorphismButton}
-                        disabled={currentPage === totalPages}
-                        onClick={() => goToPage(currentPage + 1)}
-                      >
-                        Next
-                      </button>
-                    </div>
+                    }}
+                    placeholder="Search providers..."
+                    className="searchInput"
+                    data-search-enhanced="true"
+                    ref={searchInputRef}
+                  />
+                  {queryText && (
+                    <button
+                      onClick={() => setQueryText('')}
+                      className="clearButton"
+                    >
+                      <X size={14} />
+                    </button>
                   )}
                 </div>
-              }
-            >
-                             <form
-                 onSubmit={(e) => {
-                   e.preventDefault();
-                   if (lastTrackedSearch.current !== queryText.trim()) {
-                     lastTrackedSearch.current = "";
-                   }
-                   handleSearch();
-                 }}
-                 style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1 }}
-               >
-                 <div className="searchBarContainer">
-                   <div className="searchIcon">
-                     <Search size={16} />
-                   </div>
-                   <input
-                     className="searchInput"
-                     type="text"
-                     placeholder="Search by name, address, network, etc."
-                     value={queryText}
-                     onChange={(e) => setQueryText(e.target.value)}
-                     ref={searchInputRef}
-                   />
-                 </div>
-                <button
-                  type="submit"
-                  className={styles.glassmorphismButton}
-                  disabled={loading || !queryText.trim()}
-                >
-                  {loading ? "Searching..." : "Search"}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.glassmorphismButton} ${hasActiveFilters ? styles.activeFilter : ''} ${!hasTeam ? styles.disabled : ''}`}
-                  onClick={() => hasTeam && setShowFilters(!showFilters)}
-                  disabled={!hasTeam}
-                  title={!hasTeam ? "Join or create a team to access filters" : ""}
-                >
-                  {showFilters ? "Hide Filters" : "Show Filters"}
-                  {hasActiveFilters && <span className={styles.filterBadge}>●</span>}
-                  {!hasTeam && <Lock size={12} style={{ marginLeft: '4px' }} />}
-                </button>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    className={styles.glassmorphismButton}
-                    onClick={clearAllFilters}
-                  >
-                    Clear All Filters
-                  </button>
+              </div>
+              <button
+                onClick={() => handleSearch()}
+                className={styles.searchButton}
+                disabled={loading || (!queryText.trim() && !hasActiveFilters)}
+                title={loading ? 'Searching...' : 'Search'}
+              >
+                <Play size={14} />
+                {loading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+            
+            {/* Results Info & Pagination */}
+            {!loading && hasSearched && results.length > 0 && (
+              <>
+                <div className={styles.searchStatus}>
+                  <span className={styles.searchStatusActive} style={{ fontSize: '13px' }}>
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredResults.length)} of {formatNumber(filteredResults.length)}
+                  </span>
+                </div>
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={styles.paginationButton}
+                      style={{ padding: '4px 10px', fontSize: '12px' }}
+                    >
+                      Prev
+                    </button>
+                    <span style={{ fontSize: '12px', color: 'var(--gray-600)' }}>
+                      {currentPage}/{totalPages}
+                    </span>
+                    <button
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={styles.paginationButton}
+                      style={{ padding: '4px 10px', fontSize: '12px' }}
+                    >
+                      Next
+                    </button>
+                  </div>
                 )}
-              </form>
-            </ControlsRow>
+              </>
+            )}
+            
+            <div className={styles.controlsBarButtons}>
+              {hasSearched && (
+                <button
+                  onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+                  className="sectionHeaderButton"
+                  title="Toggle filters"
+                >
+                  <Filter size={14} />
+                  Filters
+                </button>
+              )}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="sectionHeaderButton"
+                >
+                  <X size={14} />
+                  Clear All
+                </button>
+              )}
+            </div>
+                  </div>
 
+          {/* Active Filter Chips */}
+          {hasActiveFilters && (
+            <div className={styles.activeFiltersBar}>
+              <div className={styles.activeFilters}>
+                {selectedTypes.map(type => (
+                  <div key={`type-${type}`} className={styles.filterChip}>
+                    <span>{type}</span>
+                    <button onClick={() => toggleType(type)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {selectedNetworks.map(network => (
+                  <div key={`network-${network}`} className={styles.filterChip}>
+                    <span>{network}</span>
+                    <button onClick={() => toggleNetwork(network)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {selectedCities.map(city => (
+                  <div key={`city-${city}`} className={styles.filterChip}>
+                    <span>{city}</span>
+                    <button onClick={() => toggleCity(city)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {selectedStates.map(state => (
+                  <div key={`state-${state}`} className={styles.filterChip}>
+                    <span>{state}</span>
+                    <button onClick={() => toggleState(state)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
+          {/* Main Layout */}
+          <div className={styles.mainLayout}>
+            {/* Left Sidebar - Filters Only */}
+            {showFiltersSidebar && (
+              <div className={styles.sidebar}>
+                <div className={styles.sidebarHeader}>
+                  <h3>Filters</h3>
+                  <p>Narrow results</p>
+                </div>
 
-            {/* Collapsible Filters */}
-            {showFilters && (
-              <div className={styles.filtersPanel}>
-                <div className={styles.filtersGrid}>
                   {/* Provider Type Filter */}
                   <div className={styles.filterGroup}>
-                    <label className={styles.filterLabel}>Provider Type</label>
-                    <div className={styles.filterOptions}>
-                      {availableTypes.map(type => (
-                        <label key={type} className={styles.filterOption}>
+                <button 
+                  className={styles.filterHeader}
+                  onClick={() => toggleSection('types')}
+                >
+                  <div className={styles.filterHeaderLeft}>
+                    <Filter size={14} />
+                    <span>Provider Type</span>
+                    {selectedTypes.length > 0 && (
+                      <span className={styles.filterBadge}>{selectedTypes.length}</span>
+                    )}
+                  </div>
+                  <ChevronDown 
+                    size={16} 
+                    className={expandedSections.types ? styles.chevronExpanded : styles.chevronCollapsed}
+                  />
+                </button>
+                {expandedSections.types && (
+                  <div className={styles.filterContent}>
+                    <div className={styles.filterList}>
+                      {allTypes.map(type => (
+                        <label key={type} className={styles.filterCheckbox}>
                           <input
                             type="checkbox"
                             checked={selectedTypes.includes(type)}
@@ -692,13 +689,32 @@ export default function ProviderSearch() {
                       ))}
                     </div>
                   </div>
+                )}
+                  </div>
 
                   {/* Network Filter */}
                   <div className={styles.filterGroup}>
-                    <label className={styles.filterLabel}>Network</label>
-                    <div className={styles.filterOptions}>
-                      {availableNetworks.map(network => (
-                        <label key={network} className={styles.filterOption}>
+                <button 
+                  className={styles.filterHeader}
+                  onClick={() => toggleSection('networks')}
+                >
+                  <div className={styles.filterHeaderLeft}>
+                    <Filter size={14} />
+                    <span>Network</span>
+                    {selectedNetworks.length > 0 && (
+                      <span className={styles.filterBadge}>{selectedNetworks.length}</span>
+                    )}
+                  </div>
+                  <ChevronDown 
+                    size={16} 
+                    className={expandedSections.networks ? styles.chevronExpanded : styles.chevronCollapsed}
+                  />
+                </button>
+                {expandedSections.networks && (
+                  <div className={styles.filterContent}>
+                    <div className={styles.filterList}>
+                      {allNetworks.map(network => (
+                        <label key={network} className={styles.filterCheckbox}>
                           <input
                             type="checkbox"
                             checked={selectedNetworks.includes(network)}
@@ -709,13 +725,32 @@ export default function ProviderSearch() {
                       ))}
                     </div>
                   </div>
+                )}
+                  </div>
 
                   {/* City Filter */}
                   <div className={styles.filterGroup}>
-                    <label className={styles.filterLabel}>City</label>
-                    <div className={styles.filterOptions}>
-                      {availableCities.map(city => (
-                        <label key={city} className={styles.filterOption}>
+                <button 
+                  className={styles.filterHeader}
+                  onClick={() => toggleSection('cities')}
+                >
+                  <div className={styles.filterHeaderLeft}>
+                    <Filter size={14} />
+                    <span>City</span>
+                    {selectedCities.length > 0 && (
+                      <span className={styles.filterBadge}>{selectedCities.length}</span>
+                    )}
+                  </div>
+                  <ChevronDown 
+                    size={16} 
+                    className={expandedSections.cities ? styles.chevronExpanded : styles.chevronCollapsed}
+                  />
+                </button>
+                {expandedSections.cities && (
+                  <div className={styles.filterContent}>
+                    <div className={styles.filterList}>
+                      {allCities.map(city => (
+                        <label key={city} className={styles.filterCheckbox}>
                           <input
                             type="checkbox"
                             checked={selectedCities.includes(city)}
@@ -726,13 +761,32 @@ export default function ProviderSearch() {
                       ))}
                     </div>
                   </div>
+                )}
+                  </div>
 
                   {/* State Filter */}
                   <div className={styles.filterGroup}>
-                    <label className={styles.filterLabel}>State</label>
-                    <div className={styles.filterOptions}>
-                      {availableStates.map(state => (
-                        <label key={state} className={styles.filterOption}>
+                <button 
+                  className={styles.filterHeader}
+                  onClick={() => toggleSection('states')}
+                >
+                  <div className={styles.filterHeaderLeft}>
+                    <Filter size={14} />
+                    <span>State</span>
+                    {selectedStates.length > 0 && (
+                      <span className={styles.filterBadge}>{selectedStates.length}</span>
+                    )}
+                  </div>
+                  <ChevronDown 
+                    size={16} 
+                    className={expandedSections.states ? styles.chevronExpanded : styles.chevronCollapsed}
+                  />
+                </button>
+                {expandedSections.states && (
+                  <div className={styles.filterContent}>
+                    <div className={styles.filterList}>
+                      {allStates.map(state => (
+                        <label key={state} className={styles.filterCheckbox}>
                           <input
                             type="checkbox"
                             checked={selectedStates.includes(state)}
@@ -743,72 +797,115 @@ export default function ProviderSearch() {
                       ))}
                     </div>
                   </div>
-
-                  {/* CCN Filter */}
-                  <div className={styles.filterGroup}>
-                    <label className={styles.filterLabel}>Certification</label>
-                    <div className={styles.filterOptions}>
-                      <label className={styles.filterOption}>
-                        <input
-                          type="checkbox"
-                          checked={showOnlyCCNs}
-                          onChange={() => setShowOnlyCCNs(!showOnlyCCNs)}
-                        />
-                        <span>Medicare-certified only</span>
-                      </label>
-                    </div>
+                )}
                   </div>
-                </div>
               </div>
             )}
-          </div>
 
-          {/* Main Content - Two Column Layout */}
-          <div className={styles.mainContent}>
-              {/* Left Column - Results */}
-              <div className={styles.resultsColumn}>
-
-                {!loading && !hasSearched && (
-                  <div className={styles.welcomeMessage}>
-                    <h3>Search for a Provider</h3>
-                    <p>
-                      Start by typing a provider name, network, or location in the search bar.
-                    </p>
+            {/* Main Content */}
+            <div className={styles.resultsPanel}>
+                  {loading && (
+                    <div className={styles.emptyState}>
+                      <Spinner />
+                      <h2>Searching...</h2>
+                      <p>Finding providers matching your criteria</p>
                   </div>
                 )}
 
-                {!loading && hasSearched && filteredResults.length === 0 && (
-                  <div className={styles.noResultsMessage}>
-                    <h3>No Results Found</h3>
-                    <p>
-                      No providers match your search criteria. Try:
-                    </p>
-                    <ul>
-                      <li>Using different keywords</li>
-                      <li>Checking your spelling</li>
-                      <li>Broadening your search terms</li>
-                      <li>Clearing some filters</li>
-                    </ul>
+                  {!loading && !hasSearched && (
+                    <div className={styles.emptyState}>
+                      <Search size={48} />
+                      <h2>Search for Providers</h2>
+                      <p>Enter a search term above to find providers</p>
                   </div>
                 )}
 
-                {paginatedResults.length > 0 && (
-                  <div className={styles.resultsList}>
+                  {!loading && hasSearched && filteredResults.length === 0 && (
+                    <div className={styles.emptyState}>
+                      <h2>No Results Found</h2>
+                      <p>Try adjusting your search terms or filters</p>
+                  </div>
+                )}
+
+                  {!loading && paginatedResults.length > 0 && showBulkActions && hasTeam && (
+                    <div className={styles.resultsHeader}>
+                      <div className={styles.resultsActions}>
+                        <div className={styles.bulkActions}>
+                          <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
+                            <button
+                              ref={bulkButtonRef}
+                              className={styles.glassmorphismButton}
+                              onClick={handleBulkButtonClick}
+                            >
+                              Tag
+                            </button>
+                            {taggingProviderId === 'bulk' && (
+                              <div className={styles.dropdown}>
+                                <button
+                                  className={styles.glassmorphismButton}
+                                  onClick={() => handleBulkTag('me')}
+                                  disabled={bulkActionLoading}
+                                >
+                                  {bulkActionLoading ? 'Tagging...' : 'Me'}
+                                </button>
+                                <button
+                                  className={styles.glassmorphismButton}
+                                  onClick={() => handleBulkTag('partner')}
+                                  disabled={bulkActionLoading}
+                                >
+                                  {bulkActionLoading ? 'Tagging...' : 'Partner'}
+                                </button>
+                                <button
+                                  className={styles.glassmorphismButton}
+                                  onClick={() => handleBulkTag('competitor')}
+                                  disabled={bulkActionLoading}
+                                >
+                                  {bulkActionLoading ? 'Tagging...' : 'Competitor'}
+                                </button>
+                                <button
+                                  className={styles.glassmorphismButton}
+                                  onClick={() => handleBulkTag('target')}
+                                  disabled={bulkActionLoading}
+                                >
+                                  {bulkActionLoading ? 'Tagging...' : 'Target'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {!loading && paginatedResults.length > 0 && (
+                    <>
+                      <div className={styles.tableWrapper}>
+                        <table className={styles.resultsTable}>
+                          <thead>
+                            <tr>
+                              <th style={{ width: '40px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
+                                  onChange={hasTeam ? handleSelectAll : undefined}
+                                  disabled={!hasTeam}
+                                  className={!hasTeam ? styles.disabled : ''}
+                                  title={!hasTeam ? "Join or create a team to select providers" : ""}
+                                />
+                              </th>
+                              <th>Provider</th>
+                              <th>Type</th>
+                              <th>Network</th>
+                              <th>Tag</th>
+                            </tr>
+                          </thead>
+                          <tbody>
                     {paginatedResults.map((provider) => (
-                      <div
+                              <tr 
                         key={provider.dhc}
-                        className={`${styles.resultCard} ${selectedProvider?.dhc === provider.dhc ? styles.selectedCard : ""
-                          }`}
-                        onClick={(e) => {
-                          // Don't select the provider if clicking on the provider name (which handles navigation)
-                          if (!e.target.closest(`.${styles.providerName}`)) {
-                            handleProviderSelect(provider);
-                          }
-                        }}
+                                className={selectedProvider?.dhc === provider.dhc ? styles.selectedRow : ""}
                       >
-                        <div className={styles.cardContent}>
-                          <div className={styles.cardLeft}>
-                            <div className={styles.checkboxContainer}>
+                                <td>
                               <input
                                 type="checkbox"
                                 checked={selectedProviders.has(provider.dhc)}
@@ -821,16 +918,17 @@ export default function ProviderSearch() {
                                 className={`${styles.providerCheckbox} ${!hasTeam ? styles.disabled : ''}`}
                                 disabled={!hasTeam}
                                 title={!hasTeam ? "Join or create a team to select providers" : ""}
+                                    onClick={(e) => e.stopPropagation()}
                               />
-                            </div>
-                            <div className={styles.cardInfo}>
+                                </td>
+                                <td>
+                                  <div className={styles.providerCell}>
                               <div
-                                className={styles.providerName}
+                                      className={styles.providerNameLink}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/app/${provider.dhc}`);
                                 }}
-                                style={{ cursor: 'pointer' }}
                               >
                                 {provider.name}
                               </div>
@@ -840,19 +938,11 @@ export default function ProviderSearch() {
                                   <span className={styles.providerPhone}> • {provider.phone}</span>
                                 )}
                               </div>
-                              <div className={styles.providerDetails}>
-                                <span className={styles.providerType}>{provider.type || "Unknown"}</span>
-                                {provider.network && (
-                                  <span className={styles.providerNetwork}>{provider.network}</span>
-                                )}
-                                {ccnProviderIds.has(provider.dhc) && (
-                                  <span className={styles.ccnBadge}>Medicare</span>
-                                )}
                               </div>
-                            </div>
-                          </div>
-                          <div className={styles.cardRight}>
-                            <div className={styles.cardActions}>
+                                </td>
+                                <td>{provider.type || "Unknown"}</td>
+                                <td>{provider.network || "-"}</td>
+                                <td className={styles.tagCell} onClick={(e) => e.stopPropagation()}>
                               <ProviderTagBadge
                                 providerId={provider.dhc}
                                 hasTeam={hasTeam}
@@ -865,45 +955,16 @@ export default function ProviderSearch() {
                                 variant="default"
                                 showRemoveOption={true}
                               />
-                            </div>
-                          </div>
-                        </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {error && <p className={styles.error}>{error}</p>}
-              </div>
-
-              {/* Right Column - Map */}
-              <div className={styles.detailColumn}>
-                {selectedProvider ? (
-                  <div className={styles.mapContainer}>
-                    <div
-                      ref={mapContainerRef}
-                      className={styles.map}
-                    />
-                    {(!selectedProvider.latitude || !selectedProvider.longitude ||
-                      isNaN(selectedProvider.latitude) || isNaN(selectedProvider.longitude)) && (
-                        <div className={styles.mapPlaceholder}>
-                          <p>Map location not available for this provider</p>
-                        </div>
+                    </>
                       )}
-                    {!mapReady && selectedProvider?.latitude && selectedProvider?.longitude &&
-                      !isNaN(selectedProvider.latitude) && !isNaN(selectedProvider.longitude) && (
-                        <div className={styles.mapLoading}>
-                          <p>Loading map...</p>
-                        </div>
-                      )}
-                  </div>
-                ) : (
-                  <div className={styles.noSelection}>
-                    <p>Select a provider from the results to view location.</p>
-                  </div>
-                )}
-              </div>
             </div>
+          </div>
         </div>
       </PageLayout>
     );

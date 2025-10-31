@@ -43,6 +43,27 @@ function getPathwaysTableName(tableName) {
   return 'pathways_provider_overall';
 }
 
+/**
+ * Get the field prefix based on NPI type
+ * @param {string} npiType - 'facility' or 'service_location'
+ * @returns {string} Field prefix: 'facility_provider' or 'service_location_provider'
+ */
+function getNpiTypePrefix(npiType) {
+  // Default to facility
+  if (!npiType || npiType === 'facility') {
+    return 'facility_provider';
+  }
+  
+  // Validate and return service_location
+  if (npiType === 'service_location') {
+    return 'service_location_provider';
+  }
+  
+  // If invalid, log warning and default to facility
+  console.warn(`⚠️ Invalid NPI type "${npiType}", defaulting to facility`);
+  return 'facility_provider';
+}
+
 // Get metadata for the pathways table (max_date)
 router.get("/metadata", async (req, res) => {
   try {
@@ -142,23 +163,30 @@ router.post("/referral-sources", async (req, res) => {
       inboundNPI,
       dateFrom,
       dateTo,
-      groupByField = 'outbound_facility_provider_taxonomy_classification', // Default to classification level
+      groupByField = null, // Will be set based on npiType
       leadUpPeriodMax = null,
       filters = {},
       limit = 100,
-      tableName = null // Optional: specify which pathways table to use
+      tableName = null, // Optional: specify which pathways table to use
+      npiType = 'facility' // 'facility' or 'service_location'
     } = req.body;
 
     const pathwaysTable = getPathwaysTableName(tableName);
+    const npiPrefix = getNpiTypePrefix(npiType);
+    
+    // Set default groupByField based on NPI type
+    const defaultGroupBy = groupByField || `outbound_${npiPrefix}_taxonomy_classification`;
 
     console.log("🏥 Referral Pathways: Fetching referral sources", {
       inboundNPI,
       dateFrom,
       dateTo,
-      groupByField,
+      groupByField: defaultGroupBy,
       leadUpPeriodMax,
       filters: Object.keys(filters).length,
-      pathwaysTable
+      pathwaysTable,
+      npiType,
+      npiPrefix
     });
 
     // Validate inputs
@@ -169,14 +197,14 @@ router.post("/referral-sources", async (req, res) => {
       });
     }
 
-    // Build WHERE clause
+    // Build WHERE clause with dynamic field names
     const whereClauses = [
-      'inbound_facility_provider_npi = @inboundNPI',
-      'outbound_facility_provider_npi IS NOT NULL', // Only facility-to-facility
-      'inbound_facility_provider_npi IS NOT NULL',
-      'outbound_facility_provider_npi != inbound_facility_provider_npi', // Exclude self-referrals
-      "outbound_facility_provider_npi_type = '2'", // Only Type 2 organizations (string comparison)
-      "inbound_facility_provider_npi_type = '2'" // Only Type 2 organizations (string comparison)
+      `inbound_${npiPrefix}_npi = @inboundNPI`,
+      `outbound_${npiPrefix}_npi IS NOT NULL`,
+      `inbound_${npiPrefix}_npi IS NOT NULL`,
+      `outbound_${npiPrefix}_npi != inbound_${npiPrefix}_npi`, // Exclude self-referrals
+      `outbound_${npiPrefix}_npi_type = '2'`, // Only Type 2 organizations
+      `inbound_${npiPrefix}_npi_type = '2'` // Only Type 2 organizations
     ];
     
     const params = { 
@@ -223,66 +251,58 @@ router.post("/referral-sources", async (req, res) => {
 
     const whereClause = whereClauses.join(' AND ');
 
-    // Determine which fields to select based on groupByField
+    // Determine which fields to select based on groupByField (with dynamic NPI prefix)
     let selectFields = '';
     let groupByFields = '';
     
-    switch (groupByField) {
-      case 'outbound_facility_provider_npi':
-        selectFields = `
-          outbound_facility_provider_npi,
-          MAX(outbound_facility_provider_name) as outbound_facility_provider_name,
-          MAX(outbound_facility_provider_city) as outbound_facility_provider_city,
-          MAX(outbound_facility_provider_state) as outbound_facility_provider_state,
-          MAX(outbound_facility_provider_county) as outbound_facility_provider_county,
-          MAX(outbound_facility_provider_taxonomy_classification) as outbound_facility_provider_taxonomy_classification,
-          MAX(outbound_facility_provider_taxonomy_specialization) as outbound_facility_provider_taxonomy_specialization
-        `;
-        groupByFields = 'outbound_facility_provider_npi';
-        break;
-        
-      case 'outbound_facility_provider_taxonomy_classification':
-        selectFields = `
-          outbound_facility_provider_taxonomy_classification
-        `;
-        groupByFields = 'outbound_facility_provider_taxonomy_classification';
-        break;
-        
-      case 'outbound_facility_provider_taxonomy_specialization':
-        selectFields = `
-          outbound_facility_provider_taxonomy_specialization,
-          MAX(outbound_facility_provider_taxonomy_classification) as outbound_facility_provider_taxonomy_classification
-        `;
-        groupByFields = 'outbound_facility_provider_taxonomy_specialization';
-        break;
-        
-      case 'outbound_facility_provider_state':
-        selectFields = `
-          outbound_facility_provider_state
-        `;
-        groupByFields = 'outbound_facility_provider_state';
-        break;
-        
-      case 'outbound_facility_provider_county':
-        selectFields = `
-          outbound_facility_provider_county,
-          MAX(outbound_facility_provider_state) as outbound_facility_provider_state
-        `;
-        groupByFields = 'outbound_facility_provider_county';
-        break;
-        
-      default:
-        // Default to classification
-        selectFields = `
-          outbound_facility_provider_taxonomy_classification
-        `;
-        groupByFields = 'outbound_facility_provider_taxonomy_classification';
+    // Normalize groupByField to work with either facility or service_location
+    const normalizedGroupBy = defaultGroupBy.replace(/_(facility_provider|service_location_provider)_/, `_${npiPrefix}_`);
+    
+    if (normalizedGroupBy === `outbound_${npiPrefix}_npi`) {
+      selectFields = `
+        outbound_${npiPrefix}_npi,
+        MAX(outbound_${npiPrefix}_name) as outbound_${npiPrefix}_name,
+        MAX(outbound_${npiPrefix}_city) as outbound_${npiPrefix}_city,
+        MAX(outbound_${npiPrefix}_state) as outbound_${npiPrefix}_state,
+        MAX(outbound_${npiPrefix}_county) as outbound_${npiPrefix}_county,
+        MAX(outbound_${npiPrefix}_taxonomy_classification) as outbound_${npiPrefix}_taxonomy_classification,
+        MAX(outbound_${npiPrefix}_taxonomy_specialization) as outbound_${npiPrefix}_taxonomy_specialization
+      `;
+      groupByFields = `outbound_${npiPrefix}_npi`;
+    } else if (normalizedGroupBy === `outbound_${npiPrefix}_taxonomy_classification`) {
+      selectFields = `
+        outbound_${npiPrefix}_taxonomy_classification
+      `;
+      groupByFields = `outbound_${npiPrefix}_taxonomy_classification`;
+    } else if (normalizedGroupBy === `outbound_${npiPrefix}_taxonomy_specialization`) {
+      selectFields = `
+        outbound_${npiPrefix}_taxonomy_specialization,
+        MAX(outbound_${npiPrefix}_taxonomy_classification) as outbound_${npiPrefix}_taxonomy_classification
+      `;
+      groupByFields = `outbound_${npiPrefix}_taxonomy_specialization`;
+    } else if (normalizedGroupBy === `outbound_${npiPrefix}_state`) {
+      selectFields = `
+        outbound_${npiPrefix}_state
+      `;
+      groupByFields = `outbound_${npiPrefix}_state`;
+    } else if (normalizedGroupBy === `outbound_${npiPrefix}_county`) {
+      selectFields = `
+        outbound_${npiPrefix}_county,
+        MAX(outbound_${npiPrefix}_state) as outbound_${npiPrefix}_state
+      `;
+      groupByFields = `outbound_${npiPrefix}_county`;
+    } else {
+      // Default to classification
+      selectFields = `
+        outbound_${npiPrefix}_taxonomy_classification
+      `;
+      groupByFields = `outbound_${npiPrefix}_taxonomy_classification`;
     }
 
     const query = `
       SELECT 
         ${selectFields},
-        COUNT(DISTINCT outbound_facility_provider_npi) as unique_facilities,
+        COUNT(DISTINCT outbound_${npiPrefix}_npi) as unique_facilities,
         SUM(inbound_count) as total_referrals,
         SUM(charges_total) as total_charges,
         MIN(date__month_grain) as earliest_referral,
@@ -326,12 +346,16 @@ router.post("/referral-sources", async (req, res) => {
     });
 
     // If grouping by NPI, enrich with definitive names from hco_flat (fast lookup on small result set)
-    if (groupByField === 'outbound_facility_provider_npi' && sanitizedRows.length > 0) {
+    if (normalizedGroupBy === `outbound_${npiPrefix}_npi` && sanitizedRows.length > 0) {
       try {
-        const npis = sanitizedRows.map(row => row.outbound_facility_provider_npi).filter(Boolean);
+        // Use dynamic field names based on NPI type
+        const npiField = `outbound_${npiPrefix}_npi`;
+        const nameField = `outbound_${npiPrefix}_name`;
+        
+        const npis = sanitizedRows.map(row => row[npiField]).filter(Boolean);
         
         if (npis.length > 0) {
-          console.log(`🏥 Fetching definitive names and locations for ${npis.length} facilities from hco_flat`);
+          console.log(`🏥 Fetching definitive names and locations for ${npis.length} ${npiType} providers from hco_flat`);
           
           const nameQuery = `
             SELECT 
@@ -360,12 +384,13 @@ router.post("/referral-sources", async (req, res) => {
             };
           });
           
-          console.log(`✅ Retrieved definitive names and locations for ${Object.keys(nameMap).length} facilities`);
+          console.log(`✅ Retrieved definitive names and locations for ${Object.keys(nameMap).length} providers`);
           
           // Enrich results with definitive names and locations
           sanitizedRows.forEach(row => {
-            if (row.outbound_facility_provider_npi && nameMap[row.outbound_facility_provider_npi]) {
-              const definitiveInfo = nameMap[row.outbound_facility_provider_npi];
+            const npiValue = row[npiField];
+            if (npiValue && nameMap[npiValue]) {
+              const definitiveInfo = nameMap[npiValue];
               row.definitive_id = definitiveInfo.definitive_id;
               row.definitive_name = definitiveInfo.definitive_name;
               row.latitude = definitiveInfo.latitude;
@@ -373,10 +398,11 @@ router.post("/referral-sources", async (req, res) => {
             }
           });
 
-          // Post-aggregate by definitive_id to deduplicate facilities with multiple NPIs
+          // Post-aggregate by definitive_id to deduplicate providers with multiple NPIs
           const definitiveMap = {};
           sanitizedRows.forEach(row => {
-            const defId = row.definitive_id || row.outbound_facility_provider_npi; // Fallback to NPI if no definitive_id
+            const npiValue = row[npiField];
+            const defId = row.definitive_id || npiValue; // Fallback to NPI if no definitive_id
             
             if (!definitiveMap[defId]) {
               // First occurrence of this definitive facility
@@ -388,11 +414,11 @@ router.post("/referral-sources", async (req, res) => {
                 months_with_activity: Number(row.months_with_activity) || 0,
                 latitude: row.latitude, // Keep first lat/long
                 longitude: row.longitude,
-                npis: [row.outbound_facility_provider_npi], // Track all NPIs for this facility
-                original_names: row.outbound_facility_provider_name ? [row.outbound_facility_provider_name] : []
+                npis: [npiValue], // Track all NPIs for this provider
+                original_names: row[nameField] ? [row[nameField]] : []
               };
             } else {
-              // Merge with existing facility
+              // Merge with existing provider
               definitiveMap[defId].unique_facilities += Number(row.unique_facilities) || 0;
               definitiveMap[defId].total_referrals += Number(row.total_referrals) || 0;
               definitiveMap[defId].total_charges += Number(row.total_charges) || 0;
@@ -414,9 +440,9 @@ router.post("/referral-sources", async (req, res) => {
                 definitiveMap[defId].longitude = row.longitude;
               }
               // Track all NPIs
-              definitiveMap[defId].npis.push(row.outbound_facility_provider_npi);
-              if (row.outbound_facility_provider_name && !definitiveMap[defId].original_names.includes(row.outbound_facility_provider_name)) {
-                definitiveMap[defId].original_names.push(row.outbound_facility_provider_name);
+              definitiveMap[defId].npis.push(npiValue);
+              if (row[nameField] && !definitiveMap[defId].original_names.includes(row[nameField])) {
+                definitiveMap[defId].original_names.push(row[nameField]);
               }
             }
           });
@@ -426,12 +452,12 @@ router.post("/referral-sources", async (req, res) => {
             .sort((a, b) => b.total_referrals - a.total_referrals)
             .slice(0, parseInt(limit)); // Re-apply limit after aggregation
 
-          console.log(`✅ Aggregated ${sanitizedRows.length} unique facilities (from ${npis.length} NPIs) in referral-sources`);
+          console.log(`✅ Aggregated ${sanitizedRows.length} unique ${npiType} providers (from ${npis.length} NPIs) in referral-sources`);
           
           // Debug: Check for duplicates
           const defIdCounts = {};
           sanitizedRows.forEach(row => {
-            const defId = row.definitive_id || row.outbound_facility_provider_npi;
+            const defId = row.definitive_id || row[npiField];
             defIdCounts[defId] = (defIdCounts[defId] || 0) + 1;
           });
           const duplicates = Object.entries(defIdCounts).filter(([id, count]) => count > 1);
@@ -481,10 +507,12 @@ router.post("/facility-details", async (req, res) => {
       state = null,
       county = null,
       limit = 100,
-      tableName = null // Optional: specify which pathways table to use
+      tableName = null, // Optional: specify which pathways table to use
+      npiType = 'facility' // 'facility' or 'service_location'
     } = req.body;
 
     const pathwaysTable = getPathwaysTableName(tableName);
+    const npiPrefix = getNpiTypePrefix(npiType);
 
     console.log("🏥 Referral Pathways: Fetching facility details", {
       inboundNPI,
@@ -493,7 +521,9 @@ router.post("/facility-details", async (req, res) => {
       taxonomySpecialization,
       state,
       county,
-      pathwaysTable
+      pathwaysTable,
+      npiType,
+      npiPrefix
     });
 
     // Validate inputs
@@ -504,14 +534,14 @@ router.post("/facility-details", async (req, res) => {
       });
     }
 
-    // Build WHERE clause
+    // Build WHERE clause with dynamic field names
     const whereClauses = [
-      'inbound_facility_provider_npi = @inboundNPI',
-      'outbound_facility_provider_npi IS NOT NULL',
-      'inbound_facility_provider_npi IS NOT NULL',
-      'outbound_facility_provider_npi != inbound_facility_provider_npi', // Exclude self-referrals
-      "outbound_facility_provider_npi_type = '2'", // Only Type 2 organizations (string comparison)
-      "inbound_facility_provider_npi_type = '2'" // Only Type 2 organizations (string comparison)
+      `inbound_${npiPrefix}_npi = @inboundNPI`,
+      `outbound_${npiPrefix}_npi IS NOT NULL`,
+      `inbound_${npiPrefix}_npi IS NOT NULL`,
+      `outbound_${npiPrefix}_npi != inbound_${npiPrefix}_npi`, // Exclude self-referrals
+      `outbound_${npiPrefix}_npi_type = '2'`, // Only Type 2 organizations
+      `inbound_${npiPrefix}_npi_type = '2'` // Only Type 2 organizations
     ];
     
     const params = { 
@@ -537,19 +567,19 @@ router.post("/facility-details", async (req, res) => {
 
     // Add taxonomy filters for drill-down
     if (taxonomyClassification) {
-      whereClauses.push('outbound_facility_provider_taxonomy_classification = @taxonomyClassification');
+      whereClauses.push(`outbound_${npiPrefix}_taxonomy_classification = @taxonomyClassification`);
       params.taxonomyClassification = taxonomyClassification;
     }
     if (taxonomySpecialization) {
-      whereClauses.push('outbound_facility_provider_taxonomy_specialization = @taxonomySpecialization');
+      whereClauses.push(`outbound_${npiPrefix}_taxonomy_specialization = @taxonomySpecialization`);
       params.taxonomySpecialization = taxonomySpecialization;
     }
     if (state) {
-      whereClauses.push('outbound_facility_provider_state = @state');
+      whereClauses.push(`outbound_${npiPrefix}_state = @state`);
       params.state = state;
     }
     if (county) {
-      whereClauses.push('outbound_facility_provider_county = @county');
+      whereClauses.push(`outbound_${npiPrefix}_county = @county`);
       params.county = county;
     }
 
@@ -557,13 +587,13 @@ router.post("/facility-details", async (req, res) => {
 
     const query = `
       SELECT 
-        outbound_facility_provider_npi,
-        MAX(outbound_facility_provider_name) as outbound_facility_provider_name,
-        MAX(outbound_facility_provider_city) as outbound_facility_provider_city,
-        MAX(outbound_facility_provider_state) as outbound_facility_provider_state,
-        MAX(outbound_facility_provider_county) as outbound_facility_provider_county,
-        MAX(outbound_facility_provider_taxonomy_classification) as outbound_facility_provider_taxonomy_classification,
-        MAX(outbound_facility_provider_taxonomy_specialization) as outbound_facility_provider_taxonomy_specialization,
+        outbound_${npiPrefix}_npi,
+        MAX(outbound_${npiPrefix}_name) as outbound_${npiPrefix}_name,
+        MAX(outbound_${npiPrefix}_city) as outbound_${npiPrefix}_city,
+        MAX(outbound_${npiPrefix}_state) as outbound_${npiPrefix}_state,
+        MAX(outbound_${npiPrefix}_county) as outbound_${npiPrefix}_county,
+        MAX(outbound_${npiPrefix}_taxonomy_classification) as outbound_${npiPrefix}_taxonomy_classification,
+        MAX(outbound_${npiPrefix}_taxonomy_specialization) as outbound_${npiPrefix}_taxonomy_specialization,
         SUM(inbound_count) as total_referrals,
         SUM(charges_total) as total_charges,
         MIN(date__month_grain) as earliest_referral,
@@ -572,7 +602,7 @@ router.post("/facility-details", async (req, res) => {
         ROUND(SUM(inbound_count) / COUNT(DISTINCT date__month_grain), 1) as avg_monthly_referrals
       FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
-      GROUP BY outbound_facility_provider_npi
+      GROUP BY outbound_${npiPrefix}_npi
       ORDER BY total_referrals DESC
       LIMIT @limit
     `;
@@ -985,10 +1015,12 @@ router.post("/downstream-facilities", async (req, res) => {
       leadUpPeriodMax = null,
       filterByTaxonomy = null, // Filter to only show same type of facilities
       limit = 100,
-      tableName = null // Optional: specify which pathways table to use
+      tableName = null, // Optional: specify which pathways table to use
+      npiType = 'facility' // 'facility' or 'service_location'
     } = req.body;
 
     const pathwaysTable = getPathwaysTableName(tableName);
+    const npiPrefix = getNpiTypePrefix(npiType);
 
     console.log("⬇️ Referral Pathways: Fetching downstream facilities", {
       outboundNPI,
@@ -996,7 +1028,9 @@ router.post("/downstream-facilities", async (req, res) => {
       dateTo,
       leadUpPeriodMax,
       filterByTaxonomy,
-      pathwaysTable
+      pathwaysTable,
+      npiType,
+      npiPrefix
     });
 
     if (!outboundNPI) {
@@ -1006,13 +1040,13 @@ router.post("/downstream-facilities", async (req, res) => {
       });
     }
 
-    // Build WHERE clause - FLIP the perspective
+    // Build WHERE clause - FLIP the perspective (with dynamic field names)
     const whereClauses = [
-      'outbound_facility_provider_npi = @outboundNPI', // This facility is sending
-      'inbound_facility_provider_npi IS NOT NULL',
-      'outbound_facility_provider_npi != inbound_facility_provider_npi', // No self-referrals
-      "outbound_facility_provider_npi_type = '2'",
-      "inbound_facility_provider_npi_type = '2'"
+      `outbound_${npiPrefix}_npi = @outboundNPI`, // This facility is sending
+      `inbound_${npiPrefix}_npi IS NOT NULL`,
+      `outbound_${npiPrefix}_npi != inbound_${npiPrefix}_npi`, // No self-referrals
+      `outbound_${npiPrefix}_npi_type = '2'`,
+      `inbound_${npiPrefix}_npi_type = '2'`
     ];
     
     const params = { 
@@ -1035,7 +1069,7 @@ router.post("/downstream-facilities", async (req, res) => {
 
     // Filter by taxonomy classification if provided (to compare with same type of facilities)
     if (filterByTaxonomy) {
-      whereClauses.push('inbound_facility_provider_taxonomy_classification = @filterByTaxonomy');
+      whereClauses.push(`inbound_${npiPrefix}_taxonomy_classification = @filterByTaxonomy`);
       params.filterByTaxonomy = filterByTaxonomy;
     }
 
@@ -1044,12 +1078,12 @@ router.post("/downstream-facilities", async (req, res) => {
     // Query for INBOUND facilities (where this facility sends patients)
     const query = `
       SELECT 
-        inbound_facility_provider_npi as outbound_facility_provider_npi,
-        MAX(inbound_facility_provider_name) as outbound_facility_provider_name,
-        MAX(inbound_facility_provider_city) as outbound_facility_provider_city,
-        MAX(inbound_facility_provider_state) as outbound_facility_provider_state,
-        MAX(inbound_facility_provider_county) as outbound_facility_provider_county,
-        MAX(inbound_facility_provider_taxonomy_classification) as outbound_facility_provider_taxonomy_classification,
+        inbound_${npiPrefix}_npi as outbound_${npiPrefix}_npi,
+        MAX(inbound_${npiPrefix}_name) as outbound_${npiPrefix}_name,
+        MAX(inbound_${npiPrefix}_city) as outbound_${npiPrefix}_city,
+        MAX(inbound_${npiPrefix}_state) as outbound_${npiPrefix}_state,
+        MAX(inbound_${npiPrefix}_county) as outbound_${npiPrefix}_county,
+        MAX(inbound_${npiPrefix}_taxonomy_classification) as outbound_${npiPrefix}_taxonomy_classification,
         SUM(inbound_count) as total_referrals,
         SUM(charges_total) as total_charges,
         MIN(date__month_grain) as earliest_referral,
@@ -1058,7 +1092,7 @@ router.post("/downstream-facilities", async (req, res) => {
         ROUND(SUM(inbound_count) / COUNT(DISTINCT date__month_grain), 1) as avg_monthly_referrals
       FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
-      GROUP BY inbound_facility_provider_npi
+      GROUP BY inbound_${npiPrefix}_npi
       ORDER BY total_referrals DESC
       LIMIT @limit
     `;
