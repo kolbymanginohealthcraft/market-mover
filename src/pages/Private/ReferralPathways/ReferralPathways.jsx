@@ -26,6 +26,7 @@ const ReferralPathways = () => {
   const [error, setError] = useState(null);
   const [inboundFacilityInfo, setInboundFacilityInfo] = useState(null);
   const [activeFacilityInfo, setActiveFacilityInfo] = useState(null); // Facility info for currently displayed results
+  const [searchMedicareOnly, setSearchMedicareOnly] = useState(false); // Toggle between pathways_provider_overall and medicare_pathways_provider_overall
   
   // Downstream analysis modal
   const [downstreamModal, setDownstreamModal] = useState(null); // { facility, data } or null
@@ -36,6 +37,12 @@ const ReferralPathways = () => {
     fetchMetadata();
     fetchInboundFacilityLocation();
   }, []);
+
+  // Re-fetch metadata when Medicare toggle changes
+  useEffect(() => {
+    fetchMetadata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchMedicareOnly]);
 
   // Fetch facility location for map (optional - won't break if fails)
   const fetchInboundFacilityLocation = async () => {
@@ -118,7 +125,8 @@ const ReferralPathways = () => {
   // Fetch metadata
   const fetchMetadata = async () => {
     try {
-      const response = await fetch(apiUrl('/api/referral-pathways/metadata'));
+      const tableName = searchMedicareOnly ? 'medicare_pathways_provider_overall' : 'pathways_provider_overall';
+      const response = await fetch(apiUrl(`/api/referral-pathways/metadata?tableName=${tableName}`));
       const result = await response.json();
       
       if (result.success) {
@@ -152,6 +160,8 @@ const ReferralPathways = () => {
         ? '/api/referral-pathways/referral-sources'
         : '/api/referral-pathways/downstream-facilities';
       
+      const tableName = searchMedicareOnly ? 'medicare_pathways_provider_overall' : 'pathways_provider_overall';
+      
       const requestBody = searchDirection === 'receiver'
         ? {
             inboundNPI: currentNPI, // DB field: inbound_facility_provider_npi
@@ -159,14 +169,16 @@ const ReferralPathways = () => {
             dateTo: dateRange.to,
             groupByField: 'outbound_facility_provider_npi',
             leadUpPeriodMax,
-            limit: 200
+            limit: 200,
+            tableName
           }
         : {
             outboundNPI: currentNPI, // DB field: outbound_facility_provider_npi
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
             leadUpPeriodMax,
-            limit: 200
+            limit: 200,
+            tableName
           };
 
       const response = await fetch(apiUrl(endpoint), {
@@ -311,6 +323,8 @@ const ReferralPathways = () => {
       
       console.log(`🔄 Fetching downstream facilities for ${facility.definitive_name || facility.outbound_facility_provider_name}`);
       
+      const tableName = searchMedicareOnly ? 'medicare_pathways_provider_overall' : 'pathways_provider_overall';
+      
       const response = await fetch(apiUrl('/api/referral-pathways/downstream-facilities'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -320,7 +334,8 @@ const ReferralPathways = () => {
           dateTo: dateRange.to,
           leadUpPeriodMax,
           filterByTaxonomy: inboundFacilityInfo?.taxonomy_classification, // Only show same type as your facility
-          limit: 200
+          limit: 200,
+          tableName
         })
       });
 
@@ -528,6 +543,21 @@ const ReferralPathways = () => {
             <label className={styles.label} style={{ opacity: 0 }}>
               Hidden
             </label>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={searchMedicareOnly}
+                onChange={(e) => setSearchMedicareOnly(e.target.checked)}
+                className={styles.checkbox}
+              />
+              <span>Search Medicare Only</span>
+            </label>
+          </div>
+
+          <div className={styles.controlGroup}>
+            <label className={styles.label} style={{ opacity: 0 }}>
+              Hidden
+            </label>
             <button 
               onClick={handleRunAnalysis}
               className={styles.runButton}
@@ -565,6 +595,14 @@ const ReferralPathways = () => {
               NPI: {activeFacilityInfo.npi} • {activeFacilityInfo.taxonomy_classification}
             </div>
           </div>
+          {dateRange.from && dateRange.to && (
+            <div className={styles.facilityInfoDateRange}>
+              <div className={styles.dateRangeLabel}>Date Range</div>
+              <div className={styles.dateRangeValue}>
+                {formatMonthDisplay(dateRange.from)} - {formatMonthDisplay(dateRange.to)}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

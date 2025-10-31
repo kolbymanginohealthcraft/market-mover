@@ -16,24 +16,55 @@ const router = express.Router();
  * - We use inbound_count as the volume metric
  */
 
+// Valid table names (for security - prevent SQL injection)
+const VALID_TABLE_NAMES = [
+  'pathways_provider_overall',
+  'medicare_pathways_provider_overall'
+];
+
+/**
+ * Get the pathways table name from request, with validation
+ * @param {string} tableName - Table name from request (query param or body)
+ * @returns {string} Valid table name, defaults to 'pathways_provider_overall'
+ */
+function getPathwaysTableName(tableName) {
+  // Default to the original table
+  if (!tableName) {
+    return 'pathways_provider_overall';
+  }
+  
+  // Validate table name for security
+  if (VALID_TABLE_NAMES.includes(tableName)) {
+    return tableName;
+  }
+  
+  // If invalid, log warning and default to original
+  console.warn(`⚠️ Invalid table name "${tableName}", defaulting to pathways_provider_overall`);
+  return 'pathways_provider_overall';
+}
+
 // Get metadata for the pathways table (max_date)
 router.get("/metadata", async (req, res) => {
   try {
-    console.log("📊 Referral Pathways: Fetching metadata");
+    const tableName = getPathwaysTableName(req.query.tableName);
+    console.log("📊 Referral Pathways: Fetching metadata for table:", tableName);
 
     const query = `
       SELECT max_date
       FROM \`aegis_access.reference_metadata\`
-      WHERE view_name = 'pathways_provider_overall'
+      WHERE view_name = @viewName
       LIMIT 1
     `;
 
-    const [rows] = await vendorBigQueryClient.query({ query });
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params: { viewName: tableName }
+    });
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No metadata found for pathways_provider_overall"
+        message: `No metadata found for ${tableName}`
       });
     }
 
@@ -46,7 +77,7 @@ router.get("/metadata", async (req, res) => {
     res.json({
       success: true,
       data: {
-        viewName: 'pathways_provider_overall',
+        viewName: tableName,
         maxDate: rows[0].max_date
       }
     });
@@ -114,8 +145,11 @@ router.post("/referral-sources", async (req, res) => {
       groupByField = 'outbound_facility_provider_taxonomy_classification', // Default to classification level
       leadUpPeriodMax = null,
       filters = {},
-      limit = 100 
+      limit = 100,
+      tableName = null // Optional: specify which pathways table to use
     } = req.body;
+
+    const pathwaysTable = getPathwaysTableName(tableName);
 
     console.log("🏥 Referral Pathways: Fetching referral sources", {
       inboundNPI,
@@ -123,7 +157,8 @@ router.post("/referral-sources", async (req, res) => {
       dateTo,
       groupByField,
       leadUpPeriodMax,
-      filters: Object.keys(filters).length
+      filters: Object.keys(filters).length,
+      pathwaysTable
     });
 
     // Validate inputs
@@ -253,7 +288,7 @@ router.post("/referral-sources", async (req, res) => {
         MIN(date__month_grain) as earliest_referral,
         MAX(date__month_grain) as latest_referral,
         COUNT(DISTINCT date__month_grain) as months_with_activity
-      FROM \`aegis_access.pathways_provider_overall\`
+      FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
       GROUP BY ${groupByFields}
       ORDER BY total_referrals DESC
@@ -445,8 +480,11 @@ router.post("/facility-details", async (req, res) => {
       taxonomySpecialization = null,
       state = null,
       county = null,
-      limit = 100 
+      limit = 100,
+      tableName = null // Optional: specify which pathways table to use
     } = req.body;
+
+    const pathwaysTable = getPathwaysTableName(tableName);
 
     console.log("🏥 Referral Pathways: Fetching facility details", {
       inboundNPI,
@@ -454,7 +492,8 @@ router.post("/facility-details", async (req, res) => {
       taxonomyClassification,
       taxonomySpecialization,
       state,
-      county
+      county,
+      pathwaysTable
     });
 
     // Validate inputs
@@ -531,7 +570,7 @@ router.post("/facility-details", async (req, res) => {
         MAX(date__month_grain) as latest_referral,
         COUNT(DISTINCT date__month_grain) as months_with_activity,
         ROUND(SUM(inbound_count) / COUNT(DISTINCT date__month_grain), 1) as avg_monthly_referrals
-      FROM \`aegis_access.pathways_provider_overall\`
+      FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
       GROUP BY outbound_facility_provider_npi
       ORDER BY total_referrals DESC
@@ -716,12 +755,16 @@ router.post("/filter-options", async (req, res) => {
       inboundNPI,
       dateFrom,
       dateTo,
-      column 
+      column,
+      tableName = null // Optional: specify which pathways table to use
     } = req.body;
+
+    const pathwaysTable = getPathwaysTableName(tableName);
 
     console.log("🔍 Referral Pathways: Fetching filter options", {
       inboundNPI,
-      column
+      column,
+      pathwaysTable
     });
 
     if (!inboundNPI || !column) {
@@ -731,8 +774,8 @@ router.post("/filter-options", async (req, res) => {
       });
     }
 
-    // Check cache
-    const cacheKey = `referral-pathways-filter-${inboundNPI}-${column}`;
+    // Check cache (include table name in cache key)
+    const cacheKey = `referral-pathways-filter-${pathwaysTable}-${inboundNPI}-${column}`;
     const cached = cache.get(cacheKey);
     
     if (cached) {
@@ -766,7 +809,7 @@ router.post("/filter-options", async (req, res) => {
 
     const query = `
       SELECT DISTINCT ${column} as value
-      FROM \`aegis_access.pathways_provider_overall\`
+      FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
       ORDER BY value ASC
       LIMIT 500
@@ -810,14 +853,18 @@ router.post("/trends", async (req, res) => {
       dateFrom,
       dateTo,
       leadUpPeriodMax = null,
-      filters = {}
+      filters = {},
+      tableName = null // Optional: specify which pathways table to use
     } = req.body;
+
+    const pathwaysTable = getPathwaysTableName(tableName);
 
     console.log("📈 Referral Pathways: Fetching trends", {
       inboundNPI,
       dateFrom,
       dateTo,
-      leadUpPeriodMax
+      leadUpPeriodMax,
+      pathwaysTable
     });
 
     if (!inboundNPI) {
@@ -870,7 +917,7 @@ router.post("/trends", async (req, res) => {
         COUNT(DISTINCT outbound_facility_provider_npi) as unique_facilities,
         SUM(inbound_count) as total_referrals,
         SUM(charges_total) as total_charges
-      FROM \`aegis_access.pathways_provider_overall\`
+      FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
       GROUP BY date__month_grain
       ORDER BY date__month_grain DESC
@@ -937,15 +984,19 @@ router.post("/downstream-facilities", async (req, res) => {
       dateTo,
       leadUpPeriodMax = null,
       filterByTaxonomy = null, // Filter to only show same type of facilities
-      limit = 100 
+      limit = 100,
+      tableName = null // Optional: specify which pathways table to use
     } = req.body;
+
+    const pathwaysTable = getPathwaysTableName(tableName);
 
     console.log("⬇️ Referral Pathways: Fetching downstream facilities", {
       outboundNPI,
       dateFrom,
       dateTo,
       leadUpPeriodMax,
-      filterByTaxonomy
+      filterByTaxonomy,
+      pathwaysTable
     });
 
     if (!outboundNPI) {
@@ -1005,7 +1056,7 @@ router.post("/downstream-facilities", async (req, res) => {
         MAX(date__month_grain) as latest_referral,
         COUNT(DISTINCT date__month_grain) as months_with_activity,
         ROUND(SUM(inbound_count) / COUNT(DISTINCT date__month_grain), 1) as avg_monthly_referrals
-      FROM \`aegis_access.pathways_provider_overall\`
+      FROM \`aegis_access.${pathwaysTable}\`
       WHERE ${whereClause}
       GROUP BY inbound_facility_provider_npi
       ORDER BY total_referrals DESC
