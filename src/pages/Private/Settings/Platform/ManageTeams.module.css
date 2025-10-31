@@ -12,6 +12,79 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Current User Info */
+.currentUserInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-right: 16px;
+}
+
+.userTeamDisplay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #495057;
+}
+
+.userName {
+  font-weight: 600;
+  color: #212529;
+}
+
+.userTeam {
+  color: #6c757d;
+  font-size: 13px;
+}
+
+
+/* Current Team Badge */
+.currentTeamBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+/* Join Team Button */
+.joinTeamButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 8px;
+}
+
+.joinTeamButton:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.joinTeamButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
 }
 
 .teamCount {
@@ -759,6 +832,35 @@
 @media (max-width: 768px) {
   .container {
     padding: 16px;
+  }
+
+  .headerControls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .currentUserInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-right: 0;
+  }
+
+  .userTeamDisplay {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .teamSwitchContainer {
+    width: 100%;
+  }
+
+  .teamSwitchDropdown {
+    left: 0;
+    right: 0;
+    min-width: auto;
   }
 
   .teamHeader {

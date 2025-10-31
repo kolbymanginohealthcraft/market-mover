@@ -44,7 +44,7 @@ export const UserProvider = ({ children }) => {
     try {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('first_name, last_name, email, role, team_id, title')
+        .select('id, first_name, last_name, email, role, team_id, title')
         .eq('id', userId)
         .single();
 

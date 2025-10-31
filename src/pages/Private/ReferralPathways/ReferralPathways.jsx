@@ -6,7 +6,13 @@ import ReferralPathwaysMap from './ReferralPathwaysMap';
 
 const ReferralPathways = () => {
   // State
-  const [inboundNPI, setInboundNPI] = useState('1043205479'); // Default NPI
+  // Search direction:
+  // - 'receiver': Find who sends patients TO this facility (inbound_facility_provider_npi in DB)
+  // - 'sender': Find where this facility sends patients TO (outbound_facility_provider_npi in DB)
+  const [searchDirection, setSearchDirection] = useState('receiver'); // 'receiver' or 'sender'
+  const [activeDirection, setActiveDirection] = useState(null); // Direction of currently displayed results
+  const [receiverNPI, setReceiverNPI] = useState('1043205479'); // Default NPI for receiver (inbound_facility_provider_npi)
+  const [senderNPI, setSenderNPI] = useState('1457393035'); // Default NPI for sender (outbound_facility_provider_npi)
   const [metadata, setMetadata] = useState(null);
   const [dateRange, setDateRange] = useState({ from: null, to: null });
   const groupByLevel = 'outbound_facility_provider_taxonomy_classification'; // Fixed to taxonomy classification
@@ -19,6 +25,7 @@ const ReferralPathways = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [inboundFacilityInfo, setInboundFacilityInfo] = useState(null);
+  const [activeFacilityInfo, setActiveFacilityInfo] = useState(null); // Facility info for currently displayed results
   
   // Downstream analysis modal
   const [downstreamModal, setDownstreamModal] = useState(null); // { facility, data } or null
@@ -30,15 +37,18 @@ const ReferralPathways = () => {
     fetchInboundFacilityLocation();
   }, []);
 
-  // Fetch inbound facility location for map (optional - won't break if fails)
+  // Fetch facility location for map (optional - won't break if fails)
   const fetchInboundFacilityLocation = async () => {
-    if (!inboundNPI) return;
+    // Get the current facility NPI based on search direction
+    // 'receiver' = inbound_facility_provider_npi, 'sender' = outbound_facility_provider_npi
+    const currentNPI = searchDirection === 'receiver' ? receiverNPI : senderNPI;
+    if (!currentNPI) return;
     
     try {
-      const response = await fetch(apiUrl(`/api/referral-pathways/facility-location/${inboundNPI}`));
+      const response = await fetch(apiUrl(`/api/referral-pathways/facility-location/${currentNPI}`));
       
       if (!response.ok) {
-        console.log('Inbound facility location not available (optional)');
+        console.log('Facility location not available (optional)');
         return;
       }
       
@@ -46,7 +56,7 @@ const ReferralPathways = () => {
       
       if (result.success && result.data) {
         setInboundFacilityInfo({
-          npi: inboundNPI,
+          npi: currentNPI,
           name: result.data.definitive_name,
           latitude: result.data.latitude,
           longitude: result.data.longitude,
@@ -54,14 +64,14 @@ const ReferralPathways = () => {
         });
       }
     } catch (err) {
-      console.log('Inbound facility location fetch skipped (optional)');
+      console.log('Facility location fetch skipped (optional)');
     }
   };
 
-  // Refetch inbound facility location when NPI changes
+  // Refetch facility location when NPI or direction changes
   useEffect(() => {
     fetchInboundFacilityLocation();
-  }, [inboundNPI]);
+  }, [receiverNPI, senderNPI, searchDirection]);
 
   // Calculate date range once we have metadata
   useEffect(() => {
@@ -124,7 +134,10 @@ const ReferralPathways = () => {
 
   // Fetch all facilities upfront (faster overall)
   const fetchReferralSources = async () => {
-    if (!inboundNPI || !dateRange.from || !dateRange.to) {
+    // Get current NPI based on search direction
+    // 'receiver' searches inbound_facility_provider_npi, 'sender' searches outbound_facility_provider_npi
+    const currentNPI = searchDirection === 'receiver' ? receiverNPI : senderNPI;
+    if (!currentNPI || !dateRange.from || !dateRange.to) {
       return;
     }
 
@@ -132,18 +145,34 @@ const ReferralPathways = () => {
     setError(null);
 
     try {
-      // Fetch all facilities at NPI level
-      const response = await fetch(apiUrl('/api/referral-pathways/referral-sources'), {
+      // Choose endpoint based on search direction
+      // 'receiver' mode: find who sends TO this facility (inbound_facility_provider_npi)
+      // 'sender' mode: find where this facility sends TO (outbound_facility_provider_npi)
+      const endpoint = searchDirection === 'receiver' 
+        ? '/api/referral-pathways/referral-sources'
+        : '/api/referral-pathways/downstream-facilities';
+      
+      const requestBody = searchDirection === 'receiver'
+        ? {
+            inboundNPI: currentNPI, // DB field: inbound_facility_provider_npi
+            dateFrom: dateRange.from,
+            dateTo: dateRange.to,
+            groupByField: 'outbound_facility_provider_npi',
+            leadUpPeriodMax,
+            limit: 200
+          }
+        : {
+            outboundNPI: currentNPI, // DB field: outbound_facility_provider_npi
+            dateFrom: dateRange.from,
+            dateTo: dateRange.to,
+            leadUpPeriodMax,
+            limit: 200
+          };
+
+      const response = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inboundNPI,
-          dateFrom: dateRange.from,
-          dateTo: dateRange.to,
-          groupByField: 'outbound_facility_provider_npi', // Always fetch at NPI level
-          leadUpPeriodMax,
-          limit: 200 // Get more facilities upfront
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const result = await response.json();
@@ -178,6 +207,10 @@ const ReferralPathways = () => {
 
         // Group by taxonomy for display
         groupFacilitiesByTaxonomy(facilitiesWithDistance);
+        
+        // Update active direction and facility info to match the results
+        setActiveDirection(searchDirection);
+        setActiveFacilityInfo(inboundFacilityInfo);
         
         setExpandedRow(null); // Reset expanded rows
       } else {
@@ -331,6 +364,7 @@ const ReferralPathways = () => {
   const exportToCSV = () => {
     if (allFacilities.length === 0) return;
 
+    const currentNPI = searchDirection === 'receiver' ? receiverNPI : senderNPI;
     const headers = ['Definitive Name', 'NPIs', 'Taxonomy', 'City', 'State', 'Distance (mi)', 'Referrals', 'Charges', 'Months Active', 'Latest Activity'].join(',');
     const rows = allFacilities.map(f => {
       const npiList = f.npis ? f.npis.join('; ') : f.outbound_facility_provider_npi;
@@ -353,7 +387,7 @@ const ReferralPathways = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `referral-pathways-${inboundNPI}-${new Date().toISOString().substring(0, 10)}.csv`;
+    a.download = `referral-pathways-${searchDirection}-${currentNPI}-${new Date().toISOString().substring(0, 10)}.csv`;
     a.click();
   };
 
@@ -398,8 +432,12 @@ const ReferralPathways = () => {
     return dateString;
   };
 
-  // Display name is always "Provider Type" since we locked the grouping
-  const getGroupDisplayName = () => 'Provider Type';
+  // Display name changes based on ACTIVE direction (the direction of currently displayed results)
+  // 'receiver' mode: we're finding who sends TO us, so results are "Senders"
+  // 'sender' mode: we're finding where we send TO, so results are "Receivers"
+  const getGroupDisplayName = () => activeDirection === 'receiver' ? 'Sender Type' : 'Receiver Type';
+  
+  const getFacilityColumnName = () => activeDirection === 'receiver' ? 'Sender Name' : 'Receiver Name';
 
   return (
     <div className={styles.container}>
@@ -415,13 +453,33 @@ const ReferralPathways = () => {
         <div className={styles.controlsRow}>
           <div className={styles.controlGroup}>
             <label className={styles.label}>
+              Search Direction
+            </label>
+            <div className={styles.toggleGroup}>
+              <button
+                className={`${styles.toggleButton} ${searchDirection === 'receiver' ? styles.toggleButtonActive : ''}`}
+                onClick={() => setSearchDirection('receiver')}
+              >
+                Receiver
+              </button>
+              <button
+                className={`${styles.toggleButton} ${searchDirection === 'sender' ? styles.toggleButtonActive : ''}`}
+                onClick={() => setSearchDirection('sender')}
+              >
+                Sender
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.controlGroup}>
+            <label className={styles.label}>
               <Building size={14} />
-              Inbound Facility NPI
+              {searchDirection === 'receiver' ? 'Receiver Facility NPI' : 'Sender Facility NPI'}
             </label>
             <input
               type="text"
-              value={inboundNPI}
-              onChange={(e) => setInboundNPI(e.target.value)}
+              value={searchDirection === 'receiver' ? receiverNPI : senderNPI}
+              onChange={(e) => searchDirection === 'receiver' ? setReceiverNPI(e.target.value) : setSenderNPI(e.target.value)}
               className={styles.input}
               placeholder="Enter NPI"
             />
@@ -473,7 +531,7 @@ const ReferralPathways = () => {
             <button 
               onClick={handleRunAnalysis}
               className={styles.runButton}
-              disabled={loading || !inboundNPI || !dateRange.from || !dateRange.to}
+              disabled={loading || (searchDirection === 'receiver' ? !receiverNPI : !senderNPI) || !dateRange.from || !dateRange.to}
             >
               {loading ? 'Loading...' : 'Run Analysis'}
             </button>
@@ -493,6 +551,23 @@ const ReferralPathways = () => {
         </div>
       </div>
 
+      {/* Facility Info Display - Shows info for currently displayed results */}
+      {activeFacilityInfo && activeDirection && (
+        <div className={styles.facilityInfoBanner}>
+          <div className={styles.facilityInfoContent}>
+            <div className={styles.facilityInfoLabel}>
+              {activeDirection === 'receiver' ? 'Analyzing Receiver:' : 'Analyzing Sender:'}
+            </div>
+            <div className={styles.facilityInfoName}>
+              {activeFacilityInfo.name}
+            </div>
+            <div className={styles.facilityInfoDetails}>
+              NPI: {activeFacilityInfo.npi} • {activeFacilityInfo.taxonomy_classification}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className={styles.content}>
         <div className={styles.sourcesTab}>
@@ -503,7 +578,7 @@ const ReferralPathways = () => {
                     <tr>
                       <th className={styles.expandColumn}></th>
                       <th>{getGroupDisplayName()}</th>
-                      <th className={styles.numberColumn}>Facilities</th>
+                      <th className={styles.numberColumn}>Count</th>
                       <th className={styles.numberColumn}>Total Referrals</th>
                       <th className={styles.numberColumn}>Total Charges</th>
                       <th className={styles.numberColumn}>Months Active</th>
@@ -564,7 +639,7 @@ const ReferralPathways = () => {
                                     <table className={styles.detailsTable}>
                                     <thead>
                                       <tr>
-                                        <th>Facility Name</th>
+                                        <th>{getFacilityColumnName()}</th>
                                         <th>NPI(s)</th>
                                         <th>Location</th>
                                         <th className={styles.numberColumn}>Distance</th>
@@ -616,7 +691,7 @@ const ReferralPathways = () => {
                                                 fetchDownstreamFacilities(facility);
                                               }}
                                               className={styles.downstreamButton}
-                                              title="See where this facility sends patients"
+                                              title={searchDirection === 'receiver' ? "See where this sender sends patients" : "See who sends to this receiver"}
                                             >
                                               <ArrowRight size={14} />
                                             </button>
@@ -669,10 +744,10 @@ const ReferralPathways = () => {
             <div className={styles.modalHeader}>
               <div>
                 <h3 className={styles.modalTitle}>
-                  Downstream Facilities from {downstreamModal.facility.definitive_name || downstreamModal.facility.outbound_facility_provider_name}
+                  Receivers from {downstreamModal.facility.definitive_name || downstreamModal.facility.outbound_facility_provider_name}
                 </h3>
                 <p className={styles.modalSubtitle}>
-                  Where does this facility send patients to facilities like yours?
+                  Where does this sender send patients to facilities like yours?
                   {inboundFacilityInfo?.taxonomy_classification && ` (Showing only: ${inboundFacilityInfo.taxonomy_classification})`}
                 </p>
               </div>
@@ -689,7 +764,7 @@ const ReferralPathways = () => {
                 </span>
               </div>
               <div className={styles.modalStat}>
-                <span className={styles.modalStatLabel}>Total Downstream</span>
+                <span className={styles.modalStatLabel}>Total to Receivers</span>
                 <span className={styles.modalStatValue}>
                   {formatNumber(downstreamModal.totalReferrals)}
                 </span>
@@ -704,7 +779,7 @@ const ReferralPathways = () => {
                 </span>
               </div>
               <div className={styles.modalStat}>
-                <span className={styles.modalStatLabel}>Competitors</span>
+                <span className={styles.modalStatLabel}>Other Receivers</span>
                 <span className={styles.modalStatValue}>
                   {downstreamModal.data.length - 1}
                 </span>
@@ -714,14 +789,14 @@ const ReferralPathways = () => {
             {downstreamLoading ? (
               <div className={styles.modalLoading}>
                 <div className={styles.loadingSpinner}></div>
-                <p>Loading downstream facilities...</p>
+                <p>Loading receiver facilities...</p>
               </div>
             ) : (
               <div className={styles.modalTableContainer}>
                 <table className={styles.modalTable}>
                   <thead>
                     <tr>
-                      <th>Receiving Facility</th>
+                      <th>Receiver Facility</th>
                       <th>Location</th>
                       <th className={styles.numberColumn}>Distance</th>
                       <th className={styles.numberColumn}>Referrals</th>
@@ -731,7 +806,8 @@ const ReferralPathways = () => {
                   </thead>
                   <tbody>
                     {downstreamModal.data.map((f, idx) => {
-                      const isYourFacility = (f.npis?.[0] || f.outbound_facility_provider_npi) === inboundNPI;
+                      // Check if this is the user's facility (comparing against receiver NPI)
+                      const isYourFacility = (f.npis?.[0] || f.outbound_facility_provider_npi) === receiverNPI;
                       const sharePercent = downstreamModal.totalReferrals > 0
                         ? ((f.total_referrals / downstreamModal.totalReferrals) * 100).toFixed(1)
                         : 0;

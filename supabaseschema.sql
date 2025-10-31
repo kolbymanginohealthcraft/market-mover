@@ -229,6 +229,15 @@ CREATE TABLE public.team_diagnosis_tags (
   CONSTRAINT team_diagnosis_tags_pkey PRIMARY KEY (id),
   CONSTRAINT team_diagnosis_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
+CREATE TABLE public.team_kpi_tags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  kpi_code text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_kpi_tags_pkey PRIMARY KEY (id),
+  CONSTRAINT team_kpi_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
 CREATE TABLE public.team_procedure_tags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   team_id uuid,

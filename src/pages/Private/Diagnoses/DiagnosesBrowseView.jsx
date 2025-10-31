@@ -10,6 +10,7 @@ export default function DiagnosesBrowseView() {
   const [diagnosisTags, setDiagnosisTags] = useState([]);
   const [referenceCodes, setReferenceCodes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -189,7 +190,7 @@ export default function DiagnosesBrowseView() {
       
       const offset = (currentPage - 1) * itemsPerPage;
       const params = new URLSearchParams({
-        search: searchTerm,
+        search: debouncedSearchTerm,
         limit: itemsPerPage.toString(),
         offset: offset.toString(),
         category: selectedCategory !== 'all' ? selectedCategory : '',
@@ -219,7 +220,7 @@ export default function DiagnosesBrowseView() {
     } finally {
       setSearchLoading(false);
     }
-  }, [searchTerm, currentPage, itemsPerPage, selectedCategory, selectedLine, selectedSubservice, selectedCodeSystem]);
+  }, [debouncedSearchTerm, currentPage, itemsPerPage, selectedCategory, selectedLine, selectedSubservice, selectedCodeSystem]);
 
   async function enrichWithVolumeData(codes) {
     try {
@@ -276,8 +277,10 @@ export default function DiagnosesBrowseView() {
     fetchHierarchyData();
   }, []);
   
+  // Debounce search term
   useEffect(() => {
     const delaySearch = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
       setCurrentPage(1); // Reset to page 1 when search term changes
     }, 500);
     return () => clearTimeout(delaySearch);
@@ -321,7 +324,10 @@ export default function DiagnosesBrowseView() {
   }, [selectedCategory]);
 
   useEffect(() => {
-    fetchReferenceCodes();
+    const delaySearch = setTimeout(() => {
+      fetchReferenceCodes();
+    }, 500);
+    return () => clearTimeout(delaySearch);
   }, [fetchReferenceCodes]);
 
   async function handleToggleTag(code) {

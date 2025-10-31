@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Building2, UserCheck, CreditCard, Calendar, DollarSign, X } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Building2, UserCheck, CreditCard, Calendar, DollarSign, X, User } from 'lucide-react';
 import { supabase } from '../../../../app/supabaseClient';
 import Button from '../../../../components/Buttons/Button';
 import Spinner from '../../../../components/Buttons/Spinner';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
+import { useUser } from '../../../../components/Context/UserContext';
 import styles from './ManageTeams.module.css';
 
 export default function ManageTeams() {
+  const { profile, forceRefreshUserData } = useUser();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +24,7 @@ export default function ManageTeams() {
   const [startedAt, setStartedAt] = useState(new Date().toISOString().split('T')[0]);
   const [trialEndDate, setTrialEndDate] = useState('');
   const [trialDays, setTrialDays] = useState(14);
+  const [switchingTeam, setSwitchingTeam] = useState(false);
 
   // Calculate trial end date based on days
   const calculateTrialEndDate = (startDate, days) => {
@@ -47,6 +50,7 @@ export default function ManageTeams() {
   useEffect(() => {
     fetchTeams();
   }, []);
+
 
   // Handle search bar escape key behavior
   const handleSearchEscape = (e) => {
@@ -376,6 +380,53 @@ export default function ManageTeams() {
     return new Date(subscription.expires_at) > now;
   };
 
+  const handleJoinTeam = async (teamId) => {
+    console.log('handleJoinTeam called with teamId:', teamId);
+    console.log('Current profile:', profile);
+    
+    if (!profile) {
+      alert('Profile not loaded. Please refresh the page and try again.');
+      return;
+    }
+    
+    if (profile.role !== 'Platform Admin') {
+      alert('Only Platform Admins can switch teams.');
+      return;
+    }
+
+    if (!profile.id) {
+      alert('User ID not found. Please refresh the page and try again.');
+      return;
+    }
+
+    setSwitchingTeam(true);
+    try {
+      console.log('Updating profile with ID:', profile.id, 'to team:', teamId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ team_id: teamId })
+        .eq('id', profile.id);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Profile updated successfully');
+      
+      // Refresh user data to update the context
+      await forceRefreshUserData();
+      
+      alert('Team joined successfully!');
+    } catch (error) {
+      console.error('Error joining team:', error);
+      alert(`Error joining team: ${error.message || 'Unknown error'}. Please try again.`);
+    } finally {
+      setSwitchingTeam(false);
+    }
+  };
+
   const filteredTeams = teams.filter(team => 
     team.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -385,11 +436,29 @@ export default function ManageTeams() {
   return (
     <div className={styles.section}>
       <SectionHeader 
-        title="Manage Teams" 
+        title="Manage Teams"
         icon={Users} 
         showEditButton={false}
         customElement={
           <div className={styles.headerControls}>
+            {/* Current User Team Info */}
+            {profile && profile.role === 'Platform Admin' && (
+              <div className={styles.currentUserInfo}>
+                <div className={styles.userTeamDisplay}>
+                  <User size={16} style={{ width: 'var(--icon-size-md)', height: 'var(--icon-size-md)' }} />
+                  <span className={styles.userName}>
+                    {profile.first_name} {profile.last_name}
+                  </span>
+                  <span className={styles.userTeam}>
+                    {profile.team_id ? 
+                      `Currently in: ${teams.find(t => t.id === profile.team_id)?.name || 'Unknown Team'}` : 
+                      'No Team Assigned'
+                    }
+                  </span>
+                </div>
+              </div>
+            )}
+            
             {/* Team Count */}
             <div className={styles.teamCount}>
               {filteredTeams.length} teams
@@ -482,6 +551,28 @@ export default function ManageTeams() {
                   </div>
                 </div>
                 <div className={styles.teamActions}>
+                  {/* Current Team Badge or Join Button */}
+                  {profile && profile.role === 'Platform Admin' && (
+                    team.id === profile.team_id ? (
+                      <div className={styles.currentTeamBadge}>
+                        <User size={14} />
+                        <span>Your Team</span>
+                      </div>
+                    ) : (
+                      <button
+                        className={styles.joinTeamButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJoinTeam(team.id);
+                        }}
+                        disabled={switchingTeam}
+                      >
+                        <User size={14} />
+                        <span>{switchingTeam ? 'Joining...' : 'Join Team'}</span>
+                      </button>
+                    )
+                  )}
+                  
                   <button
                     className="sectionHeaderButton"
                     onClick={(e) => {

@@ -10,6 +10,7 @@ export default function ProceduresBrowseView() {
   const [procedureTags, setProcedureTags] = useState([]);
   const [referenceCodes, setReferenceCodes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -122,7 +123,7 @@ export default function ProceduresBrowseView() {
       
       const offset = (currentPage - 1) * itemsPerPage;
       const params = new URLSearchParams({
-        search: searchTerm,
+        search: debouncedSearchTerm,
         limit: itemsPerPage.toString(),
         offset: offset.toString(),
         category: selectedCategory !== 'all' ? selectedCategory : '',
@@ -152,7 +153,7 @@ export default function ProceduresBrowseView() {
     } finally {
       setSearchLoading(false);
     }
-  }, [searchTerm, currentPage, itemsPerPage, selectedCategory, selectedLine, selectedSubservice, isSurgery]);
+  }, [debouncedSearchTerm, currentPage, itemsPerPage, selectedCategory, selectedLine, selectedSubservice, isSurgery]);
 
   async function enrichWithVolumeData(codes) {
     try {
@@ -199,8 +200,10 @@ export default function ProceduresBrowseView() {
     fetchHierarchyData();
   }, []);
   
+  // Debounce search term
   useEffect(() => {
     const delaySearch = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
       setCurrentPage(1); // Reset to page 1 when search term changes
     }, 500);
     return () => clearTimeout(delaySearch);
@@ -223,7 +226,10 @@ export default function ProceduresBrowseView() {
   }, [isSurgery]);
 
   useEffect(() => {
-    fetchReferenceCodes();
+    const delaySearch = setTimeout(() => {
+      fetchReferenceCodes();
+    }, 500);
+    return () => clearTimeout(delaySearch);
   }, [fetchReferenceCodes]);
 
   async function handleToggleTag(code) {

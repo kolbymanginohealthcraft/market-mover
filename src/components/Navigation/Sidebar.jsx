@@ -145,11 +145,11 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           <Link 
             to="/app/geography" 
             className={`${styles.navItem} ${isActive('/geography') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Geography Analysis (Test)')}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Geography Analysis')}
             onMouseLeave={handleMouseLeave}
           >
             <MapPin size={14} />
-            {!isCollapsed && 'Geography Analysis (Test)'}
+            {!isCollapsed && 'Geography Analysis'}
           </Link>
           
           <Link 
