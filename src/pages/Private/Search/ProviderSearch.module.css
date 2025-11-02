@@ -796,6 +796,24 @@
   text-align: center;
 }
 
+/* Dropdown */
+.dropdownItem {
+  padding: 6px 12px;
+  text-align: left;
+  font-size: 13px;
+  background: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdownItem:hover {
+  background: var(--gray-50);
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .sidebar {

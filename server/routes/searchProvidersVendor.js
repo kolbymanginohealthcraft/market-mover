@@ -18,7 +18,7 @@ const router = express.Router();
  *       Uses vendor BigQuery hco_flat with definitive_id as DHC.
  */
 router.get("/search-providers-vendor", async (req, res) => {
-  const { dhc, search, types, networks, cities, states } = req.query;
+  const { dhc, search, types, networks, cities, states, dhcs, lat, lon, radius } = req.query;
 
   try {
     let query, params;
@@ -105,6 +105,27 @@ router.get("/search-providers-vendor", async (req, res) => {
       if (filterStates.length > 0) {
         whereConditions.push('primary_address_state_or_province IN UNNEST(@states)');
         queryParams.states = filterStates;
+      }
+
+      // DHC IDs filter (for tagged providers)
+      if (dhcs) {
+        const dhcIds = Array.isArray(dhcs) ? dhcs : dhcs.split(',');
+        whereConditions.push('atlas_definitive_id IN UNNEST(@dhcIds)');
+        queryParams.dhcIds = dhcIds.map(id => Number(id));
+      }
+
+      // Location filter (for saved markets)
+      if (lat && lon && radius) {
+        const radiusMeters = Number(radius) * 1609.34;
+        whereConditions.push('primary_address_lat IS NOT NULL');
+        whereConditions.push('primary_address_long IS NOT NULL');
+        whereConditions.push(`ST_DISTANCE(
+          ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+          ST_GEOGPOINT(@lon, @lat)
+        ) <= @radiusMeters`);
+        queryParams.lat = Number(lat);
+        queryParams.lon = Number(lon);
+        queryParams.radiusMeters = radiusMeters;
       }
 
       // Build ORDER BY

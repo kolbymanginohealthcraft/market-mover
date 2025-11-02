@@ -6,8 +6,10 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import styles from "./ProviderSearch.module.css";
 import PageLayout from "../../../components/Layouts/PageLayout";
 import Spinner from "../../../components/Buttons/Spinner";
+import Dropdown from "../../../components/Buttons/Dropdown";
 import { apiUrl } from '../../../utils/api';
 import { trackProviderSearch } from '../../../utils/activityTracker';
+import { supabase } from '../../../app/supabaseClient';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
@@ -58,12 +60,21 @@ export default function ProviderSearch() {
     types: false,
     networks: false,
     cities: false,
-    states: false
+    states: false,
+    network: false,
+    markets: false
   });
 
   // Show/hide filters sidebar
   const [showFiltersSidebar, setShowFiltersSidebar] = useState(false);
 
+  // My Network and Saved Markets filters
+  const [savedMarkets, setSavedMarkets] = useState([]);
+  const [selectedMarket, setSelectedMarket] = useState(null);
+  const [marketNPIs, setMarketNPIs] = useState(null);
+  const [providerTags, setProviderTags] = useState(null);
+  const [selectedTag, setSelectedTag] = useState(null);
+  const [tagNPIs, setTagNPIs] = useState(null);
 
   const searchInputRef = useRef(null);
   const mapContainerRef = useRef(null);
@@ -169,6 +180,65 @@ export default function ProviderSearch() {
     loadNationalOverview();
   }, []);
 
+  // Fetch saved markets and provider tags on mount
+  useEffect(() => {
+    async function fetchMarkets() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data, error } = await supabase
+          .from('markets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setSavedMarkets(data || []);
+      } catch (err) {
+        console.error('Error fetching markets:', err);
+      }
+    }
+    
+    async function fetchProviderTags() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('team_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError || !profile || !profile.team_id) {
+          return;
+        }
+        
+        const { data: tags, error: tagsError } = await supabase
+          .from('team_provider_tags')
+          .select('*')
+          .eq('team_id', profile.team_id);
+        
+        if (tagsError) throw tagsError;
+        
+        const grouped = {
+          me: tags.filter(t => t.tag_type === 'me'),
+          partner: tags.filter(t => t.tag_type === 'partner'),
+          competitor: tags.filter(t => t.tag_type === 'competitor'),
+          target: tags.filter(t => t.tag_type === 'target')
+        };
+        
+        setProviderTags(grouped);
+      } catch (err) {
+        console.error('Error fetching provider tags:', err);
+      }
+    }
+    
+    fetchMarkets();
+    fetchProviderTags();
+  }, []);
+
   // Enhanced dropdown close hook that includes button toggle behavior
   const handleDropdownClose = () => {
     setTaggingProviderId(null);
@@ -212,6 +282,74 @@ export default function ProviderSearch() {
     isOpen: taggingProviderId && taggingProviderId !== 'bulk'
   });
 
+  // Handle market selection
+  const handleMarketSelect = async (marketId) => {
+    setSelectedMarket(null);
+    setMarketNPIs(null);
+    
+    if (!marketId) {
+      return;
+    }
+    
+    const market = savedMarkets.find(m => m.id === marketId);
+    if (!market) return;
+    
+    setSelectedMarket(marketId);
+    
+    try {
+      const lat = parseFloat(market.latitude);
+      const lon = parseFloat(market.longitude);
+      const radius = market.radius_miles;
+      
+      const response = await fetch(
+        apiUrl(`/api/nearby-providers?lat=${lat}&lon=${lon}&radius=${radius}`)
+      );
+      
+      const result = await response.json();
+      if (!result.success) throw new Error('Failed to fetch market providers');
+      
+      const providers = result.data || [];
+      const dhcs = providers.map(p => p.dhc).filter(Boolean);
+      setMarketNPIs(dhcs.length > 0 ? dhcs : []);
+    } catch (err) {
+      console.error('Error loading market providers:', err);
+      setMarketNPIs([]);
+    }
+  };
+
+  // Handle tag selection
+  const handleTagSelect = async (tagType) => {
+    setSelectedTag(null);
+    setTagNPIs(null);
+    
+    if (!tagType) {
+      return;
+    }
+    
+    setSelectedTag(tagType);
+    
+    try {
+      const taggedProviders = providerTags[tagType] || [];
+      if (taggedProviders.length === 0) {
+        setTagNPIs([]);
+        return;
+      }
+      
+      const dhcs = taggedProviders.map(t => t.provider_dhc).filter(Boolean);
+      setTagNPIs(dhcs);
+    } catch (err) {
+      console.error('Error loading tagged providers:', err);
+      setTagNPIs([]);
+    }
+  };
+
+  // Auto-search when tag or market changes and we've already searched
+  useEffect(() => {
+    if (hasSearched) {
+      handleSearch();
+    }
+  }, [selectedTag, selectedMarket]);
+
   const handleSearch = async (searchTerm = null, fromUrl = false) => {
     setLoading(true);
     setError(null);
@@ -249,6 +387,22 @@ export default function ProviderSearch() {
       }
       if (selectedStates.length > 0) {
         selectedStates.forEach(state => params.append('states', state));
+      }
+
+      // Add tag filter (DHC IDs)
+      if (selectedTag && tagNPIs) {
+        const dhcIds = providerTags[selectedTag].map(t => t.provider_dhc);
+        dhcIds.forEach(dhc => params.append('dhcs', dhc));
+      }
+
+      // Add market filter (location)
+      if (selectedMarket && marketNPIs) {
+        const market = savedMarkets.find(m => m.id === selectedMarket);
+        if (market) {
+          params.append('lat', market.latitude);
+          params.append('lon', market.longitude);
+          params.append('radius', market.radius_miles);
+        }
       }
 
       const response = await fetch(apiUrl(`/api/search-providers-vendor?${params.toString()}`));
@@ -395,6 +549,10 @@ export default function ProviderSearch() {
     setSelectedNetworks([]);
     setSelectedCities([]);
     setSelectedStates([]);
+    setSelectedTag(null);
+    setTagNPIs(null);
+    setSelectedMarket(null);
+    setMarketNPIs(null);
     setQueryText("");
     // This will trigger the auto-search effect to clear results
   };
@@ -469,7 +627,7 @@ export default function ProviderSearch() {
   };
 
   const hasActiveFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
-    selectedCities.length > 0 || selectedStates.length > 0;
+    selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
 
   const formatNumber = (num) => {
     if (num === null || num === undefined) return '0';
@@ -602,6 +760,22 @@ export default function ProviderSearch() {
           {hasActiveFilters && (
             <div className={styles.activeFiltersBar}>
               <div className={styles.activeFilters}>
+                {selectedTag && (
+                  <div className={styles.filterChip}>
+                    <span>My {selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} ({providerTags[selectedTag]?.length || 0})</span>
+                    <button onClick={() => handleTagSelect('')}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {selectedMarket && (
+                  <div className={styles.filterChip}>
+                    <span>{savedMarkets.find(m => m.id === selectedMarket)?.name || 'Market'}</span>
+                    <button onClick={() => handleMarketSelect(null)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
                 {selectedTypes.map(type => (
                   <div key={`type-${type}`} className={styles.filterChip}>
                     <span>{type}</span>
@@ -791,6 +965,142 @@ export default function ProviderSearch() {
                   </div>
                 )}
                   </div>
+
+                  {/* My Network Filter */}
+                  {providerTags && (
+                    <div className={styles.filterGroup}>
+                      <button 
+                        className={styles.filterHeader}
+                        onClick={() => toggleSection('network')}
+                      >
+                        <div className={styles.filterHeaderLeft}>
+                          <Users size={14} />
+                          <span>My Network</span>
+                          {selectedTag && (
+                            <span className={styles.filterBadge}>
+                              {providerTags[selectedTag]?.length || 0}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronDown 
+                          size={16} 
+                          className={expandedSections.network ? styles.chevronExpanded : styles.chevronCollapsed}
+                        />
+                      </button>
+                      {expandedSections.network && (
+                        <div className={styles.filterContent}>
+                          <div className={styles.filterList}>
+                            <label className={styles.filterCheckbox}>
+                              <input
+                                type="radio"
+                                name="networkFilter"
+                                checked={!selectedTag}
+                                onChange={() => handleTagSelect('')}
+                              />
+                              <span>All Providers</span>
+                            </label>
+                            {providerTags.me?.length > 0 && (
+                              <label className={styles.filterCheckbox}>
+                                <input
+                                  type="radio"
+                                  name="networkFilter"
+                                  checked={selectedTag === 'me'}
+                                  onChange={() => handleTagSelect('me')}
+                                />
+                                <span>My Providers ({providerTags.me.length})</span>
+                              </label>
+                            )}
+                            {providerTags.partner?.length > 0 && (
+                              <label className={styles.filterCheckbox}>
+                                <input
+                                  type="radio"
+                                  name="networkFilter"
+                                  checked={selectedTag === 'partner'}
+                                  onChange={() => handleTagSelect('partner')}
+                                />
+                                <span>Partners ({providerTags.partner.length})</span>
+                              </label>
+                            )}
+                            {providerTags.competitor?.length > 0 && (
+                              <label className={styles.filterCheckbox}>
+                                <input
+                                  type="radio"
+                                  name="networkFilter"
+                                  checked={selectedTag === 'competitor'}
+                                  onChange={() => handleTagSelect('competitor')}
+                                />
+                                <span>Competitors ({providerTags.competitor.length})</span>
+                              </label>
+                            )}
+                            {providerTags.target?.length > 0 && (
+                              <label className={styles.filterCheckbox}>
+                                <input
+                                  type="radio"
+                                  name="networkFilter"
+                                  checked={selectedTag === 'target'}
+                                  onChange={() => handleTagSelect('target')}
+                                />
+                                <span>Targets ({providerTags.target.length})</span>
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Saved Markets Filter */}
+                  {savedMarkets.length > 0 && (
+                    <div className={styles.filterGroup}>
+                      <button 
+                        className={styles.filterHeader}
+                        onClick={() => toggleSection('markets')}
+                      >
+                        <div className={styles.filterHeaderLeft}>
+                          <MapPin size={14} />
+                          <span>Saved Markets</span>
+                          {selectedMarket && (
+                            <span className={styles.filterBadge}>1</span>
+                          )}
+                        </div>
+                        <ChevronDown 
+                          size={16} 
+                          className={expandedSections.markets ? styles.chevronExpanded : styles.chevronCollapsed}
+                        />
+                      </button>
+                      {expandedSections.markets && (
+                        <div className={styles.filterContent}>
+                          <div className={styles.filterList}>
+                            <label className={styles.filterCheckbox}>
+                              <input
+                                type="radio"
+                                name="marketFilter"
+                                checked={!selectedMarket}
+                                onChange={() => handleMarketSelect(null)}
+                              />
+                              <span>No Market</span>
+                            </label>
+                            {savedMarkets.map(market => (
+                              <label key={market.id} className={styles.filterCheckbox}>
+                                <input
+                                  type="radio"
+                                  name="marketFilter"
+                                  checked={selectedMarket === market.id}
+                                  onChange={() => handleMarketSelect(market.id)}
+                                />
+                                <span>
+                                  {market.name}
+                                  <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                                    {market.city}, {market.state} • {market.radius_miles} mi
+                                  </div>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
             )}
 

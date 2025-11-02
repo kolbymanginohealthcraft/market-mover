@@ -62,6 +62,7 @@ import Network from "../pages/Private/Network/Network";
 import Procedures from "../pages/Private/Procedures/Procedures";
 import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
 import KPIs from "../pages/Private/KPIs/KPIsLayout";
+import Taxonomies from "../pages/Private/Taxonomies/TaxonomiesLayout";
 import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
 import HCOAnalysis from "../pages/Private/HCOAnalysis/HCOAnalysis";
 import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
@@ -154,6 +155,7 @@ function AppContent({ location }) {
             <Route path="procedures/*" element={<Procedures />} />
             <Route path="diagnoses/*" element={<Diagnoses />} />
             <Route path="kpis/*" element={<KPIs />} />
+            <Route path="taxonomies/*" element={<Taxonomies />} />
             <Route path="claims" element={<ClaimsDataInvestigation />} />
             <Route path="hco" element={<HCOAnalysis />} />
             <Route path="hco/:npi" element={<HCOAnalysis />} />

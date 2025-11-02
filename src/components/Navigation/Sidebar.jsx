@@ -294,6 +294,27 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
             </div>
           )}
+          {hasTeam ? (
+            <Link 
+              to="/app/taxonomies" 
+              className={`${styles.navItem} ${isActive('/taxonomies') ? styles.active : ''}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Taxonomies')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FileBarChart size={14} />
+              {!isCollapsed && 'My Taxonomies'}
+            </Link>
+          ) : (
+            <div 
+              className={`${styles.navItem} ${styles.disabled}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Taxonomies - Join or create a team to access taxonomy tagging features')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FileBarChart size={14} />
+              {!isCollapsed && 'My Taxonomies'}
+              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
+            </div>
+          )}
         </div>
 
         {/* Provider Analysis Section (only shown on provider pages) */}
