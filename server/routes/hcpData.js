@@ -477,7 +477,7 @@ router.get("/sample", async (req, res) => {
 /**
  * POST /api/hcp-data/search
  * Search and filter HCPs nationally or within a market
- * Request body: { search, states, consolidatedSpecialty, gender, hasHospitalAffiliation, hasNetworkAffiliation, latitude, longitude, radius, limit }
+ * Request body: { search, states, consolidatedSpecialty, gender, hasHospitalAffiliation, hasNetworkAffiliation, taxonomyCodes, latitude, longitude, radius, limit }
  * Caches national (no filter) results for performance
  */
 router.post("/search", async (req, res) => {
@@ -490,6 +490,7 @@ router.post("/search", async (req, res) => {
       hasHospitalAffiliation = null,
       hasPhysicianGroupAffiliation = null,
       hasNetworkAffiliation = null,
+      taxonomyCodes = [],
       latitude = null,
       longitude = null,
       radius = null,
@@ -501,6 +502,7 @@ router.post("/search", async (req, res) => {
       states: states.length,
       specialties: consolidatedSpecialty.length,
       gender: gender.length,
+      taxonomyCodes: taxonomyCodes.length,
       hasHospitalAffiliation,
       hasNetworkAffiliation,
       hasLocation: !!(latitude && longitude && radius),
@@ -512,6 +514,7 @@ router.post("/search", async (req, res) => {
                               states.length === 0 && 
                               consolidatedSpecialty.length === 0 && 
                               gender.length === 0 && 
+                              taxonomyCodes.length === 0 &&
                               hasHospitalAffiliation === null && 
                               hasPhysicianGroupAffiliation === null &&
                               hasNetworkAffiliation === null &&
@@ -556,6 +559,12 @@ router.post("/search", async (req, res) => {
     if (gender && Array.isArray(gender) && gender.length > 0) {
       whereClauses.push('gender IN UNNEST(@gender)');
       params.gender = gender;
+    }
+
+    // Taxonomy code filter (primary taxonomy code)
+    if (taxonomyCodes && Array.isArray(taxonomyCodes) && taxonomyCodes.length > 0) {
+      whereClauses.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      params.taxonomyCodes = taxonomyCodes;
     }
 
     // Hospital affiliation filter
