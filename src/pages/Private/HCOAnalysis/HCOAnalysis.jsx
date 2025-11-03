@@ -7,7 +7,7 @@ import Spinner from '../../../components/Buttons/Spinner';
 import SimpleLocationMap from '../../../components/Maps/SimpleLocationMap';
 import { 
   Building2, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List, 
-  Info, FileText, Network, ArrowLeft, ChevronUp, GitBranch, ArrowUpCircle, ArrowDownCircle 
+  Info, FileText, Network, ArrowLeft, ChevronUp, GitBranch, ArrowUpCircle, ArrowDownCircle, Map
 } from 'lucide-react';
 
 /**
@@ -78,7 +78,10 @@ export default function HCOAnalysis() {
   const pageSize = 100;
   
   // Active tab
-  const [activeTab, setActiveTab] = useState('overview'); // overview, listing, detail
+  const [activeTab, setActiveTab] = useState('overview'); // overview, listing, density, detail
+  
+  // Collapsible filter pane
+  const [filterPaneOpen, setFilterPaneOpen] = useState(true);
   
   // Detail view state
   const [selectedNPI, setSelectedNPI] = useState(null);
@@ -476,6 +479,13 @@ export default function HCOAnalysis() {
           <List size={16} />
           Listing
         </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'density' ? styles.active : ''}`}
+          onClick={() => setActiveTab('density')}
+        >
+          <Map size={16} />
+          Density
+        </button>
         {selectedNPI && (
           <button 
             className={`${styles.tab} ${activeTab === 'detail' ? styles.active : ''}`}
@@ -491,10 +501,22 @@ export default function HCOAnalysis() {
       <div className={styles.mainLayout}>
         
         {/* Left Sidebar - Filters */}
+        {filterPaneOpen && (
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <h3>Search & Filter</h3>
-            <p>Find healthcare organizations</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Search & Filter</h3>
+                <p>Find healthcare organizations</p>
+              </div>
+              <button 
+                onClick={() => setFilterPaneOpen(false)}
+                className={styles.closeFilterButton}
+                title="Close filters"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Search Input */}
@@ -732,6 +754,19 @@ export default function HCOAnalysis() {
             )}
           </div>
         </div>
+        )}
+        
+        {/* Filter Toggle Button (when pane is closed) */}
+        {!filterPaneOpen && (
+          <button 
+            onClick={() => setFilterPaneOpen(true)}
+            className={styles.filterToggleButton}
+            title="Open filters"
+          >
+            <FilterIcon size={16} />
+            Filters
+          </button>
+        )}
 
         {/* Main Content */}
         <div className={styles.mainContent}>
@@ -1025,6 +1060,74 @@ export default function HCOAnalysis() {
               </div>
             )}
           </div>
+          )}
+          
+          {/* Density Tab */}
+          {activeTab === 'density' && (
+            <div className={styles.resultsPanel}>
+              {loading && (
+                <div className={styles.loadingOverlay}>
+                  <Spinner />
+                </div>
+              )}
+              
+              <div className={styles.resultsHeader}>
+                <h3>
+                  {results ? (
+                    <>
+                      Organization Density Map
+                      {results.limited && <span className={styles.limitWarning}> (Showing {results.count} of {formatNumber(results.totalCount)})</span>}
+                    </>
+                  ) : 'Organization Density'}
+                </h3>
+              </div>
+
+              {!results && !loading && (
+                <div className={styles.emptyState}>
+                  <Map size={48} />
+                  <h2>No Data Available</h2>
+                  <p>Search for organizations to view density map</p>
+                </div>
+              )}
+
+              {results && results.count === 0 && (
+                <div className={styles.emptyState}>
+                  <Map size={48} />
+                  <h2>No Results to Display</h2>
+                  <p>Try adjusting your search terms or filters</p>
+                </div>
+              )}
+
+              {results && results.count > 0 && (
+                <div className={styles.densityMapContainer}>
+                  <p style={{ padding: '16px 20px', color: 'var(--gray-600)', fontSize: '13px' }}>
+                    {selectedMarket ? (
+                      <>Showing {formatNumber(results.count)} organizations within {selectedMarket.radius_miles} miles of {selectedMarket.city}, {selectedMarket.state_code}</>
+                    ) : (
+                      <>Showing {formatNumber(results.count)} organizations nationwide. Select a market to view geographic density.</>
+                    )}
+                  </p>
+                  {selectedMarket && results.organizations && results.organizations.length > 0 && (
+                    <div style={{ height: '500px', width: '100%', borderTop: '1px solid var(--gray-200)' }}>
+                      {/* Simple density visualization - could be enhanced with actual map component */}
+                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--gray-500)' }}>
+                        <Map size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                        <p>Density map visualization coming soon</p>
+                        <p style={{ fontSize: '12px', marginTop: '8px' }}>
+                          {formatNumber(results.organizations.length)} organizations with location data
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!selectedMarket && (
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--gray-400)' }}>
+                      <Map size={48} />
+                      <p style={{ marginTop: '16px' }}>Select a market to view geographic density</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           
           {/* Detail Tab */}

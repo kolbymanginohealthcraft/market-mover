@@ -37,6 +37,7 @@ export default function AdvancedSearch() {
   const [taxonomyTags, setTaxonomyTags] = useState([]);
   const [selectedTaxonomyTag, setSelectedTaxonomyTag] = useState(null);
   const [taxonomyDropdownOpen, setTaxonomyDropdownOpen] = useState(false);
+  const [taxonomyTagDetails, setTaxonomyTagDetails] = useState({}); // Map of taxonomy_code -> details
   
   // Results
   const [results, setResults] = useState(null);
@@ -110,6 +111,29 @@ export default function AdvancedSearch() {
 
       if (error) throw error;
       setTaxonomyTags(data || []);
+
+      // Fetch taxonomy details for all taxonomy codes
+      if (data && data.length > 0) {
+        const codes = [...new Set(data.map(tag => tag.taxonomy_code))];
+        try {
+          const detailsResponse = await fetch('/api/taxonomies-details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codes })
+          });
+
+          const detailsResult = await detailsResponse.json();
+          if (detailsResult.success) {
+            const detailsMap = {};
+            detailsResult.data.forEach(detail => {
+              detailsMap[detail.code] = detail;
+            });
+            setTaxonomyTagDetails(detailsMap);
+          }
+        } catch (detailsErr) {
+          console.error('Error fetching taxonomy details:', detailsErr);
+        }
+      }
     } catch (err) {
       console.error('Error fetching taxonomy tags:', err);
     }
@@ -148,6 +172,15 @@ export default function AdvancedSearch() {
       setSelectedTaxonomyTag(tag);
       setFilters(prev => ({ ...prev, taxonomyCodes: [tag.taxonomy_code] }));
     }
+  };
+
+  const handleTaxonomyTagTypeSelect = (tagType) => {
+    // Select all taxonomies of a specific tag type
+    const tagsOfType = taxonomyTags.filter(t => t.tag_type === tagType);
+    const codes = tagsOfType.map(t => t.taxonomy_code);
+    
+    setSelectedTaxonomyTag(null); // Clear single tag selection
+    setFilters(prev => ({ ...prev, taxonomyCodes: codes }));
   };
   
   const searchPractitioners = async () => {
@@ -473,7 +506,9 @@ export default function AdvancedSearch() {
             trigger={
               <button className="sectionHeaderButton">
                 <Bookmark size={14} />
-                {selectedTaxonomyTag ? 
+                {filters.taxonomyCodes.length > 0 ? 
+                  `${filters.taxonomyCodes.length} selected` : 
+                  selectedTaxonomyTag ? 
                   `${selectedTaxonomyTag.taxonomy_code}` : 
                   'My Taxonomies'}
                 <ChevronDown size={14} />
@@ -492,22 +527,127 @@ export default function AdvancedSearch() {
             >
               All Taxonomies
             </button>
-            {taxonomyTags.map(tag => (
-              <button 
-                key={tag.id}
-                className={styles.dropdownItem}
-                onClick={() => {
-                  handleTaxonomyTagSelect(tag.id);
-                  setTaxonomyDropdownOpen(false);
-                }}
-                style={{
-                  fontWeight: selectedTaxonomyTag?.id === tag.id ? '600' : '500',
-                  background: selectedTaxonomyTag?.id === tag.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
-                }}
-              >
-                <code style={{ fontSize: '11px', fontFamily: 'monospace' }}>{tag.taxonomy_code}</code>
-              </button>
-            ))}
+            
+            {(() => {
+              const tagTypeLabels = {
+                staff: 'Staff',
+                my_setting: 'My Setting',
+                upstream: 'Upstream',
+                downstream: 'Downstream'
+              };
+              
+              // Group tags by tag_type
+              const groupedTags = taxonomyTags.reduce((acc, tag) => {
+                const type = tag.tag_type || 'other';
+                if (!acc[type]) acc[type] = [];
+                acc[type].push(tag);
+                return acc;
+              }, {});
+              
+              // Render each tag type group
+              return Object.entries(groupedTags).map(([tagType, tags]) => {
+                const label = tagTypeLabels[tagType] || tagType;
+                const allSelected = tags.every(tag => filters.taxonomyCodes.includes(tag.taxonomy_code));
+                const someSelected = tags.some(tag => filters.taxonomyCodes.includes(tag.taxonomy_code));
+                
+                return (
+                  <div key={tagType}>
+                    {/* Tag Type Header with Select All */}
+                    <button
+                      className={styles.dropdownItem}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTaxonomyTagTypeSelect(tagType);
+                        setTaxonomyDropdownOpen(false);
+                      }}
+                      style={{
+                        fontWeight: '600',
+                        backgroundColor: someSelected ? 'rgba(0, 192, 139, 0.15)' : 'rgba(0, 0, 0, 0.03)',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+                        padding: '8px 12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                          backgroundColor: tagType === 'staff' ? '#e0f2fe' :
+                                         tagType === 'my_setting' ? '#dcfce7' :
+                                         tagType === 'upstream' ? '#fef3c7' :
+                                         '#fce7f3',
+                          color: tagType === 'staff' ? '#0369a1' :
+                                 tagType === 'my_setting' ? '#166534' :
+                                 tagType === 'upstream' ? '#92400e' :
+                                 '#9f1239'
+                        }}>
+                          {label}
+                        </span>
+                        <span style={{ flex: 1, fontSize: '11px', color: 'var(--gray-600)' }}>
+                          Select All ({tags.length})
+                        </span>
+                        {allSelected && (
+                          <span style={{ fontSize: '10px', color: 'var(--primary)' }}>✓</span>
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* Individual taxonomy items */}
+                    {tags.map(tag => {
+                      const details = taxonomyTagDetails[tag.taxonomy_code];
+                      const isSelected = filters.taxonomyCodes.includes(tag.taxonomy_code);
+                      
+                      return (
+                        <button 
+                          key={tag.id}
+                          className={styles.dropdownItem}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Toggle individual taxonomy
+                            const currentCodes = filters.taxonomyCodes || [];
+                            const newCodes = isSelected
+                              ? currentCodes.filter(code => code !== tag.taxonomy_code)
+                              : [...currentCodes, tag.taxonomy_code];
+                            
+                            setSelectedTaxonomyTag(null); // Clear single tag selection when using multiple
+                            setFilters(prev => ({ ...prev, taxonomyCodes: newCodes }));
+                            // Don't close dropdown - allow multiple selections
+                          }}
+                          style={{
+                            fontWeight: isSelected ? '600' : '400',
+                            background: isSelected ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                            paddingLeft: '24px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%', textAlign: 'left' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <code style={{ fontSize: '11px', fontFamily: 'monospace' }}>{tag.taxonomy_code}</code>
+                              {isSelected && (
+                                <span style={{ fontSize: '10px', color: 'var(--primary)' }}>✓</span>
+                              )}
+                            </div>
+                            {details && (
+                              <>
+                                {(details.classification || details.taxonomy_classification) && (
+                                  <div style={{ fontSize: '10px', color: 'var(--gray-600)', marginTop: '2px' }}>
+                                    {details.classification || details.taxonomy_classification}
+                                  </div>
+                                )}
+                                {(details.specialization || details.specialization_name || details.taxonomy_specialization) && (
+                                  <div style={{ fontSize: '10px', color: 'var(--gray-500)', fontStyle: 'italic' }}>
+                                    {details.specialization || details.specialization_name || details.taxonomy_specialization}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              });
+            })()}
           </Dropdown>
         )}
         

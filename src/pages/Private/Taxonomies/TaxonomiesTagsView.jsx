@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Trash2, Bookmark } from 'lucide-react';
+import { Trash2, Bookmark, ChevronDown } from 'lucide-react';
 import TaxonomyTooltip from '../../../components/UI/TaxonomyTooltip';
+import Dropdown from '../../../components/Buttons/Dropdown';
 import styles from './Taxonomies.module.css';
+
+const TAG_TYPES = [
+  { value: 'staff', label: 'Staff' },
+  { value: 'my_setting', label: 'My Setting' },
+  { value: 'upstream', label: 'Upstream' },
+  { value: 'downstream', label: 'Downstream' }
+];
+
+const TAG_TYPE_MAP = {
+  staff: 'Staff',
+  my_setting: 'My Setting',
+  upstream: 'Upstream',
+  downstream: 'Downstream'
+};
 
 export default function TaxonomiesTagsView() {
   const [taxonomyTags, setTaxonomyTags] = useState([]);
   const [enrichedTags, setEnrichedTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [tagTypeDropdownOpen, setTagTypeDropdownOpen] = useState({});
 
   useEffect(() => {
     fetchTaxonomyTags();
@@ -113,6 +129,71 @@ export default function TaxonomiesTagsView() {
     }
   }
 
+  async function handleChangeTagType(tagId, currentTag, newTagType) {
+    if (currentTag.tag_type === newTagType) {
+      setTagTypeDropdownOpen({});
+      return;
+    }
+
+    try {
+      setError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.team_id) throw new Error('No team found');
+
+      const { data: existingTag } = await supabase
+        .from('team_taxonomy_tags')
+        .select('*')
+        .eq('id', tagId)
+        .single();
+
+      if (!existingTag) throw new Error('Tag not found');
+
+      const { data: duplicateCheck } = await supabase
+        .from('team_taxonomy_tags')
+        .select('id')
+        .eq('team_id', profile.team_id)
+        .eq('taxonomy_code', existingTag.taxonomy_code)
+        .eq('tag_type', newTagType)
+        .maybeSingle();
+
+      if (duplicateCheck) {
+        throw new Error(`This taxonomy already has a "${TAG_TYPE_MAP[newTagType]}" tag`);
+      }
+
+      const { error: deleteError } = await supabase
+        .from('team_taxonomy_tags')
+        .delete()
+        .eq('id', tagId);
+
+      if (deleteError) throw deleteError;
+
+      const { error: insertError } = await supabase
+        .from('team_taxonomy_tags')
+        .insert({
+          team_id: profile.team_id,
+          taxonomy_code: existingTag.taxonomy_code,
+          tag_type: newTagType
+        });
+
+      if (insertError) throw insertError;
+
+      setTagTypeDropdownOpen({});
+      await fetchTaxonomyTags();
+    } catch (err) {
+      console.error('Error changing tag type:', err);
+      setError(err.message);
+    }
+  }
+
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -142,6 +223,7 @@ export default function TaxonomiesTagsView() {
             <thead>
               <tr>
                 <th>Code</th>
+                <th>Tag Type</th>
                 <th>Grouping</th>
                 <th>Classification</th>
                 <th>Specialization</th>
@@ -156,6 +238,63 @@ export default function TaxonomiesTagsView() {
                   <tr key={tag.id}>
                     <td className={styles.codeCell}>
                       <code>{tag.taxonomy_code}</code>
+                    </td>
+                    <td>
+                      <Dropdown
+                        trigger={
+                          <button 
+                            className="sectionHeaderButton"
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              backgroundColor: tag.tag_type === 'staff' ? '#e0f2fe' :
+                                               tag.tag_type === 'my_setting' ? '#dcfce7' :
+                                               tag.tag_type === 'upstream' ? '#fef3c7' :
+                                               '#fce7f3',
+                              color: tag.tag_type === 'staff' ? '#0369a1' :
+                                     tag.tag_type === 'my_setting' ? '#166534' :
+                                     tag.tag_type === 'upstream' ? '#92400e' :
+                                     '#9f1239',
+                              border: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {TAG_TYPE_MAP[tag.tag_type] || tag.tag_type}
+                            <ChevronDown size={10} style={{ marginLeft: '4px' }} />
+                          </button>
+                        }
+                        isOpen={tagTypeDropdownOpen[tag.id] || false}
+                        onToggle={(open) => {
+                          setTagTypeDropdownOpen(prev => ({
+                            ...prev,
+                            [tag.id]: open
+                          }));
+                        }}
+                        className={styles.dropdownMenu}
+                      >
+                        {TAG_TYPES.map(tagType => {
+                          const isCurrent = tag.tag_type === tagType.value;
+                          return (
+                            <div
+                              key={tagType.value}
+                              className={styles.dropdownItem}
+                              onClick={() => {
+                                if (!isCurrent) {
+                                  handleChangeTagType(tag.id, tag, tagType.value);
+                                }
+                              }}
+                              style={isCurrent ? { 
+                                opacity: 0.5, 
+                                cursor: 'default',
+                                backgroundColor: 'rgba(0, 192, 139, 0.1)'
+                              } : {}}
+                            >
+                              {tagType.label}
+                              {isCurrent && <span style={{ marginLeft: '8px', fontSize: '11px' }}>(current)</span>}
+                            </div>
+                          );
+                        })}
+                      </Dropdown>
                     </td>
                     <td>{details?.grouping || '...'}</td>
                     <td className={styles.summaryCell}>

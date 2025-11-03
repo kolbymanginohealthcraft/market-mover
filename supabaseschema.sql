@@ -257,6 +257,15 @@ CREATE TABLE public.team_provider_tags (
   CONSTRAINT team_provider_tags_pkey PRIMARY KEY (id),
   CONSTRAINT team_provider_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );
+CREATE TABLE public.team_taxonomy_tags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  taxonomy_code text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_taxonomy_tags_pkey PRIMARY KEY (id),
+  CONSTRAINT team_taxonomy_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
 CREATE TABLE public.teams (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,

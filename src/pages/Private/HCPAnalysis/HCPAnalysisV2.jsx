@@ -3,7 +3,7 @@ import { supabase } from '../../../app/supabaseClient';
 import styles from './HCPAnalysisV2.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
-import { Users, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List } from 'lucide-react';
+import { Users, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List, Map } from 'lucide-react';
 
 /**
  * Healthcare Practitioners Directory
@@ -51,7 +51,18 @@ export default function HCPAnalysisV2() {
   const pageSize = 100;
   
   // Active tab
-  const [activeTab, setActiveTab] = useState('overview'); // overview, listing
+  const [activeTab, setActiveTab] = useState('overview'); // overview, listing, density
+  
+  // Collapsible filter pane
+  const [filterPaneOpen, setFilterPaneOpen] = useState(true);
+  
+  // Collapsible filter sections
+  const [expandedSections, setExpandedSections] = useState({
+    states: true,
+    specialties: true,
+    gender: true,
+    affiliations: true
+  });
   
   useEffect(() => {
     fetchMarkets();
@@ -184,6 +195,13 @@ export default function HCPAnalysisV2() {
     setFilters(prev => ({
       ...prev,
       [filterKey]: prev[filterKey] === value ? null : value
+    }));
+  };
+  
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
     }));
   };
   
@@ -354,16 +372,35 @@ export default function HCPAnalysisV2() {
           <List size={16} />
           Listing
         </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'density' ? styles.active : ''}`}
+          onClick={() => setActiveTab('density')}
+        >
+          <Map size={16} />
+          Density
+        </button>
       </div>
 
       {/* Main Layout */}
       <div className={styles.mainLayout}>
         
         {/* Left Sidebar - Filters */}
+        {filterPaneOpen && (
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <h3>Search & Filter</h3>
-            <p>Find healthcare practitioners</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Search & Filter</h3>
+                <p>Find healthcare practitioners</p>
+              </div>
+              <button 
+                onClick={() => setFilterPaneOpen(false)}
+                className={styles.closeFilterButton}
+                title="Close filters"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Search Input */}
@@ -396,85 +433,140 @@ export default function HCPAnalysisV2() {
 
           {/* State Filter */}
           <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              States {filters.states.length > 0 && `(${filters.states.length})`}
-            </label>
-            <div className={styles.filterList}>
-              {filterOptions.states.slice(0, 10).map((state, idx) => (
-                <label key={idx} className={styles.filterCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={filters.states.includes(state.state)}
-                    onChange={() => toggleFilterValue('states', state.state)}
-                  />
-                  <span>{state.state}</span>
-                  <span className={styles.filterCount}>({formatNumber(state.count)})</span>
-                </label>
-              ))}
-            </div>
+            <button 
+              className={styles.filterHeader}
+              onClick={() => toggleSection('states')}
+            >
+              <div className={styles.filterHeaderLeft}>
+                <FilterIcon size={14} />
+                <span>States</span>
+                {filters.states.length > 0 && (
+                  <span className={styles.filterBadge}>{filters.states.length}</span>
+                )}
+              </div>
+              <ChevronDown 
+                size={16} 
+                className={expandedSections.states ? styles.chevronExpanded : styles.chevronCollapsed}
+              />
+            </button>
+            {expandedSections.states && (
+              <div className={styles.filterContent}>
+                <div className={styles.filterList}>
+                  {filterOptions.states.slice(0, 10).map((state, idx) => (
+                    <label key={idx} className={styles.filterCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={filters.states.includes(state.state)}
+                        onChange={() => toggleFilterValue('states', state.state)}
+                      />
+                      <span>{state.state}</span>
+                      <span className={styles.filterCount}>({formatNumber(state.count)})</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Specialty Filter */}
           <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              Specialty {filters.specialties.length > 0 && `(${filters.specialties.length})`}
-            </label>
-            <input
-              type="text"
-              value={filterSearches.specialties}
-              onChange={(e) => setFilterSearches(prev => ({ ...prev, specialties: e.target.value }))}
-              placeholder="Search specialties..."
-              className={styles.filterSearchInput}
-            />
-            <div className={styles.filterList}>
-              {filterOptions.specialties
-                .filter(spec =>
-                  !filterSearches.specialties ||
-                  spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
-                )
-                .map((spec, idx) => (
-                  <label key={idx} className={styles.filterCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={filters.specialties.includes(spec.specialty)}
-                      onChange={() => toggleFilterValue('specialties', spec.specialty)}
-                    />
-                    <span className={styles.specialtyName}>{spec.specialty}</span>
-                    <span className={styles.filterCount}>({formatNumber(spec.count)})</span>
-                  </label>
-                ))}
-            </div>
+            <button 
+              className={styles.filterHeader}
+              onClick={() => toggleSection('specialties')}
+            >
+              <div className={styles.filterHeaderLeft}>
+                <FilterIcon size={14} />
+                <span>Specialty</span>
+                {filters.specialties.length > 0 && (
+                  <span className={styles.filterBadge}>{filters.specialties.length}</span>
+                )}
+              </div>
+              <ChevronDown 
+                size={16} 
+                className={expandedSections.specialties ? styles.chevronExpanded : styles.chevronCollapsed}
+              />
+            </button>
+            {expandedSections.specialties && (
+              <div className={styles.filterContent}>
+                <input
+                  type="text"
+                  value={filterSearches.specialties}
+                  onChange={(e) => setFilterSearches(prev => ({ ...prev, specialties: e.target.value }))}
+                  placeholder="Search specialties..."
+                  className={styles.filterSearchInput}
+                />
+                <div className={styles.filterList}>
+                  {filterOptions.specialties
+                    .filter(spec =>
+                      !filterSearches.specialties ||
+                      spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
+                    )
+                    .map((spec, idx) => (
+                      <label key={idx} className={styles.filterCheckbox}>
+                        <input
+                          type="checkbox"
+                          checked={filters.specialties.includes(spec.specialty)}
+                          onChange={() => toggleFilterValue('specialties', spec.specialty)}
+                        />
+                        <span className={styles.specialtyName}>{spec.specialty}</span>
+                        <span className={styles.filterCount}>({formatNumber(spec.count)})</span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Gender Filter */}
           <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              Gender
-            </label>
-            <div className={styles.filterList}>
-              {['male', 'female'].map(g => (
-                <label key={g} className={styles.filterCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={filters.gender.includes(g)}
-                    onChange={() => toggleFilterValue('gender', g)}
-                  />
-                  <span>{g === 'male' ? 'Male' : 'Female'}</span>
-                </label>
-              ))}
-            </div>
+            <button 
+              className={styles.filterHeader}
+              onClick={() => toggleSection('gender')}
+            >
+              <div className={styles.filterHeaderLeft}>
+                <FilterIcon size={14} />
+                <span>Gender</span>
+              </div>
+              <ChevronDown 
+                size={16} 
+                className={expandedSections.gender ? styles.chevronExpanded : styles.chevronCollapsed}
+              />
+            </button>
+            {expandedSections.gender && (
+              <div className={styles.filterContent}>
+                <div className={styles.filterList}>
+                  {['male', 'female'].map(g => (
+                    <label key={g} className={styles.filterCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={filters.gender.includes(g)}
+                        onChange={() => toggleFilterValue('gender', g)}
+                      />
+                      <span>{g === 'male' ? 'Male' : 'Female'}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Affiliation Filters */}
           <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              Affiliations
-            </label>
-            
+            <button 
+              className={styles.filterHeader}
+              onClick={() => toggleSection('affiliations')}
+            >
+              <div className={styles.filterHeaderLeft}>
+                <FilterIcon size={14} />
+                <span>Affiliations</span>
+              </div>
+              <ChevronDown 
+                size={16} 
+                className={expandedSections.affiliations ? styles.chevronExpanded : styles.chevronCollapsed}
+              />
+            </button>
+            {expandedSections.affiliations && (
+              <div className={styles.filterContent}>
             <div className={styles.booleanFilter}>
               <span className={styles.booleanLabel}>Hospital:</span>
               <div className={styles.booleanButtons}>
@@ -522,8 +614,23 @@ export default function HCPAnalysisV2() {
                 </button>
               </div>
             </div>
+              </div>
+            )}
           </div>
         </div>
+        )}
+        
+        {/* Filter Toggle Button (when pane is closed) */}
+        {!filterPaneOpen && (
+          <button 
+            onClick={() => setFilterPaneOpen(true)}
+            className={styles.filterToggleButton}
+            title="Open filters"
+          >
+            <FilterIcon size={16} />
+            Filters
+          </button>
+        )}
 
         {/* Main Content */}
         <div className={styles.mainContent}>
@@ -817,6 +924,74 @@ export default function HCPAnalysisV2() {
               </div>
             )}
           </div>
+          )}
+          
+          {/* Density Tab */}
+          {activeTab === 'density' && (
+            <div className={styles.resultsPanel}>
+              {loading && (
+                <div className={styles.loadingOverlay}>
+                  <Spinner />
+                </div>
+              )}
+              
+              <div className={styles.resultsHeader}>
+                <h3>
+                  {results ? (
+                    <>
+                      Practitioner Density Map
+                      {results.limited && <span className={styles.limitWarning}> (Showing {results.count} of {formatNumber(results.totalCount)})</span>}
+                    </>
+                  ) : 'Practitioner Density'}
+                </h3>
+              </div>
+
+              {!results && !loading && (
+                <div className={styles.emptyState}>
+                  <Map size={48} />
+                  <h2>No Data Available</h2>
+                  <p>Search for practitioners to view density map</p>
+                </div>
+              )}
+
+              {results && results.count === 0 && (
+                <div className={styles.emptyState}>
+                  <Map size={48} />
+                  <h2>No Results to Display</h2>
+                  <p>Try adjusting your search terms or filters</p>
+                </div>
+              )}
+
+              {results && results.count > 0 && (
+                <div className={styles.densityMapContainer}>
+                  <p style={{ padding: '16px 20px', color: 'var(--gray-600)', fontSize: '13px' }}>
+                    {selectedMarket ? (
+                      <>Showing {formatNumber(results.count)} practitioners within {selectedMarket.radius_miles} miles of {selectedMarket.city}, {selectedMarket.state_code}</>
+                    ) : (
+                      <>Showing {formatNumber(results.count)} practitioners nationwide. Select a market to view geographic density.</>
+                    )}
+                  </p>
+                  {selectedMarket && results.practitioners && results.practitioners.length > 0 && (
+                    <div style={{ height: '500px', width: '100%', borderTop: '1px solid var(--gray-200)' }}>
+                      {/* Simple density visualization - could be enhanced with actual map component */}
+                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--gray-500)' }}>
+                        <Map size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                        <p>Density map visualization coming soon</p>
+                        <p style={{ fontSize: '12px', marginTop: '8px' }}>
+                          {formatNumber(results.practitioners.length)} practitioners with location data
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!selectedMarket && (
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--gray-400)' }}>
+                      <Map size={48} />
+                      <p style={{ marginTop: '16px' }}>Select a market to view geographic density</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
