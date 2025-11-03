@@ -599,6 +599,12 @@
   color: var(--gray-900);
 }
 
+.practitionerTitle {
+  font-weight: 400;
+  color: var(--gray-600);
+  font-size: 13px;
+}
+
 .practitionerNpi {
   font-size: 12px;
   color: var(--gray-500);
@@ -611,9 +617,27 @@
   gap: 2px;
 }
 
+.streetAddress {
+  font-size: 13px;
+  color: var(--gray-700);
+  margin-bottom: 2px;
+}
+
 .zip {
   font-size: 12px;
   color: var(--gray-500);
+}
+
+.specialtyCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.taxonomyDetail {
+  font-size: 12px;
+  color: var(--gray-600);
+  font-style: italic;
 }
 
 .affiliationCell {
@@ -680,6 +704,219 @@
   .sidebar {
     width: 280px;
   }
+}
+
+/* Density Tab Styles */
+.densityPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+}
+
+.densityHeader {
+  padding: 20px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.densityHeader h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.densityHeader p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.densityControls {
+  padding: 20px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.locationModeSelector {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.locationModeSelector label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.locationInputWrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.densityInput {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.densityInput:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.densityInput:disabled {
+  background: var(--gray-100);
+  cursor: not-allowed;
+}
+
+.densityError {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--red-50);
+  border: 1px solid var(--red-200);
+  border-radius: 6px;
+  color: var(--red-700);
+  font-size: 13px;
+}
+
+.densityLocation {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-200);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--blue-700);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.densityLoading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  gap: 16px;
+}
+
+.densityLoading p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.densityResults {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.densityTableWrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+.densityTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.densityTable thead {
+  position: sticky;
+  top: 0;
+  background: var(--gray-100);
+  z-index: 1;
+}
+
+.densityTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--gray-200);
+  white-space: nowrap;
+}
+
+.densityTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+
+.densityTable tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.taxonomyCode {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  background: var(--gray-100);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--gray-900);
+}
+
+.countCell {
+  text-align: right;
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.totalCell {
+  text-align: right;
+  font-weight: 600;
+  color: var(--purple-700);
+}
+
+.densityEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  text-align: center;
+  color: var(--gray-400);
+}
+
+.densityEmpty h2 {
+  margin: 16px 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.densityEmpty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gray-500);
+  max-width: 500px;
 }
 
 @media (max-width: 768px) {

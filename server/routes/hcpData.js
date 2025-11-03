@@ -592,15 +592,24 @@ router.post("/search", async (req, res) => {
     let selectClause = `
       npi,
       name_full_formatted as name,
+      title,
       primary_taxonomy_consolidated_specialty as consolidated_specialty,
+      primary_taxonomy_classification as taxonomy_classification,
+      primary_taxonomy_code as taxonomy_code,
+      primary_address_line_1 as address_line_1,
+      primary_address_line_2 as address_line_2,
       primary_address_city as city,
       primary_address_state_or_province as state,
       primary_address_zip5 as zip,
+      primary_address_phone_number_primary as phone,
       gender,
       birth_year,
       atlas_affiliation_primary_hospital_parent_id as hospital_affiliation,
+      atlas_affiliation_primary_hospital_parent_name as hospital_name,
       atlas_affiliation_primary_physician_group_parent_id as physician_group_affiliation,
-      atlas_affiliation_primary_network_id as network_affiliation
+      atlas_affiliation_primary_physician_group_parent_name as physician_group_name,
+      atlas_affiliation_primary_network_id as network_affiliation,
+      atlas_affiliation_primary_network_name as network_name
     `;
 
     if (latitude && longitude && radius) {
@@ -832,6 +841,113 @@ router.post("/search", async (req, res) => {
 
   } catch (err) {
     console.error("❌ Error searching HCPs:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/hcp-data/taxonomy-density
+ * Get HCP counts by taxonomy code within 10, 20, and 30 mile radius bands
+ * Request body: { latitude, longitude, taxonomyCodes (optional) }
+ * Returns: Taxonomy counts for each radius band
+ */
+router.post("/taxonomy-density", async (req, res) => {
+  try {
+    const {
+      latitude,
+      longitude,
+      taxonomyCodes = []
+    } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        error: "latitude and longitude are required"
+      });
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid latitude or longitude"
+      });
+    }
+
+    console.log('📊 HCP Taxonomy Density:', {
+      location: `${lat}, ${lng}`,
+      taxonomyCodes: taxonomyCodes.length > 0 ? taxonomyCodes.length : 'all'
+    });
+
+    const distanceFormula = getDistanceFormula(lat, lng);
+
+    // Build WHERE clauses
+    const whereClauses = [
+      'npi_deactivation_date IS NULL',
+      'primary_address_lat IS NOT NULL',
+      'primary_address_long IS NOT NULL',
+      'primary_taxonomy_code IS NOT NULL'
+    ];
+    const params = { lat, lon: lng };
+
+    // Filter by taxonomy codes if provided
+    if (taxonomyCodes && Array.isArray(taxonomyCodes) && taxonomyCodes.length > 0) {
+      whereClauses.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      params.taxonomyCodes = taxonomyCodes;
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    // Query to get counts by taxonomy code for each radius band
+    const query = `
+      WITH hcp_with_distance AS (
+        SELECT 
+          primary_taxonomy_code,
+          ${distanceFormula} as distance_miles
+        FROM \`aegis_access.hcp_flat\`
+        WHERE ${whereClause}
+      )
+      SELECT 
+        primary_taxonomy_code as taxonomy_code,
+        COUNTIF(distance_miles <= 10) as count_10mi,
+        COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_10_20mi,
+        COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_20_30mi,
+        COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_20mi_total,
+        COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) + COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_30mi_total
+      FROM hcp_with_distance
+      GROUP BY primary_taxonomy_code
+      HAVING COUNT(*) > 0
+      ORDER BY count_30mi_total DESC
+    `;
+
+    const [rows] = await vendorBigQuery.query({
+      query,
+      params
+    });
+
+    console.log(`✅ Found ${rows.length} taxonomy codes with HCPs in the area`);
+
+    res.json({
+      success: true,
+      data: rows.map(row => ({
+        taxonomy_code: row.taxonomy_code,
+        count_10mi: parseInt(row.count_10mi),
+        count_10_20mi: parseInt(row.count_10_20mi),
+        count_20_30mi: parseInt(row.count_20_30mi),
+        count_20mi_total: parseInt(row.count_20mi_total),
+        count_30mi_total: parseInt(row.count_30mi_total)
+      })),
+      location: { latitude: lat, longitude: lng },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching taxonomy density:", err);
     res.status(500).json({
       success: false,
       error: err.message
