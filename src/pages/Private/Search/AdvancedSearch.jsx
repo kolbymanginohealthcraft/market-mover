@@ -1135,7 +1135,14 @@ export default function AdvancedSearch() {
                 )}
                 {selectedTaxonomyTag && (
                   <div className={styles.filterChip}>
-                    <span>Taxonomy: {selectedTaxonomyTag.name}</span>
+                    <span>
+                      {selectedTaxonomyTag.taxonomy_code}
+                      {(() => {
+                        const details = taxonomyTagDetails[selectedTaxonomyTag.taxonomy_code];
+                        const classification = details?.classification || details?.taxonomy_classification;
+                        return classification ? ` (${classification})` : '';
+                      })()}
+                    </span>
                     <button onClick={() => {
                       handleTaxonomyTagSelect(null);
                     }}>
@@ -1173,19 +1180,26 @@ export default function AdvancedSearch() {
                     </button>
                   </div>
                 ))}
-                {filters.taxonomyCodes.map(code => (
-                  <div key={`taxonomy-${code}`} className={styles.filterChip}>
-                    <span>Taxonomy: {code}</span>
-                    <button onClick={() => {
-                      setFilters(prev => ({
-                        ...prev,
-                        taxonomyCodes: prev.taxonomyCodes.filter(c => c !== code)
-                      }));
-                    }}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+                {filters.taxonomyCodes.map(code => {
+                  const details = taxonomyTagDetails[code];
+                  const classification = details?.classification || details?.taxonomy_classification;
+                  return (
+                    <div key={`taxonomy-${code}`} className={styles.filterChip}>
+                      <span>
+                        {code}
+                        {classification && ` (${classification})`}
+                      </span>
+                      <button onClick={() => {
+                        setFilters(prev => ({
+                          ...prev,
+                          taxonomyCodes: prev.taxonomyCodes.filter(c => c !== code)
+                        }));
+                      }}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
                 {filters.hasHospitalAffiliation !== null && (
                   <div className={styles.filterChip}>
                     <span>Hospital: {filters.hasHospitalAffiliation ? 'Yes' : 'No'}</span>

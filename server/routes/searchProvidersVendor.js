@@ -18,7 +18,7 @@ const router = express.Router();
  *       Uses vendor BigQuery hco_flat with definitive_id as DHC.
  */
 router.get("/search-providers-vendor", async (req, res) => {
-  const { dhc, search, types, networks, cities, states, dhcs, lat, lon, radius, limit } = req.query;
+  const { dhc, search, types, networks, cities, states, dhcs, lat, lon, radius, limit, taxonomyCodes } = req.query;
 
   try {
     let query, params, whereConditions;
@@ -38,6 +38,7 @@ router.get("/search-providers-vendor", async (req, res) => {
           atlas_network_name as network,
           atlas_definitive_firm_type as type,
           primary_taxonomy_classification,
+          primary_taxonomy_consolidated_specialty,
           primary_address_lat as latitude,
           primary_address_long as longitude
         FROM \`aegis_access.hco_flat\`
@@ -109,6 +110,13 @@ router.get("/search-providers-vendor", async (req, res) => {
         queryParams.states = filterStates;
       }
 
+      // Taxonomy codes filter (from taxonomy tags)
+      const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+      if (filterTaxonomyCodes.length > 0) {
+        whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+        queryParams.taxonomyCodes = filterTaxonomyCodes;
+      }
+
       // DHC IDs filter (for tagged providers)
       if (dhcs) {
         const dhcIds = Array.isArray(dhcs) ? dhcs : dhcs.split(',');
@@ -151,6 +159,8 @@ router.get("/search-providers-vendor", async (req, res) => {
           atlas_network_name as network,
           atlas_definitive_firm_type as type,
           primary_taxonomy_classification,
+          primary_taxonomy_code,
+          primary_taxonomy_consolidated_specialty,
           primary_address_lat as latitude,
           primary_address_long as longitude
         FROM \`aegis_access.hco_flat\`
@@ -161,49 +171,14 @@ router.get("/search-providers-vendor", async (req, res) => {
       params = queryParams;
     }
 
-    // For filtered results, calculate total NPIs in parallel with main query
-    // This counts ALL NPIs for organizations matching the filters, not just primary NPIs
-    let totalNPIsPromise = null;
-    if (!dhc && whereConditions) {
-      // Count ALL NPIs for organizations matching the filters
-      // Use a CTE to avoid duplicating the filter logic
-      const totalNPIsQuery = `
-        WITH filtered_orgs AS (
-          SELECT DISTINCT atlas_definitive_id
-          FROM \`aegis_access.hco_flat\`
-          WHERE ${whereConditions.join(' AND ')}
-        )
-        SELECT
-          COUNT(DISTINCT npi) as total_npis
-        FROM \`aegis_access.hco_flat\`
-        WHERE atlas_definitive_id IS NOT NULL
-          AND atlas_definitive_id IN (SELECT atlas_definitive_id FROM filtered_orgs)
-          AND npi_deactivation_date IS NULL
-      `;
+    // Execute main query
+    const [rows] = await vendorBigQuery.query({ query, params });
 
-      totalNPIsPromise = vendorBigQuery.query({
-        query: totalNPIsQuery,
-        params: params,
-      }).catch(err => {
-        console.error('Error calculating total NPIs:', err);
-        return [[{ total_npis: 0 }]]; // Return 0 on error
-      });
-    }
-
-    // Execute main query and NPI count query in parallel
-    const [rows, npiResult] = await Promise.all([
-      vendorBigQuery.query({ query, params }),
-      totalNPIsPromise || Promise.resolve(null)
-    ]);
-
-    const totalNPIs = npiResult ? parseInt(npiResult[0]?.[0]?.total_npis || 0) : null;
-
-    console.log(`✅ [VENDOR] Search returned ${rows[0].length} providers${totalNPIs !== null ? ` (${totalNPIs} total NPIs)` : ''}`);
+    console.log(`✅ [VENDOR] Search returned ${rows.length} providers`);
 
     res.status(200).json({
       success: true,
-      data: dhc ? rows[0][0] || null : rows[0],
-      totalNPIs: totalNPIs
+      data: dhc ? rows[0] || null : rows
     });
   } catch (err) {
     console.error("❌ [VENDOR] BigQuery search-providers error:", err);
@@ -252,32 +227,6 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
           'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
           'DC'
         )
-    `;
-
-    // Total NPIs count (all NPIs for organizations matching the same filters)
-    // This counts ALL NPIs (not just primary) for organizations that have a primary NPI and match the filters
-    const totalNPIsQuery = `
-      SELECT
-        COUNT(DISTINCT npi) as total_npis
-      FROM \`aegis_access.hco_flat\`
-      WHERE atlas_definitive_id IS NOT NULL
-        AND atlas_definitive_id IN (
-          SELECT DISTINCT atlas_definitive_id
-          FROM \`aegis_access.hco_flat\`
-          WHERE atlas_definitive_id IS NOT NULL
-            AND atlas_definitive_id_primary_npi = TRUE
-            AND npi_deactivation_date IS NULL
-            AND LENGTH(primary_address_state_or_province) = 2
-            AND primary_address_state_or_province IN (
-              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-              'DC'
-            )
-        )
-        AND npi_deactivation_date IS NULL
     `;
 
     // Common WHERE clause for all filter option queries
@@ -408,8 +357,7 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       [states],
       [topTypes],
       [topStates],
-      [topCities],
-      [totalNPIs]
+      [topCities]
     ] = await Promise.all([
       vendorBigQuery.query({ query: statsQuery }),
       vendorBigQuery.query({ query: typesQuery }),
@@ -418,16 +366,14 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       vendorBigQuery.query({ query: statesQuery }),
       vendorBigQuery.query({ query: topTypesQuery }),
       vendorBigQuery.query({ query: topStatesQuery }),
-      vendorBigQuery.query({ query: topCitiesQuery }),
-      vendorBigQuery.query({ query: totalNPIsQuery })
+      vendorBigQuery.query({ query: topCitiesQuery })
     ]);
 
     const result = {
       success: true,
       data: {
         overall: {
-          ...overallStats[0],
-          total_npis: parseInt(totalNPIs[0]?.total_npis || 0)
+          ...overallStats[0]
         },
         filterOptions: {
           types: types.map(t => t.type || "Unknown"),

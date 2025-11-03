@@ -36,7 +36,8 @@ import {
   Layers,
   Database,
   Navigation,
-  Download
+  Download,
+  Bookmark
 } from 'lucide-react';
 
 export default function ProviderSearch() {
@@ -48,7 +49,6 @@ export default function ProviderSearch() {
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
-  const [resultsTotalNPIs, setResultsTotalNPIs] = useState(null);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(100);
@@ -64,6 +64,13 @@ export default function ProviderSearch() {
   const [savedMarkets, setSavedMarkets] = useState([]);
   const [selectedMarket, setSelectedMarket] = useState(null);
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+
+  // My Taxonomies
+  const [taxonomyTags, setTaxonomyTags] = useState([]);
+  const [selectedTaxonomyTag, setSelectedTaxonomyTag] = useState(null);
+  const [taxonomyDropdownOpen, setTaxonomyDropdownOpen] = useState(false);
+  const [taxonomyTagDetails, setTaxonomyTagDetails] = useState({}); // Map of taxonomy_code -> details
+  const [selectedTaxonomyCodes, setSelectedTaxonomyCodes] = useState([]);
   
   // Density tab state
   const [densityLocationInput, setDensityLocationInput] = useState('');
@@ -76,6 +83,7 @@ export default function ProviderSearch() {
   // Filter states
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedHospitalSubtypes, setSelectedHospitalSubtypes] = useState([]);
+  const [selectedPhysicianGroupSpecialties, setSelectedPhysicianGroupSpecialties] = useState([]);
   const [selectedNetworks, setSelectedNetworks] = useState([]);
   const [selectedCities, setSelectedCities] = useState([]);
   const [selectedStates, setSelectedStates] = useState([]);
@@ -84,6 +92,7 @@ export default function ProviderSearch() {
   const [expandedSections, setExpandedSections] = useState({
     types: false,
     hospitalSubtypes: false,
+    physicianGroupSpecialties: false,
     networks: false,
     cities: false,
     states: false,
@@ -295,7 +304,74 @@ export default function ProviderSearch() {
     
     fetchMarkets();
     fetchProviderTags();
+    fetchTaxonomyTags();
   }, []);
+
+  const fetchTaxonomyTags = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.team_id) {
+        setTaxonomyTags([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('team_taxonomy_tags')
+        .select('*')
+        .eq('team_id', profile.team_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTaxonomyTags(data || []);
+
+      // Fetch taxonomy details for all taxonomy codes
+      if (data && data.length > 0) {
+        const codes = [...new Set(data.map(tag => tag.taxonomy_code))];
+        try {
+          const detailsResponse = await fetch('/api/taxonomies-details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codes })
+          });
+
+          const detailsResult = await detailsResponse.json();
+          if (detailsResult.success) {
+            const detailsMap = {};
+            detailsResult.data.forEach(detail => {
+              detailsMap[detail.code] = detail;
+            });
+            setTaxonomyTagDetails(detailsMap);
+          }
+        } catch (detailsErr) {
+          console.error('Error fetching taxonomy details:', detailsErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching taxonomy tags:', err);
+    }
+  };
+
+  const handleTaxonomyTagSelect = (tagId) => {
+    if (!tagId) {
+      setSelectedTaxonomyTag(null);
+      setSelectedTaxonomyCodes([]);
+      return;
+    }
+    
+    const tag = taxonomyTags.find(t => t.id === tagId);
+    if (tag) {
+      setSelectedTaxonomyTag(tag);
+      setSelectedTaxonomyCodes([tag.taxonomy_code]);
+    }
+  };
 
   // Enhanced dropdown close hook that includes button toggle behavior
   const handleDropdownClose = () => {
@@ -405,7 +481,7 @@ export default function ProviderSearch() {
   useEffect(() => {
     // Check if we have any active filters (excluding search term)
     const hasFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
-      selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
+      selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket || selectedTaxonomyCodes.length > 0;
     
     // Use submitted search term (what's actually applied), not the typing queryText
     const q = submittedSearchTerm.trim();
@@ -414,7 +490,7 @@ export default function ProviderSearch() {
     // Pass the submitted search term to maintain it during filter changes
     handleSearch(submittedSearchTerm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTag, selectedMarket, selectedTypes, selectedNetworks, selectedCities, selectedStates]);
+  }, [selectedTag, selectedMarket, selectedTypes, selectedNetworks, selectedCities, selectedStates, selectedTaxonomyCodes]);
 
   const handleSearch = async (searchTerm = null, fromUrl = false) => {
     setLoading(true);
@@ -436,7 +512,7 @@ export default function ProviderSearch() {
     
     // Check if we have any active filters (excluding the search term we're about to set)
     const hasFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
-      selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
+      selectedCities.length > 0 || selectedStates.length > 0 || selectedTaxonomyCodes.length > 0 || selectedTag || selectedMarket;
     
     // Always allow search - if no search term or filters, get first 500 results
     // No need to return early - always fetch results
@@ -473,6 +549,9 @@ export default function ProviderSearch() {
       if (selectedStates.length > 0) {
         selectedStates.forEach(state => params.append('states', state));
       }
+      if (selectedTaxonomyCodes.length > 0) {
+        selectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+      }
 
       // Add tag filter (DHC IDs)
       if (selectedTag && tagNPIs) {
@@ -498,7 +577,6 @@ export default function ProviderSearch() {
 
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
-        setResultsTotalNPIs(result.totalNPIs || null);
         // Always update filter options from search results (even if empty)
         // This ensures filter options update correctly when filters are changed/cleared
         const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
@@ -590,6 +668,15 @@ export default function ProviderSearch() {
           return false;
         }
       }
+      
+      // If Physician Group is selected and physician group specialties are selected, filter by specialties
+      if (providerType === 'Physician Group' && selectedPhysicianGroupSpecialties.length > 0) {
+        const specialty = provider.primary_taxonomy_consolidated_specialty || '';
+        // Check if the provider's specialty exactly matches one of the selected specialties
+        if (!selectedPhysicianGroupSpecialties.includes(specialty)) {
+          return false;
+        }
+      }
     }
     if (selectedNetworks.length > 0 && !selectedNetworks.includes(provider.network)) {
       return false;
@@ -634,6 +721,18 @@ export default function ProviderSearch() {
         return uniqueSubtypes;
       })()
     : [];
+
+  // Extract physician group specialties from results where type is Physician Group
+  const physicianGroupSpecialties = results.length > 0 && selectedTypes.includes('Physician Group')
+    ? (() => {
+        const physicianGroups = results.filter(p => p.type === 'Physician Group');
+        const specialties = physicianGroups
+          .map(p => p.primary_taxonomy_consolidated_specialty)
+          .filter(Boolean);
+        
+        return Array.from(new Set(specialties)).sort();
+      })()
+    : [];
   
   const allNetworks = results.length > 0
     ? Array.from(new Set(results.map(p => p.network).filter(Boolean))).sort()
@@ -658,6 +757,14 @@ export default function ProviderSearch() {
         // Auto-expand hospital subtypes when Hospital is first selected
         setExpandedSections(prev => ({ ...prev, hospitalSubtypes: true }));
       }
+      // If Physician Group is being deselected, clear physician group specialties
+      if (type === 'Physician Group' && prev.includes('Physician Group')) {
+        setSelectedPhysicianGroupSpecialties([]);
+        setExpandedSections(prev => ({ ...prev, physicianGroupSpecialties: false }));
+      } else if (type === 'Physician Group' && !prev.includes('Physician Group')) {
+        // Auto-expand physician group specialties when Physician Group is first selected
+        setExpandedSections(prev => ({ ...prev, physicianGroupSpecialties: true }));
+      }
       return newTypes;
     });
   };
@@ -665,6 +772,12 @@ export default function ProviderSearch() {
   const toggleHospitalSubtype = (subtype) => {
     setSelectedHospitalSubtypes(prev =>
       prev.includes(subtype) ? prev.filter(s => s !== subtype) : [...prev, subtype]
+    );
+  };
+
+  const togglePhysicianGroupSpecialty = (specialty) => {
+    setSelectedPhysicianGroupSpecialties(prev =>
+      prev.includes(specialty) ? prev.filter(s => s !== specialty) : [...prev, specialty]
     );
   };
 
@@ -689,9 +802,12 @@ export default function ProviderSearch() {
   const clearAllFilters = () => {
     setSelectedTypes([]);
     setSelectedHospitalSubtypes([]);
+    setSelectedPhysicianGroupSpecialties([]);
     setSelectedNetworks([]);
     setSelectedCities([]);
     setSelectedStates([]);
+    setSelectedTaxonomyCodes([]);
+    setSelectedTaxonomyTag(null);
     setSelectedTag(null);
     setTagNPIs(null);
     setSelectedMarket(null);
@@ -828,8 +944,8 @@ export default function ProviderSearch() {
     }
   };
 
-  const hasActiveFilters = submittedSearchTerm.trim() || selectedTypes.length > 0 || selectedHospitalSubtypes.length > 0 || selectedNetworks.length > 0 ||
-    selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
+  const hasActiveFilters = submittedSearchTerm.trim() || selectedTypes.length > 0 || selectedHospitalSubtypes.length > 0 || selectedPhysicianGroupSpecialties.length > 0 || selectedNetworks.length > 0 ||
+    selectedCities.length > 0 || selectedStates.length > 0 || selectedTaxonomyCodes.length > 0 || selectedTag || selectedMarket;
 
   const formatNumber = (num) => {
     if (num === null || num === undefined) return '0';
@@ -1129,6 +1245,171 @@ export default function ProviderSearch() {
               </Dropdown>
             )}
 
+            {taxonomyTags.length > 0 && (
+              <Dropdown
+                trigger={
+                  <button className="sectionHeaderButton">
+                    <Bookmark size={14} />
+                    {selectedTaxonomyCodes.length > 0 ? 
+                      `${selectedTaxonomyCodes.length} selected` : 
+                      selectedTaxonomyTag ? 
+                      `${selectedTaxonomyTag.taxonomy_code}` : 
+                      'My Taxonomies'}
+                    <ChevronDown size={14} />
+                  </button>
+                }
+                isOpen={taxonomyDropdownOpen}
+                onToggle={setTaxonomyDropdownOpen}
+                className={styles.dropdownMenu}
+              >
+                <button 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleTaxonomyTagSelect(null);
+                    setTaxonomyDropdownOpen(false);
+                  }}
+                >
+                  All Taxonomies
+                </button>
+                
+                {(() => {
+                  const tagTypeLabels = {
+                    staff: 'Staff',
+                    my_setting: 'My Setting',
+                    upstream: 'Upstream',
+                    downstream: 'Downstream'
+                  };
+                  
+                  // Group tags by tag_type
+                  const groupedTags = taxonomyTags.reduce((acc, tag) => {
+                    const type = tag.tag_type || 'other';
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push(tag);
+                    return acc;
+                  }, {});
+                  
+                  // Render each tag type group
+                  return Object.entries(groupedTags).map(([tagType, tags]) => {
+                    const label = tagTypeLabels[tagType] || tagType;
+                    const allSelected = tags.every(tag => selectedTaxonomyCodes.includes(tag.taxonomy_code));
+                    const someSelected = tags.some(tag => selectedTaxonomyCodes.includes(tag.taxonomy_code));
+                    
+                    return (
+                      <div key={tagType}>
+                        {/* Tag Type Header with Select All */}
+                        <button
+                          className={styles.dropdownItem}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const codes = tags.map(t => t.taxonomy_code);
+                            const allCodesSelected = codes.every(c => selectedTaxonomyCodes.includes(c));
+                            if (allCodesSelected) {
+                              setSelectedTaxonomyCodes(prev => prev.filter(c => !codes.includes(c)));
+                            } else {
+                              setSelectedTaxonomyCodes(prev => [...new Set([...prev, ...codes])]);
+                            }
+                            setSelectedTaxonomyTag(null);
+                            setTaxonomyDropdownOpen(false);
+                          }}
+                          style={{
+                            fontWeight: '600',
+                            backgroundColor: someSelected ? 'rgba(0, 192, 139, 0.15)' : 'rgba(0, 0, 0, 0.03)',
+                            borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+                            padding: '8px 12px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                            <span style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                              backgroundColor: tagType === 'staff' ? '#e0f2fe' :
+                                             tagType === 'my_setting' ? '#dcfce7' :
+                                             tagType === 'upstream' ? '#fef3c7' :
+                                             '#fce7f3',
+                              color: tagType === 'staff' ? '#0369a1' :
+                                     tagType === 'my_setting' ? '#166534' :
+                                     tagType === 'upstream' ? '#92400e' :
+                                     '#9f1239'
+                            }}>
+                              {label}
+                            </span>
+                            <span style={{ flex: 1, fontSize: '11px', color: 'var(--gray-600)' }}>
+                              Select All ({tags.length})
+                            </span>
+                            {allSelected && (
+                              <span style={{ fontSize: '10px', color: 'var(--primary)' }}>✓</span>
+                            )}
+                          </div>
+                        </button>
+                        
+                        {/* Individual taxonomy items */}
+                        {tags.map(tag => {
+                          const details = taxonomyTagDetails[tag.taxonomy_code];
+                          const isSelected = selectedTaxonomyTag?.id === tag.id || selectedTaxonomyCodes.includes(tag.taxonomy_code);
+                          
+                          return (
+                            <button 
+                              key={tag.id}
+                              className={styles.dropdownItem}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // If clicking a selected single tag, deselect it
+                                if (selectedTaxonomyTag?.id === tag.id) {
+                                  handleTaxonomyTagSelect(null);
+                                  setTaxonomyDropdownOpen(false);
+                                } else if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                                  // Multi-select: toggle individual taxonomy
+                                  const newCodes = isSelected
+                                    ? selectedTaxonomyCodes.filter(code => code !== tag.taxonomy_code)
+                                    : [...selectedTaxonomyCodes, tag.taxonomy_code];
+                                  
+                                  setSelectedTaxonomyTag(null); // Clear single tag selection when using multiple
+                                  setSelectedTaxonomyCodes(newCodes);
+                                } else {
+                                  // Single select: select this tag only
+                                  handleTaxonomyTagSelect(tag.id);
+                                  setTaxonomyDropdownOpen(false);
+                                }
+                              }}
+                              style={{
+                                fontWeight: isSelected ? '600' : '400',
+                                background: isSelected ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                                paddingLeft: '24px'
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%', textAlign: 'left' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <code style={{ fontSize: '11px', fontFamily: 'monospace' }}>{tag.taxonomy_code}</code>
+                                  {isSelected && (
+                                    <span style={{ fontSize: '10px', color: 'var(--primary)' }}>✓</span>
+                                  )}
+                                </div>
+                                {details && (
+                                  <>
+                                    {(details.classification || details.taxonomy_classification) && (
+                                      <div style={{ fontSize: '10px', color: 'var(--gray-600)', marginTop: '2px' }}>
+                                        {details.classification || details.taxonomy_classification}
+                                      </div>
+                                    )}
+                                    {(details.specialization || details.specialization_name || details.taxonomy_specialization) && (
+                                      <div style={{ fontSize: '10px', color: 'var(--gray-500)', fontStyle: 'italic' }}>
+                                        {details.specialization || details.specialization_name || details.taxonomy_specialization}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  });
+                })()}
+              </Dropdown>
+            )}
+
             <div className={styles.spacer}></div>
             
             {((results && results.length > 0) || nationalOverview) && (
@@ -1291,6 +1572,52 @@ export default function ProviderSearch() {
                               )}
                             </div>
                           )}
+                          {/* Nested Physician Group Specialties */}
+                          {type === 'Physician Group' && selectedTypes.includes('Physician Group') && physicianGroupSpecialties.length > 0 && (
+                            <div style={{ marginLeft: '20px', marginTop: '6px', marginBottom: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSection('physicianGroupSpecialties');
+                                }}
+                                className={styles.filterCheckbox}
+                                style={{
+                                  width: '100%',
+                                  justifyContent: 'flex-start',
+                                  padding: '4px 8px',
+                                  marginBottom: '4px',
+                                  background: expandedSections.physicianGroupSpecialties ? 'var(--gray-50)' : 'transparent'
+                                }}
+                              >
+                                <ChevronDown 
+                                  size={14} 
+                                  className={expandedSections.physicianGroupSpecialties ? styles.chevronExpanded : styles.chevronCollapsed}
+                                  style={{ marginRight: '6px' }}
+                                />
+                                <span style={{ fontSize: '12px', fontWeight: '500' }}>Specialties</span>
+                                {selectedPhysicianGroupSpecialties.length > 0 && (
+                                  <span className={styles.filterBadge} style={{ marginLeft: '6px' }}>
+                                    {selectedPhysicianGroupSpecialties.length}
+                                  </span>
+                                )}
+                              </button>
+                              {expandedSections.physicianGroupSpecialties && (
+                                <div style={{ marginLeft: '24px', marginTop: '4px' }}>
+                                  {physicianGroupSpecialties.map(specialty => (
+                                    <label key={specialty} className={styles.filterCheckbox}>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedPhysicianGroupSpecialties.includes(specialty)}
+                                        onChange={() => togglePhysicianGroupSpecialty(specialty)}
+                                      />
+                                      <span style={{ fontSize: '12px' }}>{specialty}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1445,6 +1772,48 @@ export default function ProviderSearch() {
                         </button>
                       </div>
                     )}
+                    {/* Show taxonomy chips - only show selectedTaxonomyTag chip if it's a single tag, otherwise show individual codes */}
+                    {selectedTaxonomyTag && selectedTaxonomyCodes.length === 1 && selectedTaxonomyCodes[0] === selectedTaxonomyTag.taxonomy_code ? (
+                      <div className={styles.filterChip}>
+                        <span>
+                          {selectedTaxonomyTag.taxonomy_code}
+                          {(() => {
+                            const details = taxonomyTagDetails[selectedTaxonomyTag.taxonomy_code];
+                            const classification = details?.classification || details?.taxonomy_classification;
+                            return classification ? ` (${classification})` : '';
+                          })()}
+                        </span>
+                        <button onClick={() => {
+                          setSelectedTaxonomyTag(null);
+                          setSelectedTaxonomyCodes([]);
+                        }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      selectedTaxonomyCodes.map(code => {
+                        const tag = taxonomyTags.find(t => t.taxonomy_code === code);
+                        const details = taxonomyTagDetails[code];
+                        const classification = details?.classification || details?.taxonomy_classification;
+                        return (
+                          <div key={`taxonomy-${code}`} className={styles.filterChip}>
+                            <span>
+                              {code}
+                              {classification && ` (${classification})`}
+                            </span>
+                            <button onClick={() => {
+                              setSelectedTaxonomyCodes(prev => prev.filter(c => c !== code));
+                              // If we removed the last code and there was a selected tag, clear it
+                              if (selectedTaxonomyCodes.length === 1 && selectedTaxonomyTag) {
+                                setSelectedTaxonomyTag(null);
+                              }
+                            }}>
+                              <X size={12} />
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
                     {selectedTypes.map(type => (
                       <div key={`type-${type}`} className={styles.filterChip}>
                         <span>{type}</span>
@@ -1457,6 +1826,14 @@ export default function ProviderSearch() {
                       <div key={`hospital-subtype-${subtype}`} className={styles.filterChip}>
                         <span>{subtype}</span>
                         <button onClick={() => toggleHospitalSubtype(subtype)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {selectedPhysicianGroupSpecialties.map(specialty => (
+                      <div key={`physician-group-specialty-${specialty}`} className={styles.filterChip}>
+                        <span>{specialty}</span>
+                        <button onClick={() => togglePhysicianGroupSpecialty(specialty)}>
                           <X size={12} />
                         </button>
                       </div>
@@ -1521,15 +1898,6 @@ export default function ProviderSearch() {
                         {hasActiveFilters || submittedSearchTerm.trim()
                           ? formatNumber(new Set(filteredResults.map(r => r.network).filter(Boolean)).size)
                           : formatNumber(nationalOverview?.overall?.distinct_networks || 0)
-                        }
-                      </div>
-                    </div>
-                    <div className={styles.overviewCard}>
-                      <div className={styles.overviewLabel}>Total NPIs</div>
-                      <div className={styles.overviewValue}>
-                        {hasActiveFilters || submittedSearchTerm.trim()
-                          ? formatNumber(resultsTotalNPIs !== null ? resultsTotalNPIs : new Set(filteredResults.map(r => r.npi).filter(Boolean)).size)
-                          : formatNumber(nationalOverview?.overall?.total_npis || 0)
                         }
                       </div>
                     </div>
