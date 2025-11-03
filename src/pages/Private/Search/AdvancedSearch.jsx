@@ -14,6 +14,7 @@ export default function AdvancedSearch() {
   
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState('');
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [filterSearches, setFilterSearches] = useState({
     specialties: ''
   });
@@ -92,7 +93,7 @@ export default function AdvancedSearch() {
     searchInputRef.current?.focus();
   }, []);
 
-  // Auto-search when market selection changes (but skip initial mount and clearing)
+  // Auto-search when filters change (except search term which requires submit)
   useEffect(() => {
     // Skip the first render (initial mount) - search is already handled by the initial useEffect
     if (!hasInitialized.current) {
@@ -103,10 +104,10 @@ export default function AdvancedSearch() {
     if (isClearingRef.current) {
       return;
     }
-    // Search when market selection changes after initial mount
+    // Search when filters change (market, taxonomy tag, or filter values)
     searchPractitioners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMarket]);
+  }, [selectedMarket, selectedTaxonomyTag, filters.states, filters.specialties, filters.gender, filters.taxonomyCodes, filters.hasHospitalAffiliation, filters.hasPhysicianGroupAffiliation, filters.hasNetworkAffiliation]);
   
   const fetchMarkets = async () => {
     try {
@@ -245,7 +246,8 @@ export default function AdvancedSearch() {
     
     try {
       // Use override values if provided, otherwise use current state
-      const currentSearchTerm = overrides.searchTerm !== undefined ? overrides.searchTerm : searchTerm;
+      // Use submittedSearchTerm for the actual search (what's applied), not the typing searchTerm
+      const currentSearchTerm = overrides.searchTerm !== undefined ? overrides.searchTerm : submittedSearchTerm;
       const currentFilters = overrides.filters !== undefined ? overrides.filters : filters;
       const currentSelectedMarket = overrides.selectedMarket !== undefined ? overrides.selectedMarket : selectedMarket;
       
@@ -317,6 +319,7 @@ export default function AdvancedSearch() {
     
     // Clear all state
     setSearchTerm('');
+    setSubmittedSearchTerm('');
     setFilters(clearedFilters);
     setSelectedTaxonomyTag(null);
     setSelectedMarket(null);
@@ -571,13 +574,14 @@ export default function AdvancedSearch() {
   const totalPages = results ? Math.ceil(results.practitioners.length / pageSize) : 0;
   
   const hasActiveFilters = () => {
-    return searchTerm || 
+    return submittedSearchTerm || 
            filters.states.length > 0 ||
            filters.specialties.length > 0 ||
            filters.gender.length > 0 ||
            filters.taxonomyCodes.length > 0 ||
            filters.hasHospitalAffiliation !== null ||
            filters.hasNetworkAffiliation !== null ||
+           filters.hasPhysicianGroupAffiliation !== null ||
            selectedMarket !== null ||
            selectedTaxonomyTag !== null;
   };
@@ -602,7 +606,8 @@ export default function AdvancedSearch() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  searchPractitioners();
+                  setSubmittedSearchTerm(searchTerm.trim());
+                  searchPractitioners({ searchTerm: searchTerm.trim() });
                 } else if (e.key === 'Escape') {
                   e.preventDefault();
                   if (escapeTimeoutRef.current) {
@@ -635,7 +640,10 @@ export default function AdvancedSearch() {
             )}
           </div>
           <button
-            onClick={searchPractitioners}
+            onClick={() => {
+              setSubmittedSearchTerm(searchTerm.trim());
+              searchPractitioners({ searchTerm: searchTerm.trim() });
+            }}
             className="sectionHeaderButton primary"
             disabled={loading || !searchTerm.trim()}
             title={loading ? 'Searching...' : 'Search'}
@@ -902,7 +910,6 @@ export default function AdvancedSearch() {
 
       {/* Main Layout */}
       <div className={styles.mainLayout}>
-        
         {/* Left Sidebar - Filters (collapsible) */}
         {showFiltersSidebar && (
           <div className={styles.sidebar}>
@@ -1105,7 +1112,118 @@ export default function AdvancedSearch() {
         )}
 
         {/* Main Content */}
-        <div className={`${styles.mainContent} ${activeTab === 'listing' ? styles.mainContentNoPadding : ''}`}>
+        <div className={styles.mainContent}>
+          {/* Active Filter Chips - Above Content */}
+          {hasActiveFilters() && (
+            <div className={styles.activeFiltersBar}>
+              <div className={styles.activeFilters}>
+                <span className={styles.filtersLabel}>Filters:</span>
+                {submittedSearchTerm && (
+                  <div className={styles.filterChip}>
+                    <span>Search: "{submittedSearchTerm}"</span>
+                    <button onClick={() => {
+                      setSubmittedSearchTerm('');
+                      setSearchTerm('');
+                      setTimeout(() => searchPractitioners({ searchTerm: '' }), 0);
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {selectedMarket && (
+                  <div className={styles.filterChip}>
+                    <span>{selectedMarket.name}</span>
+                    <button onClick={() => handleMarketSelect(null)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {selectedTaxonomyTag && (
+                  <div className={styles.filterChip}>
+                    <span>Taxonomy: {selectedTaxonomyTag.name}</span>
+                    <button onClick={() => {
+                      handleTaxonomyTagSelect(null);
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {filters.states.map(state => (
+                  <div key={`state-${state}`} className={styles.filterChip}>
+                    <span>{state}</span>
+                    <button onClick={() => {
+                      toggleFilterValue('states', state);
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {filters.specialties.map(specialty => (
+                  <div key={`specialty-${specialty}`} className={styles.filterChip}>
+                    <span>{specialty}</span>
+                    <button onClick={() => {
+                      toggleFilterValue('specialties', specialty);
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {filters.gender.map(g => (
+                  <div key={`gender-${g}`} className={styles.filterChip}>
+                    <span>{g === 'male' ? 'Male' : g === 'female' ? 'Female' : g}</span>
+                    <button onClick={() => {
+                      toggleFilterValue('gender', g);
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {filters.taxonomyCodes.map(code => (
+                  <div key={`taxonomy-${code}`} className={styles.filterChip}>
+                    <span>Taxonomy: {code}</span>
+                    <button onClick={() => {
+                      setFilters(prev => ({
+                        ...prev,
+                        taxonomyCodes: prev.taxonomyCodes.filter(c => c !== code)
+                      }));
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {filters.hasHospitalAffiliation !== null && (
+                  <div className={styles.filterChip}>
+                    <span>Hospital: {filters.hasHospitalAffiliation ? 'Yes' : 'No'}</span>
+                    <button onClick={() => {
+                      setFilters(prev => ({ ...prev, hasHospitalAffiliation: null }));
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {filters.hasNetworkAffiliation !== null && (
+                  <div className={styles.filterChip}>
+                    <span>Network: {filters.hasNetworkAffiliation ? 'Yes' : 'No'}</span>
+                    <button onClick={() => {
+                      setFilters(prev => ({ ...prev, hasNetworkAffiliation: null }));
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {filters.hasPhysicianGroupAffiliation !== null && (
+                  <div className={styles.filterChip}>
+                    <span>Physician Group: {filters.hasPhysicianGroupAffiliation ? 'Yes' : 'No'}</span>
+                    <button onClick={() => {
+                      setFilters(prev => ({ ...prev, hasPhysicianGroupAffiliation: null }));
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           
           {/* Tab Content */}
           <>
@@ -1301,19 +1419,14 @@ export default function AdvancedSearch() {
             
             <div className={styles.resultsHeader}>
               <h3>
-                {results ? (
-                  <>
-                    Practitioners List
-                    {results.limited && <span className={styles.limitWarning}> (Showing {results.count} of {formatNumber(results.totalCount)})</span>}
-                  </>
-                ) : 'Practitioners'}
+                {results ? 'Practitioners List' : 'Practitioners'}
               </h3>
               
               <div className={styles.resultsActions}>
                 {results && results.count > 0 && (
                   <>
                     <span className={styles.pageInfo}>
-                      Page {page} of {totalPages} ({pageSize} per page)
+                      Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, results.practitioners.length)} of {formatNumber(results.totalCount)} (table limited to first 500)
                     </span>
                     {totalPages > 1 && (
                       <div className={styles.paginationInline}>
@@ -1392,12 +1505,7 @@ export default function AdvancedSearch() {
                           </td>
                           <td>
                             <div className={styles.locationCell}>
-                              <div className={styles.streetAddress}>
-                                {[practitioner.address_line_1, practitioner.address_line_2].filter(Boolean).join(', ')}
-                              </div>
-                              <div className={styles.cityStateZip}>
-                                {[practitioner.city, practitioner.state, practitioner.zip].filter(Boolean).join(', ')}
-                              </div>
+                              {[practitioner.address_line_1, practitioner.address_line_2, practitioner.city, practitioner.state, practitioner.zip].filter(Boolean).join(', ')}
                             </div>
                           </td>
                           <td>{practitioner.phone || '-'}</td>

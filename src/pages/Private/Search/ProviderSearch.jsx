@@ -35,7 +35,8 @@ import {
   BarChart3,
   Layers,
   Database,
-  Navigation
+  Navigation,
+  Download
 } from 'lucide-react';
 
 export default function ProviderSearch() {
@@ -49,7 +50,7 @@ export default function ProviderSearch() {
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [resultsPerPage] = useState(25);
+  const [resultsPerPage] = useState(100);
   const [map, setMap] = useState(null);
   const [mapReady, setMapReady] = useState(false);
   const [componentError, setComponentError] = useState(null);
@@ -681,6 +682,35 @@ export default function ProviderSearch() {
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
   const paginatedResults = listingResults.slice(startIndex, endIndex);
+
+  // Export to CSV
+  const exportToCSV = () => {
+    if (filteredResults.length === 0) return;
+
+    const headers = ['DHC', 'Name', 'Type', 'Network', 'Street', 'City', 'State', 'ZIP', 'Phone'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredResults.map(p => [
+        p.dhc || '',
+        `"${(p.name || '').replace(/"/g, '""')}"`,
+        `"${(p.type || 'Unknown').replace(/"/g, '""')}"`,
+        `"${(p.network || '').replace(/"/g, '""')}"`,
+        `"${(p.street || '').replace(/"/g, '""')}"`,
+        `"${(p.city || '').replace(/"/g, '""')}"`,
+        p.state || '',
+        p.zip || '',
+        p.phone || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `provider-results-${new Date().toISOString().substring(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const goToPage = (page) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
@@ -1408,11 +1438,12 @@ export default function ProviderSearch() {
             )}
 
             {/* Main Content */}
-            <div className={`${styles.mainContent} ${activeTab === 'listing' ? styles.mainContentNoPadding : ''}`}>
+            <div className={styles.mainContent}>
               {/* Active Filter Chips - Above Content */}
               {hasActiveFilters && (
                 <div className={styles.activeFiltersBar}>
                   <div className={styles.activeFilters}>
+                    <span className={styles.filtersLabel}>Filters:</span>
                   {submittedSearchTerm.trim() && (
                     <div className={styles.filterChip}>
                       <span>Search: "{submittedSearchTerm}"</span>
@@ -1643,52 +1674,85 @@ export default function ProviderSearch() {
                     </div>
                   )}
 
-                  {!loading && paginatedResults.length > 0 && showBulkActions && hasTeam && (
+                  {!loading && paginatedResults.length > 0 && (
                     <div className={styles.resultsHeader}>
+                      <h3>Organizations List</h3>
                       <div className={styles.resultsActions}>
-                        <div className={styles.bulkActions}>
-                          <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
-                            <button
-                              ref={bulkButtonRef}
-                              className={styles.glassmorphismButton}
-                              onClick={handleBulkButtonClick}
-                            >
-                              Tag
-                            </button>
-                            {taggingProviderId === 'bulk' && (
-                              <div className={styles.dropdown}>
-                                <button
-                                  className={styles.glassmorphismButton}
-                                  onClick={() => handleBulkTag('me')}
-                                  disabled={bulkActionLoading}
-                                >
-                                  {bulkActionLoading ? 'Tagging...' : 'Me'}
-                                </button>
-                                <button
-                                  className={styles.glassmorphismButton}
-                                  onClick={() => handleBulkTag('partner')}
-                                  disabled={bulkActionLoading}
-                                >
-                                  {bulkActionLoading ? 'Tagging...' : 'Partner'}
-                                </button>
-                                <button
-                                  className={styles.glassmorphismButton}
-                                  onClick={() => handleBulkTag('competitor')}
-                                  disabled={bulkActionLoading}
-                                >
-                                  {bulkActionLoading ? 'Tagging...' : 'Competitor'}
-                                </button>
-                                <button
-                                  className={styles.glassmorphismButton}
-                                  onClick={() => handleBulkTag('target')}
-                                  disabled={bulkActionLoading}
-                                >
-                                  {bulkActionLoading ? 'Tagging...' : 'Target'}
-                                </button>
-                              </div>
-                            )}
+                        {showBulkActions && hasTeam && (
+                          <div className={styles.bulkActions}>
+                            <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
+                              <button
+                                ref={bulkButtonRef}
+                                className={styles.glassmorphismButton}
+                                onClick={handleBulkButtonClick}
+                              >
+                                Tag
+                              </button>
+                              {taggingProviderId === 'bulk' && (
+                                <div className={styles.dropdown}>
+                                  <button
+                                    className={styles.glassmorphismButton}
+                                    onClick={() => handleBulkTag('me')}
+                                    disabled={bulkActionLoading}
+                                  >
+                                    {bulkActionLoading ? 'Tagging...' : 'Me'}
+                                  </button>
+                                  <button
+                                    className={styles.glassmorphismButton}
+                                    onClick={() => handleBulkTag('partner')}
+                                    disabled={bulkActionLoading}
+                                  >
+                                    {bulkActionLoading ? 'Tagging...' : 'Partner'}
+                                  </button>
+                                  <button
+                                    className={styles.glassmorphismButton}
+                                    onClick={() => handleBulkTag('competitor')}
+                                    disabled={bulkActionLoading}
+                                  >
+                                    {bulkActionLoading ? 'Tagging...' : 'Competitor'}
+                                  </button>
+                                  <button
+                                    className={styles.glassmorphismButton}
+                                    onClick={() => handleBulkTag('target')}
+                                    disabled={bulkActionLoading}
+                                  >
+                                    {bulkActionLoading ? 'Tagging...' : 'Target'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
+                        <span className={styles.pageInfo}>
+                          Showing {startIndex + 1}-{Math.min(endIndex, listingResults.length)} of {formatNumber(nationalOverview?.overall?.total_providers || listingResults.length)} (table limited to first 500)
+                        </span>
+                        {totalPages > 1 && (
+                          <div className={styles.paginationInline}>
+                            <button 
+                              className="sectionHeaderButton"
+                              onClick={() => goToPage(Math.max(1, currentPage - 1))}
+                              disabled={currentPage === 1}
+                            >
+                              Previous
+                            </button>
+                            <button 
+                              className="sectionHeaderButton"
+                              onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+                              disabled={currentPage === totalPages}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
+                        <button
+                          onClick={exportToCSV}
+                          className="sectionHeaderButton"
+                          disabled={filteredResults.length === 0}
+                          title="Export to CSV"
+                        >
+                          <Download size={14} />
+                          Export CSV
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1710,7 +1774,7 @@ export default function ProviderSearch() {
                                   checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
                                   onChange={hasTeam ? handleSelectAll : undefined}
                                   disabled={!hasTeam}
-                                  className={!hasTeam ? styles.disabled : ''}
+                                  className={styles.providerCheckbox}
                                   title={!hasTeam ? "Join or create a team to select providers" : ""}
                                 />
                               </th>
@@ -1753,10 +1817,8 @@ export default function ProviderSearch() {
                                 {provider.name}
                               </div>
                               <div className={styles.providerAddress}>
-                                {provider.street}, {provider.city}, {provider.state} {provider.zip}
-                                {provider.phone && (
-                                  <span className={styles.providerPhone}> • {provider.phone}</span>
-                                )}
+                                {[provider.street, provider.city, provider.state, provider.zip].filter(Boolean).join(', ')}
+                                {provider.phone && ` • ${provider.phone}`}
                               </div>
                               </div>
                                 </td>
@@ -1782,29 +1844,6 @@ export default function ProviderSearch() {
                         </table>
                       </div>
                     </>
-                  )}
-
-                  {/* Pagination */}
-                  {!loading && paginatedResults.length > 0 && totalPages > 1 && (
-                    <div className={styles.pagination}>
-                      <button
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={styles.paginationButton}
-                      >
-                        Previous
-                      </button>
-                      <span className={styles.paginationInfo}>
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={styles.paginationButton}
-                      >
-                        Next
-                      </button>
-                    </div>
                   )}
                 </div>
               )}
