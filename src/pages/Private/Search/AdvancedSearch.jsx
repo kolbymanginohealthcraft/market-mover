@@ -75,6 +75,8 @@ export default function AdvancedSearch() {
   // Search input refs and escape handling
   const searchInputRef = useRef(null);
   const escapeTimeoutRef = useRef(null);
+  const hasInitialized = useRef(false);
+  const isClearingRef = useRef(false);
   const [escapeCount, setEscapeCount] = useState(0);
   
   useEffect(() => {
@@ -89,6 +91,22 @@ export default function AdvancedSearch() {
   useEffect(() => {
     searchInputRef.current?.focus();
   }, []);
+
+  // Auto-search when market selection changes (but skip initial mount and clearing)
+  useEffect(() => {
+    // Skip the first render (initial mount) - search is already handled by the initial useEffect
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      return;
+    }
+    // Skip if we're in the middle of clearing all filters
+    if (isClearingRef.current) {
+      return;
+    }
+    // Search when market selection changes after initial mount
+    searchPractitioners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMarket]);
   
   const fetchMarkets = async () => {
     try {
@@ -164,10 +182,25 @@ export default function AdvancedSearch() {
     if (!marketId) {
       setSelectedMarket(null);
       setResults(null);
+      setFilters({
+        states: [],
+        specialties: [],
+        gender: [],
+        hasHospitalAffiliation: null,
+        hasPhysicianGroupAffiliation: null,
+        hasNetworkAffiliation: null,
+        taxonomyCodes: []
+      });
+      // Search will be triggered by useEffect when selectedMarket changes
       return;
     }
     
     const market = markets.find(m => m.id === marketId);
+    if (!market) {
+      console.error('Market not found:', marketId);
+      return;
+    }
+    
     setSelectedMarket(market);
     setResults(null);
     setFilters({
@@ -179,6 +212,7 @@ export default function AdvancedSearch() {
       hasNetworkAffiliation: null,
       taxonomyCodes: []
     });
+    // Search will be triggered by useEffect when selectedMarket changes
   };
 
   const handleTaxonomyTagSelect = (tagId) => {
@@ -204,28 +238,33 @@ export default function AdvancedSearch() {
     setFilters(prev => ({ ...prev, taxonomyCodes: codes }));
   };
   
-  const searchPractitioners = async () => {
+  const searchPractitioners = async (overrides = {}) => {
     setLoading(true);
     setError(null);
     setPage(1);
     
     try {
+      // Use override values if provided, otherwise use current state
+      const currentSearchTerm = overrides.searchTerm !== undefined ? overrides.searchTerm : searchTerm;
+      const currentFilters = overrides.filters !== undefined ? overrides.filters : filters;
+      const currentSelectedMarket = overrides.selectedMarket !== undefined ? overrides.selectedMarket : selectedMarket;
+      
       const requestBody = {
-        search: searchTerm,
-        states: filters.states,
-        consolidatedSpecialty: filters.specialties,
-        gender: filters.gender,
-        hasHospitalAffiliation: filters.hasHospitalAffiliation,
-        hasPhysicianGroupAffiliation: filters.hasPhysicianGroupAffiliation,
-        hasNetworkAffiliation: filters.hasNetworkAffiliation,
-        taxonomyCodes: filters.taxonomyCodes,
+        search: currentSearchTerm,
+        states: currentFilters.states,
+        consolidatedSpecialty: currentFilters.specialties,
+        gender: currentFilters.gender,
+        hasHospitalAffiliation: currentFilters.hasHospitalAffiliation,
+        hasPhysicianGroupAffiliation: currentFilters.hasPhysicianGroupAffiliation,
+        hasNetworkAffiliation: currentFilters.hasNetworkAffiliation,
+        taxonomyCodes: currentFilters.taxonomyCodes,
         limit: 500
       };
       
-      if (selectedMarket) {
-        requestBody.latitude = parseFloat(selectedMarket.latitude);
-        requestBody.longitude = parseFloat(selectedMarket.longitude);
-        requestBody.radius = parseFloat(selectedMarket.radius_miles);
+      if (currentSelectedMarket && currentSelectedMarket.latitude && currentSelectedMarket.longitude && currentSelectedMarket.radius_miles) {
+        requestBody.latitude = parseFloat(currentSelectedMarket.latitude);
+        requestBody.longitude = parseFloat(currentSelectedMarket.longitude);
+        requestBody.radius = parseFloat(currentSelectedMarket.radius_miles);
       }
       
       const response = await fetch('/api/hcp-data/search', {
@@ -262,8 +301,11 @@ export default function AdvancedSearch() {
   };
   
   const clearAll = () => {
-    setSearchTerm('');
-    setFilters({
+    // Set flag to prevent useEffect from triggering during clear
+    isClearingRef.current = true;
+    
+    // Prepare cleared values
+    const clearedFilters = {
       states: [],
       specialties: [],
       gender: [],
@@ -271,12 +313,26 @@ export default function AdvancedSearch() {
       hasPhysicianGroupAffiliation: null,
       hasNetworkAffiliation: null,
       taxonomyCodes: []
-    });
+    };
+    
+    // Clear all state
+    setSearchTerm('');
+    setFilters(clearedFilters);
     setSelectedTaxonomyTag(null);
+    setSelectedMarket(null);
     setError(null);
     setPage(1);
-    // Reload national view
-    setTimeout(() => searchPractitioners(), 0);
+    
+    // Use setTimeout to ensure all state updates are processed before searching
+    // and reset the clearing flag. Pass explicit cleared values to avoid stale closure issues.
+    setTimeout(() => {
+      isClearingRef.current = false;
+      searchPractitioners({
+        searchTerm: '',
+        filters: clearedFilters,
+        selectedMarket: null
+      });
+    }, 0);
   };
   
   const toggleFilterValue = (filterKey, value) => {
@@ -521,7 +577,9 @@ export default function AdvancedSearch() {
            filters.gender.length > 0 ||
            filters.taxonomyCodes.length > 0 ||
            filters.hasHospitalAffiliation !== null ||
-           filters.hasNetworkAffiliation !== null;
+           filters.hasNetworkAffiliation !== null ||
+           selectedMarket !== null ||
+           selectedTaxonomyTag !== null;
   };
 
   return (
@@ -785,27 +843,29 @@ export default function AdvancedSearch() {
         
         <div className={styles.spacer}></div>
         
-        {results && (
+        {((results && results.totalCount) || selectedMarket) && (
           <div className={styles.contextInfo}>
             {selectedMarket ? (
               <span>{selectedMarket.city}, {selectedMarket.state_code} • {selectedMarket.radius_miles}mi radius</span>
             ) : (
-              <span>{formatNumber(results.totalCount)} practitioners nationwide</span>
+              <span>
+                {results && results.totalCount
+                  ? `${formatNumber(results.totalCount)} practitioners nationwide`
+                  : 'Loading...'}
+              </span>
             )}
           </div>
         )}
         
         <div className={styles.controlsBarButtons}>
-          {results && (
-            <button
-              onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-              className="sectionHeaderButton"
-              title="Toggle filters"
-            >
-              <FilterIcon size={14} />
-              Filters
-            </button>
-          )}
+          <button
+            onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+            className="sectionHeaderButton"
+            title="Toggle filters"
+          >
+            <FilterIcon size={14} />
+            Filters
+          </button>
           {hasActiveFilters() && (
             <button onClick={clearAll} className="sectionHeaderButton">
               <X size={14} />
@@ -1047,165 +1107,187 @@ export default function AdvancedSearch() {
         {/* Main Content */}
         <div className={`${styles.mainContent} ${activeTab === 'listing' ? styles.mainContentNoPadding : ''}`}>
           
+          {/* Tab Content */}
+          <>
           {/* Overview Tab */}
-          {activeTab === 'overview' && resultStats && results && (
-            <div className={styles.overviewPanel}>
-              <h3>
-                <Database size={16} />
-                {hasActiveFilters() ? 'Filtered Results' : 'National Overview'}
-              </h3>
-              <div className={styles.overviewGrid}>
-                <div className={styles.overviewCard}>
-                  <div className={styles.overviewLabel}>Total Practitioners</div>
-                  <div className={styles.overviewValue}>
-                    {formatNumber(results.totalCount)}
-                  </div>
+          {activeTab === 'overview' && (
+            <div className={styles.overviewContent}>
+              {/* Loading Overlay for Overview Tab - Covers only the content area */}
+              {loading && (
+                <div className={styles.loadingOverlay}>
+                  <Spinner />
                 </div>
-                <div className={styles.overviewCard}>
-                  <div className={styles.overviewLabel}>Specialties</div>
-                  <div className={styles.overviewValue}>
-                    {formatNumber(resultStats.distinct_specialties)}
+              )}
+              <div className={styles.overviewPanel}>
+                <h3>
+                  <Database size={16} />
+                  {hasActiveFilters() ? 'Filtered Results' : 'National Overview'}
+                </h3>
+                <div className={styles.overviewGrid}>
+                  <div className={styles.overviewCard}>
+                    <div className={styles.overviewLabel}>Total Practitioners</div>
+                    <div className={styles.overviewValue}>
+                      {resultStats && results
+                        ? formatNumber(results.totalCount)
+                        : '0'}
+                    </div>
                   </div>
-                </div>
-                <div className={styles.overviewCard}>
-                  <div className={styles.overviewLabel}>States</div>
-                  <div className={styles.overviewValue}>
-                    {formatNumber(resultStats.distinct_states)}
+                  <div className={styles.overviewCard}>
+                    <div className={styles.overviewLabel}>Specialties</div>
+                    <div className={styles.overviewValue}>
+                      {resultStats
+                        ? formatNumber(resultStats.distinct_specialties)
+                        : '0'}
+                    </div>
                   </div>
-                </div>
-                <div className={styles.overviewCard}>
-                  <div className={styles.overviewLabel}>Cities</div>
-                  <div className={styles.overviewValue}>
-                    {formatNumber(resultStats.distinct_cities)}
+                  <div className={styles.overviewCard}>
+                    <div className={styles.overviewLabel}>States</div>
+                    <div className={styles.overviewValue}>
+                      {resultStats
+                        ? formatNumber(resultStats.distinct_states)
+                        : '0'}
+                    </div>
                   </div>
-                </div>
-                <div className={styles.overviewCard}>
-                  <div className={styles.overviewLabel}>Male</div>
-                  <div className={styles.overviewValue}>
-                    {formatNumber(resultStats.male_count)}
+                  <div className={styles.overviewCard}>
+                    <div className={styles.overviewLabel}>Cities</div>
+                    <div className={styles.overviewValue}>
+                      {resultStats
+                        ? formatNumber(resultStats.distinct_cities)
+                        : '0'}
+                    </div>
                   </div>
-                </div>
-                <div className={styles.overviewCard}>
-                  <div className={styles.overviewLabel}>Female</div>
-                  <div className={styles.overviewValue}>
-                    {formatNumber(resultStats.female_count)}
+                  <div className={styles.overviewCard}>
+                    <div className={styles.overviewLabel}>Male</div>
+                    <div className={styles.overviewValue}>
+                      {resultStats
+                        ? formatNumber(resultStats.male_count)
+                        : '0'}
+                    </div>
+                  </div>
+                  <div className={styles.overviewCard}>
+                    <div className={styles.overviewLabel}>Female</div>
+                    <div className={styles.overviewValue}>
+                      {resultStats
+                        ? formatNumber(resultStats.female_count)
+                        : '0'}
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              {/* Detailed Breakdowns - Separate from overview panel */}
+              {results && results.practitioners && (() => {
+                const breakdowns = getBreakdowns();
+                if (!breakdowns) return null;
+                
+                return (
+                  <div className={styles.breakdownsContainer}>
+                    {/* Top Specialties */}
+                    <div className={styles.breakdownSection}>
+                      <h4>Top Specialties</h4>
+                      <div className={styles.breakdownList}>
+                        {breakdowns.specialties.map((item, idx) => (
+                          <div key={idx} className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>{item.name}</span>
+                            <div className={styles.breakdownBar}>
+                              <div 
+                                className={styles.breakdownBarFill}
+                                style={{ width: `${(item.count / breakdowns.specialties[0].count) * 100}%` }}
+                              />
+                            </div>
+                            <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* State Distribution */}
+                    <div className={styles.breakdownSection}>
+                      <h4>State Distribution</h4>
+                      <div className={styles.breakdownList}>
+                        {breakdowns.states.map((item, idx) => (
+                          <div key={idx} className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>{item.name}</span>
+                            <div className={styles.breakdownBar}>
+                              <div 
+                                className={styles.breakdownBarFill}
+                                style={{ width: `${(item.count / breakdowns.states[0].count) * 100}%` }}
+                              />
+                            </div>
+                            <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Top Cities */}
+                    <div className={styles.breakdownSection}>
+                      <h4>Top Cities</h4>
+                      <div className={styles.breakdownList}>
+                        {breakdowns.cities.map((item, idx) => (
+                          <div key={idx} className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>{item.name}</span>
+                            <div className={styles.breakdownBar}>
+                              <div 
+                                className={styles.breakdownBarFill}
+                                style={{ width: `${(item.count / breakdowns.cities[0].count) * 100}%` }}
+                              />
+                            </div>
+                            <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Gender & Affiliations */}
+                    <div className={styles.breakdownRow}>
+                      <div className={styles.breakdownSection}>
+                        <h4>Gender Distribution</h4>
+                        <div className={styles.breakdownList}>
+                          <div className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>Male</span>
+                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.male)}</span>
+                          </div>
+                          <div className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>Female</span>
+                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.female)}</span>
+                          </div>
+                          {breakdowns.genderMap.other > 0 && (
+                            <div className={styles.breakdownItem}>
+                              <span className={styles.breakdownName}>Other/Unknown</span>
+                              <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.other)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className={styles.breakdownSection}>
+                        <h4>Affiliations</h4>
+                        <div className={styles.breakdownList}>
+                          <div className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>Hospital</span>
+                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.hospital)}</span>
+                          </div>
+                          <div className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>Physician Group</span>
+                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.physicianGroup)}</span>
+                          </div>
+                          <div className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>Network</span>
+                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.network)}</span>
+                          </div>
+                          <div className={styles.breakdownItem}>
+                            <span className={styles.breakdownName}>Independent</span>
+                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.independent)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
-          
-          {/* Detailed Breakdowns */}
-          {activeTab === 'overview' && results && results.practitioners && (() => {
-            const breakdowns = getBreakdowns();
-            if (!breakdowns) return null;
-            
-            return (
-              <div className={styles.breakdownsContainer}>
-                {/* Top Specialties */}
-                <div className={styles.breakdownSection}>
-                  <h4>Top Specialties</h4>
-                  <div className={styles.breakdownList}>
-                    {breakdowns.specialties.map((item, idx) => (
-                      <div key={idx} className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>{item.name}</span>
-                        <div className={styles.breakdownBar}>
-                          <div 
-                            className={styles.breakdownBarFill}
-                            style={{ width: `${(item.count / breakdowns.specialties[0].count) * 100}%` }}
-                          />
-                        </div>
-                        <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* State Distribution */}
-                <div className={styles.breakdownSection}>
-                  <h4>State Distribution</h4>
-                  <div className={styles.breakdownList}>
-                    {breakdowns.states.map((item, idx) => (
-                      <div key={idx} className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>{item.name}</span>
-                        <div className={styles.breakdownBar}>
-                          <div 
-                            className={styles.breakdownBarFill}
-                            style={{ width: `${(item.count / breakdowns.states[0].count) * 100}%` }}
-                          />
-                        </div>
-                        <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Top Cities */}
-                <div className={styles.breakdownSection}>
-                  <h4>Top Cities</h4>
-                  <div className={styles.breakdownList}>
-                    {breakdowns.cities.map((item, idx) => (
-                      <div key={idx} className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>{item.name}</span>
-                        <div className={styles.breakdownBar}>
-                          <div 
-                            className={styles.breakdownBarFill}
-                            style={{ width: `${(item.count / breakdowns.cities[0].count) * 100}%` }}
-                          />
-                        </div>
-                        <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Gender & Affiliations */}
-                <div className={styles.breakdownRow}>
-                  <div className={styles.breakdownSection}>
-                    <h4>Gender Distribution</h4>
-                    <div className={styles.breakdownList}>
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>Male</span>
-                        <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.male)}</span>
-                      </div>
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>Female</span>
-                        <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.female)}</span>
-                      </div>
-                      {breakdowns.genderMap.other > 0 && (
-                        <div className={styles.breakdownItem}>
-                          <span className={styles.breakdownName}>Other/Unknown</span>
-                          <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.other)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className={styles.breakdownSection}>
-                    <h4>Affiliations</h4>
-                    <div className={styles.breakdownList}>
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>Hospital</span>
-                        <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.hospital)}</span>
-                      </div>
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>Physician Group</span>
-                        <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.physicianGroup)}</span>
-                      </div>
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>Network</span>
-                        <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.network)}</span>
-                      </div>
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownName}>Independent</span>
-                        <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.independent)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
           
           {/* Listing Tab */}
           {activeTab === 'listing' && (
@@ -1298,7 +1380,6 @@ export default function AdvancedSearch() {
                           <td>
                             <div className={styles.practitionerCell}>
                               <div className={styles.practitionerName}>
-                                {practitioner.title && <span className={styles.practitionerTitle}>{practitioner.title} </span>}
                                 {practitioner.name}
                               </div>
                               <div className={styles.practitionerNpi}>NPI: {practitioner.npi}</div>
@@ -1507,6 +1588,7 @@ export default function AdvancedSearch() {
               )}
             </div>
           )}
+          </>
         </div>
       </div>
     </div>

@@ -77,6 +77,8 @@ import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnaly
 import ReferralPathways from "../pages/Private/ReferralPathways/ReferralPathways";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
+import TestProviderOfServices from "../pages/TestProviderOfServices";
+import TestProviderOfServicesEnriched from "../pages/TestProviderOfServicesEnriched";
 
 // Inner App component that has access to UserContext
 function AppContent({ location }) {
@@ -170,6 +172,8 @@ function AppContent({ location }) {
             <Route path="hcp" element={<Navigate to="/app/search/ind" replace />} />
             <Route path="geography" element={<GeographyAnalysis />} />
             <Route path="referral-pathways" element={<ReferralPathways />} />
+            <Route path="test-pos" element={<TestProviderOfServices />} />
+            <Route path="test-pos-enriched" element={<TestProviderOfServicesEnriched />} />
           </Route>
 
           {/* Fallback */}

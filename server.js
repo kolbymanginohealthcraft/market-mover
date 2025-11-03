@@ -24,6 +24,7 @@ import getNearbyProvidersVendor from "./server/routes/getNearbyProvidersVendor.j
 import searchProvidersVendor from "./server/routes/searchProvidersVendor.js";
 import maEnrollment from "./server/routes/maEnrollment.js";
 import cmsEnrollment from "./server/routes/cmsEnrollment.js";
+import providerOfServices from "./server/routes/providerOfServices.js";
 import catchment from "./server/routes/catchment.js";
 import batchData from "./server/routes/batchData.js";
 import zipCodes from "./server/routes/zipCodes.js";
@@ -84,6 +85,7 @@ app.use("/api", getNearbyProvidersVendor);
 app.use("/api", searchProvidersVendor);
 app.use("/api", maEnrollment);
 app.use("/api", cmsEnrollment);
+app.use("/api", providerOfServices);
 app.use("/api", catchment);
 app.use("/api", batchData);
 app.use("/api", zipCodes);

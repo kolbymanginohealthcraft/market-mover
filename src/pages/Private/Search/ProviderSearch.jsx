@@ -477,7 +477,7 @@ export default function ProviderSearch() {
       }
 
       // Add market filter (location)
-      if (selectedMarket && marketNPIs) {
+      if (selectedMarket) {
         const market = savedMarkets.find(m => m.id === selectedMarket);
         if (market) {
           params.append('lat', market.latitude);
@@ -1409,13 +1409,6 @@ export default function ProviderSearch() {
 
             {/* Main Content */}
             <div className={`${styles.mainContent} ${activeTab === 'listing' ? styles.mainContentNoPadding : ''}`}>
-              {/* Loading Overlay for Overview Tab - Covers entire main content */}
-              {loading && activeTab === 'overview' && (
-                <div className={styles.loadingOverlay}>
-                  <Spinner />
-                </div>
-              )}
-              
               {/* Active Filter Chips - Above Content */}
               {hasActiveFilters && (
                 <div className={styles.activeFiltersBar}>
@@ -1491,6 +1484,12 @@ export default function ProviderSearch() {
               {/* Overview Tab */}
               {activeTab === 'overview' && (
                 <div className={styles.overviewContent}>
+                  {/* Loading Overlay for Overview Tab - Covers only the content area */}
+                  {loading && (
+                    <div className={styles.loadingOverlay}>
+                      <Spinner />
+                    </div>
+                  )}
                   <div className={styles.overviewPanel}>
                     <h3>
                       <Database size={16} />

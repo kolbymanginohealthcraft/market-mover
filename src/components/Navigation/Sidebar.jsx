@@ -362,6 +362,29 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </div>
         )}
 
+        {/* DEV ROUTES Section */}
+        <div className={styles.navItems}>
+          {!isCollapsed && <div className={styles.sectionDivider}>DEV ROUTES</div>}
+          <Link 
+            to="/app/test-pos" 
+            className={`${styles.navItem} ${isActive('/test-pos') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Medicare POS')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Code size={14} />
+            {!isCollapsed && 'Medicare POS'}
+          </Link>
+          <Link 
+            to="/app/test-pos-enriched" 
+            className={`${styles.navItem} ${isActive('/test-pos-enriched') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Medicare POS Enriched')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Code size={14} />
+            {!isCollapsed && 'Medicare POS Enriched'}
+          </Link>
+        </div>
+
         {/* Bottom Navigation - Settings and Feedback */}
         <div className={styles.bottomNav}>
           <Link 
