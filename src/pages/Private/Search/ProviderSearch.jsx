@@ -15,6 +15,7 @@ import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
 import { getTagColor, getTagLabel } from '../../../utils/tagColors';
 import { ProviderTagBadge } from '../../../components/Tagging/ProviderTagBadge';
+import { geocodeAddress } from '../Markets/services/geocodingService';
 import {
   Search,
   MapPin,
@@ -30,7 +31,11 @@ import {
   ChevronDown,
   ChevronUp,
   Play,
-  List
+  List,
+  BarChart3,
+  Layers,
+  Database,
+  Navigation
 } from 'lucide-react';
 
 export default function ProviderSearch() {
@@ -38,6 +43,7 @@ export default function ProviderSearch() {
   const location = useLocation();
 
   const [queryText, setQueryText] = useState("");
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState(""); // Track the actual search term applied to results
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -48,6 +54,22 @@ export default function ProviderSearch() {
   const [mapReady, setMapReady] = useState(false);
   const [componentError, setComponentError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
+  
+  // Active tab
+  const [activeTab, setActiveTab] = useState('overview'); // overview, listing, density
+  
+  // Markets
+  const [savedMarkets, setSavedMarkets] = useState([]);
+  const [selectedMarket, setSelectedMarket] = useState(null);
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+  
+  // Density tab state
+  const [densityLocationInput, setDensityLocationInput] = useState('');
+  const [densityLocationMode, setDensityLocationMode] = useState('address'); // address, coordinates, zip
+  const [densityCoordinates, setDensityCoordinates] = useState({ lat: null, lng: null });
+  const [densityLoading, setDensityLoading] = useState(false);
+  const [densityError, setDensityError] = useState(null);
+  const [densityResults, setDensityResults] = useState(null);
 
   // Filter states
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -69,8 +91,6 @@ export default function ProviderSearch() {
   const [showFiltersSidebar, setShowFiltersSidebar] = useState(false);
 
   // My Network and Saved Markets filters
-  const [savedMarkets, setSavedMarkets] = useState([]);
-  const [selectedMarket, setSelectedMarket] = useState(null);
   const [marketNPIs, setMarketNPIs] = useState(null);
   const [providerTags, setProviderTags] = useState(null);
   const [selectedTag, setSelectedTag] = useState(null);
@@ -127,7 +147,7 @@ export default function ProviderSearch() {
     searchInputRef.current?.focus();
   }, []);
 
-  // Load national overview and filter options on mount
+  // Load national overview, filter options, and first 500 results on mount
   useEffect(() => {
     const loadNationalOverview = async () => {
       setLoadingOverview(true);
@@ -177,7 +197,41 @@ export default function ProviderSearch() {
       }
     };
 
+    const loadInitialResults = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(apiUrl('/api/search-providers-vendor?limit=500'));
+        if (!response.ok) {
+          setLoading(false);
+          return;
+        }
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          setResults(result.data);
+          setHasSearched(true);
+          
+          // Update filter options from initial results
+          const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
+          const networks = Array.from(new Set(result.data.map(p => p.network).filter(Boolean))).sort();
+          const cities = Array.from(new Set(result.data.map(p => p.city).filter(Boolean))).sort();
+          const states = Array.from(new Set(result.data.map(p => p.state).filter(Boolean))).sort();
+
+          setFilterOptions({
+            types,
+            networks,
+            cities,
+            states
+          });
+        }
+      } catch (err) {
+        console.error("Error loading initial results:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadNationalOverview();
+    loadInitialResults();
   }, []);
 
   // Fetch saved markets and provider tags on mount
@@ -343,12 +397,20 @@ export default function ProviderSearch() {
     }
   };
 
-  // Auto-search when tag or market changes and we've already searched
+  // Auto-search when filters change (except search term which requires submit)
   useEffect(() => {
-    if (hasSearched) {
-      handleSearch();
-    }
-  }, [selectedTag, selectedMarket]);
+    // Check if we have any active filters (excluding search term)
+    const hasFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
+      selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
+    
+    // Use submitted search term (what's actually applied), not the typing queryText
+    const q = submittedSearchTerm.trim();
+    
+    // Always search - if no filters or search term, get first 500 results
+    // Pass the submitted search term to maintain it during filter changes
+    handleSearch(submittedSearchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTag, selectedMarket, selectedTypes, selectedNetworks, selectedCities, selectedStates]);
 
   const handleSearch = async (searchTerm = null, fromUrl = false) => {
     setLoading(true);
@@ -356,13 +418,24 @@ export default function ProviderSearch() {
     setCurrentPage(1);
     setHasSearched(true);
 
-    const q = searchTerm || queryText.trim();
+    // Determine the search term to use
+    let q;
+    if (searchTerm !== null) {
+      // Explicitly passed search term (could be empty string to clear)
+      q = searchTerm;
+      setSubmittedSearchTerm(searchTerm);
+    } else {
+      // No search term passed, use current queryText (user clicked search button)
+      q = queryText.trim();
+      setSubmittedSearchTerm(q);
+    }
     
-    // Allow search if there's a search term OR active filters
-    if (!q && !hasActiveFilters) {
-      setLoading(false);
-        return;
-      }
+    // Check if we have any active filters (excluding the search term we're about to set)
+    const hasFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
+      selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
+    
+    // Always allow search - if no search term or filters, get first 500 results
+    // No need to return early - always fetch results
 
     if (q) {
       setLastSearchTerm(q);
@@ -370,10 +443,18 @@ export default function ProviderSearch() {
 
     try {
       // Build query params
+      // NOTE: We fetch ALL matching results for overview calculations
+      // Listing tab will be limited to first 500 results for display
       const params = new URLSearchParams();
       if (q) {
         params.append('search', q);
       }
+      // If no search term and no filters, limit to first 500 for listing
+      // (overview will use national overview which reflects entire database)
+      if (!q && !hasFilters) {
+        params.append('limit', '500');
+      }
+      // Otherwise, fetch all matching results (no limit) so overview reflects full dataset
       
       // Add filter parameters
       if (selectedTypes.length > 0) {
@@ -413,21 +494,22 @@ export default function ProviderSearch() {
 
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
+        // Always update filter options from search results (even if empty)
+        // This ensures filter options update correctly when filters are changed/cleared
+        const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
+        const networks = Array.from(new Set(result.data.map(p => p.network).filter(Boolean))).sort();
+        const cities = Array.from(new Set(result.data.map(p => p.city).filter(Boolean))).sort();
+        const states = Array.from(new Set(result.data.map(p => p.state).filter(Boolean))).sort();
+
+        setFilterOptions({
+          types,
+          networks,
+          cities,
+          states
+        });
+
+        // Update filter counts from search results
         if (result.data.length > 0) {
-          // Update filter options from search results
-          const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
-          const networks = Array.from(new Set(result.data.map(p => p.network).filter(Boolean))).sort();
-          const cities = Array.from(new Set(result.data.map(p => p.city).filter(Boolean))).sort();
-          const states = Array.from(new Set(result.data.map(p => p.state).filter(Boolean))).sort();
-
-          setFilterOptions({
-            types,
-            networks,
-            cities,
-            states
-          });
-
-          // Update filter counts from search results
           const typeCounts = {};
           const stateCounts = {};
           types.forEach(type => {
@@ -504,18 +586,19 @@ export default function ProviderSearch() {
     return true;
   });
 
-  // Extract unique filter options from FILTERED results (updates as filters are applied)
-  const allTypes = filteredResults.length > 0 
-    ? Array.from(new Set(filteredResults.map(p => p.type || "Unknown"))).sort()
+  // Extract unique filter options from RESULTS (unfiltered API results)
+  // This ensures filter options update correctly when filters are cleared
+  const allTypes = results.length > 0 
+    ? Array.from(new Set(results.map(p => p.type || "Unknown").filter(Boolean))).sort()
     : filterOptions.types;
-  const allNetworks = filteredResults.length > 0
-    ? Array.from(new Set(filteredResults.map(p => p.network).filter(Boolean))).sort()
+  const allNetworks = results.length > 0
+    ? Array.from(new Set(results.map(p => p.network).filter(Boolean))).sort()
     : filterOptions.networks;
-  const allCities = filteredResults.length > 0
-    ? Array.from(new Set(filteredResults.map(p => p.city).filter(Boolean))).sort()
+  const allCities = results.length > 0
+    ? Array.from(new Set(results.map(p => p.city).filter(Boolean))).sort()
     : filterOptions.cities;
-  const allStates = filteredResults.length > 0
-    ? Array.from(new Set(filteredResults.map(p => p.state).filter(Boolean))).sort()
+  const allStates = results.length > 0
+    ? Array.from(new Set(results.map(p => p.state).filter(Boolean))).sort()
     : filterOptions.states;
 
 
@@ -554,7 +637,34 @@ export default function ProviderSearch() {
     setSelectedMarket(null);
     setMarketNPIs(null);
     setQueryText("");
-    // This will trigger the auto-search effect to clear results
+    setSubmittedSearchTerm("");
+    setError(null);
+    setCurrentPage(1);
+    // Reset to default state - load first 500 results
+    // The useEffect will trigger handleSearch which will fetch first 500 results
+    // Reload national overview filter options when clearing all
+    // This ensures filter choices are restored to full dataset
+    const loadNationalFilterOptions = async () => {
+      try {
+        const response = await fetch(apiUrl('/api/search-providers-vendor/national-overview'));
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data?.filterOptions) {
+            setFilterOptions({
+              types: (result.data.filterOptions?.types || []).slice().sort(),
+              networks: (result.data.filterOptions?.networks || []).slice().sort(),
+              cities: (result.data.filterOptions?.cities || []).slice().sort(),
+              states: (result.data.filterOptions?.states || []).slice().sort()
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error reloading filter options:', err);
+      }
+    };
+    loadNationalFilterOptions();
+    // Trigger search to get first 500 results
+    handleSearch('');
   };
 
   const toggleSection = (section) => {
@@ -564,10 +674,13 @@ export default function ProviderSearch() {
     }));
   };
 
-  const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
+  // For listing display: limit to first 500 results only
+  // Overview will use all results or national overview for full dataset stats
+  const listingResults = filteredResults.slice(0, 500);
+  const totalPages = Math.ceil(listingResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
-  const paginatedResults = filteredResults.slice(startIndex, endIndex);
+  const paginatedResults = listingResults.slice(startIndex, endIndex);
 
   const goToPage = (page) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
@@ -626,12 +739,191 @@ export default function ProviderSearch() {
     }
   };
 
-  const hasActiveFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
+  const hasActiveFilters = submittedSearchTerm.trim() || selectedTypes.length > 0 || selectedNetworks.length > 0 ||
     selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
 
   const formatNumber = (num) => {
     if (num === null || num === undefined) return '0';
     return parseInt(num).toLocaleString();
+  };
+
+  // Handle density location input and geocoding
+  const handleDensityLocationSearch = async () => {
+    if (!densityLocationInput.trim()) {
+      setDensityError('Please enter a location');
+      return;
+    }
+
+    setDensityLoading(true);
+    setDensityError(null);
+
+    try {
+      let coords = null;
+
+      if (densityLocationMode === 'coordinates') {
+        // Parse coordinates (e.g., "40.7128, -74.0060" or "40.7128,-74.0060")
+        const parts = densityLocationInput.trim().split(/[,\s]+/).filter(p => p);
+        if (parts.length !== 2) {
+          throw new Error('Invalid coordinates format. Use: latitude, longitude');
+        }
+        const lat = parseFloat(parts[0]);
+        const lng = parseFloat(parts[1]);
+        if (isNaN(lat) || isNaN(lng)) {
+          throw new Error('Invalid coordinates. Please use numbers only.');
+        }
+        if (lat < -90 || lat > 90) {
+          throw new Error('Latitude must be between -90 and 90');
+        }
+        if (lng < -180 || lng > 180) {
+          throw new Error('Longitude must be between -180 and 180');
+        }
+        coords = { lat, lng };
+      } else if (densityLocationMode === 'address' || densityLocationMode === 'zip') {
+        // Geocode address or zip code
+        coords = await geocodeAddress(densityLocationInput);
+      }
+
+      if (!coords) {
+        throw new Error('Could not determine location coordinates');
+      }
+
+      setDensityCoordinates(coords);
+      await fetchOrgDensity(coords);
+    } catch (err) {
+      console.error('Error processing location:', err);
+      setDensityError(err.message || 'Failed to process location');
+      setDensityLoading(false);
+    }
+  };
+
+  // Fetch organization density data
+  const fetchOrgDensity = async (coords) => {
+    setDensityLoading(true);
+    setDensityError(null);
+    
+    try {
+      // Build filter parameters
+      const params = new URLSearchParams({
+        lat: coords.lat.toString(),
+        lon: coords.lng.toString()
+      });
+      
+      // Add search term filter
+      if (submittedSearchTerm.trim()) {
+        params.append('search', submittedSearchTerm.trim());
+      }
+      
+      // Add type filters
+      if (selectedTypes.length > 0) {
+        selectedTypes.forEach(type => params.append('types', type));
+      }
+      
+      // Add network filters
+      if (selectedNetworks.length > 0) {
+        selectedNetworks.forEach(network => params.append('networks', network));
+      }
+      
+      // Add city filters
+      if (selectedCities.length > 0) {
+        selectedCities.forEach(city => params.append('cities', city));
+      }
+      
+      // Add state filters
+      if (selectedStates.length > 0) {
+        selectedStates.forEach(state => params.append('states', state));
+      }
+      
+      // Add market/tag NPI filters
+      const npiList = [];
+      if (selectedMarket && marketNPIs && marketNPIs.length > 0) {
+        npiList.push(...marketNPIs);
+      }
+      if (selectedTag && tagNPIs && tagNPIs.length > 0) {
+        npiList.push(...tagNPIs);
+      }
+      if (npiList.length > 0) {
+        params.append('npiList', npiList.join(','));
+      }
+      
+      // Fetch density for 10, 20, and 30 mile radius bands
+      const [result10, result20, result30] = await Promise.all([
+        fetch(apiUrl(`/api/hco-density?${params.toString()}&radius=10`)),
+        fetch(apiUrl(`/api/hco-density?${params.toString()}&radius=20`)),
+        fetch(apiUrl(`/api/hco-density?${params.toString()}&radius=30`))
+      ]);
+
+      const data10 = await result10.json();
+      const data20 = await result20.json();
+      const data30 = await result30.json();
+
+      if (!data10.success || !data20.success || !data30.success) {
+        throw new Error(data30.error || 'Failed to fetch density data');
+      }
+
+      // Organize data by classification/specialization
+      const densityData30 = data30.data || [];
+      const densityData20 = data20.data || [];
+      const densityData10 = data10.data || [];
+
+      // Create a map to track results by classification and specialization
+      const densityMap = {};
+
+      // Process 30mi data (contains all orgs)
+      densityData30.forEach(org => {
+        const classification = org.classification_level || org.group_level || 'Unknown';
+        const specialization = org.specialization_level || 'General';
+        const key = `${classification}|${specialization}`;
+        
+        if (!densityMap[key]) {
+          densityMap[key] = {
+            classification,
+            specialization,
+            count_10mi: 0,
+            count_10_20mi: 0,
+            count_20_30mi: 0,
+            count_30mi_total: 0
+          };
+        }
+        densityMap[key].count_30mi_total += parseInt(org.org_count || 0);
+      });
+
+      // Process 20mi data
+      const countMap20 = {};
+      densityData20.forEach(org => {
+        const classification = org.classification_level || org.group_level || 'Unknown';
+        const specialization = org.specialization_level || 'General';
+        const key = `${classification}|${specialization}`;
+        countMap20[key] = (countMap20[key] || 0) + parseInt(org.org_count || 0);
+      });
+
+      // Process 10mi data
+      const countMap10 = {};
+      densityData10.forEach(org => {
+        const classification = org.classification_level || org.group_level || 'Unknown';
+        const specialization = org.specialization_level || 'General';
+        const key = `${classification}|${specialization}`;
+        countMap10[key] = (countMap10[key] || 0) + parseInt(org.org_count || 0);
+      });
+
+      // Calculate bands: 10mi, 10-20mi, 20-30mi
+      Object.keys(densityMap).forEach(key => {
+        const count10 = countMap10[key] || 0;
+        const count20 = countMap20[key] || 0;
+        const count30 = densityMap[key].count_30mi_total;
+
+        densityMap[key].count_10mi = count10;
+        densityMap[key].count_10_20mi = count20 - count10;
+        densityMap[key].count_20_30mi = count30 - count20;
+      });
+
+      const results = Object.values(densityMap).sort((a, b) => b.count_30mi_total - a.count_30mi_total);
+      setDensityResults(results);
+      setDensityLoading(false);
+    } catch (err) {
+      console.error('Error fetching density data:', err);
+      setDensityError(err.message || 'Failed to fetch density data');
+      setDensityLoading(false);
+    }
   };
 
   try {
@@ -640,110 +932,152 @@ export default function ProviderSearch() {
         <div className={styles.container}>
           {/* Top Controls Bar */}
           <div className={styles.controlsBar}>
-            {/* Search Bar with Search Button */}
-            <div style={{ flex: 1, maxWidth: '400px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <div className="searchBarContainer">
-                  <div className="searchIcon">
-                    <Search size={16} />
-                  </div>
-                  <input
-                    type="text"
-                    value={queryText}
-                    onChange={(e) => {
-                      setQueryText(e.target.value);
-                      setEscapeCount(0);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSearch();
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        if (escapeTimeoutRef.current) {
-                          clearTimeout(escapeTimeoutRef.current);
-                        }
-                        if (queryText && escapeCount === 0) {
-                          setQueryText('');
-                          setEscapeCount(1);
-                          escapeTimeoutRef.current = setTimeout(() => setEscapeCount(0), 1000);
-                        } else {
-                          searchInputRef.current?.blur();
-                          setEscapeCount(0);
-                        }
-                      }
-                    }}
-                    placeholder="Search providers..."
-                    className="searchInput"
-                    data-search-enhanced="true"
-                    ref={searchInputRef}
-                  />
-                  {queryText && (
-                    <button
-                      onClick={() => setQueryText('')}
-                      className="clearButton"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
+            {/* Search Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
+              <div className="searchBarContainer" style={{ width: '300px' }}>
+                <div className="searchIcon">
+                  <Search size={16} />
                 </div>
+                <input
+                  type="text"
+                  value={queryText}
+                  onChange={(e) => {
+                    setQueryText(e.target.value);
+                    setEscapeCount(0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearch();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      if (escapeTimeoutRef.current) {
+                        clearTimeout(escapeTimeoutRef.current);
+                      }
+                      if (queryText && escapeCount === 0) {
+                        setQueryText('');
+                        setEscapeCount(1);
+                        escapeTimeoutRef.current = setTimeout(() => setEscapeCount(0), 1000);
+                      } else {
+                        searchInputRef.current?.blur();
+                        setEscapeCount(0);
+                      }
+                    }
+                  }}
+                  placeholder="Search organizations or NPI..."
+                  className="searchInput"
+                  style={{ width: '100%', paddingRight: queryText ? '70px' : '12px' }}
+                  data-search-enhanced="true"
+                  ref={searchInputRef}
+                />
+                {queryText && (
+                  <button
+                    onClick={() => setQueryText('')}
+                    className="clearButton"
+                    style={{ right: '8px' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => handleSearch()}
-                className={styles.searchButton}
-                disabled={loading || (!queryText.trim() && !hasActiveFilters)}
+                className="sectionHeaderButton primary"
+                disabled={loading || !queryText.trim()}
                 title={loading ? 'Searching...' : 'Search'}
               >
                 <Play size={14} />
                 {loading ? 'Searching...' : 'Search'}
               </button>
             </div>
+
+            {savedMarkets.length > 0 && (
+              <Dropdown
+                trigger={
+                  <button className="sectionHeaderButton">
+                    <MapPin size={14} />
+                    {selectedMarket ? 
+                      (() => {
+                        const market = savedMarkets.find(m => m.id === selectedMarket);
+                        return market ? market.name : 'Saved Market';
+                      })() : 
+                      'Saved Market'}
+                    <ChevronDown size={14} />
+                  </button>
+                }
+                isOpen={marketDropdownOpen}
+                onToggle={setMarketDropdownOpen}
+                className={styles.dropdownMenu}
+              >
+                <button 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleMarketSelect(null);
+                    setMarketDropdownOpen(false);
+                  }}
+                >
+                  No Market
+                </button>
+                {savedMarkets.map(market => (
+                  <button 
+                    key={market.id}
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      handleMarketSelect(market.id);
+                      setMarketDropdownOpen(false);
+                    }}
+                    style={{
+                      fontWeight: selectedMarket === market.id ? '600' : '500',
+                      background: selectedMarket === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                    }}
+                  >
+                    <div>{market.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                      {market.city}, {market.state} • {market.radius_miles} mi
+                    </div>
+                  </button>
+                ))}
+              </Dropdown>
+            )}
+
+            <div className={styles.spacer}></div>
             
-            {/* Results Info & Pagination */}
-            {!loading && hasSearched && results.length > 0 && (
-              <>
-                <div className={styles.searchStatus}>
-                  <span className={styles.searchStatusActive} style={{ fontSize: '13px' }}>
-                    Showing {startIndex + 1}-{Math.min(endIndex, filteredResults.length)} of {formatNumber(filteredResults.length)}
+            {((results && results.length > 0) || nationalOverview) && (
+              <div className={styles.contextInfo}>
+                {selectedMarket ? (
+                  (() => {
+                    const market = savedMarkets.find(m => m.id === selectedMarket);
+                    return market ? (
+                      <span>{market.city}, {market.state_code} • {market.radius_miles}mi radius</span>
+                    ) : (
+                      <span>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? `${formatNumber(filteredResults.length)} organizations`
+                          : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
+                        }
+                      </span>
+                    );
+                  })()
+                ) : (
+                  <span>
+                    {hasActiveFilters || submittedSearchTerm.trim()
+                      ? `${formatNumber(filteredResults.length)} organizations`
+                      : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
+                    }
                   </span>
-                </div>
-                {totalPages > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button
-                      onClick={() => goToPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className={styles.paginationButton}
-                      style={{ padding: '4px 10px', fontSize: '12px' }}
-                    >
-                      Prev
-                    </button>
-                    <span style={{ fontSize: '12px', color: 'var(--gray-600)' }}>
-                      {currentPage}/{totalPages}
-                    </span>
-                    <button
-                      onClick={() => goToPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className={styles.paginationButton}
-                      style={{ padding: '4px 10px', fontSize: '12px' }}
-                    >
-                      Next
-                    </button>
-                  </div>
                 )}
-              </>
+              </div>
             )}
             
             <div className={styles.controlsBarButtons}>
-              {hasSearched && (
-                <button
-                  onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-                  className="sectionHeaderButton"
-                  title="Toggle filters"
-                >
-                  <Filter size={14} />
-                  Filters
-                </button>
-              )}
+              <button
+                onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+                className="sectionHeaderButton"
+                title="Toggle filters"
+              >
+                <Filter size={14} />
+                Filters
+              </button>
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
@@ -754,63 +1088,32 @@ export default function ProviderSearch() {
                 </button>
               )}
             </div>
-                  </div>
+          </div>
 
-          {/* Active Filter Chips */}
-          {hasActiveFilters && (
-            <div className={styles.activeFiltersBar}>
-              <div className={styles.activeFilters}>
-                {selectedTag && (
-                  <div className={styles.filterChip}>
-                    <span>My {selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} ({providerTags[selectedTag]?.length || 0})</span>
-                    <button onClick={() => handleTagSelect('')}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-                {selectedMarket && (
-                  <div className={styles.filterChip}>
-                    <span>{savedMarkets.find(m => m.id === selectedMarket)?.name || 'Market'}</span>
-                    <button onClick={() => handleMarketSelect(null)}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-                {selectedTypes.map(type => (
-                  <div key={`type-${type}`} className={styles.filterChip}>
-                    <span>{type}</span>
-                    <button onClick={() => toggleType(type)}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-                {selectedNetworks.map(network => (
-                  <div key={`network-${network}`} className={styles.filterChip}>
-                    <span>{network}</span>
-                    <button onClick={() => toggleNetwork(network)}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-                {selectedCities.map(city => (
-                  <div key={`city-${city}`} className={styles.filterChip}>
-                    <span>{city}</span>
-                    <button onClick={() => toggleCity(city)}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-                {selectedStates.map(state => (
-                  <div key={`state-${state}`} className={styles.filterChip}>
-                    <span>{state}</span>
-                    <button onClick={() => toggleState(state)}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Tab Navigation */}
+          <div className={styles.tabNav}>
+            <button 
+              className={`${styles.tab} ${activeTab === 'overview' ? styles.active : ''}`}
+              onClick={() => setActiveTab('overview')}
+            >
+              <BarChart3 size={16} />
+              Overview
+            </button>
+            <button 
+              className={`${styles.tab} ${activeTab === 'listing' ? styles.active : ''}`}
+              onClick={() => setActiveTab('listing')}
+            >
+              <List size={16} />
+              Listing
+            </button>
+            <button 
+              className={`${styles.tab} ${activeTab === 'density' ? styles.active : ''}`}
+              onClick={() => setActiveTab('density')}
+            >
+              <Layers size={16} />
+              Density
+            </button>
+          </div>
 
           {/* Main Layout */}
           <div className={styles.mainLayout}>
@@ -822,8 +1125,8 @@ export default function ProviderSearch() {
                   <p>Narrow results</p>
                 </div>
 
-                  {/* Provider Type Filter */}
-                  <div className={styles.filterGroup}>
+              {/* Provider Type Filter */}
+                <div className={styles.filterGroup}>
                 <button 
                   className={styles.filterHeader}
                   onClick={() => toggleSection('types')}
@@ -1105,29 +1408,241 @@ export default function ProviderSearch() {
             )}
 
             {/* Main Content */}
-            <div className={styles.resultsPanel}>
-                  {loading && (
-                    <div className={styles.emptyState}>
-                      <Spinner />
-                      <h2>Searching...</h2>
-                      <p>Finding providers matching your criteria</p>
+            <div className={`${styles.mainContent} ${activeTab === 'listing' ? styles.mainContentNoPadding : ''}`}>
+              {/* Loading Overlay for Overview Tab - Covers entire main content */}
+              {loading && activeTab === 'overview' && (
+                <div className={styles.loadingOverlay}>
+                  <Spinner />
+                </div>
+              )}
+              
+              {/* Active Filter Chips - Above Content */}
+              {hasActiveFilters && (
+                <div className={styles.activeFiltersBar}>
+                  <div className={styles.activeFilters}>
+                  {submittedSearchTerm.trim() && (
+                    <div className={styles.filterChip}>
+                      <span>Search: "{submittedSearchTerm}"</span>
+                      <button onClick={() => {
+                        setQueryText('');
+                        setSubmittedSearchTerm('');
+                        if (hasSearched) {
+                          handleSearch('');
+                        }
+                      }}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
+                    {selectedTag && (
+                      <div className={styles.filterChip}>
+                        <span>My {selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} ({providerTags[selectedTag]?.length || 0})</span>
+                        <button onClick={() => handleTagSelect('')}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    {selectedMarket && (
+                      <div className={styles.filterChip}>
+                        <span>{savedMarkets.find(m => m.id === selectedMarket)?.name || 'Market'}</span>
+                        <button onClick={() => handleMarketSelect(null)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    {selectedTypes.map(type => (
+                      <div key={`type-${type}`} className={styles.filterChip}>
+                        <span>{type}</span>
+                        <button onClick={() => toggleType(type)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {selectedNetworks.map(network => (
+                      <div key={`network-${network}`} className={styles.filterChip}>
+                        <span>{network}</span>
+                        <button onClick={() => toggleNetwork(network)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {selectedCities.map(city => (
+                      <div key={`city-${city}`} className={styles.filterChip}>
+                        <span>{city}</span>
+                        <button onClick={() => toggleCity(city)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {selectedStates.map(state => (
+                      <div key={`state-${state}`} className={styles.filterChip}>
+                        <span>{state}</span>
+                        <button onClick={() => toggleState(state)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                )}
-
-                  {!loading && !hasSearched && (
-                    <div className={styles.emptyState}>
-                      <Search size={48} />
-                      <h2>Search for Providers</h2>
-                      <p>Enter a search term above to find providers</p>
+                </div>
+              )}
+              
+              {/* Tab Content */}
+              <>
+              {/* Overview Tab */}
+              {activeTab === 'overview' && (
+                <div className={styles.overviewContent}>
+                  <div className={styles.overviewPanel}>
+                    <h3>
+                      <Database size={16} />
+                      {hasActiveFilters || submittedSearchTerm.trim() ? 'Filtered Results' : 'National Overview'}
+                    </h3>
+                    <div className={styles.overviewGrid}>
+                    <div className={styles.overviewCard}>
+                      <div className={styles.overviewLabel}>Total Organizations</div>
+                      <div className={styles.overviewValue}>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? formatNumber(filteredResults.length)
+                          : formatNumber(nationalOverview?.overall?.total_providers || 0)
+                        }
+                      </div>
+                    </div>
+                    <div className={styles.overviewCard}>
+                      <div className={styles.overviewLabel}>Provider Types</div>
+                      <div className={styles.overviewValue}>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? formatNumber(new Set(filteredResults.map(r => r.type)).size)
+                          : formatNumber(nationalOverview?.overall?.distinct_types || 0)
+                        }
+                      </div>
+                    </div>
+                    <div className={styles.overviewCard}>
+                      <div className={styles.overviewLabel}>States</div>
+                      <div className={styles.overviewValue}>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? formatNumber(new Set(filteredResults.map(r => r.state)).size)
+                          : formatNumber(nationalOverview?.overall?.distinct_states || 0)
+                        }
+                      </div>
+                    </div>
+                    <div className={styles.overviewCard}>
+                      <div className={styles.overviewLabel}>Cities</div>
+                      <div className={styles.overviewValue}>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? formatNumber(new Set(filteredResults.map(r => r.city).filter(Boolean)).size)
+                          : formatNumber(nationalOverview?.overall?.distinct_cities || 0)
+                        }
+                      </div>
+                    </div>
+                    <div className={styles.overviewCard}>
+                      <div className={styles.overviewLabel}>Networks</div>
+                      <div className={styles.overviewValue}>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? formatNumber(new Set(filteredResults.map(r => r.network).filter(Boolean)).size)
+                          : formatNumber(nationalOverview?.overall?.distinct_networks || 0)
+                        }
+                      </div>
+                    </div>
                   </div>
-                )}
-
-                  {!loading && hasSearched && filteredResults.length === 0 && (
+                  </div>
+                  
+                  {/* Breakdowns - Separate from overview panel */}
+                  {(nationalOverview?.breakdowns || (hasActiveFilters || submittedSearchTerm.trim())) && (
+                    <div className={styles.breakdownsContainer}>
+                      {/* Top Types */}
+                      {((nationalOverview?.breakdowns?.types || []).length > 0 || (hasActiveFilters || submittedSearchTerm.trim())) && (
+                        <div className={styles.breakdownSection}>
+                          <h4>Top Provider Types</h4>
+                          <div className={styles.breakdownList}>
+                            {(() => {
+                              const types = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
+                                ? Object.entries(
+                                    filteredResults.reduce((acc, r) => {
+                                      const type = r.type || 'Unknown';
+                                      acc[type] = (acc[type] || 0) + 1;
+                                      return acc;
+                                    }, {})
+                                  )
+                                  .map(([name, count]) => ({ name, count }))
+                                  .sort((a, b) => b.count - a.count)
+                                  .slice(0, 10)
+                                : (nationalOverview?.breakdowns?.types || []).map(item => ({
+                                    name: item.type || item.name || 'Unknown',
+                                    count: parseInt(item.count || 0)
+                                  })).slice(0, 10);
+                              
+                              if (types.length === 0) return null;
+                              
+                              return types.map((item, idx) => (
+                                <div key={idx} className={styles.breakdownItem}>
+                                  <span className={styles.breakdownName}>{item.name}</span>
+                                  <div className={styles.breakdownBar}>
+                                    <div 
+                                      className={styles.breakdownBarFill}
+                                      style={{ width: `${(item.count / types[0].count) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Top States */}
+                      {((nationalOverview?.breakdowns?.states || []).length > 0 || (hasActiveFilters || submittedSearchTerm.trim())) && (
+                        <div className={styles.breakdownSection}>
+                          <h4>State Distribution</h4>
+                          <div className={styles.breakdownList}>
+                            {(() => {
+                              const states = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
+                                ? Object.entries(
+                                    filteredResults.reduce((acc, r) => {
+                                      const state = r.state || 'Unknown';
+                                      acc[state] = (acc[state] || 0) + 1;
+                                      return acc;
+                                    }, {})
+                                  )
+                                  .map(([name, count]) => ({ name, count }))
+                                  .sort((a, b) => b.count - a.count)
+                                  .slice(0, 10)
+                                : (nationalOverview?.breakdowns?.states || []).map(item => ({
+                                    name: item.state || item.name || 'Unknown',
+                                    count: parseInt(item.count || 0)
+                                  })).slice(0, 10);
+                              
+                              if (states.length === 0) return null;
+                              
+                              return states.map((item, idx) => (
+                                <div key={idx} className={styles.breakdownItem}>
+                                  <span className={styles.breakdownName}>{item.name}</span>
+                                  <div className={styles.breakdownBar}>
+                                    <div 
+                                      className={styles.breakdownBarFill}
+                                      style={{ width: `${(item.count / states[0].count) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Listing Tab */}
+              {activeTab === 'listing' && (
+                <div className={styles.resultsPanel}>
+                  {!loading && filteredResults.length === 0 && (
                     <div className={styles.emptyState}>
                       <h2>No Results Found</h2>
                       <p>Try adjusting your search terms or filters</p>
-                  </div>
-                )}
+                    </div>
+                  )}
 
                   {!loading && paginatedResults.length > 0 && showBulkActions && hasTeam && (
                     <div className={styles.resultsHeader}>
@@ -1179,9 +1694,14 @@ export default function ProviderSearch() {
                     </div>
                   )}
 
-                {!loading && paginatedResults.length > 0 && (
+                {paginatedResults.length > 0 && (
                     <>
                       <div className={styles.tableWrapper}>
+                        {loading && (
+                          <div className={styles.loadingOverlay}>
+                            <Spinner />
+                          </div>
+                        )}
                         <table className={styles.resultsTable}>
                           <thead>
                             <tr>
@@ -1263,7 +1783,183 @@ export default function ProviderSearch() {
                         </table>
                       </div>
                     </>
-                      )}
+                  )}
+
+                  {/* Pagination */}
+                  {!loading && paginatedResults.length > 0 && totalPages > 1 && (
+                    <div className={styles.pagination}>
+                      <button
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={styles.paginationButton}
+                      >
+                        Previous
+                      </button>
+                      <span className={styles.paginationInfo}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={styles.paginationButton}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Density Tab */}
+              {activeTab === 'density' && (
+                <div className={styles.densityPanel}>
+                  {loading && (
+                    <div className={styles.loadingOverlay}>
+                      <Spinner />
+                    </div>
+                  )}
+                  <div className={styles.densityHeader}>
+                    <h3>
+                      <Layers size={16} />
+                      Organization Density Analysis
+                    </h3>
+                    <p>Enter a location to see organization counts by type within 10, 20, and 30 mile radius bands</p>
+                  </div>
+
+                  {/* Location Input */}
+                  <div className={styles.densityControls}>
+                    <div className={styles.locationModeSelector}>
+                      <label>
+                        <input
+                          type="radio"
+                          name="locationMode"
+                          value="address"
+                          checked={densityLocationMode === 'address'}
+                          onChange={(e) => setDensityLocationMode(e.target.value)}
+                        />
+                        Address
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name="locationMode"
+                          value="coordinates"
+                          checked={densityLocationMode === 'coordinates'}
+                          onChange={(e) => setDensityLocationMode(e.target.value)}
+                        />
+                        Coordinates
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name="locationMode"
+                          value="zip"
+                          checked={densityLocationMode === 'zip'}
+                          onChange={(e) => setDensityLocationMode(e.target.value)}
+                        />
+                        ZIP Code
+                      </label>
+                    </div>
+
+                    <div className={styles.locationInputWrapper}>
+                      <input
+                        type="text"
+                        value={densityLocationInput}
+                        onChange={(e) => setDensityLocationInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleDensityLocationSearch();
+                        }}
+                        placeholder={
+                          densityLocationMode === 'coordinates' 
+                            ? 'e.g., 40.7128, -74.0060'
+                            : densityLocationMode === 'zip'
+                            ? 'e.g., 10001'
+                            : 'e.g., New York, NY or 123 Main St, Boston, MA'
+                        }
+                        className={styles.densityInput}
+                        disabled={densityLoading}
+                      />
+                      <button
+                        onClick={handleDensityLocationSearch}
+                        className="sectionHeaderButton primary"
+                        disabled={densityLoading || !densityLocationInput.trim()}
+                      >
+                        <Navigation size={14} />
+                        {densityLoading ? 'Analyzing...' : 'Analyze'}
+                      </button>
+                    </div>
+
+                    {densityError && (
+                      <div className={styles.densityError}>
+                        {densityError}
+                      </div>
+                    )}
+
+                    {densityCoordinates.lat && (
+                      <div className={styles.densityLocation}>
+                        <MapPin size={14} />
+                        Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Density Results */}
+                  {densityLoading && (
+                    <div className={styles.densityLoading}>
+                      <Spinner />
+                      <p>Analyzing organization density...</p>
+                    </div>
+                  )}
+
+                  {!densityLoading && densityResults && densityResults.length > 0 && (
+                    <div className={styles.densityResults}>
+                      <div className={styles.densityTableWrapper}>
+                        <table className={styles.densityTable}>
+                          <thead>
+                            <tr>
+                              <th>Classification</th>
+                              <th>Specialization</th>
+                              <th>0-10 mi</th>
+                              <th>10-20 mi</th>
+                              <th>20-30 mi</th>
+                              <th>Total (30 mi)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {densityResults.map((row, idx) => (
+                              <tr key={idx}>
+                                <td>{row.classification}</td>
+                                <td>{row.specialization}</td>
+                                <td className={styles.countCell}>{formatNumber(row.count_10mi)}</td>
+                                <td className={styles.countCell}>{formatNumber(row.count_10_20mi)}</td>
+                                <td className={styles.countCell}>{formatNumber(row.count_20_30mi)}</td>
+                                <td className={styles.totalCell}>{formatNumber(row.count_30mi_total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {!densityLoading && densityResults && densityResults.length === 0 && (
+                    <div className={styles.densityEmpty}>
+                      <Database size={48} />
+                      <h2>No Results Found</h2>
+                      <p>No organizations found in this area</p>
+                    </div>
+                  )}
+
+                  {!densityLoading && !densityResults && (
+                    <div className={styles.densityEmpty}>
+                      <Layers size={48} />
+                      <h2>Enter Location to Analyze</h2>
+                      <p>Use the input above to specify a location and view organization density</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              </>
             </div>
           </div>
         </div>

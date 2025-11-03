@@ -24,6 +24,15 @@ function LegacyProviderRedirect() {
   return <Navigate to={`/app/${dhc}`} replace />;
 }
 
+// Helper component for HCO route redirect
+function HCORedirect() {
+  const { npi } = useParams();
+  if (npi) {
+    return <Navigate to={`/app/search/orgs/${npi}`} replace />;
+  }
+  return <Navigate to="/app/search/orgs" replace />;
+}
+
 // Pages
 import LandingPage from "../pages/Public/Marketing/LandingPage";
 import Login from "../pages/Auth/Login";
@@ -64,9 +73,7 @@ import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
 import KPIs from "../pages/Private/KPIs/KPIsLayout";
 import Taxonomies from "../pages/Private/Taxonomies/TaxonomiesLayout";
 import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
-import HCOAnalysis from "../pages/Private/HCOAnalysis/HCOAnalysis";
 import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
-import HCPAnalysisV2 from "../pages/Private/HCPAnalysis/HCPAnalysisV2";
 import ReferralPathways from "../pages/Private/ReferralPathways/ReferralPathways";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
@@ -157,10 +164,11 @@ function AppContent({ location }) {
             <Route path="kpis/*" element={<KPIs />} />
             <Route path="taxonomies/*" element={<Taxonomies />} />
             <Route path="claims" element={<ClaimsDataInvestigation />} />
-            <Route path="hco" element={<HCOAnalysis />} />
-            <Route path="hco/:npi" element={<HCOAnalysis />} />
+            {/* Redirect old HCO/HCP Directory routes to Search the Industry */}
+            <Route path="hco" element={<Navigate to="/app/search/orgs" replace />} />
+            <Route path="hco/:npi" element={<HCORedirect />} />
+            <Route path="hcp" element={<Navigate to="/app/search/ind" replace />} />
             <Route path="geography" element={<GeographyAnalysis />} />
-            <Route path="hcp" element={<HCPAnalysisV2 />} />
             <Route path="referral-pathways" element={<ReferralPathways />} />
           </Route>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import styles from './AdvancedSearch.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
@@ -52,6 +52,17 @@ export default function AdvancedSearch() {
   // Active tab
   const [activeTab, setActiveTab] = useState('overview'); // overview, listing, density
   
+  // Collapsible filter pane
+  const [showFiltersSidebar, setShowFiltersSidebar] = useState(false);
+  
+  // Collapsible filter sections (default to collapsed like org search)
+  const [expandedSections, setExpandedSections] = useState({
+    states: false,
+    specialties: false,
+    gender: false,
+    affiliations: false
+  });
+  
   // Density tab state
   const [densityLocationInput, setDensityLocationInput] = useState('');
   const [densityLocationMode, setDensityLocationMode] = useState('address'); // address, coordinates, zip
@@ -61,12 +72,22 @@ export default function AdvancedSearch() {
   const [densityResults, setDensityResults] = useState(null);
   const [taxonomyDetails, setTaxonomyDetails] = useState({}); // Map of code -> details
   
+  // Search input refs and escape handling
+  const searchInputRef = useRef(null);
+  const escapeTimeoutRef = useRef(null);
+  const [escapeCount, setEscapeCount] = useState(0);
+  
   useEffect(() => {
     fetchMarkets();
     fetchTaxonomyTags();
     // Load national view by default (search with no filters)
     searchPractitioners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Focus search input on page load
+  useEffect(() => {
+    searchInputRef.current?.focus();
   }, []);
   
   const fetchMarkets = async () => {
@@ -275,6 +296,13 @@ export default function AdvancedSearch() {
     }));
   };
   
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+  
   const exportToCSV = () => {
     if (!results || !results.practitioners || results.practitioners.length === 0) return;
 
@@ -366,9 +394,54 @@ export default function AdvancedSearch() {
         longitude: coords.lng
       };
 
-      // If taxonomy tags are selected, filter by them
+      // Add search term filter
+      if (searchTerm.trim()) {
+        requestBody.search = searchTerm.trim();
+      }
+
+      // Add taxonomy codes filter (from selected taxonomy tag or filters)
+      const taxonomyCodesToFilter = [];
       if (selectedTaxonomyTag) {
-        requestBody.taxonomyCodes = [selectedTaxonomyTag.taxonomy_code];
+        taxonomyCodesToFilter.push(selectedTaxonomyTag.taxonomy_code);
+      }
+      if (filters.taxonomyCodes && filters.taxonomyCodes.length > 0) {
+        taxonomyCodesToFilter.push(...filters.taxonomyCodes);
+      }
+      if (taxonomyCodesToFilter.length > 0) {
+        requestBody.taxonomyCodes = [...new Set(taxonomyCodesToFilter)]; // Remove duplicates
+      }
+
+      // Add state filters
+      if (filters.states && filters.states.length > 0) {
+        requestBody.states = filters.states;
+      }
+
+      // Add specialty filters
+      if (filters.specialties && filters.specialties.length > 0) {
+        requestBody.consolidatedSpecialty = filters.specialties;
+      }
+
+      // Add gender filters
+      if (filters.gender && filters.gender.length > 0) {
+        requestBody.gender = filters.gender;
+      }
+
+      // Add affiliation filters
+      if (filters.hasHospitalAffiliation !== null) {
+        requestBody.hasHospitalAffiliation = filters.hasHospitalAffiliation;
+      }
+      if (filters.hasPhysicianGroupAffiliation !== null) {
+        requestBody.hasPhysicianGroupAffiliation = filters.hasPhysicianGroupAffiliation;
+      }
+      if (filters.hasNetworkAffiliation !== null) {
+        requestBody.hasNetworkAffiliation = filters.hasNetworkAffiliation;
+      }
+
+      // Add market location constraints if market is selected
+      if (selectedMarket) {
+        requestBody.marketLatitude = parseFloat(selectedMarket.latitude);
+        requestBody.marketLongitude = parseFloat(selectedMarket.longitude);
+        requestBody.marketRadius = parseFloat(selectedMarket.radius_miles);
       }
 
       const response = await fetch('/api/hcp-data/taxonomy-density', {
@@ -455,6 +528,65 @@ export default function AdvancedSearch() {
     <div className={styles.container}>
       {/* Top Controls Bar */}
       <div className={styles.controlsBar}>
+        {/* Search Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
+          <div className="searchBarContainer" style={{ width: '300px' }}>
+            <div className="searchIcon">
+              <Search size={16} />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setEscapeCount(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchPractitioners();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  if (escapeTimeoutRef.current) {
+                    clearTimeout(escapeTimeoutRef.current);
+                  }
+                  if (searchTerm && escapeCount === 0) {
+                    setSearchTerm('');
+                    setEscapeCount(1);
+                    escapeTimeoutRef.current = setTimeout(() => setEscapeCount(0), 1000);
+                  } else {
+                    searchInputRef.current?.blur();
+                    setEscapeCount(0);
+                  }
+                }
+              }}
+              placeholder="Search practitioners or NPI..."
+              className="searchInput"
+              style={{ width: '100%', paddingRight: searchTerm ? '70px' : '12px' }}
+              data-search-enhanced="true"
+              ref={searchInputRef}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="clearButton"
+                style={{ right: '8px' }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={searchPractitioners}
+            className="sectionHeaderButton primary"
+            disabled={loading || !searchTerm.trim()}
+            title={loading ? 'Searching...' : 'Search'}
+          >
+            <Play size={14} />
+            {loading ? 'Searching...' : 'Search'}
+          </button>
+        </div>
+
         {markets.length > 0 && (
           <Dropdown
             trigger={
@@ -663,21 +795,24 @@ export default function AdvancedSearch() {
           </div>
         )}
         
-        {hasActiveFilters() && (
-          <button onClick={clearAll} className="sectionHeaderButton">
-            <X size={14} />
-            Clear All
-          </button>
-        )}
-        
-        <button 
-          onClick={searchPractitioners}
-          className="sectionHeaderButton primary"
-          disabled={loading}
-        >
-          <Play size={14} />
-          {loading ? 'Searching...' : 'Search'}
-        </button>
+        <div className={styles.controlsBarButtons}>
+          {results && (
+            <button
+              onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+              className="sectionHeaderButton"
+              title="Toggle filters"
+            >
+              <FilterIcon size={14} />
+              Filters
+            </button>
+          )}
+          {hasActiveFilters() && (
+            <button onClick={clearAll} className="sectionHeaderButton">
+              <X size={14} />
+              Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -708,174 +843,209 @@ export default function AdvancedSearch() {
       {/* Main Layout */}
       <div className={styles.mainLayout}>
         
-        {/* Left Sidebar - Filters */}
-        <div className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-            <h3>Search & Filter</h3>
-            <p>Find healthcare practitioners</p>
-          </div>
+        {/* Left Sidebar - Filters (collapsible) */}
+        {showFiltersSidebar && (
+          <div className={styles.sidebar}>
+            <div className={styles.sidebarHeader}>
+              <h3>Filters</h3>
+              <p>Narrow results</p>
+            </div>
 
-          {/* Search Input */}
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <Search size={14} />
-              Practitioner Name or NPI
-            </label>
-            <p className={styles.filterHint}>
-              Search for practitioner names (e.g., "Dr. Smith", "John") or NPI numbers
-            </p>
-            <div className={styles.searchInputWrapper}>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') searchPractitioners();
-                }}
-                placeholder="e.g., Smith, Johnson, 1234567890..."
-                className={styles.searchInput}
-              />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm('')} className={styles.clearButton}>
-                  <X size={14} />
-                </button>
+
+            {/* State Filter */}
+            <div className={styles.filterGroup}>
+              <button 
+                className={styles.filterHeader}
+                onClick={() => toggleSection('states')}
+              >
+                <div className={styles.filterHeaderLeft}>
+                  <FilterIcon size={14} />
+                  <span>States</span>
+                  {filters.states.length > 0 && (
+                    <span className={styles.filterBadge}>{filters.states.length}</span>
+                  )}
+                </div>
+                <ChevronDown 
+                  size={16} 
+                  className={expandedSections.states ? styles.chevronExpanded : styles.chevronCollapsed}
+                />
+              </button>
+              {expandedSections.states && (
+                <div className={styles.filterContent}>
+                  <div className={styles.filterList}>
+                    {filterOptions.states.slice(0, 10).map((state, idx) => (
+                      <label key={idx} className={styles.filterCheckbox}>
+                        <input
+                          type="checkbox"
+                          checked={filters.states.includes(state.state)}
+                          onChange={() => toggleFilterValue('states', state.state)}
+                        />
+                        <span>{state.state}</span>
+                        <span className={styles.filterCount}>({formatNumber(state.count)})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Specialty Filter */}
+            <div className={styles.filterGroup}>
+              <button 
+                className={styles.filterHeader}
+                onClick={() => toggleSection('specialties')}
+              >
+                <div className={styles.filterHeaderLeft}>
+                  <FilterIcon size={14} />
+                  <span>Specialty</span>
+                  {filters.specialties.length > 0 && (
+                    <span className={styles.filterBadge}>{filters.specialties.length}</span>
+                  )}
+                </div>
+                <ChevronDown 
+                  size={16} 
+                  className={expandedSections.specialties ? styles.chevronExpanded : styles.chevronCollapsed}
+                />
+              </button>
+              {expandedSections.specialties && (
+                <div className={styles.filterContent}>
+                  <input
+                    type="text"
+                    value={filterSearches.specialties}
+                    onChange={(e) => setFilterSearches(prev => ({ ...prev, specialties: e.target.value }))}
+                    placeholder="Search specialties..."
+                    className={styles.filterSearchInput}
+                  />
+                  <div className={styles.filterList}>
+                    {filterOptions.specialties
+                      .filter(spec =>
+                        !filterSearches.specialties ||
+                        spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
+                      )
+                      .map((spec, idx) => (
+                        <label key={idx} className={styles.filterCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={filters.specialties.includes(spec.specialty)}
+                            onChange={() => toggleFilterValue('specialties', spec.specialty)}
+                          />
+                          <span className={styles.specialtyName}>{spec.specialty}</span>
+                          <span className={styles.filterCount}>({formatNumber(spec.count)})</span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Gender Filter */}
+            <div className={styles.filterGroup}>
+              <button 
+                className={styles.filterHeader}
+                onClick={() => toggleSection('gender')}
+              >
+                <div className={styles.filterHeaderLeft}>
+                  <FilterIcon size={14} />
+                  <span>Gender</span>
+                  {filters.gender.length > 0 && (
+                    <span className={styles.filterBadge}>{filters.gender.length}</span>
+                  )}
+                </div>
+                <ChevronDown 
+                  size={16} 
+                  className={expandedSections.gender ? styles.chevronExpanded : styles.chevronCollapsed}
+                />
+              </button>
+              {expandedSections.gender && (
+                <div className={styles.filterContent}>
+                  <div className={styles.filterList}>
+                    {['male', 'female'].map(g => (
+                      <label key={g} className={styles.filterCheckbox}>
+                        <input
+                          type="checkbox"
+                          checked={filters.gender.includes(g)}
+                          onChange={() => toggleFilterValue('gender', g)}
+                        />
+                        <span>{g === 'male' ? 'Male' : 'Female'}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Affiliation Filters */}
+            <div className={styles.filterGroup}>
+              <button 
+                className={styles.filterHeader}
+                onClick={() => toggleSection('affiliations')}
+              >
+                <div className={styles.filterHeaderLeft}>
+                  <FilterIcon size={14} />
+                  <span>Affiliations</span>
+                </div>
+                <ChevronDown 
+                  size={16} 
+                  className={expandedSections.affiliations ? styles.chevronExpanded : styles.chevronCollapsed}
+                />
+              </button>
+              {expandedSections.affiliations && (
+                <div className={styles.filterContent}>
+                  <div className={styles.booleanFilter}>
+                    <span className={styles.booleanLabel}>Hospital:</span>
+                    <div className={styles.booleanButtons}>
+                      <button
+                        className={`${styles.booleanButton} ${filters.hasHospitalAffiliation === true ? styles.active : ''}`}
+                        onClick={() => setBooleanFilter('hasHospitalAffiliation', true)}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        className={`${styles.booleanButton} ${filters.hasHospitalAffiliation === false ? styles.active : ''}`}
+                        onClick={() => setBooleanFilter('hasHospitalAffiliation', false)}
+                      >
+                        No
+                      </button>
+                      <button
+                        className={`${styles.booleanButton} ${filters.hasHospitalAffiliation === null ? styles.active : ''}`}
+                        onClick={() => setBooleanFilter('hasHospitalAffiliation', null)}
+                      >
+                        Any
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.booleanFilter}>
+                    <span className={styles.booleanLabel}>Network:</span>
+                    <div className={styles.booleanButtons}>
+                      <button
+                        className={`${styles.booleanButton} ${filters.hasNetworkAffiliation === true ? styles.active : ''}`}
+                        onClick={() => setBooleanFilter('hasNetworkAffiliation', true)}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        className={`${styles.booleanButton} ${filters.hasNetworkAffiliation === false ? styles.active : ''}`}
+                        onClick={() => setBooleanFilter('hasNetworkAffiliation', false)}
+                      >
+                        No
+                      </button>
+                      <button
+                        className={`${styles.booleanButton} ${filters.hasNetworkAffiliation === null ? styles.active : ''}`}
+                        onClick={() => setBooleanFilter('hasNetworkAffiliation', null)}
+                      >
+                        Any
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
-
-          {/* State Filter */}
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              States {filters.states.length > 0 && `(${filters.states.length})`}
-            </label>
-            <div className={styles.filterList}>
-              {filterOptions.states.slice(0, 10).map((state, idx) => (
-                <label key={idx} className={styles.filterCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={filters.states.includes(state.state)}
-                    onChange={() => toggleFilterValue('states', state.state)}
-                  />
-                  <span>{state.state}</span>
-                  <span className={styles.filterCount}>({formatNumber(state.count)})</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Specialty Filter */}
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              Specialty {filters.specialties.length > 0 && `(${filters.specialties.length})`}
-            </label>
-            <input
-              type="text"
-              value={filterSearches.specialties}
-              onChange={(e) => setFilterSearches(prev => ({ ...prev, specialties: e.target.value }))}
-              placeholder="Search specialties..."
-              className={styles.filterSearchInput}
-            />
-            <div className={styles.filterList}>
-              {filterOptions.specialties
-                .filter(spec =>
-                  !filterSearches.specialties ||
-                  spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
-                )
-                .map((spec, idx) => (
-                  <label key={idx} className={styles.filterCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={filters.specialties.includes(spec.specialty)}
-                      onChange={() => toggleFilterValue('specialties', spec.specialty)}
-                    />
-                    <span className={styles.specialtyName}>{spec.specialty}</span>
-                    <span className={styles.filterCount}>({formatNumber(spec.count)})</span>
-                  </label>
-                ))}
-            </div>
-          </div>
-
-          {/* Gender Filter */}
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              Gender
-            </label>
-            <div className={styles.filterList}>
-              {['male', 'female'].map(g => (
-                <label key={g} className={styles.filterCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={filters.gender.includes(g)}
-                    onChange={() => toggleFilterValue('gender', g)}
-                  />
-                  <span>{g === 'male' ? 'Male' : 'Female'}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Affiliation Filters */}
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>
-              <FilterIcon size={14} />
-              Affiliations
-            </label>
-            
-            <div className={styles.booleanFilter}>
-              <span className={styles.booleanLabel}>Hospital:</span>
-              <div className={styles.booleanButtons}>
-                <button
-                  className={`${styles.booleanButton} ${filters.hasHospitalAffiliation === true ? styles.active : ''}`}
-                  onClick={() => setBooleanFilter('hasHospitalAffiliation', true)}
-                >
-                  Yes
-                </button>
-                <button
-                  className={`${styles.booleanButton} ${filters.hasHospitalAffiliation === false ? styles.active : ''}`}
-                  onClick={() => setBooleanFilter('hasHospitalAffiliation', false)}
-                >
-                  No
-                </button>
-                <button
-                  className={`${styles.booleanButton} ${filters.hasHospitalAffiliation === null ? styles.active : ''}`}
-                  onClick={() => setBooleanFilter('hasHospitalAffiliation', null)}
-                >
-                  Any
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.booleanFilter}>
-              <span className={styles.booleanLabel}>Network:</span>
-              <div className={styles.booleanButtons}>
-                <button
-                  className={`${styles.booleanButton} ${filters.hasNetworkAffiliation === true ? styles.active : ''}`}
-                  onClick={() => setBooleanFilter('hasNetworkAffiliation', true)}
-                >
-                  Yes
-                </button>
-                <button
-                  className={`${styles.booleanButton} ${filters.hasNetworkAffiliation === false ? styles.active : ''}`}
-                  onClick={() => setBooleanFilter('hasNetworkAffiliation', false)}
-                >
-                  No
-                </button>
-                <button
-                  className={`${styles.booleanButton} ${filters.hasNetworkAffiliation === null ? styles.active : ''}`}
-                  onClick={() => setBooleanFilter('hasNetworkAffiliation', null)}
-                >
-                  Any
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Main Content */}
-        <div className={styles.mainContent}>
+        <div className={`${styles.mainContent} ${activeTab === 'listing' ? styles.mainContentNoPadding : ''}`}>
           
           {/* Overview Tab */}
           {activeTab === 'overview' && resultStats && results && (
@@ -1063,6 +1233,24 @@ export default function AdvancedSearch() {
                     <span className={styles.pageInfo}>
                       Page {page} of {totalPages} ({pageSize} per page)
                     </span>
+                    {totalPages > 1 && (
+                      <div className={styles.paginationInline}>
+                        <button
+                          onClick={() => setPage(Math.max(1, page - 1))}
+                          disabled={page === 1}
+                          className="sectionHeaderButton"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => setPage(Math.min(totalPages, page + 1))}
+                          disabled={page === totalPages}
+                          className="sectionHeaderButton"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
                     <button onClick={exportToCSV} className="sectionHeaderButton">
                       <Download size={14} />
                       Export CSV
@@ -1123,14 +1311,12 @@ export default function AdvancedSearch() {
                           </td>
                           <td>
                             <div className={styles.locationCell}>
-                              {practitioner.address_line_1 && (
-                                <div className={styles.streetAddress}>{practitioner.address_line_1}</div>
-                              )}
-                              {practitioner.address_line_2 && (
-                                <div className={styles.streetAddress}>{practitioner.address_line_2}</div>
-                              )}
-                              <div>{practitioner.city}, {practitioner.state}</div>
-                              <div className={styles.zip}>{practitioner.zip}</div>
+                              <div className={styles.streetAddress}>
+                                {[practitioner.address_line_1, practitioner.address_line_2].filter(Boolean).join(', ')}
+                              </div>
+                              <div className={styles.cityStateZip}>
+                                {[practitioner.city, practitioner.state, practitioner.zip].filter(Boolean).join(', ')}
+                              </div>
                             </div>
                           </td>
                           <td>{practitioner.phone || '-'}</td>
@@ -1165,29 +1351,6 @@ export default function AdvancedSearch() {
                     </tbody>
                   </table>
                 </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className={styles.pagination}>
-                    <button
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      disabled={page === 1}
-                      className={styles.paginationButton}
-                    >
-                      Previous
-                    </button>
-                    <span className={styles.paginationInfo}>
-                      Page {page} of {totalPages}
-                    </span>
-                    <button
-                      onClick={() => setPage(Math.min(totalPages, page + 1))}
-                      disabled={page === totalPages}
-                      className={styles.paginationButton}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>

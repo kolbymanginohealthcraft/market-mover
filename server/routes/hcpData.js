@@ -12,8 +12,8 @@ const router = express.Router();
 function getDistanceFormula(centerLat, centerLng) {
   return `
     ST_DISTANCE(
-      ST_GEOGPOINT(${centerLng}, ${centerLat}),
-      ST_GEOGPOINT(primary_address_long, primary_address_lat)
+      ST_GEOGPOINT(CAST(${centerLng} AS FLOAT64), CAST(${centerLat} AS FLOAT64)),
+      ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64))
     ) / 1609.34
   `;
 }
@@ -859,7 +859,20 @@ router.post("/taxonomy-density", async (req, res) => {
     const {
       latitude,
       longitude,
-      taxonomyCodes = []
+      taxonomyCodes = [],
+      // Additional filter parameters
+      states = [],
+      consolidatedSpecialty = [],
+      gender = [],
+      hasHospitalAffiliation = null,
+      hasPhysicianGroupAffiliation = null,
+      hasNetworkAffiliation = null,
+      search = '',
+      npiList = [], // For market/tag filters
+      // Market location constraints
+      marketLatitude = null,
+      marketLongitude = null,
+      marketRadius = null
     } = req.body;
 
     if (!latitude || !longitude) {
@@ -899,6 +912,63 @@ router.post("/taxonomy-density", async (req, res) => {
     if (taxonomyCodes && Array.isArray(taxonomyCodes) && taxonomyCodes.length > 0) {
       whereClauses.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
       params.taxonomyCodes = taxonomyCodes;
+    }
+
+    // Search filter
+    if (search && search.trim()) {
+      whereClauses.push('(LOWER(name_full_formatted) LIKE @searchTerm OR npi LIKE @searchTerm)');
+      params.searchTerm = `%${search.trim().toLowerCase()}%`;
+    }
+
+    // State filter
+    if (states && Array.isArray(states) && states.length > 0) {
+      whereClauses.push('primary_address_state_or_province IN UNNEST(@states)');
+      params.states = states;
+    }
+
+    // Specialty filter
+    if (consolidatedSpecialty && Array.isArray(consolidatedSpecialty) && consolidatedSpecialty.length > 0) {
+      whereClauses.push('primary_taxonomy_consolidated_specialty IN UNNEST(@specialties)');
+      params.specialties = consolidatedSpecialty;
+    }
+
+    // Gender filter
+    if (gender && Array.isArray(gender) && gender.length > 0) {
+      whereClauses.push('gender IN UNNEST(@gender)');
+      params.gender = gender;
+    }
+
+    // Hospital affiliation filter
+    if (hasHospitalAffiliation === true) {
+      whereClauses.push('atlas_affiliation_primary_hospital_parent_id IS NOT NULL');
+    } else if (hasHospitalAffiliation === false) {
+      whereClauses.push('atlas_affiliation_primary_hospital_parent_id IS NULL');
+    }
+
+    // Physician group affiliation filter
+    if (hasPhysicianGroupAffiliation === true) {
+      whereClauses.push('atlas_affiliation_primary_physician_group_parent_id IS NOT NULL');
+    } else if (hasPhysicianGroupAffiliation === false) {
+      whereClauses.push('atlas_affiliation_primary_physician_group_parent_id IS NULL');
+    }
+
+    // Network affiliation filter
+    if (hasNetworkAffiliation === true) {
+      whereClauses.push('atlas_affiliation_primary_network_id IS NOT NULL');
+    } else if (hasNetworkAffiliation === false) {
+      whereClauses.push('atlas_affiliation_primary_network_id IS NULL');
+    }
+
+    // NPI list filter (for market/tag filters)
+    if (npiList && Array.isArray(npiList) && npiList.length > 0) {
+      whereClauses.push('npi IN UNNEST(@npiList)');
+      params.npiList = npiList.map(n => String(n).trim()).filter(Boolean);
+    }
+
+    // Market location constraint (provider must be within market radius)
+    if (marketLatitude && marketLongitude && marketRadius) {
+      const marketDistanceFormula = getDistanceFormula(parseFloat(marketLatitude), parseFloat(marketLongitude));
+      whereClauses.push(`${marketDistanceFormula} <= ${parseFloat(marketRadius)}`);
     }
 
     const whereClause = whereClauses.join(' AND ');

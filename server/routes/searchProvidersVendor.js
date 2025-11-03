@@ -18,7 +18,7 @@ const router = express.Router();
  *       Uses vendor BigQuery hco_flat with definitive_id as DHC.
  */
 router.get("/search-providers-vendor", async (req, res) => {
-  const { dhc, search, types, networks, cities, states, dhcs, lat, lon, radius } = req.query;
+  const { dhc, search, types, networks, cities, states, dhcs, lat, lon, radius, limit } = req.query;
 
   try {
     let query, params;
@@ -132,6 +132,9 @@ router.get("/search-providers-vendor", async (req, res) => {
       let orderBy = 'atlas_definitive_name';
       // Note: Complex relevance scoring would require changes - keeping simple alphabetical for now
 
+      // Build LIMIT clause if specified
+      const limitClause = limit ? `LIMIT ${Number(limit)}` : '';
+      
       query = `
         SELECT 
           atlas_definitive_id as dhc,
@@ -150,6 +153,7 @@ router.get("/search-providers-vendor", async (req, res) => {
         FROM \`aegis_access.hco_flat\`
         WHERE ${whereConditions.join(' AND ')}
         ORDER BY ${orderBy}
+        ${limitClause}
       `;
       params = queryParams;
     }

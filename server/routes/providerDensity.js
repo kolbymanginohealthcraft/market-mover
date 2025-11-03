@@ -218,7 +218,19 @@ router.get("/provider-density-details", async (req, res) => {
  * Returns: Array of healthcare organization counts by type within the specified radius.
  */
 router.get("/hco-density", async (req, res) => {
-  const { lat, lon, radius = 10, refresh } = req.query;
+  const { 
+    lat, 
+    lon, 
+    radius = 10, 
+    refresh,
+    // Filter parameters
+    types,
+    networks,
+    cities,
+    states,
+    search,
+    npiList // comma-separated list of NPIs (for market/tag filters)
+  } = req.query;
 
   if (!lat || !lon) {
     return res.status(400).json({
@@ -229,9 +241,17 @@ router.get("/hco-density", async (req, res) => {
 
   const radiusMeters = Number(radius) * 1609.34; // Convert miles to meters
 
+  // Parse filter parameters
+  const typeList = types ? (Array.isArray(types) ? types : types.split(',')) : [];
+  const networkList = networks ? (Array.isArray(networks) ? networks : networks.split(',')) : [];
+  const cityList = cities ? (Array.isArray(cities) ? cities : cities.split(',')) : [];
+  const stateList = states ? (Array.isArray(states) ? states : states.split(',')) : [];
+  const npiListArray = npiList ? (Array.isArray(npiList) ? npiList : npiList.split(',')) : [];
+
   try {
-    // Check cache first (unless refresh is requested)
-    const cacheKey = `hco-density-${lat}-${lon}-${radius}`;
+    // Build cache key including filters
+    const filterKey = JSON.stringify({ types: typeList, networks: networkList, cities: cityList, states: stateList, search, npiList: npiListArray });
+    const cacheKey = `hco-density-${lat}-${lon}-${radius}-${filterKey}`;
     const cachedResult = !refresh ? cache.get(cacheKey) : null;
     if (cachedResult) {
       console.log(`Serving cached HCO density data for ${lat},${lon} (${radius}mi)`);
@@ -243,7 +263,52 @@ router.get("/hco-density", async (req, res) => {
       });
     }
 
-          // Query the actual HCO table with hierarchical taxonomy structure
+          // Build WHERE clauses
+      const whereClauses = [
+        'primary_address_lat IS NOT NULL',
+        'primary_address_long IS NOT NULL',
+        'npi_deactivation_date IS NULL',
+        '(primary_taxonomy_grouping IS NOT NULL OR primary_taxonomy_classification IS NOT NULL)',
+        'ST_DISTANCE(ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)), ST_GEOGPOINT(@lon, @lat)) <= @radiusMeters'
+      ];
+      const params = {
+        lat: Number(lat),
+        lon: Number(lon),
+        radiusMeters,
+      };
+
+      // Add filter conditions
+      if (search && search.trim()) {
+        whereClauses.push('(LOWER(healthcare_organization_name) LIKE @searchTerm OR CAST(npi AS STRING) LIKE @searchTerm)');
+        params.searchTerm = `%${search.trim().toLowerCase()}%`;
+      }
+
+      if (typeList.length > 0) {
+        whereClauses.push('definitive_firm_type IN UNNEST(@types)');
+        params.types = typeList;
+      }
+
+      if (networkList.length > 0) {
+        whereClauses.push('atlas_affiliation_primary_network_name IN UNNEST(@networks)');
+        params.networks = networkList;
+      }
+
+      if (cityList.length > 0) {
+        whereClauses.push('LOWER(primary_address_city) IN UNNEST(@cities)');
+        params.cities = cityList.map(c => c.toLowerCase());
+      }
+
+      if (stateList.length > 0) {
+        whereClauses.push('primary_address_state_or_province IN UNNEST(@states)');
+        params.states = stateList;
+      }
+
+      if (npiListArray.length > 0) {
+        whereClauses.push('CAST(npi AS STRING) IN UNNEST(@npiList)');
+        params.npiList = npiListArray.map(n => String(n).trim()).filter(Boolean);
+      }
+
+      // Query the actual HCO table with hierarchical taxonomy structure
       const query = `
         SELECT 
           COALESCE(primary_taxonomy_grouping, 'Unknown') as group_level,
@@ -251,14 +316,7 @@ router.get("/hco-density", async (req, res) => {
           COALESCE(primary_taxonomy_specialization, 'General') as specialization_level,
           COUNT(*) as org_count
         FROM \`aegis_access.hco_base_flat\`
-        WHERE primary_address_lat IS NOT NULL 
-          AND primary_address_long IS NOT NULL
-          AND npi_deactivation_date IS NULL
-          AND (primary_taxonomy_grouping IS NOT NULL OR primary_taxonomy_classification IS NOT NULL)
-          AND ST_DISTANCE(
-            ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
-            ST_GEOGPOINT(@lon, @lat)
-          ) <= @radiusMeters
+        WHERE ${whereClauses.join(' AND ')}
         GROUP BY primary_taxonomy_grouping, primary_taxonomy_classification, primary_taxonomy_specialization
         ORDER BY org_count DESC
         LIMIT 30
@@ -266,11 +324,7 @@ router.get("/hco-density", async (req, res) => {
 
       const [rows] = await vendorBigQueryClient.query({
         query,
-        params: {
-          lat: Number(lat),
-          lon: Number(lon),
-          radiusMeters,
-        },
+        params,
       });
 
       // Log the results for debugging
