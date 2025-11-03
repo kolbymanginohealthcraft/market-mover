@@ -48,6 +48,7 @@ export default function ProviderSearch() {
   const [lastSearchTerm, setLastSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
+  const [resultsTotalNPIs, setResultsTotalNPIs] = useState(null);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(100);
@@ -74,6 +75,7 @@ export default function ProviderSearch() {
 
   // Filter states
   const [selectedTypes, setSelectedTypes] = useState([]);
+  const [selectedHospitalSubtypes, setSelectedHospitalSubtypes] = useState([]);
   const [selectedNetworks, setSelectedNetworks] = useState([]);
   const [selectedCities, setSelectedCities] = useState([]);
   const [selectedStates, setSelectedStates] = useState([]);
@@ -81,6 +83,7 @@ export default function ProviderSearch() {
   // Collapsible filter sections
   const [expandedSections, setExpandedSections] = useState({
     types: false,
+    hospitalSubtypes: false,
     networks: false,
     cities: false,
     states: false,
@@ -495,6 +498,7 @@ export default function ProviderSearch() {
 
       if (result.success && Array.isArray(result.data)) {
         setResults(result.data);
+        setResultsTotalNPIs(result.totalNPIs || null);
         // Always update filter options from search results (even if empty)
         // This ensures filter options update correctly when filters are changed/cleared
         const types = Array.from(new Set(result.data.map(p => p.type || "Unknown").filter(Boolean))).sort();
@@ -572,8 +576,20 @@ export default function ProviderSearch() {
 
   // Apply filters to results
   const filteredResults = results.filter(provider => {
-    if (selectedTypes.length > 0 && !selectedTypes.includes(provider.type || "Unknown")) {
-      return false;
+    if (selectedTypes.length > 0) {
+      const providerType = provider.type || "Unknown";
+      if (!selectedTypes.includes(providerType)) {
+        return false;
+      }
+      
+      // If Hospital is selected and hospital subtypes are selected, filter by subtypes
+      if (providerType === 'Hospital' && selectedHospitalSubtypes.length > 0) {
+        const taxonomy = provider.primary_taxonomy_classification || '';
+        // Check if the provider's taxonomy exactly matches one of the selected subtypes
+        if (!selectedHospitalSubtypes.includes(taxonomy)) {
+          return false;
+        }
+      }
     }
     if (selectedNetworks.length > 0 && !selectedNetworks.includes(provider.network)) {
       return false;
@@ -592,6 +608,33 @@ export default function ProviderSearch() {
   const allTypes = results.length > 0 
     ? Array.from(new Set(results.map(p => p.type || "Unknown").filter(Boolean))).sort()
     : filterOptions.types;
+  
+  // Extract hospital subtypes from results where type is Hospital and primary_taxonomy_classification contains "Hospital"
+  const hospitalSubtypes = results.length > 0 && selectedTypes.includes('Hospital')
+    ? (() => {
+        const hospitals = results.filter(p => p.type === 'Hospital');
+        const subtypes = hospitals
+          .map(p => p.primary_taxonomy_classification)
+          .filter(Boolean)
+          .filter(taxonomy => taxonomy.includes && taxonomy.includes('Hospital'));
+        
+        const uniqueSubtypes = Array.from(new Set(subtypes)).sort();
+        
+        // Debug logging
+        if (hospitals.length > 0 && uniqueSubtypes.length === 0) {
+          console.log('Hospital subtypes extraction debug:', {
+            totalHospitals: hospitals.length,
+            sampleHospital: hospitals[0],
+            hasTaxonomyField: hospitals[0]?.primary_taxonomy_classification !== undefined,
+            taxonomyValue: hospitals[0]?.primary_taxonomy_classification,
+            allTaxonomies: hospitals.slice(0, 5).map(h => h.primary_taxonomy_classification)
+          });
+        }
+        
+        return uniqueSubtypes;
+      })()
+    : [];
+  
   const allNetworks = results.length > 0
     ? Array.from(new Set(results.map(p => p.network).filter(Boolean))).sort()
     : filterOptions.networks;
@@ -605,8 +648,23 @@ export default function ProviderSearch() {
 
   // Filter functions
   const toggleType = (type) => {
-    setSelectedTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    setSelectedTypes(prev => {
+      const newTypes = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
+      // If Hospital is being deselected, clear hospital subtypes
+      if (type === 'Hospital' && prev.includes('Hospital')) {
+        setSelectedHospitalSubtypes([]);
+        setExpandedSections(prev => ({ ...prev, hospitalSubtypes: false }));
+      } else if (type === 'Hospital' && !prev.includes('Hospital')) {
+        // Auto-expand hospital subtypes when Hospital is first selected
+        setExpandedSections(prev => ({ ...prev, hospitalSubtypes: true }));
+      }
+      return newTypes;
+    });
+  };
+
+  const toggleHospitalSubtype = (subtype) => {
+    setSelectedHospitalSubtypes(prev =>
+      prev.includes(subtype) ? prev.filter(s => s !== subtype) : [...prev, subtype]
     );
   };
 
@@ -630,6 +688,7 @@ export default function ProviderSearch() {
 
   const clearAllFilters = () => {
     setSelectedTypes([]);
+    setSelectedHospitalSubtypes([]);
     setSelectedNetworks([]);
     setSelectedCities([]);
     setSelectedStates([]);
@@ -769,7 +828,7 @@ export default function ProviderSearch() {
     }
   };
 
-  const hasActiveFilters = submittedSearchTerm.trim() || selectedTypes.length > 0 || selectedNetworks.length > 0 ||
+  const hasActiveFilters = submittedSearchTerm.trim() || selectedTypes.length > 0 || selectedHospitalSubtypes.length > 0 || selectedNetworks.length > 0 ||
     selectedCities.length > 0 || selectedStates.length > 0 || selectedTag || selectedMarket;
 
   const formatNumber = (num) => {
@@ -1177,14 +1236,62 @@ export default function ProviderSearch() {
                   <div className={styles.filterContent}>
                     <div className={styles.filterList}>
                       {allTypes.map(type => (
-                        <label key={type} className={styles.filterCheckbox}>
-                          <input
-                            type="checkbox"
-                            checked={selectedTypes.includes(type)}
-                            onChange={() => toggleType(type)}
-                          />
-                          <span>{type}</span>
-                        </label>
+                        <div key={type}>
+                          <label className={styles.filterCheckbox}>
+                            <input
+                              type="checkbox"
+                              checked={selectedTypes.includes(type)}
+                              onChange={() => toggleType(type)}
+                            />
+                            <span>{type}</span>
+                          </label>
+                          {/* Nested Hospital Subtypes */}
+                          {type === 'Hospital' && selectedTypes.includes('Hospital') && hospitalSubtypes.length > 0 && (
+                            <div style={{ marginLeft: '20px', marginTop: '6px', marginBottom: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSection('hospitalSubtypes');
+                                }}
+                                className={styles.filterCheckbox}
+                                style={{
+                                  width: '100%',
+                                  justifyContent: 'flex-start',
+                                  padding: '4px 8px',
+                                  marginBottom: '4px',
+                                  background: expandedSections.hospitalSubtypes ? 'var(--gray-50)' : 'transparent'
+                                }}
+                              >
+                                <ChevronDown 
+                                  size={14} 
+                                  className={expandedSections.hospitalSubtypes ? styles.chevronExpanded : styles.chevronCollapsed}
+                                  style={{ marginRight: '6px' }}
+                                />
+                                <span style={{ fontSize: '12px', fontWeight: '500' }}>Hospital Types</span>
+                                {selectedHospitalSubtypes.length > 0 && (
+                                  <span className={styles.filterBadge} style={{ marginLeft: '6px' }}>
+                                    {selectedHospitalSubtypes.length}
+                                  </span>
+                                )}
+                              </button>
+                              {expandedSections.hospitalSubtypes && (
+                                <div style={{ marginLeft: '24px', marginTop: '4px' }}>
+                                  {hospitalSubtypes.map(subtype => (
+                                    <label key={subtype} className={styles.filterCheckbox}>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedHospitalSubtypes.includes(subtype)}
+                                        onChange={() => toggleHospitalSubtype(subtype)}
+                                      />
+                                      <span style={{ fontSize: '12px' }}>{subtype}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1298,142 +1405,6 @@ export default function ProviderSearch() {
                   </div>
                 )}
                   </div>
-
-                  {/* My Network Filter */}
-                  {providerTags && (
-                    <div className={styles.filterGroup}>
-                      <button 
-                        className={styles.filterHeader}
-                        onClick={() => toggleSection('network')}
-                      >
-                        <div className={styles.filterHeaderLeft}>
-                          <Users size={14} />
-                          <span>My Network</span>
-                          {selectedTag && (
-                            <span className={styles.filterBadge}>
-                              {providerTags[selectedTag]?.length || 0}
-                            </span>
-                          )}
-                        </div>
-                        <ChevronDown 
-                          size={16} 
-                          className={expandedSections.network ? styles.chevronExpanded : styles.chevronCollapsed}
-                        />
-                      </button>
-                      {expandedSections.network && (
-                        <div className={styles.filterContent}>
-                          <div className={styles.filterList}>
-                            <label className={styles.filterCheckbox}>
-                              <input
-                                type="radio"
-                                name="networkFilter"
-                                checked={!selectedTag}
-                                onChange={() => handleTagSelect('')}
-                              />
-                              <span>All Providers</span>
-                            </label>
-                            {providerTags.me?.length > 0 && (
-                              <label className={styles.filterCheckbox}>
-                                <input
-                                  type="radio"
-                                  name="networkFilter"
-                                  checked={selectedTag === 'me'}
-                                  onChange={() => handleTagSelect('me')}
-                                />
-                                <span>My Providers ({providerTags.me.length})</span>
-                              </label>
-                            )}
-                            {providerTags.partner?.length > 0 && (
-                              <label className={styles.filterCheckbox}>
-                                <input
-                                  type="radio"
-                                  name="networkFilter"
-                                  checked={selectedTag === 'partner'}
-                                  onChange={() => handleTagSelect('partner')}
-                                />
-                                <span>Partners ({providerTags.partner.length})</span>
-                              </label>
-                            )}
-                            {providerTags.competitor?.length > 0 && (
-                              <label className={styles.filterCheckbox}>
-                                <input
-                                  type="radio"
-                                  name="networkFilter"
-                                  checked={selectedTag === 'competitor'}
-                                  onChange={() => handleTagSelect('competitor')}
-                                />
-                                <span>Competitors ({providerTags.competitor.length})</span>
-                              </label>
-                            )}
-                            {providerTags.target?.length > 0 && (
-                              <label className={styles.filterCheckbox}>
-                                <input
-                                  type="radio"
-                                  name="networkFilter"
-                                  checked={selectedTag === 'target'}
-                                  onChange={() => handleTagSelect('target')}
-                                />
-                                <span>Targets ({providerTags.target.length})</span>
-                              </label>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Saved Markets Filter */}
-                  {savedMarkets.length > 0 && (
-                    <div className={styles.filterGroup}>
-                      <button 
-                        className={styles.filterHeader}
-                        onClick={() => toggleSection('markets')}
-                      >
-                        <div className={styles.filterHeaderLeft}>
-                          <MapPin size={14} />
-                          <span>Saved Markets</span>
-                          {selectedMarket && (
-                            <span className={styles.filterBadge}>1</span>
-                          )}
-                        </div>
-                        <ChevronDown 
-                          size={16} 
-                          className={expandedSections.markets ? styles.chevronExpanded : styles.chevronCollapsed}
-                        />
-                      </button>
-                      {expandedSections.markets && (
-                        <div className={styles.filterContent}>
-                          <div className={styles.filterList}>
-                            <label className={styles.filterCheckbox}>
-                              <input
-                                type="radio"
-                                name="marketFilter"
-                                checked={!selectedMarket}
-                                onChange={() => handleMarketSelect(null)}
-                              />
-                              <span>No Market</span>
-                            </label>
-                            {savedMarkets.map(market => (
-                              <label key={market.id} className={styles.filterCheckbox}>
-                                <input
-                                  type="radio"
-                                  name="marketFilter"
-                                  checked={selectedMarket === market.id}
-                                  onChange={() => handleMarketSelect(market.id)}
-                                />
-                                <span>
-                                  {market.name}
-                                  <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
-                                    {market.city}, {market.state} • {market.radius_miles} mi
-                                  </div>
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
               </div>
             )}
 
@@ -1478,6 +1449,14 @@ export default function ProviderSearch() {
                       <div key={`type-${type}`} className={styles.filterChip}>
                         <span>{type}</span>
                         <button onClick={() => toggleType(type)}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {selectedHospitalSubtypes.map(subtype => (
+                      <div key={`hospital-subtype-${subtype}`} className={styles.filterChip}>
+                        <span>{subtype}</span>
+                        <button onClick={() => toggleHospitalSubtype(subtype)}>
                           <X size={12} />
                         </button>
                       </div>
@@ -1537,38 +1516,20 @@ export default function ProviderSearch() {
                       </div>
                     </div>
                     <div className={styles.overviewCard}>
-                      <div className={styles.overviewLabel}>Provider Types</div>
-                      <div className={styles.overviewValue}>
-                        {hasActiveFilters || submittedSearchTerm.trim()
-                          ? formatNumber(new Set(filteredResults.map(r => r.type)).size)
-                          : formatNumber(nationalOverview?.overall?.distinct_types || 0)
-                        }
-                      </div>
-                    </div>
-                    <div className={styles.overviewCard}>
-                      <div className={styles.overviewLabel}>States</div>
-                      <div className={styles.overviewValue}>
-                        {hasActiveFilters || submittedSearchTerm.trim()
-                          ? formatNumber(new Set(filteredResults.map(r => r.state)).size)
-                          : formatNumber(nationalOverview?.overall?.distinct_states || 0)
-                        }
-                      </div>
-                    </div>
-                    <div className={styles.overviewCard}>
-                      <div className={styles.overviewLabel}>Cities</div>
-                      <div className={styles.overviewValue}>
-                        {hasActiveFilters || submittedSearchTerm.trim()
-                          ? formatNumber(new Set(filteredResults.map(r => r.city).filter(Boolean)).size)
-                          : formatNumber(nationalOverview?.overall?.distinct_cities || 0)
-                        }
-                      </div>
-                    </div>
-                    <div className={styles.overviewCard}>
                       <div className={styles.overviewLabel}>Networks</div>
                       <div className={styles.overviewValue}>
                         {hasActiveFilters || submittedSearchTerm.trim()
                           ? formatNumber(new Set(filteredResults.map(r => r.network).filter(Boolean)).size)
                           : formatNumber(nationalOverview?.overall?.distinct_networks || 0)
+                        }
+                      </div>
+                    </div>
+                    <div className={styles.overviewCard}>
+                      <div className={styles.overviewLabel}>Total NPIs</div>
+                      <div className={styles.overviewValue}>
+                        {hasActiveFilters || submittedSearchTerm.trim()
+                          ? formatNumber(resultsTotalNPIs !== null ? resultsTotalNPIs : new Set(filteredResults.map(r => r.npi).filter(Boolean)).size)
+                          : formatNumber(nationalOverview?.overall?.total_npis || 0)
                         }
                       </div>
                     </div>
@@ -1581,7 +1542,12 @@ export default function ProviderSearch() {
                       {/* Top Types */}
                       {((nationalOverview?.breakdowns?.types || []).length > 0 || (hasActiveFilters || submittedSearchTerm.trim())) && (
                         <div className={styles.breakdownSection}>
-                          <h4>Top Provider Types</h4>
+                          <h4>Top Provider Types {(() => {
+                            const typesTotal = hasActiveFilters || submittedSearchTerm.trim()
+                              ? new Set(filteredResults.map(r => r.type)).size
+                              : (nationalOverview?.overall?.distinct_types || 0);
+                            return typesTotal ? `(${formatNumber(typesTotal)} total)` : '';
+                          })()}</h4>
                           <div className={styles.breakdownList}>
                             {(() => {
                               const types = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
@@ -1622,7 +1588,12 @@ export default function ProviderSearch() {
                       {/* Top States */}
                       {((nationalOverview?.breakdowns?.states || []).length > 0 || (hasActiveFilters || submittedSearchTerm.trim())) && (
                         <div className={styles.breakdownSection}>
-                          <h4>State Distribution</h4>
+                          <h4>State Distribution {(() => {
+                            const statesTotal = hasActiveFilters || submittedSearchTerm.trim()
+                              ? new Set(filteredResults.map(r => r.state)).size
+                              : (nationalOverview?.overall?.distinct_states || 0);
+                            return statesTotal ? `(${formatNumber(statesTotal)} total)` : '';
+                          })()}</h4>
                           <div className={styles.breakdownList}>
                             {(() => {
                               const states = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
@@ -1650,6 +1621,56 @@ export default function ProviderSearch() {
                                     <div 
                                       className={styles.breakdownBarFill}
                                       style={{ width: `${(item.count / states[0].count) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Top Cities */}
+                      {((nationalOverview?.breakdowns?.cities || []).length > 0 || (hasActiveFilters || submittedSearchTerm.trim())) && (
+                        <div className={styles.breakdownSection}>
+                          <h4>Top Cities {(() => {
+                            const citiesTotal = hasActiveFilters || submittedSearchTerm.trim()
+                              ? new Set(filteredResults.map(r => r.city).filter(Boolean)).size
+                              : (nationalOverview?.overall?.distinct_cities || 0);
+                            return citiesTotal ? `(${formatNumber(citiesTotal)} total)` : '';
+                          })()}</h4>
+                          <div className={styles.breakdownList}>
+                            {(() => {
+                              const cities = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
+                                ? Object.entries(
+                                    filteredResults.reduce((acc, r) => {
+                                      const city = r.city || 'Unknown';
+                                      const state = r.state || '';
+                                      const cityState = state ? `${city}, ${state}` : city;
+                                      if (city) {
+                                        acc[cityState] = (acc[cityState] || 0) + 1;
+                                      }
+                                      return acc;
+                                    }, {})
+                                  )
+                                  .map(([name, count]) => ({ name, count }))
+                                  .sort((a, b) => b.count - a.count)
+                                  .slice(0, 10)
+                                : (nationalOverview?.breakdowns?.cities || []).map(item => ({
+                                    name: item.city || item.name || 'Unknown',
+                                    count: parseInt(item.count || 0)
+                                  })).slice(0, 10);
+                              
+                              if (cities.length === 0) return null;
+                              
+                              return cities.map((item, idx) => (
+                                <div key={idx} className={styles.breakdownItem}>
+                                  <span className={styles.breakdownName}>{item.name}</span>
+                                  <div className={styles.breakdownBar}>
+                                    <div 
+                                      className={styles.breakdownBarFill}
+                                      style={{ width: `${(item.count / cities[0].count) * 100}%` }}
                                     />
                                   </div>
                                   <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
@@ -1724,7 +1745,10 @@ export default function ProviderSearch() {
                           </div>
                         )}
                         <span className={styles.pageInfo}>
-                          Showing {startIndex + 1}-{Math.min(endIndex, listingResults.length)} of {formatNumber(nationalOverview?.overall?.total_providers || listingResults.length)} (table limited to first 500)
+                          {(() => {
+                            const total = hasActiveFilters || submittedSearchTerm.trim() ? filteredResults.length : (nationalOverview?.overall?.total_providers || 0);
+                            return `Showing ${startIndex + 1}-${Math.min(endIndex, listingResults.length)} of ${formatNumber(total)}${total >= 500 ? ' (table limited to first 500)' : ''}`;
+                          })()}
                         </span>
                         {totalPages > 1 && (
                           <div className={styles.paginationInline}>

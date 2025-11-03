@@ -21,7 +21,7 @@ router.get("/search-providers-vendor", async (req, res) => {
   const { dhc, search, types, networks, cities, states, dhcs, lat, lon, radius, limit } = req.query;
 
   try {
-    let query, params;
+    let query, params, whereConditions;
 
     if (dhc) {
       query = `
@@ -37,6 +37,7 @@ router.get("/search-providers-vendor", async (req, res) => {
           primary_address_phone_number_primary as phone,
           atlas_network_name as network,
           atlas_definitive_firm_type as type,
+          primary_taxonomy_classification,
           primary_address_lat as latitude,
           primary_address_long as longitude
         FROM \`aegis_access.hco_flat\`
@@ -45,9 +46,10 @@ router.get("/search-providers-vendor", async (req, res) => {
           AND npi_deactivation_date IS NULL
       `;
       params = { dhc: Number(dhc) };
+      whereConditions = null; // Not needed for single DHC lookup
     } else {
       // Build WHERE conditions
-      let whereConditions = [
+      whereConditions = [
         'npi_deactivation_date IS NULL',
         'atlas_definitive_id IS NOT NULL',
         'atlas_definitive_id_primary_npi = TRUE'
@@ -148,6 +150,7 @@ router.get("/search-providers-vendor", async (req, res) => {
           primary_address_phone_number_primary as phone,
           atlas_network_name as network,
           atlas_definitive_firm_type as type,
+          primary_taxonomy_classification,
           primary_address_lat as latitude,
           primary_address_long as longitude
         FROM \`aegis_access.hco_flat\`
@@ -158,16 +161,49 @@ router.get("/search-providers-vendor", async (req, res) => {
       params = queryParams;
     }
 
-    const [rows] = await vendorBigQuery.query({
-      query,
-      params,
-    });
+    // For filtered results, calculate total NPIs in parallel with main query
+    // This counts ALL NPIs for organizations matching the filters, not just primary NPIs
+    let totalNPIsPromise = null;
+    if (!dhc && whereConditions) {
+      // Count ALL NPIs for organizations matching the filters
+      // Use a CTE to avoid duplicating the filter logic
+      const totalNPIsQuery = `
+        WITH filtered_orgs AS (
+          SELECT DISTINCT atlas_definitive_id
+          FROM \`aegis_access.hco_flat\`
+          WHERE ${whereConditions.join(' AND ')}
+        )
+        SELECT
+          COUNT(DISTINCT npi) as total_npis
+        FROM \`aegis_access.hco_flat\`
+        WHERE atlas_definitive_id IS NOT NULL
+          AND atlas_definitive_id IN (SELECT atlas_definitive_id FROM filtered_orgs)
+          AND npi_deactivation_date IS NULL
+      `;
 
-    console.log(`✅ [VENDOR] Search returned ${rows.length} providers`);
+      totalNPIsPromise = vendorBigQuery.query({
+        query: totalNPIsQuery,
+        params: params,
+      }).catch(err => {
+        console.error('Error calculating total NPIs:', err);
+        return [[{ total_npis: 0 }]]; // Return 0 on error
+      });
+    }
+
+    // Execute main query and NPI count query in parallel
+    const [rows, npiResult] = await Promise.all([
+      vendorBigQuery.query({ query, params }),
+      totalNPIsPromise || Promise.resolve(null)
+    ]);
+
+    const totalNPIs = npiResult ? parseInt(npiResult[0]?.[0]?.total_npis || 0) : null;
+
+    console.log(`✅ [VENDOR] Search returned ${rows[0].length} providers${totalNPIs !== null ? ` (${totalNPIs} total NPIs)` : ''}`);
 
     res.status(200).json({
       success: true,
-      data: dhc ? rows[0] || null : rows,
+      data: dhc ? rows[0][0] || null : rows[0],
+      totalNPIs: totalNPIs
     });
   } catch (err) {
     console.error("❌ [VENDOR] BigQuery search-providers error:", err);
@@ -207,6 +243,57 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       WHERE atlas_definitive_id IS NOT NULL
         AND atlas_definitive_id_primary_npi = TRUE
         AND npi_deactivation_date IS NULL
+        AND LENGTH(primary_address_state_or_province) = 2
+        AND primary_address_state_or_province IN (
+          'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+          'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+          'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+          'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+          'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+          'DC'
+        )
+    `;
+
+    // Total NPIs count (all NPIs for organizations matching the same filters)
+    // This counts ALL NPIs (not just primary) for organizations that have a primary NPI and match the filters
+    const totalNPIsQuery = `
+      SELECT
+        COUNT(DISTINCT npi) as total_npis
+      FROM \`aegis_access.hco_flat\`
+      WHERE atlas_definitive_id IS NOT NULL
+        AND atlas_definitive_id IN (
+          SELECT DISTINCT atlas_definitive_id
+          FROM \`aegis_access.hco_flat\`
+          WHERE atlas_definitive_id IS NOT NULL
+            AND atlas_definitive_id_primary_npi = TRUE
+            AND npi_deactivation_date IS NULL
+            AND LENGTH(primary_address_state_or_province) = 2
+            AND primary_address_state_or_province IN (
+              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+              'DC'
+            )
+        )
+        AND npi_deactivation_date IS NULL
+    `;
+
+    // Common WHERE clause for all filter option queries
+    const baseWhereClause = `
+      atlas_definitive_id IS NOT NULL
+      AND atlas_definitive_id_primary_npi = TRUE
+      AND npi_deactivation_date IS NULL
+      AND LENGTH(primary_address_state_or_province) = 2
+      AND primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )
     `;
 
     // All unique provider types
@@ -215,9 +302,7 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
         atlas_definitive_firm_type as type,
         COUNT(*) as count
       FROM \`aegis_access.hco_flat\`
-      WHERE atlas_definitive_id IS NOT NULL
-        AND atlas_definitive_id_primary_npi = TRUE
-        AND npi_deactivation_date IS NULL
+      WHERE ${baseWhereClause}
         AND atlas_definitive_firm_type IS NOT NULL
       GROUP BY atlas_definitive_firm_type
       ORDER BY atlas_definitive_firm_type
@@ -229,9 +314,7 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
         atlas_network_name as network,
         COUNT(*) as count
       FROM \`aegis_access.hco_flat\`
-      WHERE atlas_definitive_id IS NOT NULL
-        AND atlas_definitive_id_primary_npi = TRUE
-        AND npi_deactivation_date IS NULL
+      WHERE ${baseWhereClause}
         AND atlas_network_name IS NOT NULL
       GROUP BY atlas_network_name
       ORDER BY atlas_network_name
@@ -244,9 +327,7 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
         primary_address_city as city,
         COUNT(*) as count
       FROM \`aegis_access.hco_flat\`
-      WHERE atlas_definitive_id IS NOT NULL
-        AND atlas_definitive_id_primary_npi = TRUE
-        AND npi_deactivation_date IS NULL
+      WHERE ${baseWhereClause}
         AND primary_address_city IS NOT NULL
       GROUP BY primary_address_city
       ORDER BY primary_address_city
@@ -259,18 +340,7 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
         primary_address_state_or_province as state,
         COUNT(*) as count
       FROM \`aegis_access.hco_flat\`
-      WHERE atlas_definitive_id IS NOT NULL
-        AND atlas_definitive_id_primary_npi = TRUE
-        AND npi_deactivation_date IS NULL
-        AND LENGTH(primary_address_state_or_province) = 2
-        AND primary_address_state_or_province IN (
-          'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-          'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-          'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-          'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-          'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-          'DC'
-        )
+      WHERE ${baseWhereClause}
       GROUP BY primary_address_state_or_province
       ORDER BY primary_address_state_or_province
     `;
@@ -313,6 +383,23 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       LIMIT 10
     `;
 
+    // Top cities for breakdown
+    const topCitiesQuery = `
+      SELECT
+        CONCAT(primary_address_city, ', ', primary_address_state_or_province) as city,
+        COUNT(*) as count
+      FROM \`aegis_access.hco_flat\`
+      WHERE atlas_definitive_id IS NOT NULL
+        AND atlas_definitive_id_primary_npi = TRUE
+        AND npi_deactivation_date IS NULL
+        AND primary_address_city IS NOT NULL
+        AND primary_address_city != ''
+        AND primary_address_state_or_province IS NOT NULL
+      GROUP BY primary_address_city, primary_address_state_or_province
+      ORDER BY count DESC
+      LIMIT 10
+    `;
+
     const [
       [overallStats],
       [types],
@@ -320,7 +407,9 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       [cities],
       [states],
       [topTypes],
-      [topStates]
+      [topStates],
+      [topCities],
+      [totalNPIs]
     ] = await Promise.all([
       vendorBigQuery.query({ query: statsQuery }),
       vendorBigQuery.query({ query: typesQuery }),
@@ -328,13 +417,18 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       vendorBigQuery.query({ query: citiesQuery }),
       vendorBigQuery.query({ query: statesQuery }),
       vendorBigQuery.query({ query: topTypesQuery }),
-      vendorBigQuery.query({ query: topStatesQuery })
+      vendorBigQuery.query({ query: topStatesQuery }),
+      vendorBigQuery.query({ query: topCitiesQuery }),
+      vendorBigQuery.query({ query: totalNPIsQuery })
     ]);
 
     const result = {
       success: true,
       data: {
-        overall: overallStats[0],
+        overall: {
+          ...overallStats[0],
+          total_npis: parseInt(totalNPIs[0]?.total_npis || 0)
+        },
         filterOptions: {
           types: types.map(t => t.type || "Unknown"),
           networks: networks.map(n => n.network),
@@ -343,7 +437,8 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
         },
         breakdowns: {
           types: topTypes.map(t => ({ name: t.type || "Unknown", count: parseInt(t.count) })),
-          states: topStates.map(s => ({ name: s.state, count: parseInt(s.count) }))
+          states: topStates.map(s => ({ name: s.state, count: parseInt(s.count) })),
+          cities: topCities.map(c => ({ name: c.city, count: parseInt(c.count) }))
         }
       },
       timestamp: new Date().toISOString()

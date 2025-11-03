@@ -39,23 +39,26 @@ router.get("/national-overview", async (req, res) => {
 
     console.log('📊 Fetching national HCP overview (will be cached)...');
 
+    // Common WHERE clause for all national overview queries
+    const baseWhereClause = `
+      npi_deactivation_date IS NULL
+      AND LENGTH(primary_address_state_or_province) = 2
+      AND primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )
+    `;
+
     // Query for national statistics - aggregated, not individual rows
     const statsQuery = `
       SELECT
         COUNT(*) as total_providers,
         COUNT(DISTINCT primary_taxonomy_consolidated_specialty) as distinct_specialties,
-        COUNT(DISTINCT CASE 
-          WHEN LENGTH(primary_address_state_or_province) = 2 
-            AND primary_address_state_or_province IN (
-              'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-              'DC'
-            )
-          THEN primary_address_state_or_province 
-        END) as distinct_states,
+        COUNT(DISTINCT primary_address_state_or_province) as distinct_states,
         COUNT(DISTINCT primary_address_city) as distinct_cities,
         COUNTIF(atlas_affiliation_primary_hospital_parent_id IS NOT NULL) as with_hospital_affiliation,
         COUNTIF(atlas_affiliation_primary_physician_group_parent_id IS NOT NULL) as with_physician_group_affiliation,
@@ -64,7 +67,7 @@ router.get("/national-overview", async (req, res) => {
         COUNTIF(LOWER(gender) = 'male') as male_providers,
         COUNTIF(LOWER(gender) = 'female') as female_providers
       FROM \`aegis_access.hcp_flat\`
-      WHERE npi_deactivation_date IS NULL
+      WHERE ${baseWhereClause}
     `;
 
     // Top specialties
@@ -73,7 +76,7 @@ router.get("/national-overview", async (req, res) => {
         primary_taxonomy_consolidated_specialty as specialty,
         COUNT(*) as count
       FROM \`aegis_access.hcp_flat\`
-      WHERE npi_deactivation_date IS NULL
+      WHERE ${baseWhereClause}
         AND primary_taxonomy_consolidated_specialty IS NOT NULL
       GROUP BY primary_taxonomy_consolidated_specialty
       ORDER BY count DESC
@@ -86,17 +89,8 @@ router.get("/national-overview", async (req, res) => {
         primary_address_state_or_province as state,
         COUNT(*) as count
       FROM \`aegis_access.hcp_flat\`
-      WHERE npi_deactivation_date IS NULL
+      WHERE ${baseWhereClause}
         AND primary_address_state_or_province IS NOT NULL
-        AND LENGTH(primary_address_state_or_province) = 2
-        AND primary_address_state_or_province IN (
-          'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-          'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-          'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-          'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-          'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-          'DC'
-        )
       GROUP BY primary_address_state_or_province
       ORDER BY count DESC
     `;
@@ -272,7 +266,7 @@ router.get("/stats", async (req, res) => {
       WHERE primary_address_city IS NOT NULL
       GROUP BY primary_address_city, primary_address_state_or_province
       ORDER BY count DESC
-      LIMIT 15
+      LIMIT 10
     `;
 
     const [cityResults] = await vendorBigQuery.query({ query: cityQuery });
@@ -677,7 +671,7 @@ router.post("/search", async (req, res) => {
         AND primary_taxonomy_consolidated_specialty IS NOT NULL
       GROUP BY primary_taxonomy_consolidated_specialty
       ORDER BY count DESC
-      LIMIT 15
+      LIMIT 10
     `;
     
     const statesBreakdownQuery = `
@@ -689,7 +683,7 @@ router.post("/search", async (req, res) => {
         AND primary_address_state_or_province IS NOT NULL
       GROUP BY primary_address_state_or_province
       ORDER BY count DESC
-      LIMIT 15
+      LIMIT 10
     `;
     
     const citiesBreakdownQuery = `
@@ -702,7 +696,7 @@ router.post("/search", async (req, res) => {
         AND primary_address_state_or_province IS NOT NULL
       GROUP BY primary_address_city, primary_address_state_or_province
       ORDER BY count DESC
-      LIMIT 15
+      LIMIT 10
     `;
     
     const genderBreakdownQuery = `
@@ -731,6 +725,20 @@ router.post("/search", async (req, res) => {
     `;
     
     // For national requests, also fetch filter options
+    // Use the same base filters as national overview (deactivation date + US states)
+    const baseFilterWhereClause = `
+      npi_deactivation_date IS NULL
+      AND LENGTH(primary_address_state_or_province) = 2
+      AND primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )
+    `;
+    
     let filterOptionsPromises = [];
     if (isNationalRequest) {
       // States query
@@ -739,17 +747,8 @@ router.post("/search", async (req, res) => {
           primary_address_state_or_province as state,
           COUNT(*) as count
         FROM \`aegis_access.hcp_flat\`
-        WHERE npi_deactivation_date IS NULL
+        WHERE ${baseFilterWhereClause}
           AND primary_address_state_or_province IS NOT NULL
-          AND LENGTH(primary_address_state_or_province) = 2
-          AND primary_address_state_or_province IN (
-            'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-            'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-            'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-            'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-            'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-            'DC'
-          )
         GROUP BY primary_address_state_or_province
         ORDER BY count DESC
       `;
@@ -760,7 +759,7 @@ router.post("/search", async (req, res) => {
           primary_taxonomy_consolidated_specialty as specialty,
           COUNT(*) as count
         FROM \`aegis_access.hcp_flat\`
-        WHERE npi_deactivation_date IS NULL
+        WHERE ${baseFilterWhereClause}
           AND primary_taxonomy_consolidated_specialty IS NOT NULL
         GROUP BY primary_taxonomy_consolidated_specialty
         ORDER BY count DESC

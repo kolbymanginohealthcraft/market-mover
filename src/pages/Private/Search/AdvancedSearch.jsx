@@ -182,16 +182,6 @@ export default function AdvancedSearch() {
   const handleMarketSelect = (marketId) => {
     if (!marketId) {
       setSelectedMarket(null);
-      setResults(null);
-      setFilters({
-        states: [],
-        specialties: [],
-        gender: [],
-        hasHospitalAffiliation: null,
-        hasPhysicianGroupAffiliation: null,
-        hasNetworkAffiliation: null,
-        taxonomyCodes: []
-      });
       // Search will be triggered by useEffect when selectedMarket changes
       return;
     }
@@ -203,17 +193,8 @@ export default function AdvancedSearch() {
     }
     
     setSelectedMarket(market);
-    setResults(null);
-    setFilters({
-      states: [],
-      specialties: [],
-      gender: [],
-      hasHospitalAffiliation: null,
-      hasPhysicianGroupAffiliation: null,
-      hasNetworkAffiliation: null,
-      taxonomyCodes: []
-    });
     // Search will be triggered by useEffect when selectedMarket changes
+    // Filters are preserved - they will be applied along with the market filter
   };
 
   const handleTaxonomyTagSelect = (tagId) => {
@@ -570,6 +551,18 @@ export default function AdvancedSearch() {
     };
   };
   
+  // Extract unique filter options from RESULTS (current filtered results)
+  // This ensures filter options update in real-time as filters are toggled
+  const availableStates = results && results.practitioners && results.practitioners.length > 0
+    ? Array.from(new Set(results.practitioners.map(p => p.state).filter(Boolean)))
+        .map(state => ({ state, count: results.practitioners.filter(p => p.state === state).length }))
+    : filterOptions.states;
+  
+  const availableSpecialties = results && results.practitioners && results.practitioners.length > 0
+    ? Array.from(new Set(results.practitioners.map(p => p.consolidated_specialty || p.primary_specialty).filter(Boolean)))
+        .map(specialty => ({ specialty, count: results.practitioners.filter(p => (p.consolidated_specialty || p.primary_specialty) === specialty).length }))
+    : filterOptions.specialties;
+  
   const paginatedResults = results ? results.practitioners.slice((page - 1) * pageSize, page * pageSize) : [];
   const totalPages = results ? Math.ceil(results.practitioners.length / pageSize) : 0;
   
@@ -866,14 +859,14 @@ export default function AdvancedSearch() {
         )}
         
         <div className={styles.controlsBarButtons}>
-          <button
-            onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-            className="sectionHeaderButton"
-            title="Toggle filters"
-          >
-            <FilterIcon size={14} />
-            Filters
-          </button>
+            <button
+              onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+              className="sectionHeaderButton"
+              title="Toggle filters"
+            >
+              <FilterIcon size={14} />
+              Filters
+            </button>
           {hasActiveFilters() && (
             <button onClick={clearAll} className="sectionHeaderButton">
               <X size={14} />
@@ -940,7 +933,10 @@ export default function AdvancedSearch() {
               {expandedSections.states && (
                 <div className={styles.filterContent}>
                   <div className={styles.filterList}>
-                    {filterOptions.states.slice(0, 10).map((state, idx) => (
+                    {[...availableStates]
+                      .sort((a, b) => a.state.localeCompare(b.state))
+                      .slice(0, 10)
+                      .map((state, idx) => (
                       <label key={idx} className={styles.filterCheckbox}>
                         <input
                           type="checkbox"
@@ -948,7 +944,6 @@ export default function AdvancedSearch() {
                           onChange={() => toggleFilterValue('states', state.state)}
                         />
                         <span>{state.state}</span>
-                        <span className={styles.filterCount}>({formatNumber(state.count)})</span>
                       </label>
                     ))}
                   </div>
@@ -984,7 +979,8 @@ export default function AdvancedSearch() {
                     className={styles.filterSearchInput}
                   />
                   <div className={styles.filterList}>
-                    {filterOptions.specialties
+                    {[...availableSpecialties]
+                      .sort((a, b) => a.specialty.localeCompare(b.specialty))
                       .filter(spec =>
                         !filterSearches.specialties ||
                         spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
@@ -997,7 +993,6 @@ export default function AdvancedSearch() {
                             onChange={() => toggleFilterValue('specialties', spec.specialty)}
                           />
                           <span className={styles.specialtyName}>{spec.specialty}</span>
-                          <span className={styles.filterCount}>({formatNumber(spec.count)})</span>
                         </label>
                       ))}
                   </div>
@@ -1236,176 +1231,122 @@ export default function AdvancedSearch() {
                   <Spinner />
                 </div>
               )}
-              <div className={styles.overviewPanel}>
-                <h3>
-                  <Database size={16} />
-                  {hasActiveFilters() ? 'Filtered Results' : 'National Overview'}
-                </h3>
-                <div className={styles.overviewGrid}>
-                  <div className={styles.overviewCard}>
-                    <div className={styles.overviewLabel}>Total Practitioners</div>
-                    <div className={styles.overviewValue}>
+            <div className={styles.overviewPanel}>
+              <h3>
+                <Database size={16} />
+                {hasActiveFilters() ? 'Filtered Results' : 'National Overview'}
+              </h3>
+              <div className={styles.overviewGrid}>
+                <div className={styles.overviewCard}>
+                  <div className={styles.overviewLabel}>Total Practitioners</div>
+                  <div className={styles.overviewValue}>
                       {resultStats && results
                         ? formatNumber(results.totalCount)
                         : '0'}
-                    </div>
                   </div>
-                  <div className={styles.overviewCard}>
-                    <div className={styles.overviewLabel}>Specialties</div>
-                    <div className={styles.overviewValue}>
-                      {resultStats
-                        ? formatNumber(resultStats.distinct_specialties)
-                        : '0'}
-                    </div>
-                  </div>
-                  <div className={styles.overviewCard}>
-                    <div className={styles.overviewLabel}>States</div>
-                    <div className={styles.overviewValue}>
-                      {resultStats
-                        ? formatNumber(resultStats.distinct_states)
-                        : '0'}
-                    </div>
-                  </div>
-                  <div className={styles.overviewCard}>
-                    <div className={styles.overviewLabel}>Cities</div>
-                    <div className={styles.overviewValue}>
-                      {resultStats
-                        ? formatNumber(resultStats.distinct_cities)
-                        : '0'}
-                    </div>
-                  </div>
-                  <div className={styles.overviewCard}>
+                </div>
+                <div className={styles.overviewCard}>
                     <div className={styles.overviewLabel}>Male</div>
-                    <div className={styles.overviewValue}>
+                  <div className={styles.overviewValue}>
                       {resultStats
                         ? formatNumber(resultStats.male_count)
                         : '0'}
-                    </div>
                   </div>
-                  <div className={styles.overviewCard}>
+                </div>
+                <div className={styles.overviewCard}>
                     <div className={styles.overviewLabel}>Female</div>
-                    <div className={styles.overviewValue}>
+                  <div className={styles.overviewValue}>
                       {resultStats
                         ? formatNumber(resultStats.female_count)
                         : '0'}
-                    </div>
                   </div>
                 </div>
-              </div>
+                  {(() => {
+                    const breakdowns = results && results.breakdowns ? getBreakdowns() : null;
+                    if (!breakdowns) return null;
+                    const totalAffiliated = breakdowns.affiliations.hospital + 
+                                            breakdowns.affiliations.physicianGroup + 
+                                            breakdowns.affiliations.network;
+                    return (
+                <div className={styles.overviewCard}>
+                        <div className={styles.overviewLabel}>With Affiliations</div>
+                  <div className={styles.overviewValue}>
+                          {formatNumber(totalAffiliated)}
+                  </div>
+                </div>
+                    );
+                  })()}
+                  </div>
+                </div>
               
               {/* Detailed Breakdowns - Separate from overview panel */}
               {results && results.practitioners && (() => {
-                const breakdowns = getBreakdowns();
-                if (!breakdowns) return null;
-                
-                return (
-                  <div className={styles.breakdownsContainer}>
-                    {/* Top Specialties */}
-                    <div className={styles.breakdownSection}>
-                      <h4>Top Specialties</h4>
-                      <div className={styles.breakdownList}>
-                        {breakdowns.specialties.map((item, idx) => (
-                          <div key={idx} className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>{item.name}</span>
-                            <div className={styles.breakdownBar}>
-                              <div 
-                                className={styles.breakdownBarFill}
-                                style={{ width: `${(item.count / breakdowns.specialties[0].count) * 100}%` }}
-                              />
-                            </div>
-                            <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* State Distribution */}
-                    <div className={styles.breakdownSection}>
-                      <h4>State Distribution</h4>
-                      <div className={styles.breakdownList}>
-                        {breakdowns.states.map((item, idx) => (
-                          <div key={idx} className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>{item.name}</span>
-                            <div className={styles.breakdownBar}>
-                              <div 
-                                className={styles.breakdownBarFill}
-                                style={{ width: `${(item.count / breakdowns.states[0].count) * 100}%` }}
-                              />
-                            </div>
-                            <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Top Cities */}
-                    <div className={styles.breakdownSection}>
-                      <h4>Top Cities</h4>
-                      <div className={styles.breakdownList}>
-                        {breakdowns.cities.map((item, idx) => (
-                          <div key={idx} className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>{item.name}</span>
-                            <div className={styles.breakdownBar}>
-                              <div 
-                                className={styles.breakdownBarFill}
-                                style={{ width: `${(item.count / breakdowns.cities[0].count) * 100}%` }}
-                              />
-                            </div>
-                            <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Gender & Affiliations */}
-                    <div className={styles.breakdownRow}>
-                      <div className={styles.breakdownSection}>
-                        <h4>Gender Distribution</h4>
-                        <div className={styles.breakdownList}>
-                          <div className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>Male</span>
-                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.male)}</span>
-                          </div>
-                          <div className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>Female</span>
-                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.female)}</span>
-                          </div>
-                          {breakdowns.genderMap.other > 0 && (
-                            <div className={styles.breakdownItem}>
-                              <span className={styles.breakdownName}>Other/Unknown</span>
-                              <span className={styles.breakdownCount}>{formatNumber(breakdowns.genderMap.other)}</span>
-                            </div>
-                          )}
+            const breakdowns = getBreakdowns();
+            if (!breakdowns) return null;
+            
+            return (
+              <div className={styles.breakdownsContainer}>
+                {/* Top Specialties */}
+                <div className={styles.breakdownSection}>
+                      <h4>Top Specialties {resultStats ? `(${formatNumber(resultStats.distinct_specialties)} total)` : ''}</h4>
+                  <div className={styles.breakdownList}>
+                        {breakdowns.specialties.slice(0, 10).map((item, idx) => (
+                      <div key={idx} className={styles.breakdownItem}>
+                        <span className={styles.breakdownName}>{item.name}</span>
+                        <div className={styles.breakdownBar}>
+                          <div 
+                            className={styles.breakdownBarFill}
+                            style={{ width: `${(item.count / breakdowns.specialties[0].count) * 100}%` }}
+                          />
                         </div>
+                        <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
                       </div>
-                      
-                      <div className={styles.breakdownSection}>
-                        <h4>Affiliations</h4>
-                        <div className={styles.breakdownList}>
-                          <div className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>Hospital</span>
-                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.hospital)}</span>
-                          </div>
-                          <div className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>Physician Group</span>
-                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.physicianGroup)}</span>
-                          </div>
-                          <div className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>Network</span>
-                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.network)}</span>
-                          </div>
-                          <div className={styles.breakdownItem}>
-                            <span className={styles.breakdownName}>Independent</span>
-                            <span className={styles.breakdownCount}>{formatNumber(breakdowns.affiliations.independent)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
+                </div>
+                
+                {/* State Distribution */}
+                <div className={styles.breakdownSection}>
+                      <h4>State Distribution {resultStats ? `(${formatNumber(resultStats.distinct_states)} total)` : ''}</h4>
+                  <div className={styles.breakdownList}>
+                        {breakdowns.states.slice(0, 10).map((item, idx) => (
+                      <div key={idx} className={styles.breakdownItem}>
+                        <span className={styles.breakdownName}>{item.name}</span>
+                        <div className={styles.breakdownBar}>
+                          <div 
+                            className={styles.breakdownBarFill}
+                            style={{ width: `${(item.count / breakdowns.states[0].count) * 100}%` }}
+                          />
+                        </div>
+                        <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Top Cities */}
+                <div className={styles.breakdownSection}>
+                      <h4>Top Cities {resultStats ? `(${formatNumber(resultStats.distinct_cities)} total)` : ''}</h4>
+                  <div className={styles.breakdownList}>
+                        {breakdowns.cities.slice(0, 10).map((item, idx) => (
+                      <div key={idx} className={styles.breakdownItem}>
+                        <span className={styles.breakdownName}>{item.name}</span>
+                        <div className={styles.breakdownBar}>
+                          <div 
+                            className={styles.breakdownBarFill}
+                            style={{ width: `${(item.count / breakdowns.cities[0].count) * 100}%` }}
+                          />
+                        </div>
+                        <span className={styles.breakdownCount}>{formatNumber(item.count)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                      </div>
                 );
               })()}
-            </div>
-          )}
+                        </div>
+                      )}
           
           {/* Listing Tab */}
           {activeTab === 'listing' && (
@@ -1426,7 +1367,7 @@ export default function AdvancedSearch() {
                 {results && results.count > 0 && (
                   <>
                     <span className={styles.pageInfo}>
-                      Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, results.practitioners.length)} of {formatNumber(results.totalCount)} (table limited to first 500)
+                      Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, results.practitioners.length)} of {formatNumber(results && results.totalCount ? results.totalCount : (results?.practitioners?.length || 0))}{results && results.totalCount && results.totalCount >= 500 ? ' (table limited to first 500)' : ''}
                     </span>
                     {totalPages > 1 && (
                       <div className={styles.paginationInline}>
