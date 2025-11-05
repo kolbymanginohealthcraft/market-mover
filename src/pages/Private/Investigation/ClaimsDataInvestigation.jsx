@@ -4,7 +4,7 @@ import Spinner from "../../../components/Buttons/Spinner";
 import Dropdown from "../../../components/Buttons/Dropdown";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
-import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Bookmark, Check, XCircle } from "lucide-react";
+import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Bookmark, Check, XCircle, Tag } from "lucide-react";
 
 /**
  * Claims Data Investigation Tool
@@ -68,6 +68,22 @@ export default function ClaimsDataInvestigation() {
   const [selectedProcedureTag, setSelectedProcedureTag] = useState(null);
   const [procedureCodes, setProcedureCodes] = useState(null);
   
+  // Taxonomy tags
+  const [taxonomyTags, setTaxonomyTags] = useState([]);
+  const [selectedTaxonomyTag, setSelectedTaxonomyTag] = useState(null);
+  const [taxonomyCodes, setTaxonomyCodes] = useState(null);
+  const [selectedTaxonomyFields, setSelectedTaxonomyFields] = useState([]); // Which taxonomy code fields to apply filter to
+  const taxonomyCodeFields = [
+    { value: 'billing_provider_taxonomy_code', label: 'Billing: Taxonomy Code' },
+    { value: 'billing_provider_primary_taxonomy_code', label: 'Billing: Primary Taxonomy Code' },
+    { value: 'facility_provider_taxonomy_code', label: 'Facility: Taxonomy Code' },
+    { value: 'facility_provider_primary_taxonomy_code', label: 'Facility: Primary Taxonomy Code' },
+    { value: 'service_location_provider_taxonomy_code', label: 'Service Location: Taxonomy Code' },
+    { value: 'service_location_provider_primary_taxonomy_code', label: 'Service Location: Primary Taxonomy Code' },
+    { value: 'performing_provider_taxonomy_code', label: 'Performing: Taxonomy Code' },
+    { value: 'performing_provider_primary_taxonomy_code', label: 'Performing: Primary Taxonomy Code' },
+  ];
+  
   // NPI field selector (which provider perspective to use)
   const [npiFieldType, setNpiFieldType] = useState('billing_provider_npi');
   
@@ -79,6 +95,7 @@ export default function ClaimsDataInvestigation() {
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [procedureDropdownOpen, setProcedureDropdownOpen] = useState(false);
+  const [taxonomyDropdownOpen, setTaxonomyDropdownOpen] = useState(false);
   
   // Collapsible field group sections
   const [expandedFieldGroups, setExpandedFieldGroups] = useState({});
@@ -112,6 +129,7 @@ export default function ClaimsDataInvestigation() {
       { value: "billing_provider_npi", label: "NPI" },
       { value: "billing_provider_npi_type", label: "NPI Type" },
       { value: "billing_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "billing_provider_primary_taxonomy_code", label: "Primary Taxonomy Code" },
       { value: "billing_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "billing_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "billing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
@@ -125,6 +143,7 @@ export default function ClaimsDataInvestigation() {
       { value: "facility_provider_npi", label: "NPI" },
       { value: "facility_provider_npi_type", label: "NPI Type" },
       { value: "facility_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "facility_provider_primary_taxonomy_code", label: "Primary Taxonomy Code" },
       { value: "facility_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "facility_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "facility_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
@@ -138,6 +157,7 @@ export default function ClaimsDataInvestigation() {
       { value: "service_location_provider_npi", label: "NPI" },
       { value: "service_location_provider_npi_type", label: "NPI Type" },
       { value: "service_location_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "service_location_provider_primary_taxonomy_code", label: "Primary Taxonomy Code" },
       { value: "service_location_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "service_location_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "service_location_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
@@ -151,6 +171,7 @@ export default function ClaimsDataInvestigation() {
       { value: "performing_provider_npi", label: "NPI" },
       { value: "performing_provider_npi_type", label: "NPI Type" },
       { value: "performing_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "performing_provider_primary_taxonomy_code", label: "Primary Taxonomy Code" },
       { value: "performing_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "performing_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "performing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
@@ -342,10 +363,44 @@ export default function ClaimsDataInvestigation() {
       }
     }
     
+    async function fetchTaxonomyTags() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        // Get user's team from profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('team_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError || !profile || !profile.team_id) {
+          console.log('No team found for user');
+          return;
+        }
+        
+        // Get team taxonomy tags
+        const { data: tags, error: tagsError } = await supabase
+          .from('team_taxonomy_tags')
+          .select('*')
+          .eq('team_id', profile.team_id)
+          .order('created_at', { ascending: false });
+        
+        if (tagsError) throw tagsError;
+        
+        setTaxonomyTags(tags || []);
+        console.log('Loaded taxonomy tags:', tags?.length || 0);
+      } catch (err) {
+        console.error('Error fetching taxonomy tags:', err);
+      }
+    }
+    
     fetchMetadata();
     fetchMarkets();
     fetchProviderTags();
     fetchProcedureTags();
+    fetchTaxonomyTags();
   }, []);
   
   // Handle market selection
@@ -468,6 +523,82 @@ export default function ClaimsDataInvestigation() {
       ...prev,
       [groupName]: !prev[groupName]
     }));
+  };
+  
+  // Handle taxonomy tag selection (doesn't apply filters - just selects the taxonomy)
+  const handleTaxonomyTagSelect = (tagId) => {
+    if (tagId === 'all') {
+      // "All" selected - clear taxonomy filters
+      setSelectedTaxonomyTag(null);
+      setTaxonomyCodes(null);
+      setSelectedTaxonomyFields([]);
+      
+      // Remove all taxonomy code field filters
+      const updatedFilters = { ...filters };
+      taxonomyCodeFields.forEach(field => {
+        if (updatedFilters[field.value]) {
+          delete updatedFilters[field.value];
+        }
+      });
+      setFilters(updatedFilters);
+      setData(null);
+      // Don't close dropdown - keep it open
+      return;
+    }
+    
+    if (tagId === 'all_tagged') {
+      // "All Tagged" selected - set taxonomy codes but don't apply filters yet
+      const codes = taxonomyTags.map(t => t.taxonomy_code);
+      setSelectedTaxonomyTag({ id: 'all_tagged', taxonomy_code: 'All Tagged' });
+      setTaxonomyCodes(codes);
+      // Clear field selection so user must choose which fields to apply to
+      setSelectedTaxonomyFields([]);
+      // Don't apply filters yet - wait for user to select fields
+      // Don't close dropdown - keep it open so user can select fields
+      return;
+    }
+    
+    const tag = taxonomyTags.find(t => t.id === tagId);
+    if (!tag) return;
+    
+    // Single taxonomy selected - set taxonomy code but don't apply filters yet
+    setSelectedTaxonomyTag(tag);
+    setTaxonomyCodes([tag.taxonomy_code]);
+    // Clear field selection so user must choose which fields to apply to
+    setSelectedTaxonomyFields([]);
+    // Don't apply filters yet - wait for user to select fields
+    // Don't close dropdown - keep it open so user can select fields
+  };
+  
+  // Handle taxonomy field selection (which fields to apply filter to)
+  const handleTaxonomyFieldToggle = (fieldValue) => {
+    const updatedFields = selectedTaxonomyFields.includes(fieldValue)
+      ? selectedTaxonomyFields.filter(f => f !== fieldValue)
+      : [...selectedTaxonomyFields, fieldValue];
+    
+    setSelectedTaxonomyFields(updatedFields);
+    
+    // Update filters based on selected fields
+    if (taxonomyCodes && taxonomyCodes.length > 0) {
+      const updatedFilters = { ...filters };
+      
+      // Remove filters from unselected fields
+      taxonomyCodeFields.forEach(field => {
+        if (!updatedFields.includes(field.value) && updatedFilters[field.value]) {
+          delete updatedFilters[field.value];
+        }
+      });
+      
+      // Add filters to newly selected fields
+      updatedFields.forEach(field => {
+        updatedFilters[field] = taxonomyCodes;
+      });
+      
+      setFilters(updatedFilters);
+      setData(null);
+    }
+    
+    // Don't close dropdown - allow user to select multiple fields
   };
   
   // Handle procedure tag selection
@@ -1051,6 +1182,9 @@ export default function ClaimsDataInvestigation() {
     setTagNPIs(null);
     setSelectedProcedureTag(null);
     setProcedureCodes(null);
+    setSelectedTaxonomyTag(null);
+    setTaxonomyCodes(null);
+    setSelectedTaxonomyFields([]);
     setResultsSearch('');
     setFieldSearch('');
     setData(null);
@@ -1323,9 +1457,93 @@ export default function ClaimsDataInvestigation() {
           </Dropdown>
         )}
         
+        {taxonomyTags.length > 0 && (
+          <Dropdown
+            trigger={
+              <button className="sectionHeaderButton">
+                <Tag size={14} />
+                {selectedTaxonomyTag ? 
+                  (selectedTaxonomyTag.id === 'all_tagged' 
+                    ? `All Tagged (${taxonomyTags.length})` 
+                    : selectedTaxonomyTag.taxonomy_code) : 
+                  'My Taxonomies'}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={taxonomyDropdownOpen}
+            onToggle={setTaxonomyDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleTaxonomyTagSelect('all');
+                setTaxonomyDropdownOpen(false);
+              }}
+            >
+              All Taxonomies
+            </button>
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleTaxonomyTagSelect('all_tagged');
+                // Don't close dropdown - keep it open so user can select fields
+              }}
+              style={{
+                fontWeight: selectedTaxonomyTag?.id === 'all_tagged' ? '600' : '500',
+                background: selectedTaxonomyTag?.id === 'all_tagged' ? 'rgba(0, 192, 139, 0.1)' : 'none',
+              }}
+            >
+              All Tagged ({taxonomyTags.length})
+            </button>
+            {taxonomyTags.map(tag => (
+              <button 
+                key={tag.id}
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTaxonomyTagSelect(tag.id);
+                  // Don't close dropdown - keep it open so user can select fields
+                }}
+                style={{
+                  fontWeight: selectedTaxonomyTag?.id === tag.id ? '600' : '500',
+                  background: selectedTaxonomyTag?.id === tag.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                }}
+              >
+                {tag.taxonomy_code}
+              </button>
+            ))}
+            {selectedTaxonomyTag && (
+              <>
+                <div style={{ borderTop: '1px solid var(--gray-200)', margin: '8px 0' }}></div>
+                <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--gray-600)', fontWeight: '600' }}>
+                  Apply to fields:
+                </div>
+                {taxonomyCodeFields.map(field => (
+                  <button
+                    key={field.value}
+                    className={styles.dropdownItem}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTaxonomyFieldToggle(field.value);
+                    }}
+                    style={{
+                      paddingLeft: '24px',
+                      fontWeight: selectedTaxonomyFields.includes(field.value) ? '600' : '400',
+                      background: selectedTaxonomyFields.includes(field.value) ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                    }}
+                  >
+                    {selectedTaxonomyFields.includes(field.value) && <Check size={12} style={{ marginRight: '6px', display: 'inline-block' }} />}
+                    {field.label}
+                  </button>
+                ))}
+              </>
+            )}
+          </Dropdown>
+        )}
+        
         <div className={styles.spacer}></div>
         
-        {(columns.length > 0 || Object.keys(filters).length > 0 || Object.keys(excludeFilters).length > 0 || selectedMarket || selectedTag || selectedProcedureTag) && (
+        {(columns.length > 0 || Object.keys(filters).length > 0 || Object.keys(excludeFilters).length > 0 || selectedMarket || selectedTag || selectedProcedureTag || selectedTaxonomyTag) && (
           <button 
             onClick={clearAll}
             className="sectionHeaderButton"
