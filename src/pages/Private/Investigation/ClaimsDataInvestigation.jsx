@@ -4,7 +4,7 @@ import Spinner from "../../../components/Buttons/Spinner";
 import Dropdown from "../../../components/Buttons/Dropdown";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
-import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Bookmark, Check, XCircle } from "lucide-react";
 
 /**
  * Claims Data Investigation Tool
@@ -43,6 +43,7 @@ export default function ClaimsDataInvestigation() {
   const [filterOptions, setFilterOptions] = useState({});
   const [loadingFilters, setLoadingFilters] = useState({});
   const [editingFilter, setEditingFilter] = useState(null); // Track which filter is being edited
+  const [isClickingButton, setIsClickingButton] = useState(false); // Track if clicking a button to prevent blur
   
   // Field search
   const [fieldSearch, setFieldSearch] = useState('');
@@ -62,6 +63,11 @@ export default function ClaimsDataInvestigation() {
   const [selectedTag, setSelectedTag] = useState(null);
   const [tagNPIs, setTagNPIs] = useState(null);
   
+  // Procedure tags
+  const [procedureTags, setProcedureTags] = useState([]);
+  const [selectedProcedureTag, setSelectedProcedureTag] = useState(null);
+  const [procedureCodes, setProcedureCodes] = useState(null);
+  
   // NPI field selector (which provider perspective to use)
   const [npiFieldType, setNpiFieldType] = useState('billing_provider_npi');
   
@@ -70,9 +76,12 @@ export default function ClaimsDataInvestigation() {
   const [defaultDateRange, setDefaultDateRange] = useState(null);
   
   // Dropdown states
-  const [npiFieldDropdownOpen, setNpiFieldDropdownOpen] = useState(false);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+  const [procedureDropdownOpen, setProcedureDropdownOpen] = useState(false);
+  
+  // Collapsible field group sections
+  const [expandedFieldGroups, setExpandedFieldGroups] = useState({});
   
   // Fields that should use text input instead of dropdown (for comma-separated values)
   const TEXT_INPUT_FIELDS = [
@@ -101,9 +110,12 @@ export default function ClaimsDataInvestigation() {
     "Billing Provider": [
       { value: "billing_provider_name", label: "Name" },
       { value: "billing_provider_npi", label: "NPI" },
+      { value: "billing_provider_npi_type", label: "NPI Type" },
+      { value: "billing_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "billing_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "billing_provider_taxonomy_classification", label: "Taxonomy Classification" },
-      { value: "billing_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
       { value: "billing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
+      { value: "billing_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
       { value: "billing_provider_state", label: "State" },
       { value: "billing_provider_city", label: "City" },
       { value: "billing_provider_county", label: "County" },
@@ -111,7 +123,12 @@ export default function ClaimsDataInvestigation() {
     "Facility Provider": [
       { value: "facility_provider_name", label: "Name" },
       { value: "facility_provider_npi", label: "NPI" },
+      { value: "facility_provider_npi_type", label: "NPI Type" },
+      { value: "facility_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "facility_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "facility_provider_taxonomy_classification", label: "Taxonomy Classification" },
+      { value: "facility_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
+      { value: "facility_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
       { value: "facility_provider_state", label: "State" },
       { value: "facility_provider_city", label: "City" },
       { value: "facility_provider_county", label: "County" },
@@ -119,6 +136,12 @@ export default function ClaimsDataInvestigation() {
     "Service Location Provider": [
       { value: "service_location_provider_name", label: "Name" },
       { value: "service_location_provider_npi", label: "NPI" },
+      { value: "service_location_provider_npi_type", label: "NPI Type" },
+      { value: "service_location_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "service_location_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
+      { value: "service_location_provider_taxonomy_classification", label: "Taxonomy Classification" },
+      { value: "service_location_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
+      { value: "service_location_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
       { value: "service_location_provider_state", label: "State" },
       { value: "service_location_provider_city", label: "City" },
       { value: "service_location_provider_county", label: "County" },
@@ -126,8 +149,12 @@ export default function ClaimsDataInvestigation() {
     "Performing Provider": [
       { value: "performing_provider_name", label: "Name" },
       { value: "performing_provider_npi", label: "NPI" },
+      { value: "performing_provider_npi_type", label: "NPI Type" },
+      { value: "performing_provider_taxonomy_code", label: "Taxonomy Code" },
+      { value: "performing_provider_taxonomy_grouping", label: "Taxonomy Grouping" },
       { value: "performing_provider_taxonomy_classification", label: "Taxonomy Classification" },
       { value: "performing_provider_taxonomy_specialization", label: "Taxonomy Specialization" },
+      { value: "performing_provider_taxonomy_consolidated_specialty", label: "Consolidated Specialty" },
     ],
     "Patient Demographics": [
       { value: "patient_age_bracket", label: "Age Bracket" },
@@ -173,10 +200,10 @@ export default function ClaimsDataInvestigation() {
   const allFields = {};
   Object.entries(FIELD_GROUPS).forEach(([groupName, fields]) => {
     fields.forEach(field => {
-      // For fields that appear in multiple groups (like "Name", "NPI"), add group context
-      const isDuplicate = ['Name', 'NPI', 'State', 'City', 'County', 'Taxonomy Classification', 'Taxonomy Specialization'].includes(field.label);
-      if (isDuplicate && groupName !== 'Temporal') {
-        // Add group prefix for clarity (e.g., "Billing: Name")
+      // Add provider group prefix for all provider fields
+      const isProviderGroup = groupName.includes('Provider');
+      if (isProviderGroup) {
+        // Add group prefix for clarity (e.g., "Billing: Name", "Facility: Consolidated Specialty")
         const shortGroup = groupName.replace(' Provider', '');
         allFields[field.value] = `${shortGroup}: ${field.label}`;
       } else {
@@ -282,9 +309,43 @@ export default function ClaimsDataInvestigation() {
       }
     }
     
+    async function fetchProcedureTags() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        // Get user's team from profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('team_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError || !profile || !profile.team_id) {
+          console.log('No team found for user');
+          return;
+        }
+        
+        // Get team procedure tags
+        const { data: tags, error: tagsError } = await supabase
+          .from('team_procedure_tags')
+          .select('*')
+          .eq('team_id', profile.team_id)
+          .order('created_at', { ascending: false });
+        
+        if (tagsError) throw tagsError;
+        
+        setProcedureTags(tags || []);
+        console.log('Loaded procedure tags:', tags?.length || 0);
+      } catch (err) {
+        console.error('Error fetching procedure tags:', err);
+      }
+    }
+    
     fetchMetadata();
     fetchMarkets();
     fetchProviderTags();
+    fetchProcedureTags();
   }, []);
   
   // Handle market selection
@@ -400,6 +461,63 @@ export default function ClaimsDataInvestigation() {
       setError(`Failed to load tag: ${err.message}`);
     }
   };
+  
+  // Toggle field group expansion
+  const toggleFieldGroup = (groupName) => {
+    setExpandedFieldGroups(prev => ({
+      ...prev,
+      [groupName]: !prev[groupName]
+    }));
+  };
+  
+  // Handle procedure tag selection
+  const handleProcedureTagSelect = (tagId) => {
+    if (tagId === 'all') {
+      // "All" selected - clear procedure code filter
+      setSelectedProcedureTag(null);
+      setProcedureCodes(null);
+      // Remove code filter if it exists
+      const updatedFilters = { ...filters };
+      if (updatedFilters.code) {
+        delete updatedFilters.code;
+        setFilters(updatedFilters);
+      }
+      setData(null);
+      return;
+    }
+    
+    if (tagId === 'all_tagged') {
+      // "All Tagged" selected - filter by all tagged procedure codes
+      const codes = procedureTags.map(t => t.procedure_code);
+      setSelectedProcedureTag({ id: 'all_tagged', procedure_code: 'All Tagged' });
+      setProcedureCodes(codes);
+      
+      // Update filters to include all procedure codes
+      setFilters(prev => ({
+        ...prev,
+        code: codes
+      }));
+      
+      setData(null);
+      return;
+    }
+    
+    const tag = procedureTags.find(t => t.id === tagId);
+    if (!tag) return;
+    
+    setSelectedProcedureTag(tag);
+    // Set procedure codes as an array for the filter
+    const codes = [tag.procedure_code];
+    setProcedureCodes(codes);
+    
+    // Update filters to include the procedure code
+    setFilters(prev => ({
+      ...prev,
+      code: codes
+    }));
+    
+    setData(null);
+  };
 
   // Filter field groups based on search
   const filteredFieldGroups = Object.entries(FIELD_GROUPS).reduce((acc, [groupName, fields]) => {
@@ -420,6 +538,30 @@ export default function ClaimsDataInvestigation() {
     }
     return acc;
   }, {});
+  
+  // Auto-expand sections that contain matching fields when searching
+  useEffect(() => {
+    if (fieldSearch.trim()) {
+      // When there's a search term, expand all sections that have matching fields
+      const searchLower = fieldSearch.toLowerCase();
+      const groupsToExpand = Object.entries(FIELD_GROUPS).reduce((acc, [groupName, fields]) => {
+        // Check if group name matches or any field in this group matches
+        const hasMatch = groupName.toLowerCase().includes(searchLower) ||
+          fields.some(field => 
+            field.label.toLowerCase().includes(searchLower) || 
+            field.value.toLowerCase().includes(searchLower)
+          );
+        if (hasMatch) {
+          acc[groupName] = true;
+        }
+        return acc;
+      }, {});
+      setExpandedFieldGroups(prev => ({
+        ...prev,
+        ...groupsToExpand
+      }));
+    }
+  }, [fieldSearch]);
 
   // Fetch aggregated data
   const fetchData = async (overrides = {}) => {
@@ -802,6 +944,32 @@ export default function ClaimsDataInvestigation() {
     // Clear data when configuration changes
     setData(null);
   };
+  
+  // Toggle a filter between include and exclude
+  const toggleFilterType = (field, currentValue) => {
+    // Remove from current location
+    const updatedFilters = { ...filters };
+    const updatedExcludeFilters = { ...excludeFilters };
+    
+    if (filters[field] !== undefined) {
+      // Currently an include filter - move to exclude
+      delete updatedFilters[field];
+      updatedExcludeFilters[field] = currentValue;
+      setFilters(updatedFilters);
+      setExcludeFilters(updatedExcludeFilters);
+      // Keep editor open for the exclude filter
+      setEditingFilter(`exclude_${field}`);
+    } else if (excludeFilters[field] !== undefined) {
+      // Currently an exclude filter - move to include
+      delete updatedExcludeFilters[field];
+      updatedFilters[field] = currentValue;
+      setFilters(updatedFilters);
+      setExcludeFilters(updatedExcludeFilters);
+      // Keep editor open for the include filter
+      setEditingFilter(field);
+    }
+    setData(null);
+  };
 
   const updateFilter = (field, value) => {
     setFilters({ ...filters, [field]: value });
@@ -881,6 +1049,8 @@ export default function ClaimsDataInvestigation() {
     setMarketNPIs(null);
     setSelectedTag(null);
     setTagNPIs(null);
+    setSelectedProcedureTag(null);
+    setProcedureCodes(null);
     setResultsSearch('');
     setFieldSearch('');
     setData(null);
@@ -976,63 +1146,6 @@ export default function ClaimsDataInvestigation() {
           <span className={styles.queryTime}>
             {queryTime < 1000 ? `${queryTime.toFixed(0)}ms` : `${(queryTime / 1000).toFixed(2)}s`}
           </span>
-        )}
-        
-        {(providerTags || savedMarkets.length > 0) && (
-          <Dropdown
-            trigger={
-              <button className="sectionHeaderButton">
-                Filter On: {npiFieldType === 'billing_provider_npi' ? 'Billing' : 
-                           npiFieldType === 'performing_provider_npi' ? 'Performing' :
-                           npiFieldType === 'facility_provider_npi' ? 'Facility' : 'Service Location'}
-                <ChevronDown size={14} />
-              </button>
-            }
-            isOpen={npiFieldDropdownOpen}
-            onToggle={setNpiFieldDropdownOpen}
-            className={styles.dropdownMenu}
-          >
-            <button 
-              className={styles.dropdownItem}
-              onClick={() => {
-                setNpiFieldType('billing_provider_npi');
-                setData(null);
-                setNpiFieldDropdownOpen(false);
-              }}
-            >
-              Billing Provider
-            </button>
-            <button 
-              className={styles.dropdownItem}
-              onClick={() => {
-                setNpiFieldType('performing_provider_npi');
-                setData(null);
-                setNpiFieldDropdownOpen(false);
-              }}
-            >
-              Performing Provider
-            </button>
-            <button 
-              className={styles.dropdownItem}
-              onClick={() => {
-                setNpiFieldType('facility_provider_npi');
-                setData(null);
-                setNpiFieldDropdownOpen(false);
-              }}
-            >
-              Facility
-            </button>
-            <button 
-              className={styles.dropdownItem}
-              onClick={() => {
-                setNpiFieldType('service_location_provider_npi');
-                setData(null);
-                setNpiFieldDropdownOpen(false);
-              }}
-            >
-              Service Location
-            </button>
-          </Dropdown>
         )}
         
         {providerTags && (
@@ -1152,9 +1265,67 @@ export default function ClaimsDataInvestigation() {
           </Dropdown>
         )}
         
+        {procedureTags.length > 0 && (
+          <Dropdown
+            trigger={
+              <button className="sectionHeaderButton">
+                <Bookmark size={14} />
+                {selectedProcedureTag ? 
+                  (selectedProcedureTag.id === 'all_tagged' 
+                    ? `All Tagged (${procedureTags.length})` 
+                    : selectedProcedureTag.procedure_code) : 
+                  'Procedure Tag'}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={procedureDropdownOpen}
+            onToggle={setProcedureDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleProcedureTagSelect('all');
+                setProcedureDropdownOpen(false);
+              }}
+            >
+              All Procedures
+            </button>
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleProcedureTagSelect('all_tagged');
+                setProcedureDropdownOpen(false);
+              }}
+              style={{
+                fontWeight: selectedProcedureTag?.id === 'all_tagged' ? '600' : '500',
+                background: selectedProcedureTag?.id === 'all_tagged' ? 'rgba(0, 192, 139, 0.1)' : 'none',
+              }}
+            >
+              All Tagged ({procedureTags.length})
+            </button>
+            {procedureTags.map(tag => (
+              <button 
+                key={tag.id}
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleProcedureTagSelect(tag.id);
+                  setProcedureDropdownOpen(false);
+                }}
+                style={{
+                  fontWeight: selectedProcedureTag?.id === tag.id ? '600' : '500',
+                  background: selectedProcedureTag?.id === tag.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                }}
+              >
+                {tag.procedure_code}
+              </button>
+            ))}
+          </Dropdown>
+        )}
+        
         <div className={styles.spacer}></div>
         
-        {(columns.length > 0 || Object.keys(filters).length > 0 || Object.keys(excludeFilters).length > 0 || selectedMarket || selectedTag) && (
+        {(columns.length > 0 || Object.keys(filters).length > 0 || Object.keys(excludeFilters).length > 0 || selectedMarket || selectedTag || selectedProcedureTag) && (
           <button 
             onClick={clearAll}
             className="sectionHeaderButton"
@@ -1212,48 +1383,60 @@ export default function ClaimsDataInvestigation() {
               <p>No fields found matching "{fieldSearch}"</p>
             </div>
           ) : (
-            Object.entries(filteredFieldGroups).map(([groupName, fields]) => (
-              <div key={groupName} className={styles.fieldGroup}>
-                <div className={styles.fieldGroupHeader}>{groupName}</div>
-                <div className={styles.fieldList}>
-                  {fields.map(field => {
-                    const inColumns = columns.includes(field.value);
-                    const inFilters = Object.keys(filters).includes(field.value);
-                    
-                    return (
-                      <div 
-                        key={field.value} 
-                        className={`${styles.fieldItem} ${inColumns || inFilters ? styles.fieldItemUsed : ''}`}
-                      >
-                        <span className={styles.fieldLabel}>{field.label}</span>
-                        <div className={styles.fieldActions}>
-                          {!inColumns && !inFilters && (
-                            <>
-                              <button 
-                                onClick={() => addColumn(field.value)}
-                                className={styles.fieldActionBtn}
-                                title="Add to Columns"
-                              >
-                                <Columns3 size={14} />
-                              </button>
-                              <button 
-                                onClick={() => addFilter(field.value)}
-                                className={styles.fieldActionBtn}
-                                title="Add to Filters"
-                              >
-                                <FilterIcon size={14} />
-                              </button>
-                            </>
-                          )}
-                          {inColumns && <span className={styles.badge}>Column</span>}
-                          {inFilters && <span className={styles.badge}>Filter</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
+            Object.entries(filteredFieldGroups).map(([groupName, fields]) => {
+              const isExpanded = expandedFieldGroups[groupName];
+              return (
+                <div key={groupName} className={styles.fieldGroup}>
+                  <div 
+                    className={styles.fieldGroupHeader}
+                    onClick={() => toggleFieldGroup(groupName)}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <span>{groupName}</span>
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
+                  {isExpanded && (
+                    <div className={styles.fieldList}>
+                      {fields.map(field => {
+                        const inColumns = columns.includes(field.value);
+                        const inFilters = Object.keys(filters).includes(field.value);
+                        
+                        return (
+                          <div 
+                            key={field.value} 
+                            className={`${styles.fieldItem} ${inColumns || inFilters ? styles.fieldItemUsed : ''}`}
+                          >
+                            <span className={styles.fieldLabel}>{field.label}</span>
+                            <div className={styles.fieldActions}>
+                              {!inColumns && !inFilters && (
+                                <>
+                                  <button 
+                                    onClick={() => addColumn(field.value)}
+                                    className={styles.fieldActionBtn}
+                                    title="Add to Columns"
+                                  >
+                                    <Columns3 size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => addFilter(field.value)}
+                                    className={styles.fieldActionBtn}
+                                    title="Add to Filters"
+                                  >
+                                    <FilterIcon size={14} />
+                                  </button>
+                                </>
+                              )}
+                              {inColumns && <span className={styles.badge}>Column</span>}
+                              {inFilters && <span className={styles.badge}>Filter</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -1320,78 +1503,153 @@ export default function ClaimsDataInvestigation() {
                         const editValue = Array.isArray(value) ? value.join(', ') : (value || '');
                         
                         return (
-                          <div key={field} className={styles.filterEditor}>
+                          <div key={field} className={styles.filterEditor} onMouseDown={(e) => e.preventDefault()}>
                             <label>{allFields[field]}:</label>
-                            {isTextField ? (
-                              <input
-                                type="text"
-                                value={editValue}
-                                onChange={(e) => updateFilter(field, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    setEditingFilter(null);
-                                    if (editValue) fetchData();
-                                  }
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                              {isTextField ? (
+                                <input
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => updateFilter(field, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      setEditingFilter(null);
+                                      if (editValue) fetchData();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingFilter(null);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Don't close if we're clicking a button inside
+                                    setTimeout(() => {
+                                      if (!isClickingButton) {
+                                        setEditingFilter(null);
+                                      }
+                                      setIsClickingButton(false);
+                                    }, 100);
+                                  }}
+                                  placeholder="Enter value"
+                                  className={styles.input}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                              ) : hasOptions ? (
+                                <select
+                                  value={editValue}
+                                  onChange={(e) => {
+                                    updateFilter(field, e.target.value);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && editValue) {
+                                      setEditingFilter(null);
+                                      fetchData();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingFilter(null);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Don't close if we're clicking a button inside
+                                    setTimeout(() => {
+                                      if (!isClickingButton) {
+                                        setEditingFilter(null);
+                                      }
+                                      setIsClickingButton(false);
+                                    }, 100);
+                                  }}
+                                  className={styles.select}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                >
+                                  <option value="">Select...</option>
+                                  {filterOptions[field].map((option, idx) => {
+                                    const displayValue = option.value?.value || option.value;
+                                    let stringValue;
+                                    if (displayValue instanceof Date) {
+                                      stringValue = displayValue.toISOString().substring(0, 7);
+                                    } else if (typeof displayValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(displayValue)) {
+                                      stringValue = displayValue.substring(0, 7);
+                                    } else {
+                                      stringValue = String(displayValue);
+                                    }
+                                    return (
+                                      <option key={idx} value={stringValue}>
+                                        {stringValue}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => updateFilter(field, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      setEditingFilter(null);
+                                      if (editValue) fetchData();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingFilter(null);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Don't close if we're clicking a button inside
+                                    setTimeout(() => {
+                                      if (!isClickingButton) {
+                                        setEditingFilter(null);
+                                      }
+                                      setIsClickingButton(false);
+                                    }, 100);
+                                  }}
+                                  placeholder={isLoading ? "Loading..." : "Enter value"}
+                                  className={styles.input}
+                                  style={{ flex: 1 }}
+                                  disabled={isLoading}
+                                  autoFocus
+                                />
+                              )}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setIsClickingButton(true);
+                                  toggleFilterType(field, value);
                                 }}
-                                onBlur={() => setEditingFilter(null)}
-                                placeholder="Enter value"
-                                className={styles.input}
-                                autoFocus
-                              />
-                            ) : hasOptions ? (
-                              <select
-                                value={editValue}
-                                onChange={(e) => {
-                                  updateFilter(field, e.target.value);
-                                  setEditingFilter(null);
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setIsClickingButton(true);
                                 }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && editValue) {
-                                    setEditingFilter(null);
-                                    fetchData();
-                                  }
+                                className={styles.toggleButton}
+                                title="Toggle to exclude"
+                                style={{ 
+                                  padding: '4px 8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '11px',
+                                  color: 'var(--gray-600)',
+                                  background: 'var(--gray-100)',
+                                  border: '1px solid var(--gray-200)',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
                                 }}
-                                onBlur={() => setEditingFilter(null)}
-                                className={styles.select}
-                                autoFocus
                               >
-                                <option value="">Select...</option>
-                                {filterOptions[field].map((option, idx) => {
-                                  const displayValue = option.value?.value || option.value;
-                                  let stringValue;
-                                  if (displayValue instanceof Date) {
-                                    stringValue = displayValue.toISOString().substring(0, 7);
-                                  } else if (typeof displayValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(displayValue)) {
-                                    stringValue = displayValue.substring(0, 7);
-                                  } else {
-                                    stringValue = String(displayValue);
-                                  }
-                                  return (
-                                    <option key={idx} value={stringValue}>
-                                      {stringValue}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                            ) : (
-                              <input
-                                type="text"
-                                value={editValue}
-                                onChange={(e) => updateFilter(field, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    setEditingFilter(null);
-                                    if (editValue) fetchData();
-                                  }
-                                }}
-                                onBlur={() => setEditingFilter(null)}
-                                placeholder={isLoading ? "Loading..." : "Enter value"}
-                                className={styles.input}
-                                disabled={isLoading}
-                                autoFocus
-                              />
-                            )}
-                            <button onClick={() => removeFilter(field)} className={styles.removeButton}>
+                                <Check size={12} />
+                                <span>Include</span>
+                              </button>
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsClickingButton(true);
+                                removeFilter(field);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setIsClickingButton(true);
+                              }}
+                              className={styles.removeButton}
+                            >
                               <X size={14} />
                             </button>
                           </div>
@@ -1433,15 +1691,202 @@ export default function ClaimsDataInvestigation() {
                     
                     {/* Exclusion Filters */}
                     {Object.entries(excludeFilters).map(([field, value]) => {
+                      const isEditing = editingFilter === `exclude_${field}` || !value || (Array.isArray(value) && value.length === 0);
+                      const isTextField = TEXT_INPUT_FIELDS.includes(field);
+                      const hasOptions = filterOptions[field] && Array.isArray(filterOptions[field]);
+                      const isLoading = loadingFilters[field];
+                      
+                      if (isEditing) {
+                        // Show editable interface for exclude filter
+                        const editValue = Array.isArray(value) ? value.join(', ') : (value || '');
+                        
+                        return (
+                          <div key={`exclude_${field}`} className={styles.filterEditor} onMouseDown={(e) => e.preventDefault()}>
+                            <label>{allFields[field]}:</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                              {isTextField ? (
+                                <input
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => {
+                                    const updated = { ...excludeFilters };
+                                    updated[field] = e.target.value;
+                                    setExcludeFilters(updated);
+                                    setData(null);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      setEditingFilter(null);
+                                      if (editValue) fetchData();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingFilter(null);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Don't close if we're clicking a button inside
+                                    setTimeout(() => {
+                                      if (!isClickingButton) {
+                                        setEditingFilter(null);
+                                      }
+                                      setIsClickingButton(false);
+                                    }, 100);
+                                  }}
+                                  placeholder="Enter value"
+                                  className={styles.input}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                />
+                              ) : hasOptions ? (
+                                <select
+                                  value={editValue}
+                                  onChange={(e) => {
+                                    const updated = { ...excludeFilters };
+                                    updated[field] = e.target.value;
+                                    setExcludeFilters(updated);
+                                    setData(null);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && editValue) {
+                                      setEditingFilter(null);
+                                      fetchData();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingFilter(null);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Don't close if we're clicking a button inside
+                                    setTimeout(() => {
+                                      if (!isClickingButton) {
+                                        setEditingFilter(null);
+                                      }
+                                      setIsClickingButton(false);
+                                    }, 100);
+                                  }}
+                                  className={styles.select}
+                                  style={{ flex: 1 }}
+                                  autoFocus
+                                >
+                                  <option value="">Select...</option>
+                                  {filterOptions[field].map((option, idx) => {
+                                    const displayValue = option.value?.value || option.value;
+                                    let stringValue;
+                                    if (displayValue instanceof Date) {
+                                      stringValue = displayValue.toISOString().substring(0, 7);
+                                    } else if (typeof displayValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(displayValue)) {
+                                      stringValue = displayValue.substring(0, 7);
+                                    } else {
+                                      stringValue = String(displayValue);
+                                    }
+                                    return (
+                                      <option key={idx} value={stringValue}>
+                                        {stringValue}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => {
+                                    const updated = { ...excludeFilters };
+                                    updated[field] = e.target.value;
+                                    setExcludeFilters(updated);
+                                    setData(null);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      setEditingFilter(null);
+                                      if (editValue) fetchData();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingFilter(null);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    // Don't close if we're clicking a button inside
+                                    setTimeout(() => {
+                                      if (!isClickingButton) {
+                                        setEditingFilter(null);
+                                      }
+                                      setIsClickingButton(false);
+                                    }, 100);
+                                  }}
+                                  placeholder={isLoading ? "Loading..." : "Enter value"}
+                                  className={styles.input}
+                                  style={{ flex: 1 }}
+                                  disabled={isLoading}
+                                  autoFocus
+                                />
+                              )}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setIsClickingButton(true);
+                                  toggleFilterType(field, value);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setIsClickingButton(true);
+                                }}
+                                className={styles.toggleButton}
+                                title="Toggle to include"
+                                style={{ 
+                                  padding: '4px 8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '11px',
+                                  color: 'var(--gray-600)',
+                                  background: 'var(--gray-100)',
+                                  border: '1px solid var(--gray-200)',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <XCircle size={12} />
+                                <span>Exclude</span>
+                              </button>
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsClickingButton(true);
+                                const updated = { ...excludeFilters };
+                                delete updated[field];
+                                setExcludeFilters(updated);
+                                setEditingFilter(null);
+                                setData(null);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setIsClickingButton(true);
+                              }}
+                              className={styles.removeButton}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        );
+                      }
+                      
                       // Handle array values (from breadcrumb clicks)
                       const displayValue = Array.isArray(value) 
                         ? (value.length === 1 ? value[0] : value.join(', '))
                         : value;
                       
                       return (
-                        <div key={`exclude_${field}`} className={`${styles.chip} ${styles.excludeChip}`}>
+                        <div 
+                          key={`exclude_${field}`} 
+                          className={`${styles.chip} ${styles.excludeChip}`}
+                          onClick={() => setEditingFilter(`exclude_${field}`)}
+                          style={{ cursor: 'pointer' }}
+                          title="Click to edit"
+                        >
                           <span>{allFields[field]}: NOT {displayValue}</span>
-                          <button onClick={() => {
+                          <button onClick={(e) => {
+                            e.stopPropagation();
                             const updated = { ...excludeFilters };
                             delete updated[field];
                             setExcludeFilters(updated);

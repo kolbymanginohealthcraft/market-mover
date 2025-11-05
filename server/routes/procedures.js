@@ -22,29 +22,42 @@ router.post("/procedures-volume", async (req, res) => {
       });
     }
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_procedure'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_procedure table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     let query;
     let params = {};
     
     if (npis && Array.isArray(npis) && npis.length > 0) {
       // Filter by specific NPIs
       query = `
-        WITH latest_date AS (
-          SELECT MAX(date__month_grain) as max_date
-          FROM \`aegis_access.volume_procedure\`
-          WHERE billing_provider_npi IN UNNEST(@npis)
-        )
         SELECT 
           date__month_grain,
           CAST(date__month_grain AS STRING) as date_string,
           SUM(count) as total_count
-        FROM \`aegis_access.volume_procedure\`, latest_date
+        FROM \`aegis_access.volume_procedure\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(latest_date.max_date, INTERVAL 11 MONTH)
+          AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY date__month_grain
         ORDER BY date__month_grain DESC
         LIMIT 12
       `;
-      params = { npis };
+      params = { npis, maxDate };
     } else {
       // No NPIs provided, get all data (fallback)
       query = `
@@ -53,15 +66,18 @@ router.post("/procedures-volume", async (req, res) => {
           CAST(date__month_grain AS STRING) as date_string,
           SUM(count) as total_count
         FROM \`aegis_access.volume_procedure\`
+        WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY date__month_grain
         ORDER BY date__month_grain DESC
         LIMIT 12
       `;
+      params = { maxDate };
     }
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: Object.keys(params).length > 0 ? params : undefined
+      params
     });
     
     console.log(`✅ Retrieved ${rows.length} months of procedure volume data`);
@@ -74,10 +90,13 @@ router.post("/procedures-volume", async (req, res) => {
       success: true,
       data: rows,
       timestamp: new Date().toISOString(),
+      metadata: {
+        maxDate: maxDate ? (maxDate.value || maxDate) : null
+      },
       debug: {
         npisRequested: npis?.length || 0,
         monthsReturned: rows.length,
-        dateFilter: "Last 12 months"
+        dateFilter: `Last 12 months (through ${maxDate})`
       }
     });
     
@@ -101,25 +120,50 @@ router.get("/procedures-volume", async (req, res) => {
   try {
     console.log("🔍 Fetching procedure volume data (GET endpoint)...");
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_procedure'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_procedure table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     const query = `
       SELECT 
         date__month_grain,
         CAST(date__month_grain AS STRING) as date_string,
         SUM(count) as total_count
       FROM \`aegis_access.volume_procedure\`
+      WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+        AND date__month_grain <= @maxDate
       GROUP BY date__month_grain
       ORDER BY date__month_grain DESC
       LIMIT 12
     `;
     
-    const [rows] = await vendorBigQueryClient.query({ query });
+    const [rows] = await vendorBigQueryClient.query({ 
+      query,
+      params: { maxDate }
+    });
     
     console.log(`✅ Retrieved ${rows.length} months of procedure volume data`);
     
     res.json({
       success: true,
       data: rows,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      metadata: {
+        maxDate: maxDate ? (maxDate.value || maxDate) : null
+      }
     });
     
   } catch (error) {
@@ -143,6 +187,23 @@ router.post("/procedures-by-provider", async (req, res) => {
     const { npis } = req.body;
     console.log("🔍 Fetching procedure data by provider...", { npis: npis?.length || 0 });
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_procedure'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_procedure table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     let query;
     let params = {};
     
@@ -153,26 +214,30 @@ router.post("/procedures-by-provider", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_procedure\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY billing_provider_npi
         ORDER BY total_count DESC
       `;
-      params = { npis };
+      params = { npis, maxDate };
     } else {
       query = `
         SELECT 
           billing_provider_npi,
           SUM(count) as total_count
         FROM \`aegis_access.volume_procedure\`
+        WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY billing_provider_npi
         ORDER BY total_count DESC
         LIMIT 20
       `;
+      params = { maxDate };
     }
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: Object.keys(params).length > 0 ? params : undefined
+      params
     });
     
     console.log(`✅ Retrieved ${rows.length} providers of procedure data`);
@@ -185,7 +250,7 @@ router.post("/procedures-by-provider", async (req, res) => {
       debug: {
         npisRequested: npis?.length || 0,
         npisWithData: rows.length,
-        dateFilter: "Last 12 months"
+        dateFilter: `Last 12 months (through ${maxDate})`
       }
     });
     
@@ -206,6 +271,23 @@ router.post("/procedures-by-service-line", async (req, res) => {
     const { npis } = req.body;
     console.log("🔍 Fetching procedure data by service line...", { npis: npis?.length || 0 });
     
+    // Get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_procedure'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_procedure table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
     let query;
     let params = {};
     
@@ -216,26 +298,30 @@ router.post("/procedures-by-service-line", async (req, res) => {
           SUM(count) as total_count
         FROM \`aegis_access.volume_procedure\`
         WHERE billing_provider_npi IN UNNEST(@npis)
-          AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+          AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY service_line_description
         ORDER BY total_count DESC
       `;
-      params = { npis };
+      params = { npis, maxDate };
     } else {
       query = `
         SELECT 
           service_line_description,
           SUM(count) as total_count
         FROM \`aegis_access.volume_procedure\`
+        WHERE date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+          AND date__month_grain <= @maxDate
         GROUP BY service_line_description
         ORDER BY total_count DESC
         LIMIT 20
       `;
+      params = { maxDate };
     }
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: Object.keys(params).length > 0 ? params : undefined
+      params
     });
     
     console.log(`✅ Retrieved ${rows.length} service lines of procedure data`);
@@ -520,6 +606,24 @@ router.post("/procedures-volume-by-code", async (req, res) => {
 
     console.log("🔍 Fetching procedure volume for codes...", { count: codes.length });
     
+    // First, get the max_date from reference_metadata
+    const metadataQuery = `
+      SELECT max_date
+      FROM \`aegis_access.reference_metadata\`
+      WHERE view_name = 'volume_procedure'
+      LIMIT 1
+    `;
+    
+    const [metadataRows] = await vendorBigQueryClient.query({ query: metadataQuery });
+    
+    if (metadataRows.length === 0) {
+      throw new Error('No metadata found for volume_procedure table');
+    }
+    
+    const maxDate = metadataRows[0].max_date;
+    console.log(`📅 Using max_date from metadata: ${maxDate}`);
+    
+    // Now query volume data using the correct date range
     const query = `
       SELECT 
         code,
@@ -527,22 +631,26 @@ router.post("/procedures-volume-by-code", async (req, res) => {
         AVG(charge_total) as avg_charge
       FROM \`aegis_access.volume_procedure\`
       WHERE code IN UNNEST(@codes)
-        AND date__month_grain >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+        AND date__month_grain >= DATE_SUB(@maxDate, INTERVAL 11 MONTH)
+        AND date__month_grain <= @maxDate
       GROUP BY code
       ORDER BY total_volume DESC
     `;
     
     const [rows] = await vendorBigQueryClient.query({ 
       query,
-      params: { codes }
+      params: { codes, maxDate }
     });
     
-    console.log(`✅ Retrieved volume data for ${rows.length} procedure codes`);
+    console.log(`✅ Retrieved volume data for ${rows.length} procedure codes (period: ${maxDate})`);
     
     res.json({
       success: true,
       data: rows,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      metadata: {
+        maxDate: maxDate ? (maxDate.value || maxDate) : null
+      }
     });
     
   } catch (error) {

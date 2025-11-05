@@ -187,6 +187,166 @@ router.get("/search-providers-vendor", async (req, res) => {
 });
 
 /**
+ * GET /api/search-providers-vendor/subtypes
+ * Get unique subtypes/specialties for Physician Group or Hospital provider types
+ * Optimized to only return distinct values without fetching all records
+ * 
+ * Query params:
+ *   - providerType: 'Physician Group' or 'Hospital' (required)
+ *   - search: Search string (optional)
+ *   - types: Provider types filter (optional, array)
+ *   - networks: Networks filter (optional, array)
+ *   - cities: Cities filter (optional, array)
+ *   - states: States filter (optional, array)
+ *   - taxonomyCodes: Taxonomy codes filter (optional, array)
+ *   - dhcs: DHC IDs filter (optional, array)
+ *   - lat, lon, radius: Location filter (optional)
+ */
+router.get("/search-providers-vendor/subtypes", async (req, res) => {
+  const { providerType, search, types, networks, cities, states, dhcs, lat, lon, radius, taxonomyCodes } = req.query;
+
+  try {
+    if (!providerType || (providerType !== 'Physician Group' && providerType !== 'Hospital')) {
+      return res.status(400).json({
+        success: false,
+        error: "providerType must be 'Physician Group' or 'Hospital'"
+      });
+    }
+
+    // Build WHERE conditions (same logic as main search)
+    const whereConditions = [
+      'atlas_definitive_id IS NOT NULL',
+      'atlas_definitive_id_primary_npi = TRUE',
+      'npi_deactivation_date IS NULL',
+      'atlas_definitive_firm_type = @providerType'
+    ];
+    
+    const queryParams = { providerType };
+
+    // Search term condition
+    if (search) {
+      const searchTerms = search.trim().split(/\s+/).filter(term => term.length > 0);
+      const termConditions = searchTerms.map((term, idx) => {
+        const paramKey = `search_${idx}`;
+        queryParams[paramKey] = `%${term}%`;
+        return `(
+          LOWER(atlas_definitive_name) LIKE LOWER(@${paramKey}) OR
+          LOWER(healthcare_organization_name) LIKE LOWER(@${paramKey}) OR
+          LOWER(atlas_network_name) LIKE LOWER(@${paramKey}) OR
+          LOWER(primary_address_city) LIKE LOWER(@${paramKey}) OR
+          LOWER(primary_address_state_or_province) LIKE LOWER(@${paramKey}) OR
+          LOWER(primary_address_zip5) LIKE LOWER(@${paramKey}) OR
+          LOWER(primary_address_phone_number_primary) LIKE LOWER(@${paramKey}) OR
+          LOWER(primary_address_line_1) LIKE LOWER(@${paramKey})
+        )`;
+      });
+      whereConditions.push(`(${termConditions.join(' AND ')})`);
+    }
+
+    // Filter conditions
+    // Note: We don't need to filter by types here since we already filter by providerType
+    // But we can allow other types to be included if needed for complex queries
+    const filterNetworks = networks ? (Array.isArray(networks) ? networks : [networks]) : [];
+    const filterCities = cities ? (Array.isArray(cities) ? cities : [cities]) : [];
+    const filterStates = states ? (Array.isArray(states) ? states : [states]) : [];
+
+    // Note: We could add additional type filters here, but typically we only want the providerType
+    // If types array is provided and includes the providerType, we can skip it
+    // For now, we rely solely on the providerType filter above
+
+    if (filterNetworks.length > 0) {
+      whereConditions.push('atlas_network_name IN UNNEST(@networks)');
+      queryParams.networks = filterNetworks;
+    }
+
+    if (filterCities.length > 0) {
+      whereConditions.push('primary_address_city IN UNNEST(@cities)');
+      queryParams.cities = filterCities;
+    }
+
+    if (filterStates.length > 0) {
+      whereConditions.push('primary_address_state_or_province IN UNNEST(@states)');
+      queryParams.states = filterStates;
+    }
+
+    // Taxonomy codes filter
+    const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+    if (filterTaxonomyCodes.length > 0) {
+      whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      queryParams.taxonomyCodes = filterTaxonomyCodes;
+    }
+
+    // DHC IDs filter
+    if (dhcs) {
+      const dhcIds = Array.isArray(dhcs) ? dhcs : dhcs.split(',');
+      whereConditions.push('atlas_definitive_id IN UNNEST(@dhcIds)');
+      queryParams.dhcIds = dhcIds.map(id => Number(id));
+    }
+
+    // Location filter
+    if (lat && lon && radius) {
+      const radiusMeters = Number(radius) * 1609.34;
+      whereConditions.push('primary_address_lat IS NOT NULL');
+      whereConditions.push('primary_address_long IS NOT NULL');
+      whereConditions.push(`ST_DISTANCE(
+        ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+        ST_GEOGPOINT(@lon, @lat)
+      ) <= @radiusMeters`);
+      queryParams.lat = Number(lat);
+      queryParams.lon = Number(lon);
+      queryParams.radiusMeters = radiusMeters;
+    }
+
+    // Build query based on provider type
+    let query;
+    if (providerType === 'Physician Group') {
+      // For Physician Group, return distinct specialties
+      // Using GROUP BY ensures uniqueness and allows counting
+      query = `
+        SELECT
+          primary_taxonomy_consolidated_specialty as value,
+          COUNT(DISTINCT atlas_definitive_id) as count
+        FROM \`aegis_access.hco_flat\`
+        WHERE ${whereConditions.join(' AND ')}
+          AND primary_taxonomy_consolidated_specialty IS NOT NULL
+          AND primary_taxonomy_consolidated_specialty != ''
+        GROUP BY primary_taxonomy_consolidated_specialty
+        ORDER BY primary_taxonomy_consolidated_specialty
+      `;
+    } else {
+      // For Hospital, return distinct taxonomy classifications that contain "Hospital"
+      // Using GROUP BY ensures uniqueness and allows counting
+      query = `
+        SELECT
+          primary_taxonomy_classification as value,
+          COUNT(DISTINCT atlas_definitive_id) as count
+        FROM \`aegis_access.hco_flat\`
+        WHERE ${whereConditions.join(' AND ')}
+          AND primary_taxonomy_classification IS NOT NULL
+          AND primary_taxonomy_classification != ''
+          AND primary_taxonomy_classification LIKE '%Hospital%'
+        GROUP BY primary_taxonomy_classification
+        ORDER BY primary_taxonomy_classification
+      `;
+    }
+
+    const [rows] = await vendorBigQuery.query({ query, params: queryParams });
+
+    const subtypes = rows.map(row => row.value).filter(Boolean);
+
+    console.log(`✅ [VENDOR] Subtypes query returned ${subtypes.length} unique values for ${providerType}`);
+
+    res.status(200).json({
+      success: true,
+      data: subtypes
+    });
+  } catch (err) {
+    console.error("❌ [VENDOR] Error fetching subtypes:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/search-providers-vendor/national-overview
  * Get national-level statistics and filter options for providers
  * Returns aggregated statistics and all unique filter values

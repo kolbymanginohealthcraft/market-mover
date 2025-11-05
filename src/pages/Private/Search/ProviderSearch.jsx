@@ -87,6 +87,11 @@ export default function ProviderSearch() {
   const [selectedNetworks, setSelectedNetworks] = useState([]);
   const [selectedCities, setSelectedCities] = useState([]);
   const [selectedStates, setSelectedStates] = useState([]);
+  
+  // Fetched subtypes/specialties (optimized from server)
+  const [fetchedHospitalSubtypes, setFetchedHospitalSubtypes] = useState([]);
+  const [fetchedPhysicianGroupSpecialties, setFetchedPhysicianGroupSpecialties] = useState([]);
+  const [loadingSubtypes, setLoadingSubtypes] = useState(false);
 
   // Collapsible filter sections
   const [expandedSections, setExpandedSections] = useState({
@@ -373,6 +378,83 @@ export default function ProviderSearch() {
     }
   };
 
+  // Fetch subtypes/specialties from optimized endpoint
+  const fetchSubtypes = async (providerType) => {
+    if (providerType !== 'Physician Group' && providerType !== 'Hospital') {
+      return;
+    }
+
+    setLoadingSubtypes(true);
+    try {
+      // Build query params with current filters
+      const params = new URLSearchParams();
+      params.append('providerType', providerType);
+      
+      if (submittedSearchTerm) {
+        params.append('search', submittedSearchTerm);
+      }
+      
+      // Add current filter values
+      if (selectedTypes.length > 0) {
+        selectedTypes.forEach(type => params.append('types', type));
+      }
+      if (selectedNetworks.length > 0) {
+        selectedNetworks.forEach(network => params.append('networks', network));
+      }
+      if (selectedCities.length > 0) {
+        selectedCities.forEach(city => params.append('cities', city));
+      }
+      if (selectedStates.length > 0) {
+        selectedStates.forEach(state => params.append('states', state));
+      }
+      if (selectedTaxonomyCodes.length > 0) {
+        selectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+      }
+      
+      // Add tag filter (DHC IDs)
+      if (selectedTag && tagNPIs) {
+        const dhcIds = providerTags && providerTags[selectedTag] 
+          ? providerTags[selectedTag].map(t => t.provider_dhc)
+          : [];
+        dhcIds.forEach(dhc => params.append('dhcs', dhc));
+      }
+      
+      // Add market filter (location)
+      if (selectedMarket) {
+        const market = savedMarkets.find(m => m.id === selectedMarket);
+        if (market) {
+          params.append('lat', market.latitude);
+          params.append('lon', market.longitude);
+          params.append('radius', market.radius_miles);
+        }
+      }
+
+      const response = await fetch(apiUrl(`/api/search-providers-vendor/subtypes?${params.toString()}`));
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const result = await response.json();
+      
+      if (result.success && Array.isArray(result.data)) {
+        if (providerType === 'Hospital') {
+          setFetchedHospitalSubtypes(result.data);
+        } else {
+          setFetchedPhysicianGroupSpecialties(result.data);
+        }
+      }
+    } catch (err) {
+      console.error(`Error fetching ${providerType} subtypes:`, err);
+      // On error, fall back to empty array (subtypes will be empty)
+      if (providerType === 'Hospital') {
+        setFetchedHospitalSubtypes([]);
+      } else {
+        setFetchedPhysicianGroupSpecialties([]);
+      }
+    } finally {
+      setLoadingSubtypes(false);
+    }
+  };
+
   // Enhanced dropdown close hook that includes button toggle behavior
   const handleDropdownClose = () => {
     setTaggingProviderId(null);
@@ -478,6 +560,17 @@ export default function ProviderSearch() {
   };
 
   // Auto-search when filters change (except search term which requires submit)
+  // Refetch subtypes when filters change (if Hospital or Physician Group is selected)
+  useEffect(() => {
+    if (selectedTypes.includes('Hospital')) {
+      fetchSubtypes('Hospital');
+    }
+    if (selectedTypes.includes('Physician Group')) {
+      fetchSubtypes('Physician Group');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submittedSearchTerm, selectedTypes, selectedNetworks, selectedCities, selectedStates, selectedTaxonomyCodes, selectedTag, selectedMarket]);
+
   useEffect(() => {
     // Check if we have any active filters (excluding search term)
     const hasFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
@@ -696,42 +789,14 @@ export default function ProviderSearch() {
     ? Array.from(new Set(results.map(p => p.type || "Unknown").filter(Boolean))).sort()
     : filterOptions.types;
   
-  // Extract hospital subtypes from results where type is Hospital and primary_taxonomy_classification contains "Hospital"
-  const hospitalSubtypes = results.length > 0 && selectedTypes.includes('Hospital')
-    ? (() => {
-        const hospitals = results.filter(p => p.type === 'Hospital');
-        const subtypes = hospitals
-          .map(p => p.primary_taxonomy_classification)
-          .filter(Boolean)
-          .filter(taxonomy => taxonomy.includes && taxonomy.includes('Hospital'));
-        
-        const uniqueSubtypes = Array.from(new Set(subtypes)).sort();
-        
-        // Debug logging
-        if (hospitals.length > 0 && uniqueSubtypes.length === 0) {
-          console.log('Hospital subtypes extraction debug:', {
-            totalHospitals: hospitals.length,
-            sampleHospital: hospitals[0],
-            hasTaxonomyField: hospitals[0]?.primary_taxonomy_classification !== undefined,
-            taxonomyValue: hospitals[0]?.primary_taxonomy_classification,
-            allTaxonomies: hospitals.slice(0, 5).map(h => h.primary_taxonomy_classification)
-          });
-        }
-        
-        return uniqueSubtypes;
-      })()
+  // Use fetched hospital subtypes (optimized from server) instead of extracting from results
+  const hospitalSubtypes = selectedTypes.includes('Hospital')
+    ? fetchedHospitalSubtypes
     : [];
 
-  // Extract physician group specialties from results where type is Physician Group
-  const physicianGroupSpecialties = results.length > 0 && selectedTypes.includes('Physician Group')
-    ? (() => {
-        const physicianGroups = results.filter(p => p.type === 'Physician Group');
-        const specialties = physicianGroups
-          .map(p => p.primary_taxonomy_consolidated_specialty)
-          .filter(Boolean);
-        
-        return Array.from(new Set(specialties)).sort();
-      })()
+  // Use fetched physician group specialties (optimized from server) instead of extracting from results
+  const physicianGroupSpecialties = selectedTypes.includes('Physician Group')
+    ? fetchedPhysicianGroupSpecialties
     : [];
   
   const allNetworks = results.length > 0
@@ -752,18 +817,24 @@ export default function ProviderSearch() {
       // If Hospital is being deselected, clear hospital subtypes
       if (type === 'Hospital' && prev.includes('Hospital')) {
         setSelectedHospitalSubtypes([]);
+        setFetchedHospitalSubtypes([]);
         setExpandedSections(prev => ({ ...prev, hospitalSubtypes: false }));
       } else if (type === 'Hospital' && !prev.includes('Hospital')) {
         // Auto-expand hospital subtypes when Hospital is first selected
         setExpandedSections(prev => ({ ...prev, hospitalSubtypes: true }));
+        // Fetch subtypes from optimized endpoint
+        fetchSubtypes('Hospital');
       }
       // If Physician Group is being deselected, clear physician group specialties
       if (type === 'Physician Group' && prev.includes('Physician Group')) {
         setSelectedPhysicianGroupSpecialties([]);
+        setFetchedPhysicianGroupSpecialties([]);
         setExpandedSections(prev => ({ ...prev, physicianGroupSpecialties: false }));
       } else if (type === 'Physician Group' && !prev.includes('Physician Group')) {
         // Auto-expand physician group specialties when Physician Group is first selected
         setExpandedSections(prev => ({ ...prev, physicianGroupSpecialties: true }));
+        // Fetch specialties from optimized endpoint
+        fetchSubtypes('Physician Group');
       }
       return newTypes;
     });
@@ -803,6 +874,8 @@ export default function ProviderSearch() {
     setSelectedTypes([]);
     setSelectedHospitalSubtypes([]);
     setSelectedPhysicianGroupSpecialties([]);
+    setFetchedHospitalSubtypes([]);
+    setFetchedPhysicianGroupSpecialties([]);
     setSelectedNetworks([]);
     setSelectedCities([]);
     setSelectedStates([]);
