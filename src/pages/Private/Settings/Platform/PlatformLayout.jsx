@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { 
-  BarChart3, 
   Settings, 
   FileText, 
   MessageCircle,
@@ -10,13 +9,16 @@ import {
 } from 'lucide-react';
 import { hasPlatformAccess } from '../../../../utils/roleHelpers';
 import { supabase } from '../../../../app/supabaseClient';
-import AnalyticsDashboard from './AnalyticsDashboard';
 import ManageAnnouncements from './ManageAnnouncements';
 import ManageFeedback from './ManageFeedback';
 import PolicyManagement from './PolicyManagement';
 import StyleGuide from './StyleGuide';
-import ManageTeams from './ManageTeams';
 import UserList from '../../../../features/admin/components/UserList';
+import UnfinishedItems from './UnfinishedItems';
+import GeographyAnalysis from '../../GeographyAnalysis/GeographyAnalysis';
+import TestProviderOfServices from '../../../TestProviderOfServices';
+import TestProviderOfServicesEnriched from '../../../TestProviderOfServicesEnriched';
+import ReferralPathways from '../../ReferralPathways/ReferralPathways';
 import styles from './PlatformLayout.module.css';
 
 export default function PlatformLayout() {
@@ -51,23 +53,26 @@ export default function PlatformLayout() {
   // Check if user can access platform
   const canAccessPlatform = hasPlatformAccess(userRole);
 
-  // If user tries to access platform without permission, redirect to profile
+  // If user tries to access platform without permission, redirect to dashboard
   if (!loading && !canAccessPlatform) {
-    return <Navigate to="/app/settings/profile" replace />;
+    return <Navigate to="/app/dashboard" replace />;
   }
 
   return (
     <div className={styles.content}>
       <Routes>
-        <Route index element={<Navigate to="analytics" replace />} />
-        <Route path="analytics" element={<AnalyticsDashboard />} />
+        <Route index element={<Navigate to="users" replace />} />
         <Route path="users" element={<UserList />} />
-        <Route path="teams" element={<ManageTeams />} />
         <Route path="announcements" element={<ManageAnnouncements />} />
         <Route path="feedback" element={<ManageFeedback />} />
         <Route path="policies" element={<PolicyManagement />} />
         <Route path="style-guide" element={<StyleGuide />} />
-        <Route path="*" element={<Navigate to="analytics" replace />} />
+        <Route path="unfinished" element={<UnfinishedItems />} />
+        <Route path="unfinished/geography" element={<GeographyAnalysis />} />
+        <Route path="unfinished/medicare-pos" element={<TestProviderOfServices />} />
+        <Route path="unfinished/medicare-pos-enriched" element={<TestProviderOfServicesEnriched />} />
+        <Route path="unfinished/referral-pathways" element={<ReferralPathways />} />
+        <Route path="*" element={<Navigate to="users" replace />} />
       </Routes>
     </div>
   );

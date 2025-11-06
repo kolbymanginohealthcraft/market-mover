@@ -162,6 +162,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'Healthcare Organization Analysis';
     } else if (location.pathname.includes('/hcp')) {
       return 'Healthcare Professional Analysis';
+    } else if (location.pathname.includes('/platform')) {
+      return 'Platform Management';
     } else if (location.pathname.includes('/settings')) {
       return 'Account Settings';
     } else if (location.pathname.includes('/feedback')) {
@@ -281,6 +283,10 @@ const Header = ({ currentView, selectedMarket }) => {
       return [
         { text: 'Analyze individual provider performance and practice patterns', type: 'description' }
       ];
+    } else if (currentPath.includes('/platform')) {
+      return [
+        { text: 'Manage users, teams, and system settings', type: 'description' }
+      ];
     } else if (currentPath.includes('/settings')) {
       return [
         { text: 'Manage your profile and preferences', type: 'description' }
@@ -340,6 +346,8 @@ const Header = ({ currentView, selectedMarket }) => {
       return <Building2 size={18} />;
     } else if (location.pathname.includes('/hcp')) {
       return <User size={18} />;
+    } else if (location.pathname.includes('/platform')) {
+      return <Settings size={18} />;
     } else if (location.pathname.includes('/settings')) {
       return <Settings size={18} />;
     } else {

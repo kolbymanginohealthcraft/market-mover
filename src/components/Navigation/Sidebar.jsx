@@ -24,9 +24,11 @@ import {
   X,
   FileBarChart,
   Database,
-  GitBranch
+  GitBranch,
+  TrendingUp
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
+import { useUser } from '../Context/UserContext';
 import { useState, useRef, useEffect } from 'react';
 import styles from './Sidebar.module.css';
 
@@ -34,7 +36,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasTeam, loading } = useUserTeam();
+  const { hasTeam, teamInfo, loading } = useUserTeam();
+  const { permissions } = useUser();
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const tooltipRef = useRef(null);
 
@@ -138,7 +141,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           
           <Link 
             to="/app/claims" 
-            className={`${styles.navItem} ${isActive('/claims') ? styles.active : ''}`}
+            className={`${styles.navItem} ${isActive('/claims') && !isActive('/claims/storyteller') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Claims Data Explorer')}
             onMouseLeave={handleMouseLeave}
           >
@@ -147,23 +150,13 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </Link>
           
           <Link 
-            to="/app/geography" 
-            className={`${styles.navItem} ${isActive('/geography') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Geography Analysis')}
+            to="/app/claims/storyteller" 
+            className={`${styles.navItem} ${isActive('/claims/storyteller') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Storyteller')}
             onMouseLeave={handleMouseLeave}
           >
-            <MapPin size={14} />
-            {!isCollapsed && 'Geography Analysis'}
-          </Link>
-          
-          <Link 
-            to="/app/referral-pathways" 
-            className={`${styles.navItem} ${isActive('/referral-pathways') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Referral Pathways')}
-            onMouseLeave={handleMouseLeave}
-          >
-            <GitBranch size={14} />
-            {!isCollapsed && 'Referral Pathways'}
+            <TrendingUp size={14} />
+            {!isCollapsed && 'Storyteller'}
           </Link>
           
           {/* Section divider */}
@@ -362,31 +355,33 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </div>
         )}
 
-        {/* DEV ROUTES Section */}
-        <div className={styles.navItems}>
-          {!isCollapsed && <div className={styles.sectionDivider}>DEV ROUTES</div>}
-          <Link 
-            to="/app/test-pos" 
-            className={`${styles.navItem} ${isActive('/test-pos') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Medicare POS')}
-            onMouseLeave={handleMouseLeave}
-          >
-            <Code size={14} />
-            {!isCollapsed && 'Medicare POS'}
-          </Link>
-          <Link 
-            to="/app/test-pos-enriched" 
-            className={`${styles.navItem} ${isActive('/test-pos-enriched') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Medicare POS Enriched')}
-            onMouseLeave={handleMouseLeave}
-          >
-            <Code size={14} />
-            {!isCollapsed && 'Medicare POS Enriched'}
-          </Link>
-        </div>
+        {/* Platform Section (only shown for platform admins) */}
+        {permissions?.canAccessPlatform && (
+          <div className={styles.navItems}>
+            {!isCollapsed && <div className={styles.sectionDivider}>PLATFORM</div>}
+            <Link 
+              to="/app/platform" 
+              className={`${styles.navItem} ${isActive('/platform') ? styles.active : ''}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'Platform Management')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <Shield size={14} />
+              {!isCollapsed && 'Platform'}
+            </Link>
+          </div>
+        )}
 
         {/* Bottom Navigation - Settings and Feedback */}
         <div className={styles.bottomNav}>
+          {!isCollapsed && (
+            <div className={styles.teamInfo}>
+              {hasTeam && teamInfo ? (
+                <span className={styles.teamName}>{teamInfo.name}</span>
+              ) : (
+                <span className={styles.freeUser}>Free user</span>
+              )}
+            </div>
+          )}
           <Link 
             to="/app/settings" 
             className={`${styles.navItem} ${isActive('/settings') ? styles.active : ''}`}

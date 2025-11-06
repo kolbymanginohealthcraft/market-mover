@@ -93,8 +93,12 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         nearbyDhcCcnsCount: memoizedNearbyDhcCcns?.length || 0
       });
 
-      if (!provider) {
-        console.log('⚠️ No provider provided, clearing all data');
+      // Check if we have CCNs even without a real provider
+      const hasCcns = memoizedNearbyDhcCcns && memoizedNearbyDhcCcns.length > 0;
+      const isPlaceholderProvider = provider && provider.dhc === 'ccn-only';
+      
+      if (!provider && !hasCcns) {
+        console.log('⚠️ No provider and no CCNs provided, clearing all data');
         setMatrixLoading(false);
         setMatrixMeasures([]);
         setMatrixData({});
@@ -116,7 +120,13 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
       
       try {
         // 1. Build all unique providers: main + all unique nearby (by dhc)
-        let allProviders = [provider, ...memoizedNearbyProviders];
+        // Skip placeholder providers in the provider list
+        let allProviders = [];
+        if (provider && !isPlaceholderProvider) {
+          allProviders = [provider, ...memoizedNearbyProviders];
+        } else {
+          allProviders = [...memoizedNearbyProviders];
+        }
         allProviders = allProviders.filter((p, idx, arr) => p && arr.findIndex(x => x.dhc === p.dhc) === idx);
 
         // 2. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
@@ -125,7 +135,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         console.log('🔍 Building CCN mapping from nearbyDhcCcns:', {
           nearbyDhcCcnsLength: memoizedNearbyDhcCcns?.length || 0,
           nearbyDhcCcns: memoizedNearbyDhcCcns,
-          providerDhc: provider?.dhc
+          providerDhc: provider?.dhc,
+          isPlaceholderProvider
         });
         
         (memoizedNearbyDhcCcns || []).forEach(row => {
@@ -137,8 +148,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         
         console.log('🔍 CCN mapping after processing nearbyDhcCcns:', providerDhcToCcns);
         
-        // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs (only for numeric DHCs)
-        if (!providerDhcToCcns[provider.dhc] && !isNaN(parseInt(provider.dhc))) {
+        // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs (only for numeric DHCs and not placeholder)
+        if (provider && !isPlaceholderProvider && !providerDhcToCcns[provider.dhc] && !isNaN(parseInt(provider.dhc))) {
           console.log('🔍 Main provider not in nearbyDhcCcns, fetching CCNs for:', provider.dhc);
           const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
@@ -157,15 +168,22 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
 
 
-        // 4. Only include providers with at least one CCN
+        // 4. Only include providers with at least one CCN (or if we have CCNs from placeholder providers)
         const providersBeforeFilter = allProviders.length;
-        allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
+        if (isPlaceholderProvider || !provider) {
+          // When using placeholder provider or no provider, we still want to process CCNs
+          // Don't filter providers, but ensure we have CCNs
+          console.log('🔍 Using CCN-only mode, skipping provider filtering');
+        } else {
+          allProviders = allProviders.filter(p => providerDhcToCcns[p.dhc] && providerDhcToCcns[p.dhc].length > 0);
+        }
         
         console.log('🔍 Provider filtering results:', {
           providersBeforeFilter,
           providersAfterFilter: allProviders.length,
           allProviders: allProviders.map(p => ({ dhc: p.dhc, name: p.name })),
-          providerDhcToCcns: providerDhcToCcns
+          providerDhcToCcns: providerDhcToCcns,
+          isPlaceholderProvider
         });
         
         // 4b. Get unique measure settings for dropdown (instead of provider types)
@@ -361,6 +379,8 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 12. Organize data for ProviderComparisonMatrix
         let dataByDhc = {};
         let providersWithData = 0;
+        
+        // Process all providers (real and placeholder)
         allProviders.forEach(p => {
           const ccns = providerDhcToCcns[p.dhc] || [];
           dataByDhc[p.dhc] = {};
@@ -382,6 +402,35 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           if (providerHasData) providersWithData++;
         });
         
+        // Also process placeholder DHCs (like 'ccn-only') that aren't in allProviders
+        // These are for manually entered CCNs
+        Object.keys(providerDhcToCcns).forEach(dhc => {
+          // Skip if already processed in allProviders
+          if (allProviders.some(p => p.dhc === dhc)) return;
+          
+          // Only process placeholder DHCs
+          if (dhc === 'ccn-only') {
+            const ccns = providerDhcToCcns[dhc] || [];
+            dataByDhc[dhc] = {};
+            let providerHasData = false;
+            measures.forEach(m => {
+              // Aggregate quality measure data for all CCNs for this placeholder DHC and measure
+              const foundData = providerData.filter(d => ccns.includes(d.ccn) && d.code === m.code);
+              if (foundData.length > 0) {
+                providerHasData = true;
+                // Average if multiple CCNs
+                const avgScore = foundData.reduce((sum, d) => sum + (d.score || 0), 0) / foundData.length;
+                const avgPercentile = foundData.reduce((sum, d) => sum + (d.percentile_column || 0), 0) / foundData.length;
+                dataByDhc[dhc][m.code] = {
+                  score: avgScore,
+                  percentile: avgPercentile,
+                };
+              }
+            });
+            if (providerHasData) providersWithData++;
+          }
+        });
+        
 
 
         setMatrixMeasures(measures);
@@ -391,7 +440,29 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         setMatrixLoading(false);
 
         // Save allProviders and providerDhcToCcns for filtering in render
-        setAllMatrixProviders(allProviders);
+        // Also include placeholder providers for manually entered CCNs
+        const allProvidersWithPlaceholders = [...allProviders];
+        if (isPlaceholderProvider && provider) {
+          // Add the placeholder provider if it has data
+          if (dataByDhc[provider.dhc] && Object.keys(dataByDhc[provider.dhc]).length > 0) {
+            allProvidersWithPlaceholders.push(provider);
+          }
+        }
+        // Also add any placeholder DHCs that have data
+        Object.keys(providerDhcToCcns).forEach(dhc => {
+          if (dhc === 'ccn-only' && 
+              !allProvidersWithPlaceholders.some(p => p.dhc === dhc) &&
+              dataByDhc[dhc] && Object.keys(dataByDhc[dhc]).length > 0) {
+            allProvidersWithPlaceholders.push({
+              dhc: dhc,
+              name: 'CCN Selection',
+              latitude: null,
+              longitude: null
+            });
+          }
+        });
+        
+        setAllMatrixProviders(allProvidersWithPlaceholders);
         setMatrixProviderIdToCcns(providerDhcToCcns);
       } catch (err) {
         console.error('❌ Error in fetchMatrixData:', err);

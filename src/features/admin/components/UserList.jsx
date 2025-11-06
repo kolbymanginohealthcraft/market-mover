@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Users, Search } from 'lucide-react';
+import { Users, X, BarChart3, List, Search } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 import UserDetailModal from './UserDetailModal';
+import ManageTeams from '../../../pages/Private/Settings/Platform/ManageTeams';
 import styles from './UserList.module.css';
 
 export default function UserList() {
@@ -16,10 +17,14 @@ export default function UserList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
+  const [activityLevelFilter, setActivityLevelFilter] = useState('all');
+  const [activityLevel7DaysFilter, setActivityLevel7DaysFilter] = useState('all');
+  const [loginStatusFilter, setLoginStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('email');
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchUsers();
@@ -35,7 +40,6 @@ export default function UserList() {
 
   useEffect(() => {
     if (sortBy === 'last_login' && Object.keys(loginHistory).length > 0 && users.length > 0) {
-      // Re-sort when login history loads if we're sorting by last login
       setUsers(prevUsers => {
         const sorted = [...prevUsers].sort((a, b) => {
           const aLogin = loginHistory[a.id]?.lastSignIn;
@@ -48,8 +52,28 @@ export default function UserList() {
         });
         return sorted;
       });
+    } else if (sortBy === 'total_activities' && Object.keys(activityCounts).length > 0 && users.length > 0) {
+      setUsers(prevUsers => {
+        const sorted = [...prevUsers].sort((a, b) => {
+          const aCount = activityCounts[a.id] || 0;
+          const bCount = activityCounts[b.id] || 0;
+          const comparison = aCount - bCount;
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+        return sorted;
+      });
+    } else if (sortBy === 'activities_7days' && Object.keys(activityCounts7Days).length > 0 && users.length > 0) {
+      setUsers(prevUsers => {
+        const sorted = [...prevUsers].sort((a, b) => {
+          const aCount = activityCounts7Days[a.id] || 0;
+          const bCount = activityCounts7Days[b.id] || 0;
+          const comparison = aCount - bCount;
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+        return sorted;
+      });
     }
-  }, [loginHistory, sortBy, sortOrder]);
+  }, [loginHistory, activityCounts, activityCounts7Days, sortBy, sortOrder]);
 
   const fetchUsers = async () => {
     try {
@@ -74,8 +98,7 @@ export default function UserList() {
         query = query.order('last_name', { ascending: sortOrder === 'asc' });
       } else if (sortBy === 'team') {
         query = query.order('team_id', { ascending: sortOrder === 'asc' });
-      } else if (sortBy === 'last_login') {
-        // Can't sort by login history in query, will sort in JS
+      } else if (sortBy === 'last_login' || sortBy === 'total_activities' || sortBy === 'activities_7days') {
         query = query.order('email', { ascending: true });
       } else if (sortBy === 'email') {
         query = query.order('email', { ascending: sortOrder === 'asc' });
@@ -201,6 +224,21 @@ export default function UserList() {
     }
   };
 
+  const handleRowFilter = (filterType, filterValue) => {
+    if (filterType === 'role') {
+      setRoleFilter(filterValue === 'No Role' ? 'no_role' : filterValue);
+    } else if (filterType === 'team') {
+      setTeamFilter(filterValue === 'No Team' ? 'no_team' : filterValue);
+    } else if (filterType === 'activityLevel') {
+      setActivityLevelFilter(filterValue);
+    } else if (filterType === 'activityLevel7Days') {
+      setActivityLevel7DaysFilter(filterValue);
+    } else if (filterType === 'loginStatus') {
+      setLoginStatusFilter(filterValue);
+    }
+    setActiveTab('listing');
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = searchTerm === '' || 
       user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -213,22 +251,45 @@ export default function UserList() {
     const matchesTeam = teamFilter === 'all' || 
       (teamFilter === 'no_team' ? !user.teams : user.teams?.name === teamFilter);
 
-    return matchesSearch && matchesRole && matchesTeam;
+    const matchesActivityLevel = (() => {
+      if (activityLevelFilter === 'all') return true;
+      const total = activityCounts[user.id] || 0;
+      if (activityLevelFilter === 'Very Active (100+)') return total >= 100;
+      if (activityLevelFilter === 'Active (50-99)') return total >= 50 && total <= 99;
+      if (activityLevelFilter === 'Moderate (10-49)') return total >= 10 && total <= 49;
+      if (activityLevelFilter === 'Low (1-9)') return total >= 1 && total <= 9;
+      if (activityLevelFilter === 'No Activity') return total === 0;
+      return true;
+    })();
+
+    const matchesActivityLevel7Days = (() => {
+      if (activityLevel7DaysFilter === 'all') return true;
+      const count = activityCounts7Days[user.id] || 0;
+      if (activityLevel7DaysFilter === 'Very Active (20+)') return count >= 20;
+      if (activityLevel7DaysFilter === 'Active (10-19)') return count >= 10 && count <= 19;
+      if (activityLevel7DaysFilter === 'Moderate (5-9)') return count >= 5 && count <= 9;
+      if (activityLevel7DaysFilter === 'Low (1-4)') return count >= 1 && count <= 4;
+      if (activityLevel7DaysFilter === 'No Activity') return count === 0;
+      return true;
+    })();
+
+    const matchesLoginStatus = (() => {
+      if (loginStatusFilter === 'all') return true;
+      const lastSignIn = loginHistory[user.id]?.lastSignIn;
+      if (!lastSignIn) {
+        return loginStatusFilter === 'Never Logged In';
+      }
+      const now = new Date();
+      const daysSince = Math.floor((now - new Date(lastSignIn)) / (1000 * 60 * 60 * 24));
+      if (loginStatusFilter === 'Active (Last 7 days)') return daysSince <= 7;
+      if (loginStatusFilter === 'Recent (8-30 days)') return daysSince >= 8 && daysSince <= 30;
+      if (loginStatusFilter === 'Inactive (31-90 days)') return daysSince >= 31 && daysSince <= 90;
+      if (loginStatusFilter === 'Very Inactive (90+ days)') return daysSince > 90;
+      return true;
+    })();
+
+    return matchesSearch && matchesRole && matchesTeam && matchesActivityLevel && matchesActivityLevel7Days && matchesLoginStatus;
   });
-
-  const getUniqueRoles = () => {
-    const roles = users.map(user => user.role).filter(Boolean);
-    const uniqueRoles = [...new Set(roles)];
-    const hasNoRole = users.some(user => !user.role);
-    return ['all', ...uniqueRoles, ...(hasNoRole ? ['no_role'] : [])];
-  };
-
-  const getUniqueTeams = () => {
-    const teams = users.map(user => user.teams?.name).filter(Boolean);
-    const uniqueTeams = [...new Set(teams)];
-    const hasNoTeam = users.some(user => !user.teams);
-    return ['all', ...uniqueTeams, ...(hasNoTeam ? ['no_team'] : [])];
-  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -247,10 +308,95 @@ export default function UserList() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setRoleFilter('all');
+    setTeamFilter('all');
+    setActivityLevelFilter('all');
+    setActivityLevel7DaysFilter('all');
+    setLoginStatusFilter('all');
+  };
+
+  const hasActiveFilters = () => {
+    return searchTerm !== '' || roleFilter !== 'all' || teamFilter !== 'all' || 
+           activityLevelFilter !== 'all' || activityLevel7DaysFilter !== 'all' || loginStatusFilter !== 'all';
+  };
+
+  const getActiveFilters = () => {
+    const filters = [];
+    if (searchTerm) {
+      filters.push({ type: 'search', label: `Search: "${searchTerm}"`, value: searchTerm });
+    }
+    if (roleFilter !== 'all') {
+      filters.push({ type: 'role', label: `Role: ${roleFilter === 'no_role' ? 'No Role' : roleFilter}`, value: roleFilter });
+    }
+    if (teamFilter !== 'all') {
+      filters.push({ type: 'team', label: `Team: ${teamFilter === 'no_team' ? 'No Team' : teamFilter}`, value: teamFilter });
+    }
+    if (activityLevelFilter !== 'all') {
+      filters.push({ type: 'activityLevel', label: `Activity: ${activityLevelFilter}`, value: activityLevelFilter });
+    }
+    if (activityLevel7DaysFilter !== 'all') {
+      filters.push({ type: 'activityLevel7Days', label: `7-Day Activity: ${activityLevel7DaysFilter}`, value: activityLevel7DaysFilter });
+    }
+    if (loginStatusFilter !== 'all') {
+      filters.push({ type: 'loginStatus', label: `Login Status: ${loginStatusFilter}`, value: loginStatusFilter });
+    }
+    return filters;
+  };
+
+  const removeFilter = (filterType) => {
+    switch (filterType) {
+      case 'search':
+        setSearchTerm('');
+        break;
+      case 'role':
+        setRoleFilter('all');
+        break;
+      case 'team':
+        setTeamFilter('all');
+        break;
+      case 'activityLevel':
+        setActivityLevelFilter('all');
+        break;
+      case 'activityLevel7Days':
+        setActivityLevel7DaysFilter('all');
+        break;
+      case 'loginStatus':
+        setLoginStatusFilter('all');
+        break;
+      default:
+        break;
+    }
+  };
+
 
   if (loading) {
     return (
       <div className={styles.container}>
+        <div className={styles.tabNav}>
+          <button 
+            className={`${styles.tab} ${activeTab === 'overview' ? styles.active : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <BarChart3 size={16} />
+            Overview
+          </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'listing' ? styles.active : ''}`}
+            onClick={() => setActiveTab('listing')}
+          >
+            <List size={16} />
+            Listing
+          </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'teams' ? styles.active : ''}`}
+            onClick={() => setActiveTab('teams')}
+          >
+            <Users size={16} />
+            Teams
+          </button>
+        </div>
         <div className={styles.loading}>
           <Spinner size="lg" />
           <p>Loading users...</p>
@@ -262,6 +408,29 @@ export default function UserList() {
   if (error) {
     return (
       <div className={styles.container}>
+        <div className={styles.tabNav}>
+          <button 
+            className={`${styles.tab} ${activeTab === 'overview' ? styles.active : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <BarChart3 size={16} />
+            Overview
+          </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'listing' ? styles.active : ''}`}
+            onClick={() => setActiveTab('listing')}
+          >
+            <List size={16} />
+            Listing
+          </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'teams' ? styles.active : ''}`}
+            onClick={() => setActiveTab('teams')}
+          >
+            <Users size={16} />
+            Teams
+          </button>
+        </div>
         <div className={styles.error}>
           <h2>Error Loading Users</h2>
           <p>{error}</p>
@@ -273,175 +442,454 @@ export default function UserList() {
     );
   }
 
+  const activeFilters = getActiveFilters();
+
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1><Users className={styles.headerIcon} /> User Management</h1>
-        <p className={styles.subtitle}>
-          View and manage all platform users
-        </p>
+      {/* Tab Navigation */}
+      <div className={styles.tabNav}>
+        <button 
+          className={`${styles.tab} ${activeTab === 'overview' ? styles.active : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <BarChart3 size={16} />
+          Overview
+        </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'listing' ? styles.active : ''}`}
+          onClick={() => setActiveTab('listing')}
+        >
+          <List size={16} />
+          Listing
+        </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'teams' ? styles.active : ''}`}
+          onClick={() => setActiveTab('teams')}
+        >
+          <Users size={16} />
+          Teams
+        </button>
       </div>
 
-      <div className={styles.controls}>
-        <div className={styles.searchSection}>
-          <div className={styles.searchInput}>
-            <Search className={styles.searchIcon} />
+      {/* Filter Chips Row with Search */}
+      <div className={styles.filterChipsContainer}>
+        <div className={styles.searchBarWrapper}>
+          <div className="searchBarContainer">
+            <div className="searchIcon">
+              <Search size={16} />
+            </div>
             <input
               type="text"
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setSearchTerm('');
+                }
+              }}
+              className="searchInput"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="clearButton"
+                title="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
-
-        <div className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <label>Role:</label>
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-              {getUniqueRoles().map(role => (
-                <option key={role} value={role}>
-                  {role === 'all' ? 'All Roles' : role === 'no_role' ? 'No Role' : role}
-                </option>
+        {activeFilters.length > 0 && (
+          <>
+            <div className={styles.filterChips}>
+              {activeFilters.map((filter, index) => (
+                <div key={index} className={styles.filterChip}>
+                  <span>{filter.label}</span>
+                  <button
+                    onClick={() => removeFilter(filter.type)}
+                    className={styles.filterChipRemove}
+                    title="Remove filter"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               ))}
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <label>Team:</label>
-            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
-              {getUniqueTeams().map(team => (
-                <option key={team} value={team}>
-                  {team === 'all' ? 'All Teams' : team === 'no_team' ? 'No Team' : team}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.stats}>
-        <div className={styles.statCard}>
-          <div className={styles.statValue}>{users.length}</div>
-          <div className={styles.statLabel}>Total Users</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statValue}>
-            {users.filter(user => user.role === 'Platform Admin').length}
-          </div>
-          <div className={styles.statLabel}>Admins</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statValue}>
-            {users.filter(user => user.role === 'Team Admin').length}
-          </div>
-          <div className={styles.statLabel}>Team Admins</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statValue}>
-            {users.filter(user => user.role === 'Team Member').length}
-          </div>
-          <div className={styles.statLabel}>Team Members</div>
-        </div>
-      </div>
-
-      <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th onClick={() => handleSort('email')} className={styles.sortable}>
-                Email
-                {sortBy === 'email' && (
-                  <span className={styles.sortIndicator}>
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
-              <th onClick={() => handleSort('name')} className={styles.sortable}>
-                Name
-                {sortBy === 'name' && (
-                  <span className={styles.sortIndicator}>
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
-              <th onClick={() => handleSort('role')} className={styles.sortable}>
-                Role
-                {sortBy === 'role' && (
-                  <span className={styles.sortIndicator}>
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
-              <th onClick={() => handleSort('team')} className={styles.sortable}>
-                Team
-                {sortBy === 'team' && (
-                  <span className={styles.sortIndicator}>
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
-              <th onClick={() => handleSort('last_login')} className={styles.sortable}>
-                Last Login
-                {sortBy === 'last_login' && (
-                  <span className={styles.sortIndicator}>
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
-              <th>Total Activities</th>
-              <th>Activities (7 Days)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map(user => {
-              return (
-                <tr 
-                  key={user.id}
-                  className={styles.clickableRow}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  <td>{user.email}</td>
-                  <td>
-                    <div className={styles.userName}>
-                      {user.first_name} {user.last_name}
-                    </div>
-                  </td>
-                  <td>
-                    {user.role || 'No Role'}
-                  </td>
-                  <td>
-                    {user.teams ? user.teams.name : <span className={styles.noTeam}>No Team</span>}
-                  </td>
-                  <td>
-                    {loginHistory[user.id]?.lastSignIn ? (
-                      formatDate(loginHistory[user.id].lastSignIn)
-                    ) : (
-                      <span className={styles.noTeam}>Never</span>
-                    )}
-                  </td>
-                  <td>
-                    {activityCounts[user.id] || 0}
-                  </td>
-                  <td>
-                    {activityCounts7Days[user.id] || 0}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {filteredUsers.length === 0 && (
-          <div className={styles.emptyState}>
-            <Users className={styles.emptyIcon} />
-            <h3>No users found</h3>
-            <p>Try adjusting your search or filters</p>
-          </div>
+            </div>
+            <button onClick={clearFilters} className={styles.clearAllButton}>
+              Clear All
+            </button>
+          </>
         )}
+      </div>
+
+      {/* Main Layout */}
+      <div className={styles.mainLayout}>
+        {/* Main Content Area */}
+        <div className={styles.contentArea}>
+          {activeTab === 'overview' && (
+            <div className={styles.overviewTab}>
+              <div className={styles.stats}>
+                <div className={styles.statCard}>
+                  <div className={styles.statValue}>{users.length}</div>
+                  <div className={styles.statLabel}>Total Users</div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statValue}>
+                    {Object.keys(loginHistory).filter(id => loginHistory[id]?.lastSignIn).length}
+                  </div>
+                  <div className={styles.statLabel}>Active Users</div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statValue}>
+                    {users.filter(user => !loginHistory[user.id]?.lastSignIn).length}
+                  </div>
+                  <div className={styles.statLabel}>Never Logged In</div>
+                </div>
+              </div>
+
+              {/* Role Breakdown Table */}
+              <div className={styles.overviewTableSection}>
+                <h3>Role Breakdown</h3>
+                <div className={styles.tableContainer}>
+                  <table className={styles.overviewTable}>
+                    <thead>
+                      <tr>
+                        <th>Role</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const roleGroups = {};
+                        users.forEach(user => {
+                          const role = user.role || 'No Role';
+                          if (!roleGroups[role]) {
+                            roleGroups[role] = {
+                              role,
+                              users: []
+                            };
+                          }
+                          roleGroups[role].users.push(user);
+                        });
+                        return Object.values(roleGroups).sort((a, b) => b.users.length - a.users.length);
+                      })().map(group => (
+                        <tr 
+                          key={group.role}
+                          className={styles.clickableRow}
+                          onClick={() => handleRowFilter('role', group.role === 'No Role' ? 'No Role' : group.role)}
+                        >
+                          <td><strong>{group.role}</strong></td>
+                          <td>{group.users.length}</td>
+                          <td>{users.length > 0 ? Math.round((group.users.length / users.length) * 100) : 0}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Usage Breakdown Table */}
+              <div className={styles.overviewTableSection}>
+                <h3>Usage Breakdown</h3>
+                <div className={styles.tableContainer}>
+                  <table className={styles.overviewTable}>
+                    <thead>
+                      <tr>
+                        <th>Activity Level</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const usageGroups = {
+                          'Very Active (100+)': { min: 100, users: [] },
+                          'Active (50-99)': { min: 50, max: 99, users: [] },
+                          'Moderate (10-49)': { min: 10, max: 49, users: [] },
+                          'Low (1-9)': { min: 1, max: 9, users: [] },
+                          'No Activity': { min: 0, max: 0, users: [] }
+                        };
+                        
+                        users.forEach(user => {
+                          const total = activityCounts[user.id] || 0;
+                          if (total >= 100) {
+                            usageGroups['Very Active (100+)'].users.push(user);
+                          } else if (total >= 50) {
+                            usageGroups['Active (50-99)'].users.push(user);
+                          } else if (total >= 10) {
+                            usageGroups['Moderate (10-49)'].users.push(user);
+                          } else if (total >= 1) {
+                            usageGroups['Low (1-9)'].users.push(user);
+                          } else {
+                            usageGroups['No Activity'].users.push(user);
+                          }
+                        });
+                        
+                        return Object.entries(usageGroups).map(([label, group]) => ({
+                          label,
+                          count: group.users.length
+                        }));
+                      })().map(group => (
+                        <tr 
+                          key={group.label}
+                          className={styles.clickableRow}
+                          onClick={() => handleRowFilter('activityLevel', group.label)}
+                        >
+                          <td><strong>{group.label}</strong></td>
+                          <td>{group.count}</td>
+                          <td>{users.length > 0 ? Math.round((group.count / users.length) * 100) : 0}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Activity Table */}
+              <div className={styles.overviewTableSection}>
+                <h3>Recent Activity (Last 7 Days)</h3>
+                <div className={styles.tableContainer}>
+                  <table className={styles.overviewTable}>
+                    <thead>
+                      <tr>
+                        <th>Activity Level</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const activityGroups = {
+                          'Very Active (20+)': { min: 20, users: [] },
+                          'Active (10-19)': { min: 10, max: 19, users: [] },
+                          'Moderate (5-9)': { min: 5, max: 9, users: [] },
+                          'Low (1-4)': { min: 1, max: 4, users: [] },
+                          'No Activity': { min: 0, max: 0, users: [] }
+                        };
+                        
+                        users.forEach(user => {
+                          const count = activityCounts7Days[user.id] || 0;
+                          if (count >= 20) {
+                            activityGroups['Very Active (20+)'].users.push(user);
+                          } else if (count >= 10) {
+                            activityGroups['Active (10-19)'].users.push(user);
+                          } else if (count >= 5) {
+                            activityGroups['Moderate (5-9)'].users.push(user);
+                          } else if (count >= 1) {
+                            activityGroups['Low (1-4)'].users.push(user);
+                          } else {
+                            activityGroups['No Activity'].users.push(user);
+                          }
+                        });
+                        
+                        return Object.entries(activityGroups).map(([label, group]) => ({
+                          label,
+                          count: group.users.length
+                        }));
+                      })().map(group => (
+                        <tr 
+                          key={group.label}
+                          className={styles.clickableRow}
+                          onClick={() => handleRowFilter('activityLevel7Days', group.label)}
+                        >
+                          <td><strong>{group.label}</strong></td>
+                          <td>{group.count}</td>
+                          <td>{users.length > 0 ? Math.round((group.count / users.length) * 100) : 0}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Login Status Table */}
+              <div className={styles.overviewTableSection}>
+                <h3>Login Status</h3>
+                <div className={styles.tableContainer}>
+                  <table className={styles.overviewTable}>
+                    <thead>
+                      <tr>
+                        <th>Status</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const now = new Date();
+                        const loginGroups = {
+                          'Active (Last 7 days)': { users: [] },
+                          'Recent (8-30 days)': { users: [] },
+                          'Inactive (31-90 days)': { users: [] },
+                          'Very Inactive (90+ days)': { users: [] },
+                          'Never Logged In': { users: [] }
+                        };
+                        
+                        users.forEach(user => {
+                          const lastSignIn = loginHistory[user.id]?.lastSignIn;
+                          if (!lastSignIn) {
+                            loginGroups['Never Logged In'].users.push(user);
+                          } else {
+                            const daysSince = Math.floor((now - new Date(lastSignIn)) / (1000 * 60 * 60 * 24));
+                            if (daysSince <= 7) {
+                              loginGroups['Active (Last 7 days)'].users.push(user);
+                            } else if (daysSince <= 30) {
+                              loginGroups['Recent (8-30 days)'].users.push(user);
+                            } else if (daysSince <= 90) {
+                              loginGroups['Inactive (31-90 days)'].users.push(user);
+                            } else {
+                              loginGroups['Very Inactive (90+ days)'].users.push(user);
+                            }
+                          }
+                        });
+                        
+                        return Object.entries(loginGroups).map(([label, group]) => ({
+                          label,
+                          count: group.users.length
+                        }));
+                      })().map(group => (
+                        <tr 
+                          key={group.label}
+                          className={styles.clickableRow}
+                          onClick={() => handleRowFilter('loginStatus', group.label)}
+                        >
+                          <td><strong>{group.label}</strong></td>
+                          <td>{group.count}</td>
+                          <td>{users.length > 0 ? Math.round((group.count / users.length) * 100) : 0}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'listing' && (
+            <div className={styles.listingTab}>
+              <div className={styles.tableContainer}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th onClick={() => handleSort('email')} className={styles.sortable}>
+                        Email
+                        {sortBy === 'email' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                      <th onClick={() => handleSort('name')} className={styles.sortable}>
+                        Name
+                        {sortBy === 'name' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                      <th onClick={() => handleSort('role')} className={styles.sortable}>
+                        Role
+                        {sortBy === 'role' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                      <th onClick={() => handleSort('team')} className={styles.sortable}>
+                        Team
+                        {sortBy === 'team' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                      <th onClick={() => handleSort('last_login')} className={styles.sortable}>
+                        Last Login
+                        {sortBy === 'last_login' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                      <th onClick={() => handleSort('total_activities')} className={styles.sortable}>
+                        Total Activities
+                        {sortBy === 'total_activities' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                      <th onClick={() => handleSort('activities_7days')} className={styles.sortable}>
+                        Activities (7 Days)
+                        {sortBy === 'activities_7days' && (
+                          <span className={styles.sortIndicator}>
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map(user => {
+                      return (
+                        <tr 
+                          key={user.id}
+                          className={styles.clickableRow}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <td>{user.email}</td>
+                          <td>
+                            <div className={styles.userName}>
+                              {user.first_name} {user.last_name}
+                            </div>
+                          </td>
+                          <td>
+                            {user.role || 'No Role'}
+                          </td>
+                          <td>
+                            {user.teams ? user.teams.name : <span className={styles.noTeam}>No Team</span>}
+                          </td>
+                          <td>
+                            {loginHistory[user.id]?.lastSignIn ? (
+                              formatDate(loginHistory[user.id].lastSignIn)
+                            ) : (
+                              <span className={styles.noTeam}>Never</span>
+                            )}
+                          </td>
+                          <td>
+                            {activityCounts[user.id] || 0}
+                          </td>
+                          <td>
+                            {activityCounts7Days[user.id] || 0}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {filteredUsers.length === 0 && (
+                  <div className={styles.emptyState}>
+                    <Users className={styles.emptyIcon} />
+                    <h3>No users found</h3>
+                    <p>Try adjusting your search or filters</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {activeTab === 'teams' && (
+            <div className={styles.teamsTab}>
+              <ManageTeams />
+            </div>
+          )}
+        </div>
       </div>
 
       <UserDetailModal

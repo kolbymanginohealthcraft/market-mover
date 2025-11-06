@@ -48,9 +48,9 @@ import LegalPage from "../pages/Public/Legal/LegalPage";
 
 
 import Settings from "../pages/Private/Settings/Settings";
+import PlatformLayout from "../pages/Private/Settings/Platform/PlatformLayout";
 import ManageAnnouncements from "../pages/Private/Settings/Platform/ManageAnnouncements";
 import ManageFeedback from "../pages/Private/Settings/Platform/ManageFeedback";
-import AnalyticsDashboard from "../pages/Private/Settings/Platform/AnalyticsDashboard";
 import StyleGuide from "../pages/Private/Settings/Platform/StyleGuide";
 import LegalContentEditor from "../pages/Private/Settings/Platform/LegalContentEditor";
 import PolicyManagement from "../pages/Private/Settings/Platform/PolicyManagement";
@@ -72,9 +72,7 @@ import Procedures from "../pages/Private/Procedures/Procedures";
 import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
 import KPIs from "../pages/Private/KPIs/KPIsLayout";
 import Taxonomies from "../pages/Private/Taxonomies/TaxonomiesLayout";
-import ClaimsDataInvestigation from "../pages/Private/Investigation/ClaimsDataInvestigation";
-import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
-import ReferralPathways from "../pages/Private/ReferralPathways/ReferralPathways";
+import ClaimsDataExplorerLayout from "../pages/Private/Investigation/ClaimsDataExplorerLayout";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 import TestProviderOfServices from "../pages/TestProviderOfServices";
@@ -154,9 +152,9 @@ function AppContent({ location }) {
             <Route path="market/:marketId/*" element={<MarketDetail />} />
             <Route path="market/create" element={<InteractiveMarketCreation />} />
             <Route path="settings/*" element={<Settings />} />
+            <Route path="platform/*" element={<PlatformLayout />} />
             <Route path="manage-announcements" element={<ManageAnnouncements />} />
             <Route path="manage-feedback" element={<ManageFeedback />} />
-            <Route path="analytics-dashboard" element={<AnalyticsDashboard />} />
             <Route path="legal-content-editor" element={<LegalContentEditor />} />
             <Route path="policy-management" element={<PolicyManagement />} />
             <Route path="style-guide" element={<StyleGuide />} />
@@ -165,15 +163,11 @@ function AppContent({ location }) {
             <Route path="diagnoses/*" element={<Diagnoses />} />
             <Route path="kpis/*" element={<KPIs />} />
             <Route path="taxonomies/*" element={<Taxonomies />} />
-            <Route path="claims" element={<ClaimsDataInvestigation />} />
+            <Route path="claims/*" element={<ClaimsDataExplorerLayout />} />
             {/* Redirect old HCO/HCP Directory routes to Search the Industry */}
             <Route path="hco" element={<Navigate to="/app/search/orgs" replace />} />
             <Route path="hco/:npi" element={<HCORedirect />} />
             <Route path="hcp" element={<Navigate to="/app/search/ind" replace />} />
-            <Route path="geography" element={<GeographyAnalysis />} />
-            <Route path="referral-pathways" element={<ReferralPathways />} />
-            <Route path="test-pos" element={<TestProviderOfServices />} />
-            <Route path="test-pos-enriched" element={<TestProviderOfServicesEnriched />} />
           </Route>
 
           {/* Fallback */}

@@ -26,7 +26,9 @@ import {
   Target,
   HelpCircle,
   Scale,
-  UserCheck
+  UserCheck,
+  Construction,
+  Database
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { useUser } from '../Context/UserContext';
@@ -1084,19 +1086,70 @@ const SubNavigation = () => {
     );
   }
 
+  // Handle platform pages (separate from settings)
+  if (location.pathname.includes('/platform')) {
+    const canAccessPlatform = permissions.canAccessPlatform;
+    
+    if (!canAccessPlatform) {
+      return null;
+    }
+
+    let currentPlatformTab = "users";
+    
+    if (location.pathname.includes('/users')) {
+      currentPlatformTab = 'users';
+    } else if (location.pathname.includes('/announcements')) {
+      currentPlatformTab = 'announcements';
+    } else if (location.pathname.includes('/feedback')) {
+      currentPlatformTab = 'feedback';
+    } else if (location.pathname.includes('/policies')) {
+      currentPlatformTab = 'policies';
+    } else if (location.pathname.includes('/style-guide')) {
+      currentPlatformTab = 'style-guide';
+    } else if (location.pathname.includes('/unfinished')) {
+      currentPlatformTab = 'unfinished';
+    }
+
+    const platformTabs = [
+      { id: "users", label: "User Management", icon: UserCheck, path: "/app/platform/users" },
+      { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/platform/announcements" },
+      { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/platform/feedback" },
+      { id: "policies", label: "Policy Management", icon: FileText, path: "/app/platform/policies" },
+      { id: "style-guide", label: "Style Guide", icon: Palette, path: "/app/platform/style-guide" },
+      { id: "unfinished", label: "Unfinished", icon: Construction, path: "/app/platform/unfinished" }
+    ];
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {platformTabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={`${styles.tab} ${currentPlatformTab === tab.id ? styles.active : ''}`}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
   // Handle settings pages
   if (location.pathname.includes('/settings')) {
     // Check if user can access restricted tabs
-    const canAccessPlatform = permissions.canAccessPlatform;
     const canAccessSubscription = true; // Remove team admin restriction - accessible to all users
     const canAccessUsers = permissions.canAccessUsers;
     const canAccessColors = permissions.canAccessUsers; // Require team admin or above for branding
 
-    // Special handling for platform sub-routes
+    // Special handling for subscription sub-routes
     let currentActiveTab = activeTab;
-    if (location.pathname.includes('/settings/platform')) {
-      currentActiveTab = 'platform';
-    } else if (location.pathname.includes('/settings/subscription')) {
+    if (location.pathname.includes('/settings/subscription')) {
       // Keep subscription tab active for all subscription-related routes
       currentActiveTab = 'subscription';
     } else if (location.pathname.includes('/settings/legal')) {
@@ -1111,87 +1164,12 @@ const SubNavigation = () => {
       { id: "users", label: "Users", icon: Users, path: "/app/settings/users", show: canAccessUsers },
       { id: "branding", label: "Branding", icon: Palette, path: "/app/settings/branding", show: canAccessColors },
       { id: "subscription", label: "Subscription", icon: CreditCard, path: "/app/settings/subscription/manage", show: canAccessSubscription },
-      { id: "platform", label: "Platform", icon: Settings, path: "/app/settings/platform", show: canAccessPlatform },
       { id: "faq", label: "FAQ", icon: HelpCircle, path: "/app/settings/faq", show: true },
       { id: "legal", label: "Legal", icon: Scale, path: "/app/settings/legal", show: true }
     ];
 
     // Filter tabs based on user permissions
     const visibleTabs = allTabs.filter(tab => tab.show);
-
-    // If we're on a platform sub-page, render both navigation levels
-    if (location.pathname.includes('/settings/platform/')) {
-             // Determine the correct active platform sub-tab
-       let currentPlatformTab = "analytics"; // Default to analytics
-       
-       if (location.pathname.includes('/analytics')) {
-         currentPlatformTab = 'analytics';
-       } else if (location.pathname.includes('/teams')) {
-         currentPlatformTab = 'teams';
-       } else if (location.pathname.includes('/users')) {
-         currentPlatformTab = 'users';
-       } else if (location.pathname.includes('/announcements')) {
-         currentPlatformTab = 'announcements';
-       } else if (location.pathname.includes('/feedback')) {
-         currentPlatformTab = 'feedback';
-       } else if (location.pathname.includes('/policies')) {
-         currentPlatformTab = 'policies';
-       } else if (location.pathname.includes('/style-guide')) {
-         currentPlatformTab = 'style-guide';
-       }
-
-      const platformTabs = [
-        { id: "analytics", label: "Analytics Dashboard", icon: BarChart3, path: "/app/settings/platform/analytics" },
-        { id: "users", label: "User Management", icon: UserCheck, path: "/app/settings/platform/users" },
-        { id: "teams", label: "Manage Teams", icon: Users, path: "/app/settings/platform/teams" },
-        { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/settings/platform/announcements" },
-        { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/settings/platform/feedback" },
-        { id: "policies", label: "Policy Management", icon: FileText, path: "/app/settings/platform/policies" },
-        { id: "style-guide", label: "Style Guide", icon: Palette, path: "/app/settings/platform/style-guide" }
-      ];
-
-             return (
-         <>
-           {/* First level navigation - Settings tabs */}
-           <nav className={styles.subNavigation}>
-             <div className={styles.navLeft}>
-               {visibleTabs.map((tab) => {
-                 const IconComponent = tab.icon;
-                 return (
-                   <Link
-                     key={tab.id}
-                     to={tab.path}
-                     className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
-                   >
-                     <IconComponent size={16} />
-                     {tab.label}
-                   </Link>
-                 );
-               })}
-             </div>
-           </nav>
-           
-           {/* Second level navigation - Platform sub-tabs */}
-           <nav className={`${styles.subNavigation} ${styles.platformSubNav}`}>
-             <div className={styles.navLeft}>
-               {platformTabs.map((tab) => {
-                 const IconComponent = tab.icon;
-                 return (
-                   <Link
-                     key={tab.id}
-                     to={tab.path}
-                     className={`${styles.tab} ${currentPlatformTab === tab.id ? styles.active : ''}`}
-                   >
-                     <IconComponent size={16} />
-                     {tab.label}
-                   </Link>
-                 );
-               })}
-             </div>
-           </nav>
-         </>
-       );
-    }
 
          // If we're on a subscription sub-page, render both navigation levels
      if (location.pathname.includes('/settings/subscription/')) {
