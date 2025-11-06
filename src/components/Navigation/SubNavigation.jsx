@@ -25,7 +25,8 @@ import {
   TrendingUp,
   Target,
   HelpCircle,
-  Scale
+  Scale,
+  UserCheck
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { useUser } from '../Context/UserContext';
@@ -1127,6 +1128,8 @@ const SubNavigation = () => {
          currentPlatformTab = 'analytics';
        } else if (location.pathname.includes('/teams')) {
          currentPlatformTab = 'teams';
+       } else if (location.pathname.includes('/users')) {
+         currentPlatformTab = 'users';
        } else if (location.pathname.includes('/announcements')) {
          currentPlatformTab = 'announcements';
        } else if (location.pathname.includes('/feedback')) {
@@ -1139,6 +1142,7 @@ const SubNavigation = () => {
 
       const platformTabs = [
         { id: "analytics", label: "Analytics Dashboard", icon: BarChart3, path: "/app/settings/platform/analytics" },
+        { id: "users", label: "User Management", icon: UserCheck, path: "/app/settings/platform/users" },
         { id: "teams", label: "Manage Teams", icon: Users, path: "/app/settings/platform/teams" },
         { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/settings/platform/announcements" },
         { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/settings/platform/feedback" },

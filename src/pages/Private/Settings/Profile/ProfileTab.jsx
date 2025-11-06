@@ -95,8 +95,17 @@ export default function ProfileTab() {
         return;
       }
 
-      setProfile(profileData);
-      setOriginalProfile(profileData);
+      // Ensure string fields are never null (convert to empty string)
+      const normalizedProfile = {
+        first_name: profileData.first_name || "",
+        last_name: profileData.last_name || "",
+        title: profileData.title || "",
+        role: profileData.role,
+        team_id: profileData.team_id,
+      };
+
+      setProfile(normalizedProfile);
+      setOriginalProfile(normalizedProfile);
       setCurrentEmail(user.email);
 
       // Fetch team data if user is part of a team

@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Users, Search, Filter, Calendar, Building, Shield } from 'lucide-react';
+import { Users, Search, Filter, Calendar, Building, Shield, UserCheck } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
+import { useUser } from '../../../components/Context/UserContext';
+import { hasPlatformAccess } from '../../../utils/roleHelpers';
 import styles from './UserList.module.css';
 
 export default function UserList() {
+  const { profile, startImpersonation, isImpersonating } = useUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('created_at');
+  const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [impersonatingUserId, setImpersonatingUserId] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -33,11 +37,9 @@ export default function UserList() {
           email,
           role,
           title,
-          created_at,
           updated_at,
           team_id,
-          teams(name),
-          user_activities(count)
+          teams(name)
         `)
         .order(sortBy, { ascending: sortOrder === 'asc' });
 
@@ -85,11 +87,9 @@ export default function UserList() {
   };
 
   const getActivityStatus = (user) => {
-    const activityCount = user.user_activities?.[0]?.count || 0;
-    if (activityCount > 10) return { status: 'Very Active', color: '#10b981' };
-    if (activityCount > 5) return { status: 'Active', color: '#3b82f6' };
-    if (activityCount > 0) return { status: 'Some Activity', color: '#f59e0b' };
-    return { status: 'No Activity', color: '#6b7280' };
+    // Activity count would need to be fetched separately due to relationship constraints
+    // For now, return a default status
+    return { status: 'N/A', color: '#6b7280' };
   };
 
   const handleSort = (field) => {
@@ -100,6 +100,24 @@ export default function UserList() {
       setSortOrder('desc');
     }
   };
+
+  const handleImpersonate = async (targetUserId) => {
+    if (!window.confirm('Are you sure you want to impersonate this user? You will be logged in as them.')) {
+      return;
+    }
+
+    setImpersonatingUserId(targetUserId);
+    const result = await startImpersonation(targetUserId);
+    
+    if (result.success) {
+      window.location.reload();
+    } else {
+      alert(`Failed to impersonate user: ${result.error}`);
+      setImpersonatingUserId(null);
+    }
+  };
+
+  const canImpersonate = hasPlatformAccess(profile?.role);
 
   if (loading) {
     return (
@@ -213,9 +231,9 @@ export default function UserList() {
               <th>Email</th>
               <th>Role</th>
               <th>Team</th>
-              <th onClick={() => handleSort('created_at')} className={styles.sortable}>
-                Joined
-                {sortBy === 'created_at' && (
+              <th onClick={() => handleSort('updated_at')} className={styles.sortable}>
+                Last Updated
+                {sortBy === 'updated_at' && (
                   <span className={styles.sortIndicator}>
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
@@ -260,7 +278,7 @@ export default function UserList() {
                   <td>
                     <span className={styles.dateInfo}>
                       <Calendar className={styles.dateIcon} />
-                      {formatDate(user.created_at)}
+                      {formatDate(user.updated_at)}
                     </span>
                   </td>
                   <td>
@@ -273,12 +291,17 @@ export default function UserList() {
                   </td>
                   <td>
                     <div className={styles.actions}>
-                      <Button size="sm" variant="outline">
-                        View
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        Edit
-                      </Button>
+                      {canImpersonate && !isImpersonating && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleImpersonate(user.id)}
+                          disabled={impersonatingUserId === user.id}
+                        >
+                          <UserCheck size={14} style={{ marginRight: '4px' }} />
+                          {impersonatingUserId === user.id ? 'Impersonating...' : 'Impersonate'}
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

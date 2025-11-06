@@ -160,6 +160,298 @@ app.post("/api/inviteUser", async (req, res) => {
   }
 });
 
+// Helper function to verify admin access
+const verifyAdminAccess = async (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { error: 'Missing authorization header', user: null };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const supabaseAdmin = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !user) {
+      return { error: 'Invalid token', user: null };
+    }
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return { error: 'User profile not found', user: null };
+    }
+
+    const role = profile.role;
+    if (role !== 'Platform Admin' && role !== 'Platform Support') {
+      return { error: 'Insufficient permissions', user: null };
+    }
+
+    return { error: null, user };
+  } catch (err) {
+    console.error('Error verifying admin access:', err);
+    return { error: 'Verification failed', user: null };
+  }
+};
+
+// ✅ Impersonate User Route
+app.post("/api/impersonate", async (req, res) => {
+  const { target_user_id } = req.body;
+
+  if (!target_user_id) {
+    return res.status(400).json({ message: "Missing target_user_id" });
+  }
+
+  // Verify requester is Platform Admin or Platform Support
+  const { error: verifyError, user: requester } = await verifyAdminAccess(req);
+  if (verifyError || !requester) {
+    return res.status(403).json({ message: verifyError || "Unauthorized" });
+  }
+
+  // Prevent self-impersonation
+  if (requester.id === target_user_id) {
+    return res.status(400).json({ message: "Cannot impersonate yourself" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Verify target user exists
+    const { data: targetUser, error: userError } = await supabase.auth.admin.getUserById(target_user_id);
+    if (userError || !targetUser) {
+      console.error("❌ User lookup error:", userError);
+      return res.status(404).json({ message: "Target user not found", error: userError?.message });
+    }
+
+    // Use Supabase admin API to generate a magic link and extract session
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: targetUser.user.email,
+    });
+
+    if (linkError) {
+      console.error("❌ Link generation error:", linkError);
+      return res.status(500).json({ 
+        message: "Failed to generate magic link", 
+        error: linkError.message
+      });
+    }
+
+    // Extract the action link
+    const actionLink = linkData.properties?.action_link || linkData.action_link;
+    if (!actionLink) {
+      return res.status(500).json({ 
+        message: "No action link in response",
+        error: "Link generation succeeded but no link returned"
+      });
+    }
+
+    // Parse token from the magic link URL
+    let token = null;
+    try {
+      const linkUrl = new URL(actionLink);
+      // Try different ways to extract the token
+      token = linkUrl.searchParams.get('token') || 
+              linkUrl.searchParams.get('access_token') ||
+              (linkUrl.hash.includes('token=') ? linkUrl.hash.split('token=')[1]?.split('&')[0] : null);
+    } catch (urlError) {
+      console.error("❌ URL parsing error:", urlError);
+    }
+
+    if (!token) {
+      // If token extraction fails, try using the hash_token from the response
+      token = linkData.properties?.hashed_token || linkData.hashed_token;
+      
+      if (!token) {
+        return res.status(500).json({ 
+          message: "Could not extract token from magic link",
+          error: "Token extraction failed",
+          link: actionLink,
+          linkData: JSON.stringify(linkData)
+        });
+      }
+    }
+
+    // Create a session by verifying the token
+    // Use the anon client to verify and get session
+    const anonSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY || process.env.SERVICE_ROLE_KEY
+    );
+
+    // Verify the token and get session
+    const { data: verifyData, error: verifyError } = await anonSupabase.auth.verifyOtp({
+      token_hash: token,
+      type: 'magiclink'
+    });
+
+    if (verifyError || !verifyData?.session) {
+      // If OTP verification fails, try using the token directly in a sign-in
+      // Some Supabase versions return the token differently
+      console.error("❌ Token verification error:", verifyError);
+      
+      // Try alternative: use the token as a recovery token
+      const { data: recoveryData, error: recoveryError } = await anonSupabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
+      });
+
+      if (recoveryError || !recoveryData?.session) {
+        return res.status(500).json({ 
+          message: "Failed to verify token and create session", 
+          error: verifyError?.message || recoveryError?.message,
+          details: "Both magiclink and recovery verification failed"
+        });
+      }
+
+      const sessionData = recoveryData.session;
+      
+      res.status(200).json({ 
+        message: "✅ Impersonation session created",
+        session: {
+          access_token: sessionData.access_token,
+          refresh_token: sessionData.refresh_token,
+          expires_at: sessionData.expires_at,
+          expires_in: sessionData.expires_in,
+          token_type: sessionData.token_type || 'bearer',
+          user: sessionData.user
+        },
+        original_user_id: requester.id
+      });
+      return;
+    }
+
+    const sessionData = verifyData.session;
+    
+    res.status(200).json({ 
+      message: "✅ Impersonation session created",
+      session: {
+        access_token: sessionData.access_token,
+        refresh_token: sessionData.refresh_token,
+        expires_at: sessionData.expires_at,
+        expires_in: sessionData.expires_in,
+        token_type: sessionData.token_type || 'bearer',
+        user: sessionData.user
+      },
+      original_user_id: requester.id
+    });
+  } catch (err) {
+    console.error("💥 Impersonation error:", err);
+    console.error("Error stack:", err.stack);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
+// ✅ Stop Impersonation Route
+app.post("/api/stop-impersonate", async (req, res) => {
+  const { original_user_id } = req.body;
+
+  if (!original_user_id) {
+    return res.status(400).json({ message: "Missing original_user_id" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Get the original user
+    const { data: originalUser, error: userError } = await supabase.auth.admin.getUserById(original_user_id);
+    if (userError || !originalUser) {
+      console.error("❌ User lookup error:", userError);
+      return res.status(404).json({ message: "Original user not found", error: userError?.message });
+    }
+
+    // Use the same approach as impersonate - generate magic link and verify
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: originalUser.user.email,
+    });
+
+    if (linkError) {
+      console.error("❌ Link generation error:", linkError);
+      return res.status(500).json({ 
+        message: "Failed to generate magic link", 
+        error: linkError.message
+      });
+    }
+
+    const actionLink = linkData.properties?.action_link || linkData.action_link;
+    if (!actionLink) {
+      return res.status(500).json({ 
+        message: "No action link in response",
+        error: "Link generation succeeded but no link returned"
+      });
+    }
+
+    let token = null;
+    try {
+      const linkUrl = new URL(actionLink);
+      token = linkUrl.searchParams.get('token') || 
+              linkUrl.searchParams.get('access_token') ||
+              (linkUrl.hash.includes('token=') ? linkUrl.hash.split('token=')[1]?.split('&')[0] : null);
+    } catch (urlError) {
+      console.error("❌ URL parsing error:", urlError);
+    }
+
+    if (!token) {
+      token = linkData.properties?.hashed_token || linkData.hashed_token;
+      if (!token) {
+        return res.status(500).json({ 
+          message: "Could not extract token from magic link",
+          error: "Token extraction failed"
+        });
+      }
+    }
+
+    const anonSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY || process.env.SERVICE_ROLE_KEY
+    );
+
+    const { data: verifyData, error: verifyError } = await anonSupabase.auth.verifyOtp({
+      token_hash: token,
+      type: 'magiclink'
+    });
+
+    if (verifyError || !verifyData?.session) {
+      return res.status(500).json({ 
+        message: "Failed to verify token and create session", 
+        error: verifyError?.message
+      });
+    }
+
+    const sessionData = verifyData.session;
+
+    res.status(200).json({ 
+      message: "✅ Returned to original user",
+      session: {
+        access_token: sessionData.access_token,
+        refresh_token: sessionData.refresh_token,
+        expires_at: sessionData.expires_at,
+        expires_in: sessionData.expires_in,
+        token_type: sessionData.token_type || 'bearer',
+        user: sessionData.user
+      }
+    });
+  } catch (err) {
+    console.error("💥 Stop impersonation error:", err);
+    console.error("Error stack:", err.stack);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
 // Catch-all fallback
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });

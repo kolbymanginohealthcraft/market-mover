@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, UserCheck } from "lucide-react";
 import { supabase } from "../../../../app/supabaseClient";
 import Button from "../../../../components/Buttons/Button";
 import Spinner from "../../../../components/Buttons/Spinner";
 import RightDrawer from "../../../../components/Overlays/RightDrawer";
 import SectionHeader from "../../../../components/Layouts/SectionHeader";
 import Dropdown from "../../../../components/Buttons/Dropdown";
-import { isTeamAdmin, isPlatformAdmin, getRoleDisplayName } from "../../../../utils/roleHelpers";
+import { isTeamAdmin, isPlatformAdmin, getRoleDisplayName, hasPlatformAccess } from "../../../../utils/roleHelpers";
+import { useUser } from "../../../../components/Context/UserContext";
 import styles from "./UsersTab.module.css";
 
 export default function UsersTab() {
   const navigate = useNavigate();
+  const { profile: contextProfile, startImpersonation, isImpersonating } = useUser();
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
@@ -34,6 +36,7 @@ export default function UsersTab() {
   const [removing, setRemoving] = useState(null); // Track which user is being removed
   const [editingRole, setEditingRole] = useState(null); // Track which user's role is being edited
   const [updatingRole, setUpdatingRole] = useState(null); // Track which user's role is being updated
+  const [impersonatingUserId, setImpersonatingUserId] = useState(null);
 
   const inviteInputRef = useRef(null);
 
@@ -374,6 +377,23 @@ export default function UsersTab() {
 
   const userIsTeamAdmin = isTeamAdmin(profile.role);
   const hasTeam = !!profile.team_id;
+  const canImpersonate = hasPlatformAccess(contextProfile?.role || profile.role);
+
+  const handleImpersonate = async (targetUserId) => {
+    if (!window.confirm('Are you sure you want to impersonate this user? You will be logged in as them.')) {
+      return;
+    }
+
+    setImpersonatingUserId(targetUserId);
+    const result = await startImpersonation(targetUserId);
+    
+    if (result.success) {
+      window.location.reload();
+    } else {
+      alert(`Failed to impersonate user: ${result.error}`);
+      setImpersonatingUserId(null);
+    }
+  };
 
   if (loading) return <Spinner message="Loading team information..." />;
 
@@ -423,7 +443,7 @@ export default function UsersTab() {
               <th>Title</th>
               <th>Role</th>
               <th>Email</th>
-              {userIsTeamAdmin && <th>Actions</th>}
+              {(userIsTeamAdmin || canImpersonate) && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -502,18 +522,31 @@ export default function UsersTab() {
                   )}
                 </td>
                 <td>{member.email || "-"}</td>
-                {userIsTeamAdmin && (
+                {(userIsTeamAdmin || canImpersonate) && (
                   <td>
-                    {member.id !== currentUserId && (
-                      <button
-                        className="actionButton"
-                        onClick={() => onDeleteMember(member)}
-                        disabled={removing === member.id}
-                      >
-                        <Trash2 size={14} />
-                        {removing === member.id ? 'Removing...' : 'Remove'}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {canImpersonate && !isImpersonating && member.id !== currentUserId && (
+                        <button
+                          className="actionButton"
+                          onClick={() => handleImpersonate(member.id)}
+                          disabled={impersonatingUserId === member.id}
+                          title="Impersonate this user"
+                        >
+                          <UserCheck size={14} />
+                          {impersonatingUserId === member.id ? 'Impersonating...' : 'Impersonate'}
+                        </button>
+                      )}
+                      {userIsTeamAdmin && member.id !== currentUserId && (
+                        <button
+                          className="actionButton"
+                          onClick={() => onDeleteMember(member)}
+                          disabled={removing === member.id}
+                        >
+                          <Trash2 size={14} />
+                          {removing === member.id ? 'Removing...' : 'Remove'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

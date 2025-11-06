@@ -16,6 +16,7 @@ import ManageFeedback from './ManageFeedback';
 import PolicyManagement from './PolicyManagement';
 import StyleGuide from './StyleGuide';
 import ManageTeams from './ManageTeams';
+import UserList from '../../../../features/admin/components/UserList';
 import styles from './PlatformLayout.module.css';
 
 export default function PlatformLayout() {
@@ -60,6 +61,7 @@ export default function PlatformLayout() {
       <Routes>
         <Route index element={<Navigate to="analytics" replace />} />
         <Route path="analytics" element={<AnalyticsDashboard />} />
+        <Route path="users" element={<UserList />} />
         <Route path="teams" element={<ManageTeams />} />
         <Route path="announcements" element={<ManageAnnouncements />} />
         <Route path="feedback" element={<ManageFeedback />} />

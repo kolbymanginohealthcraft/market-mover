@@ -4,6 +4,7 @@ import Sidebar from '../Navigation/Sidebar';
 import PublicSidebar from '../Navigation/PublicSidebar';
 import Header from '../Navigation/Header';
 import SubNavigation from '../Navigation/SubNavigation';
+import ImpersonationBanner from '../ImpersonationBanner';
 import styles from './SidebarLayout.module.css';
 
 export default function UnifiedSidebarLayout({ isPublic = false }) {
@@ -58,6 +59,7 @@ export default function UnifiedSidebarLayout({ isPublic = false }) {
       />
       <div className={`${styles.contentArea} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
         <Header />
+        <ImpersonationBanner />
         <SubNavigation />
         <main className={styles.main}>
           <Outlet />

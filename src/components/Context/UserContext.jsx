@@ -19,6 +19,8 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [originalUserId, setOriginalUserId] = useState(null);
   const [permissions, setPermissions] = useState({
     isTeamAdmin: false,
     isPlatformAdmin: false,
@@ -117,6 +119,112 @@ export const UserProvider = ({ children }) => {
       }
     }
   }, [user?.id, fetchUserProfile]);
+
+  // Check for stored impersonation state on mount
+  useEffect(() => {
+    const storedOriginalUserId = localStorage.getItem('impersonation_original_user_id');
+    if (storedOriginalUserId) {
+      setOriginalUserId(storedOriginalUserId);
+      setIsImpersonating(true);
+    }
+  }, []);
+
+  // Start impersonation
+  const startImpersonation = useCallback(async (targetUserId) => {
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession) {
+        throw new Error('No active session');
+      }
+
+      const currentUserId = currentSession.user.id;
+      
+      // Store original user ID
+      localStorage.setItem('impersonation_original_user_id', currentUserId);
+      setOriginalUserId(currentUserId);
+      
+      // Call server endpoint to get impersonation session
+      const response = await fetch('/api/impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentSession.access_token}`
+        },
+        body: JSON.stringify({ target_user_id: targetUserId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to start impersonation');
+      }
+
+      const { session } = await response.json();
+      
+      // Set the new session
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      });
+
+      if (setSessionError) {
+        throw setSessionError;
+      }
+
+      setIsImpersonating(true);
+      return { success: true };
+    } catch (error) {
+      console.error('Error starting impersonation:', error);
+      localStorage.removeItem('impersonation_original_user_id');
+      setOriginalUserId(null);
+      setIsImpersonating(false);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  // Stop impersonation
+  const stopImpersonation = useCallback(async () => {
+    try {
+      const storedOriginalUserId = localStorage.getItem('impersonation_original_user_id');
+      if (!storedOriginalUserId) {
+        throw new Error('No original user ID found');
+      }
+
+      // Call server endpoint to get original user session
+      const response = await fetch('/api/stop-impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ original_user_id: storedOriginalUserId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to stop impersonation');
+      }
+
+      const { session } = await response.json();
+      
+      // Set the original session
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      });
+
+      if (setSessionError) {
+        throw setSessionError;
+      }
+
+      // Clear impersonation state
+      localStorage.removeItem('impersonation_original_user_id');
+      setOriginalUserId(null);
+      setIsImpersonating(false);
+      return { success: true };
+    } catch (error) {
+      console.error('Error stopping impersonation:', error);
+      return { success: false, error: error.message };
+    }
+  }, []);
 
   // Check for profile update parameter and refresh profile data
   useEffect(() => {
@@ -265,7 +373,11 @@ export const UserProvider = ({ children }) => {
     loading,
     permissions,
     refreshUserData,
-    forceRefreshUserData
+    forceRefreshUserData,
+    isImpersonating,
+    originalUserId,
+    startImpersonation,
+    stopImpersonation
   };
 
   return (
