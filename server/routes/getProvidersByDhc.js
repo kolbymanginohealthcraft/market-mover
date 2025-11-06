@@ -1,5 +1,6 @@
 import express from "express";
-import myBigQuery from "../utils/myBigQueryClient.js";
+import vendorBigQuery from "../utils/vendorBigQueryClient.js";
+
 const router = express.Router();
 
 // Test route to verify the endpoint is registered
@@ -10,48 +11,66 @@ router.get("/getProvidersByDhc", (req, res) => {
 router.post("/getProvidersByDhc", async (req, res) => {
   const { dhc_ids } = req.body;
   console.log("🔍 getProvidersByDhc called with dhc_ids:", dhc_ids);
-  
+
   if (!Array.isArray(dhc_ids) || dhc_ids.length === 0) {
     console.log("❌ Invalid dhc_ids:", dhc_ids);
     return res.status(400).json({ success: false, error: "dhc_ids (array) is required" });
   }
-  
+
   try {
-    // Convert string DHCs to integers for BigQuery
-    const numericDhcIds = dhc_ids.map(id => {
-      const num = parseInt(id);
-      if (isNaN(num)) {
-        console.warn(`⚠️ Invalid DHC ID: ${id}`);
-        return null;
-      }
-      return num;
-    }).filter(id => id !== null);
-    
-    if (numericDhcIds.length === 0) {
-      console.log("❌ No valid numeric DHC IDs found");
-      return res.status(400).json({ success: false, error: "No valid numeric DHC IDs provided" });
+    const atlasIds = Array.from(
+      new Set(
+        dhc_ids
+          .map((id) => (id !== null && id !== undefined ? String(id).trim() : null))
+          .filter((id) => id)
+      )
+    );
+
+    if (atlasIds.length === 0) {
+      console.log("❌ No valid atlas_definitive_id values provided");
+      return res.status(400).json({ success: false, error: "No valid atlas_definitive_id values provided" });
     }
-    
-    console.log("🔍 Converted DHC IDs:", numericDhcIds);
-    
+
     const query = `
-      SELECT dhc, name, street, city, state, zip, network, type, latitude, longitude
-      FROM \`market-mover-464517.providers.org_dhc\`
-      WHERE dhc IN UNNEST(@dhc_ids)
+      SELECT 
+        CAST(atlas_definitive_id AS STRING) AS dhc,
+        atlas_definitive_name AS name,
+        primary_address_line_1 AS street,
+        primary_address_city AS city,
+        primary_address_state_or_province AS state,
+        primary_address_zip5 AS zip,
+        atlas_network_name AS network,
+        atlas_definitive_firm_type AS type,
+        primary_address_lat AS latitude,
+        primary_address_long AS longitude,
+        CAST(npi AS STRING) AS npi
+      FROM \`aegis_access.hco_flat\`
+      WHERE atlas_definitive_id IS NOT NULL
+        AND atlas_definitive_id_primary_npi = TRUE
+        AND npi_deactivation_date IS NULL
+        AND CAST(atlas_definitive_id AS STRING) IN UNNEST(@dhc_ids)
     `;
-    console.log("🔍 Executing BigQuery query with params:", { dhc_ids: numericDhcIds });
-    
-    const [rows] = await myBigQuery.query({ 
-      query, 
-      location: "US", 
-      params: { dhc_ids: numericDhcIds } 
+
+    console.log("🔍 Executing vendor BigQuery query with params:", { dhc_ids: atlasIds });
+
+    const [rows] = await vendorBigQuery.query({
+      query,
+      params: { dhc_ids: atlasIds },
     });
-    console.log("✅ BigQuery returned", rows.length, "providers:", rows);
-    
-    res.status(200).json({ success: true, providers: rows });
+
+    console.log("✅ Vendor BigQuery returned", rows.length, "providers");
+
+    const providers = rows.map((row) => ({
+      ...row,
+      dhc: row.dhc ? String(row.dhc) : null,
+      npi: row.npi ? String(row.npi) : null,
+    }));
+
+    res.status(200).json({ success: true, providers });
   } catch (err) {
-    console.error("❌ BigQuery error:", err);
+    console.error("❌ Vendor BigQuery error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
-export default router; 
+
+export default router;

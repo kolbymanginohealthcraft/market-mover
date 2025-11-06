@@ -45,6 +45,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   const [availableProviderTypes, setAvailableProviderTypes] = useState([]);
   const [availablePublishDates, setAvailablePublishDates] = useState([]);
   const [currentPublishDate, setCurrentPublishDate] = useState(null);
+  const lastFetchKeyRef = useRef(null);
 
   // Debug logging for production troubleshooting
   useEffect(() => {
@@ -60,9 +61,11 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
     });
   }, [provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate, qualityMeasuresDates, currentMeasureSetting]);
 
-  // Memoize dependencies to prevent infinite re-renders
-  const memoizedNearbyProviders = useMemo(() => nearbyProviders, [JSON.stringify(nearbyProviders)]);
-  const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns, [JSON.stringify(nearbyDhcCcns)]);
+  // Memoize dependencies to prevent infinite re-renders without serializing full objects
+  const nearbyProvidersKey = useMemo(() => (nearbyProviders || []).map(p => String(p?.dhc ?? '')).join('|'), [nearbyProviders]);
+  const nearbyDhcCcnsKey = useMemo(() => (nearbyDhcCcns || []).map(row => `${String(row?.dhc ?? '')}:${String(row?.ccn ?? '')}`).join('|'), [nearbyDhcCcns]);
+  const memoizedNearbyProviders = useMemo(() => nearbyProviders || [], [nearbyProvidersKey]);
+  const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns || [], [nearbyDhcCcnsKey]);
 
        // Effect to update current publish date when measure setting changes
   useEffect(() => {
@@ -140,28 +143,30 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         });
         
         (memoizedNearbyDhcCcns || []).forEach(row => {
-          if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
+          const dhcKey = String(row.dhc);
+          if (!providerDhcToCcns[dhcKey]) providerDhcToCcns[dhcKey] = [];
           // Ensure CCN is a string
           const ccnString = String(row.ccn);
-          providerDhcToCcns[row.dhc].push(ccnString);
+          providerDhcToCcns[dhcKey].push(ccnString);
         });
         
         console.log('🔍 CCN mapping after processing nearbyDhcCcns:', providerDhcToCcns);
         
         // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs (only for numeric DHCs and not placeholder)
-        if (provider && !isPlaceholderProvider && !providerDhcToCcns[provider.dhc] && !isNaN(parseInt(provider.dhc))) {
+        if (provider && !isPlaceholderProvider && provider.dhc && !providerDhcToCcns[String(provider.dhc)]) {
           console.log('🔍 Main provider not in nearbyDhcCcns, fetching CCNs for:', provider.dhc);
           const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dhc_ids: [provider.dhc] })
+            body: JSON.stringify({ dhc_ids: [String(provider.dhc)] })
           });
           if (!ccnResponse.ok) throw new Error('Failed to fetch main provider CCNs');
           const ccnResult = await ccnResponse.json();
           if (!ccnResult.success) throw new Error(ccnResult.error);
           ccnResult.data.forEach(row => {
-            if (!providerDhcToCcns[row.dhc]) providerDhcToCcns[row.dhc] = [];
-            providerDhcToCcns[row.dhc].push(row.ccn);
+            const dhcKey = String(row.dhc);
+            if (!providerDhcToCcns[dhcKey]) providerDhcToCcns[dhcKey] = [];
+            providerDhcToCcns[dhcKey].push(String(row.ccn));
           });
           console.log('🔍 CCN mapping after fetching main provider CCNs:', providerDhcToCcns);
         }
@@ -190,17 +195,18 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // This will be populated after we fetch the measures data
 
                  // 5. Get all CCNs for the combined request
-         const allCcns = Object.values(providerDhcToCcns).flat();
+        const allCcns = Object.values(providerDhcToCcns).flat();
+        const uniqueCcns = Array.from(new Set(allCcns.map(ccn => String(ccn))));
          
          console.log('🔍 CCNs for quality measures:', {
-           totalCcns: allCcns.length,
-           ccnList: allCcns,
+          totalCcns: uniqueCcns.length,
+          ccnList: uniqueCcns,
            providerDhcToCcns: providerDhcToCcns,
            allProviders: allProviders.map(p => ({ dhc: p.dhc, name: p.name }))
          });
         
         // 5b. Check if we have any CCNs before proceeding
-        if (allCcns.length === 0) {
+        if (uniqueCcns.length === 0) {
           console.log('⚠️ No CCNs found for any providers, skipping quality measures fetch');
           setMatrixError("No quality measure data available for providers in this market. This may be because the selected provider and nearby providers don't have CCNs in our database.");
           setMatrixLoading(false);
@@ -233,7 +239,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              ccns: allCcns, 
+              ccns: uniqueCcns, 
               publish_date: 'latest' 
             })
           });
@@ -259,8 +265,16 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         }
         
         // 8. Check cache for combined data with the determined date and measure setting
+        const sortedCcns = [...uniqueCcns].sort();
+        const fetchKey = `${publish_date}|${currentMeasureSetting || 'ALL'}|${sortedCcns.join(',')}`;
+        if (lastFetchKeyRef.current === fetchKey) {
+          console.log('🛑 Skipping duplicate quality measures fetch for key:', fetchKey);
+          setMatrixLoading(false);
+          return;
+        }
+
         const cacheKey = getCacheKey('qm_combined', { 
-          ccns: allCcns, 
+          ccns: uniqueCcns, 
           publish_date,
           measureSetting: currentMeasureSetting 
         });
@@ -271,19 +285,19 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           combinedData = cachedData;
         } else {
           // 9. Fetch all data in a single API call with the determined date
-          console.log('🔍 Fetching quality measures data for', allCcns.length, 'CCNs with date:', publish_date);
+          console.log('🔍 Fetching quality measures data for', uniqueCcns.length, 'CCNs with date:', publish_date);
           
           console.log('🔍 Making API call to /api/qm_combined with:', {
-            ccnsCount: allCcns.length,
+            ccnsCount: uniqueCcns.length,
             publish_date,
-            sampleCcns: allCcns.slice(0, 5)
+            sampleCcns: uniqueCcns.slice(0, 5)
           });
 
           const combinedResponse = await fetch(apiUrl('/api/qm_combined'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              ccns: allCcns, 
+              ccns: uniqueCcns, 
               publish_date 
             })
           });
@@ -438,6 +452,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         setMatrixMarketAverages(marketAverages);
         setMatrixNationalAverages(nationalAverages);
         setMatrixLoading(false);
+        lastFetchKeyRef.current = fetchKey;
 
         // Save allProviders and providerDhcToCcns for filtering in render
         // Also include placeholder providers for manually entered CCNs

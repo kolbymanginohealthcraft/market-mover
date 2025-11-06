@@ -135,12 +135,13 @@ export default function StandaloneStoryteller() {
     setTagDhcCcns([]);
     
     // Fetch CCNs for the selected provider
-    if (provider.dhc && !isNaN(parseInt(provider.dhc))) {
+    if (provider.dhc) {
+      const uniqueIds = Array.from(new Set([String(provider.dhc)]));
       try {
         const response = await fetch(apiUrl('/api/related-ccns'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dhc_ids: [provider.dhc] })
+          body: JSON.stringify({ dhc_ids: uniqueIds })
         });
         if (response.ok) {
           const result = await response.json();
@@ -165,7 +166,7 @@ export default function StandaloneStoryteller() {
             setNearbyProviders(filtered);
             
             // Fetch CCNs for nearby providers
-            const dhcIds = filtered.map(p => p.dhc).filter(Boolean);
+            const dhcIds = Array.from(new Set(filtered.map(p => p.dhc).filter(Boolean).map(String)));
             if (dhcIds.length > 0) {
               const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
                 method: 'POST',
@@ -218,7 +219,7 @@ export default function StandaloneStoryteller() {
           setNearbyProviders(result.data || []);
           
           // Get DHCs from providers
-          const dhcIds = result.data.map(p => p.dhc).filter(Boolean);
+          const dhcIds = Array.from(new Set(result.data.map(p => p.dhc).filter(Boolean).map(String)));
           
           // Fetch CCNs for all providers in the market
           if (dhcIds.length > 0) {
@@ -289,7 +290,7 @@ export default function StandaloneStoryteller() {
         return;
       }
       
-      const dhcIds = tags.map(t => t.provider_dhc).filter(Boolean);
+      const dhcIds = Array.from(new Set(tags.map(t => t.provider_dhc).filter(Boolean).map(String)));
       
       // Fetch provider info for tagged DHCs so they show up individually in the matrix
       if (dhcIds.length > 0) {

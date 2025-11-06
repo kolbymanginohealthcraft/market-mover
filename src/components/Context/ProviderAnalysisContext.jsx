@@ -151,9 +151,13 @@ export const ProviderAnalysisProvider = ({
     }
     
     // Add all provider DHCs
+    const seen = new Set();
     providerList.forEach(provider => {
-      if (provider.dhc && !isNaN(parseInt(provider.dhc)) && !dhcIds.includes(provider.dhc)) {
-        dhcIds.push(provider.dhc);
+      if (!provider?.dhc) return;
+      const id = String(provider.dhc);
+      if (!seen.has(id)) {
+        seen.add(id);
+        dhcIds.push(id);
       }
     });
     

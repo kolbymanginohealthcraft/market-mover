@@ -1,7 +1,7 @@
 // server/routes/getNearbyProviders.js
 
 import express from "express";
-import myBigQuery from "../utils/myBigQueryClient.js";
+import vendorBigQuery from "../utils/vendorBigQueryClient.js";
 
 const router = express.Router();
 
@@ -24,66 +24,49 @@ router.get("/nearby-providers", async (req, res) => {
   if (!lat || !lon || !radius) {
     return res.status(400).json({
       success: false,
-      error: "lat, lon, and radius are required"
+      error: "lat, lon, and radius are required",
     });
   }
 
-  const radiusMeters = Number(radius) * 1609.34;
+  const radiusMiles = Number(radius);
+  const radiusMeters = radiusMiles * 1609.34;
 
   const query = `
     SELECT
-      dhc,
-      name,
-      network,
-      type,
-      street,
-      city,
-      state,
-      zip,
-      phone,
-      latitude,
-      longitude,
-      beds,
-      fips,
-      distance_meters,
-      rn
-    FROM (
-      SELECT 
-        dhc,
-        name,
-        network,
-        type,
-        street,
-        city,
-        state,
-        zip,
-        phone,
-        latitude,
-        longitude,
-        beds,
-        fips,
-        ST_DISTANCE(
-          ST_GEOGPOINT(CAST(longitude AS FLOAT64), CAST(latitude AS FLOAT64)),
-          ST_GEOGPOINT(@lon, @lat)
-        ) as distance_meters,
-        ROW_NUMBER() OVER (PARTITION BY dhc ORDER BY ST_DISTANCE(
-          ST_GEOGPOINT(CAST(longitude AS FLOAT64), CAST(latitude AS FLOAT64)),
-          ST_GEOGPOINT(@lon, @lat)
-        ) ASC) as rn
-      FROM \`market-mover-464517.providers.org_dhc\`
-      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        AND ST_DISTANCE(
-          ST_GEOGPOINT(CAST(longitude AS FLOAT64), CAST(latitude AS FLOAT64)),
-          ST_GEOGPOINT(@lon, @lat)
-        ) <= @radiusMeters
-    )
-    WHERE rn = 1
-    ORDER BY distance_meters ASC
+      CAST(atlas_definitive_id AS STRING) AS dhc,
+      CAST(npi AS STRING) AS npi,
+      atlas_definitive_name AS name,
+      atlas_network_name AS network,
+      atlas_definitive_firm_type AS type,
+      primary_address_line_1 AS street,
+      primary_address_city AS city,
+      primary_address_state_or_province AS state,
+      primary_address_zip5 AS zip,
+      primary_address_phone_number_primary AS phone,
+      primary_address_lat AS latitude,
+      primary_address_long AS longitude,
+      atlas_hospital_parent_name AS hospital_parent_name,
+      atlas_network_id AS network_id,
+      atlas_physician_group_parent_name AS physician_group_parent_name,
+      ST_DISTANCE(
+        ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+        ST_GEOGPOINT(@lon, @lat)
+      ) / 1609.34 AS distance_miles
+    FROM \`aegis_access.hco_flat\`
+    WHERE primary_address_lat IS NOT NULL
+      AND primary_address_long IS NOT NULL
+      AND atlas_definitive_id IS NOT NULL
+      AND atlas_definitive_id_primary_npi = TRUE
+      AND npi_deactivation_date IS NULL
+      AND ST_DISTANCE(
+        ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+        ST_GEOGPOINT(@lon, @lat)
+      ) <= @radiusMeters
+    ORDER BY distance_miles ASC
   `;
 
   const options = {
     query,
-    location: "US",
     params: {
       lon: Number(lon),
       lat: Number(lat),
@@ -92,24 +75,26 @@ router.get("/nearby-providers", async (req, res) => {
   };
 
   try {
-    const [rows] = await myBigQuery.query(options);
+    const [rows] = await vendorBigQuery.query(options);
 
-    const providersWithDistance = rows.map(row => ({
+    const providersWithDistance = rows.map((row) => ({
       ...row,
-      distance: row.distance_meters / 1609.34, // miles
-      distance_meters: undefined,
+      dhc: row.dhc ? String(row.dhc) : null,
+      npi: row.npi ? String(row.npi) : null,
+      distance: row.distance_miles,
+      distance_miles: undefined,
     }));
 
     res.status(200).json({
       success: true,
       data: providersWithDistance,
-      count: providersWithDistance.length
+      count: providersWithDistance.length,
     });
   } catch (err) {
-    console.error("\u274c BigQuery nearby providers error:", err);
+    console.error("❌ Vendor BigQuery nearby providers error:", err);
     res.status(500).json({
       success: false,
-      error: err.message
+      error: err.message,
     });
   }
 });
