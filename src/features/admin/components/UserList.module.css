@@ -1,7 +1,7 @@
 .container {
   padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
+  width: 100%;
 }
 
 .header {
@@ -34,8 +34,7 @@
 
 .controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 24px;
   gap: 16px;
   flex-wrap: wrap;
@@ -67,6 +66,8 @@
   border-radius: 6px;
   font-size: 0.9rem;
   background: #fff;
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .searchInput input:focus {
@@ -78,28 +79,30 @@
 .filters {
   display: flex;
   gap: 16px;
-  align-items: center;
+  align-items: flex-end;
 }
 
 .filterGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .filterGroup label {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #5f6b6d;
+  margin-bottom: 0;
 }
 
 .filterGroup select {
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #e2e8e7;
   border-radius: 6px;
   font-size: 0.9rem;
   background: #fff;
-  min-width: 120px;
+  min-width: 140px;
+  height: 40px;
 }
 
 .filterGroup select:focus {
@@ -149,22 +152,27 @@
 
 .table th {
   background: #f9fbfa;
-  padding: 12px 16px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 600;
   color: #265947;
   border-bottom: 1px solid #e2e8e7;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .table td {
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: middle;
+  font-size: 0.8rem;
 }
 
 .table tr:hover {
   background: #f9fbfa;
+}
+
+.clickableRow {
+  cursor: pointer;
 }
 
 .sortable {
@@ -183,82 +191,27 @@
   color: #3599b8;
 }
 
-.userInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .userName {
   font-weight: 600;
   color: #265947;
-}
-
-.userTitle {
   font-size: 0.8rem;
-  color: #5f6b6d;
-}
-
-.roleBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: #e0f2fe;
-  color: #0c4a6e;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.roleIcon {
-  width: 12px;
-  height: 12px;
-}
-
-.teamBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: #f0f9ff;
-  color: #0c4a6e;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.teamIcon {
-  width: 12px;
-  height: 12px;
 }
 
 .noTeam {
-  color: #6b7280;
-  font-size: 0.8rem;
+  color: #9ca3af;
+  font-size: 0.75rem;
   font-style: italic;
 }
 
-.dateInfo {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #5f6b6d;
-  font-size: 0.9rem;
-}
-
-.dateIcon {
-  width: 14px;
-  height: 14px;
-}
-
 .activityBadge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: white;
-  font-size: 0.8rem;
-  font-weight: 500;
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 400;
   text-align: center;
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .actions {

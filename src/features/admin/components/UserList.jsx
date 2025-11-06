@@ -1,27 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Users, Search, Filter, Calendar, Building, Shield, UserCheck } from 'lucide-react';
+import { Users, Search } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
-import { useUser } from '../../../components/Context/UserContext';
-import { hasPlatformAccess } from '../../../utils/roleHelpers';
+import UserDetailModal from './UserDetailModal';
 import styles from './UserList.module.css';
 
 export default function UserList() {
-  const { profile, startImpersonation, isImpersonating } = useUser();
   const [users, setUsers] = useState([]);
+  const [loginHistory, setLoginHistory] = useState({});
+  const [activityCounts, setActivityCounts] = useState({});
+  const [activityCounts7Days, setActivityCounts7Days] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('updated_at');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [impersonatingUserId, setImpersonatingUserId] = useState(null);
+  const [sortBy, setSortBy] = useState('email');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
   }, [sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      fetchLoginHistory();
+      fetchActivityCounts();
+      fetchActivityCounts7Days();
+    }
+  }, [users]);
+
+  useEffect(() => {
+    if (sortBy === 'last_login' && Object.keys(loginHistory).length > 0 && users.length > 0) {
+      // Re-sort when login history loads if we're sorting by last login
+      setUsers(prevUsers => {
+        const sorted = [...prevUsers].sort((a, b) => {
+          const aLogin = loginHistory[a.id]?.lastSignIn;
+          const bLogin = loginHistory[b.id]?.lastSignIn;
+          if (!aLogin && !bLogin) return 0;
+          if (!aLogin) return 1;
+          if (!bLogin) return -1;
+          const comparison = new Date(aLogin) - new Date(bLogin);
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+        return sorted;
+      });
+    }
+  }, [loginHistory, sortBy, sortOrder]);
 
   const fetchUsers = async () => {
     try {
@@ -37,22 +65,139 @@ export default function UserList() {
           email,
           role,
           title,
-          updated_at,
           team_id,
           teams(name)
-        `)
-        .order(sortBy, { ascending: sortOrder === 'asc' });
+        `);
+      
+      // Handle sorting - some fields need special handling
+      if (sortBy === 'name') {
+        query = query.order('last_name', { ascending: sortOrder === 'asc' });
+      } else if (sortBy === 'team') {
+        query = query.order('team_id', { ascending: sortOrder === 'asc' });
+      } else if (sortBy === 'last_login') {
+        // Can't sort by login history in query, will sort in JS
+        query = query.order('email', { ascending: true });
+      } else if (sortBy === 'email') {
+        query = query.order('email', { ascending: sortOrder === 'asc' });
+      } else {
+        query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+      }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      setUsers(data || []);
+      let sortedData = data || [];
+      
+      // Handle client-side sorting for fields that can't be sorted in the query
+      if (sortBy === 'name') {
+        sortedData = [...sortedData].sort((a, b) => {
+          const aName = `${a.last_name || ''} ${a.first_name || ''}`.trim();
+          const bName = `${b.last_name || ''} ${b.first_name || ''}`.trim();
+          const comparison = aName.localeCompare(bName);
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+      } else if (sortBy === 'team') {
+        sortedData = [...sortedData].sort((a, b) => {
+          const aTeam = a.teams?.name || '';
+          const bTeam = b.teams?.name || '';
+          const comparison = aTeam.localeCompare(bTeam);
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+      }
+
+      setUsers(sortedData);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLoginHistory = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/users/login-history', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const history = await response.json();
+        setLoginHistory(history);
+      }
+    } catch (err) {
+      console.error('Error fetching login history:', err);
+    }
+  };
+
+  const fetchActivityCounts = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/users/activity-counts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const counts = await response.json();
+        setActivityCounts(counts);
+      } else {
+        console.error('Error fetching activity counts:', await response.text());
+        setActivityCounts({});
+      }
+    } catch (err) {
+      console.error('Error fetching activity counts:', err);
+      setActivityCounts({});
+    }
+  };
+
+  const fetchActivityCounts7Days = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoISO = sevenDaysAgo.toISOString();
+
+      const userIds = users.map(u => u.id);
+      if (userIds.length === 0) return;
+
+      const { data: activities, error } = await supabase
+        .from('user_activities')
+        .select('user_id')
+        .in('user_id', userIds)
+        .gte('created_at', sevenDaysAgoISO);
+
+      if (error) {
+        if (error.code === '42P01') {
+          setActivityCounts7Days({});
+          return;
+        }
+        throw error;
+      }
+
+      const counts = {};
+      activities?.forEach(activity => {
+        counts[activity.user_id] = (counts[activity.user_id] || 0) + 1;
+      });
+
+      setActivityCounts7Days(counts);
+    } catch (err) {
+      console.error('Error fetching 7-day activity counts:', err);
+      setActivityCounts7Days({});
     }
   };
 
@@ -62,34 +207,35 @@ export default function UserList() {
       user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesTeam = teamFilter === 'all' || user.teams?.name === teamFilter;
+    const matchesRole = roleFilter === 'all' || 
+      (roleFilter === 'no_role' ? !user.role : user.role === roleFilter);
+    
+    const matchesTeam = teamFilter === 'all' || 
+      (teamFilter === 'no_team' ? !user.teams : user.teams?.name === teamFilter);
 
     return matchesSearch && matchesRole && matchesTeam;
   });
 
   const getUniqueRoles = () => {
     const roles = users.map(user => user.role).filter(Boolean);
-    return ['all', ...new Set(roles)];
+    const uniqueRoles = [...new Set(roles)];
+    const hasNoRole = users.some(user => !user.role);
+    return ['all', ...uniqueRoles, ...(hasNoRole ? ['no_role'] : [])];
   };
 
   const getUniqueTeams = () => {
     const teams = users.map(user => user.teams?.name).filter(Boolean);
-    return ['all', ...new Set(teams)];
+    const uniqueTeams = [...new Set(teams)];
+    const hasNoTeam = users.some(user => !user.teams);
+    return ['all', ...uniqueTeams, ...(hasNoTeam ? ['no_team'] : [])];
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getActivityStatus = (user) => {
-    // Activity count would need to be fetched separately due to relationship constraints
-    // For now, return a default status
-    return { status: 'N/A', color: '#6b7280' };
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
   };
 
   const handleSort = (field) => {
@@ -101,23 +247,6 @@ export default function UserList() {
     }
   };
 
-  const handleImpersonate = async (targetUserId) => {
-    if (!window.confirm('Are you sure you want to impersonate this user? You will be logged in as them.')) {
-      return;
-    }
-
-    setImpersonatingUserId(targetUserId);
-    const result = await startImpersonation(targetUserId);
-    
-    if (result.success) {
-      window.location.reload();
-    } else {
-      alert(`Failed to impersonate user: ${result.error}`);
-      setImpersonatingUserId(null);
-    }
-  };
-
-  const canImpersonate = hasPlatformAccess(profile?.role);
 
   if (loading) {
     return (
@@ -172,7 +301,7 @@ export default function UserList() {
             <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
               {getUniqueRoles().map(role => (
                 <option key={role} value={role}>
-                  {role === 'all' ? 'All Roles' : role}
+                  {role === 'all' ? 'All Roles' : role === 'no_role' ? 'No Role' : role}
                 </option>
               ))}
             </select>
@@ -183,7 +312,7 @@ export default function UserList() {
             <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
               {getUniqueTeams().map(team => (
                 <option key={team} value={team}>
-                  {team === 'all' ? 'All Teams' : team}
+                  {team === 'all' ? 'All Teams' : team === 'no_team' ? 'No Team' : team}
                 </option>
               ))}
             </select>
@@ -220,89 +349,85 @@ export default function UserList() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th onClick={() => handleSort('first_name')} className={styles.sortable}>
+              <th onClick={() => handleSort('email')} className={styles.sortable}>
+                Email
+                {sortBy === 'email' && (
+                  <span className={styles.sortIndicator}>
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th onClick={() => handleSort('name')} className={styles.sortable}>
                 Name
-                {sortBy === 'first_name' && (
+                {sortBy === 'name' && (
                   <span className={styles.sortIndicator}>
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Team</th>
-              <th onClick={() => handleSort('updated_at')} className={styles.sortable}>
-                Last Updated
-                {sortBy === 'updated_at' && (
+              <th onClick={() => handleSort('role')} className={styles.sortable}>
+                Role
+                {sortBy === 'role' && (
                   <span className={styles.sortIndicator}>
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </th>
-              <th>Activity</th>
-              <th>Actions</th>
+              <th onClick={() => handleSort('team')} className={styles.sortable}>
+                Team
+                {sortBy === 'team' && (
+                  <span className={styles.sortIndicator}>
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th onClick={() => handleSort('last_login')} className={styles.sortable}>
+                Last Login
+                {sortBy === 'last_login' && (
+                  <span className={styles.sortIndicator}>
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th>Total Activities</th>
+              <th>Activities (7 Days)</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map(user => {
-              const activityStatus = getActivityStatus(user);
               return (
-                <tr key={user.id}>
-                  <td>
-                    <div className={styles.userInfo}>
-                      <div className={styles.userName}>
-                        {user.first_name} {user.last_name}
-                      </div>
-                      {user.title && (
-                        <div className={styles.userTitle}>{user.title}</div>
-                      )}
-                    </div>
-                  </td>
+                <tr 
+                  key={user.id}
+                  className={styles.clickableRow}
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setIsModalOpen(true);
+                  }}
+                >
                   <td>{user.email}</td>
                   <td>
-                    <span className={styles.roleBadge}>
-                      <Shield className={styles.roleIcon} />
-                      {user.role || 'No Role'}
-                    </span>
+                    <div className={styles.userName}>
+                      {user.first_name} {user.last_name}
+                    </div>
                   </td>
                   <td>
-                    {user.teams ? (
-                      <span className={styles.teamBadge}>
-                        <Building className={styles.teamIcon} />
-                        {user.teams.name}
-                      </span>
+                    {user.role || 'No Role'}
+                  </td>
+                  <td>
+                    {user.teams ? user.teams.name : <span className={styles.noTeam}>No Team</span>}
+                  </td>
+                  <td>
+                    {loginHistory[user.id]?.lastSignIn ? (
+                      formatDate(loginHistory[user.id].lastSignIn)
                     ) : (
-                      <span className={styles.noTeam}>No Team</span>
+                      <span className={styles.noTeam}>Never</span>
                     )}
                   </td>
                   <td>
-                    <span className={styles.dateInfo}>
-                      <Calendar className={styles.dateIcon} />
-                      {formatDate(user.updated_at)}
-                    </span>
+                    {activityCounts[user.id] || 0}
                   </td>
                   <td>
-                    <span 
-                      className={styles.activityBadge}
-                      style={{ backgroundColor: activityStatus.color }}
-                    >
-                      {activityStatus.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className={styles.actions}>
-                      {canImpersonate && !isImpersonating && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleImpersonate(user.id)}
-                          disabled={impersonatingUserId === user.id}
-                        >
-                          <UserCheck size={14} style={{ marginRight: '4px' }} />
-                          {impersonatingUserId === user.id ? 'Impersonating...' : 'Impersonate'}
-                        </Button>
-                      )}
-                    </div>
+                    {activityCounts7Days[user.id] || 0}
                   </td>
                 </tr>
               );
@@ -318,6 +443,15 @@ export default function UserList() {
           </div>
         )}
       </div>
+
+      <UserDetailModal
+        user={selectedUser}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedUser(null);
+        }}
+      />
     </div>
   );
 }

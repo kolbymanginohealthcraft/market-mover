@@ -226,12 +226,15 @@ app.post("/api/impersonate", async (req, res) => {
   );
 
   try {
-    // Verify target user exists
+    // Verify target user exists and preserve original last_sign_in_at
     const { data: targetUser, error: userError } = await supabase.auth.admin.getUserById(target_user_id);
     if (userError || !targetUser) {
       console.error("❌ User lookup error:", userError);
       return res.status(404).json({ message: "Target user not found", error: userError?.message });
     }
+
+    // Preserve original last_sign_in_at before impersonation
+    const originalLastSignIn = targetUser.user.last_sign_in_at;
 
     // Use Supabase admin API to generate a magic link and extract session
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
@@ -316,6 +319,24 @@ app.post("/api/impersonate", async (req, res) => {
 
       const sessionData = recoveryData.session;
       
+      // Restore original last_sign_in_at (verifyOtp updates it, but we don't want impersonation to count as a login)
+      // Use database function to update auth.users directly
+      if (originalLastSignIn !== null) {
+        try {
+          const { error: rpcError } = await supabase.rpc('restore_user_last_sign_in', {
+            target_user_id: target_user_id,
+            original_timestamp: originalLastSignIn
+          });
+          
+          if (rpcError) {
+            console.error("⚠️ Could not restore last_sign_in_at:", rpcError);
+          }
+        } catch (err) {
+          console.error("⚠️ Error restoring last_sign_in_at:", err);
+        }
+      }
+
+      
       res.status(200).json({ 
         message: "✅ Impersonation session created",
         session: {
@@ -332,6 +353,24 @@ app.post("/api/impersonate", async (req, res) => {
     }
 
     const sessionData = verifyData.session;
+    
+    // Restore original last_sign_in_at (verifyOtp updates it, but we don't want impersonation to count as a login)
+    // Use database function to update auth.users directly
+    if (originalLastSignIn !== null) {
+      try {
+        const { error: rpcError } = await supabase.rpc('restore_user_last_sign_in', {
+          target_user_id: target_user_id,
+          original_timestamp: originalLastSignIn
+        });
+        
+        if (rpcError) {
+          console.error("⚠️ Could not restore last_sign_in_at:", rpcError);
+        }
+      } catch (err) {
+        console.error("⚠️ Error restoring last_sign_in_at:", err);
+      }
+    }
+
     
     res.status(200).json({ 
       message: "✅ Impersonation session created",
@@ -352,6 +391,276 @@ app.post("/api/impersonate", async (req, res) => {
   }
 });
 
+// ✅ Get User Login History Route
+app.get("/api/users/:userId/login-history", async (req, res) => {
+  const { userId } = req.params;
+
+  // Verify requester is Platform Admin or Platform Support
+  const { error: verifyError, user: requester } = await verifyAdminAccess(req);
+  if (verifyError || !requester) {
+    return res.status(403).json({ message: verifyError || "Unauthorized" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Get last sign-in from auth.users
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+    if (authError || !authUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get login activities from user_activities table
+    const { data: loginActivities, error: activitiesError } = await supabase
+      .from('user_activities')
+      .select('created_at, activity_type')
+      .eq('user_id', userId)
+      .eq('activity_type', 'login')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // If activities table doesn't exist or has no login records, that's okay
+    const activities = activitiesError ? [] : (loginActivities || []);
+
+    res.status(200).json({
+      lastSignIn: authUser.user.last_sign_in_at,
+      createdAt: authUser.user.created_at,
+      updatedAt: authUser.user.updated_at,
+      confirmedAt: authUser.user.confirmed_at,
+      loginCount: activities.length,
+      recentLogins: activities.map(a => ({
+        timestamp: a.created_at,
+        activityType: a.activity_type
+      }))
+    });
+  } catch (err) {
+    console.error("💥 Login history error:", err);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
+// ✅ Get All Users Activity Counts Route (for bulk display)
+app.get("/api/users/activity-counts", async (req, res) => {
+  // Verify requester is Platform Admin or Platform Support
+  const { error: verifyError, user: requester } = await verifyAdminAccess(req);
+  if (verifyError || !requester) {
+    return res.status(403).json({ message: verifyError || "Unauthorized" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Get all user IDs from profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id');
+
+    if (profilesError) {
+      return res.status(500).json({ message: "Error fetching profiles", error: profilesError.message });
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return res.status(200).json({});
+    }
+
+    const userIds = profiles.map(p => p.id);
+
+    // Fetch all activities for these users (using service role to bypass RLS)
+    const { data: activities, error: activitiesError } = await supabase
+      .from('user_activities')
+      .select('user_id')
+      .in('user_id', userIds);
+
+    if (activitiesError) {
+      // If table doesn't exist, return empty counts
+      if (activitiesError.code === '42P01') {
+        return res.status(200).json({});
+      }
+      return res.status(500).json({ message: "Error fetching activities", error: activitiesError.message });
+    }
+
+    // Count activities per user
+    const counts = {};
+    activities?.forEach(activity => {
+      counts[activity.user_id] = (counts[activity.user_id] || 0) + 1;
+    });
+
+    res.status(200).json(counts);
+  } catch (err) {
+    console.error("💥 Activity counts error:", err);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
+// ✅ Get User Authentication Events Route
+app.get("/api/users/:userId/auth-events", async (req, res) => {
+  const { userId } = req.params;
+
+  // Verify requester is Platform Admin or Platform Support
+  const { error: verifyError, user: requester } = await verifyAdminAccess(req);
+  if (verifyError || !requester) {
+    return res.status(403).json({ message: verifyError || "Unauthorized" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Use database function to get authentication events
+    // This function can access auth schema tables directly
+    const { data: events, error: rpcError } = await supabase.rpc('get_user_auth_events', {
+      target_user_id: userId
+    });
+
+    if (rpcError) {
+      console.error("Auth events RPC error:", rpcError);
+      
+      // Fallback: Try to get sessions directly if function doesn't exist
+      try {
+        // Query sessions using a direct SQL approach via a simpler function
+        const { data: sessions, error: sessionsError } = await supabase
+          .from('auth.sessions')
+          .select('id, created_at, ip, user_agent, refreshed_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (!sessionsError && sessions) {
+          const fallbackEvents = sessions.map(session => ({
+            id: session.id,
+            timestamp: session.created_at,
+            eventType: 'session_created',
+            ipAddress: session.ip || '',
+            userAgent: session.user_agent || '',
+            details: {
+              refreshed_at: session.refreshed_at
+            }
+          }));
+
+          return res.status(200).json({ events: fallbackEvents });
+        }
+      } catch (fallbackErr) {
+        console.error("Fallback sessions query error:", fallbackErr);
+      }
+
+      // If all else fails, return empty array
+      return res.status(200).json({ events: [] });
+    }
+
+    // Format events from the database function
+    const formattedEvents = (events || []).map(event => ({
+      id: event.id,
+      timestamp: event.event_timestamp,
+      eventType: event.event_type || 'unknown',
+      ipAddress: event.ip_address || '',
+      userAgent: event.user_agent || '',
+      details: event.details || {}
+    }));
+
+    // Sort by timestamp (most recent first)
+    formattedEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.status(200).json({ events: formattedEvents });
+  } catch (err) {
+    console.error("💥 Auth events error:", err);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
+// ✅ Get User Activities Route (for custom activities like searches/views)
+app.get("/api/users/:userId/activities", async (req, res) => {
+  const { userId } = req.params;
+
+  // Verify requester is Platform Admin or Platform Support
+  const { error: verifyError, user: requester } = await verifyAdminAccess(req);
+  if (verifyError || !requester) {
+    return res.status(403).json({ message: verifyError || "Unauthorized" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Fetch recent activities for the user (using service role to bypass RLS)
+    const { data: activities, error: activitiesError } = await supabase
+      .from('user_activities')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (activitiesError) {
+      // If table doesn't exist, return empty array
+      if (activitiesError.code === '42P01') {
+        return res.status(200).json({ activities: [] });
+      }
+      return res.status(500).json({ message: "Error fetching activities", error: activitiesError.message });
+    }
+
+    res.status(200).json({ activities: activities || [] });
+  } catch (err) {
+    console.error("💥 User activities error:", err);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
+// ✅ Get All Users Login History Route (for bulk display)
+app.get("/api/users/login-history", async (req, res) => {
+  // Verify requester is Platform Admin or Platform Support
+  const { error: verifyError, user: requester } = await verifyAdminAccess(req);
+  if (verifyError || !requester) {
+    return res.status(403).json({ message: verifyError || "Unauthorized" });
+  }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY
+  );
+
+  try {
+    // Get all profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id');
+
+    if (profilesError) {
+      return res.status(500).json({ message: "Failed to fetch profiles", error: profilesError.message });
+    }
+
+    // Get last sign-in for each user from auth.users
+    const loginHistory = {};
+    for (const profile of profiles || []) {
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+        if (authUser?.user) {
+          loginHistory[profile.id] = {
+            lastSignIn: authUser.user.last_sign_in_at,
+            createdAt: authUser.user.created_at
+          };
+        }
+      } catch (err) {
+        // Skip users that can't be found in auth
+        console.error(`Error fetching auth data for user ${profile.id}:`, err);
+      }
+    }
+
+    res.status(200).json(loginHistory);
+  } catch (err) {
+    console.error("💥 Bulk login history error:", err);
+    res.status(500).json({ message: "Unexpected server error", error: err.message });
+  }
+});
+
 // ✅ Stop Impersonation Route
 app.post("/api/stop-impersonate", async (req, res) => {
   const { original_user_id } = req.body;
@@ -366,12 +675,19 @@ app.post("/api/stop-impersonate", async (req, res) => {
   );
 
   try {
-    // Get the original user
+    // Get current session to identify the target user (who is being impersonated)
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const targetUserId = currentSession?.user?.id;
+
+    // Get the original user and preserve original last_sign_in_at
     const { data: originalUser, error: userError } = await supabase.auth.admin.getUserById(original_user_id);
     if (userError || !originalUser) {
       console.error("❌ User lookup error:", userError);
       return res.status(404).json({ message: "Original user not found", error: userError?.message });
     }
+
+    // Preserve original last_sign_in_at before restoring session
+    const originalLastSignIn = originalUser.user.last_sign_in_at;
 
     // Use the same approach as impersonate - generate magic link and verify
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
@@ -433,6 +749,24 @@ app.post("/api/stop-impersonate", async (req, res) => {
     }
 
     const sessionData = verifyData.session;
+
+    // Restore original last_sign_in_at (verifyOtp updates it, but we don't want session restoration to count as a login)
+    // Use database function to update auth.users directly
+    if (originalLastSignIn !== null) {
+      try {
+        const { error: rpcError } = await supabase.rpc('restore_user_last_sign_in', {
+          target_user_id: original_user_id,
+          original_timestamp: originalLastSignIn
+        });
+        
+        if (rpcError) {
+          console.error("⚠️ Could not restore last_sign_in_at:", rpcError);
+        }
+      } catch (err) {
+        console.error("⚠️ Error restoring last_sign_in_at:", err);
+      }
+    }
+
 
     res.status(200).json({ 
       message: "✅ Returned to original user",

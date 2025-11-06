@@ -1,0 +1,314 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  border-bottom: 1px solid #e2e8e7;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #265947;
+}
+
+.subtitle {
+  margin: 4px 0 0 0;
+  color: #5f6b6d;
+  font-size: 0.9rem;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #5f6b6d;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.closeButton:hover {
+  background: #f3f4f6;
+}
+
+.content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #265947;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8e7;
+  padding-bottom: 8px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterGroup label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #5f6b6d;
+}
+
+.filterSelect {
+  padding: 6px 10px;
+  border: 1px solid #e2e8e7;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: #fff;
+  color: #374151;
+  min-width: 160px;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #3599b8;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.infoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.icon {
+  color: #3599b8;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infoItem label {
+  display: block;
+  font-size: 0.75rem;
+  color: #5f6b6d;
+  font-weight: 500;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoItem div > div {
+  font-size: 0.9rem;
+  color: #265947;
+  font-weight: 500;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.statCard {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #265947;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #5f6b6d;
+  font-weight: 500;
+}
+
+.activitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activityItem {
+  background: #f9fbfa;
+  border: 1px solid #e2e8e7;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.activityType {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #265947;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.activityDetails {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #5f6b6d;
+}
+
+.activityTime {
+  color: #9ca3af;
+}
+
+.compactTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.tableWrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e2e8e7;
+  border-radius: 6px;
+}
+
+.compactTable thead {
+  background: #f9fbfa;
+  border-bottom: 1px solid #e2e8e7;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.compactTable th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #265947;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f9fbfa;
+}
+
+.compactTable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.compactTable tbody tr:hover {
+  background: #f9fbfa;
+}
+
+.tableLabel {
+  font-weight: 500;
+  color: #5f6b6d;
+  width: 140px;
+}
+
+.tableValue {
+  color: #265947;
+}
+
+.tableHeader {
+  font-size: 0.75rem;
+}
+
+
+.authEventUserAgent {
+  color: #9ca3af;
+  font-size: 0.7rem;
+  font-style: italic;
+  display: block;
+  margin-top: 2px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8e7;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 16px;
+}
+
+.loading p {
+  color: #5f6b6d;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
