@@ -6,7 +6,6 @@ import {
   Building2,
   Building,
   FileText,
-  Shield,
   Users,
   UserCheck,
   BarChart3,
@@ -352,22 +351,6 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               <BarChart3 size={14} />
               {!isCollapsed && 'Market Analysis'}
             </div>
-          </div>
-        )}
-
-        {/* Platform Section (only shown for platform admins) */}
-        {permissions?.canAccessPlatform && (
-          <div className={styles.navItems}>
-            {!isCollapsed && <div className={styles.sectionDivider}>PLATFORM</div>}
-            <Link 
-              to="/app/platform" 
-              className={`${styles.navItem} ${isActive('/platform') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'Platform Management')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <Shield size={14} />
-              {!isCollapsed && 'Platform'}
-            </Link>
           </div>
         )}
 

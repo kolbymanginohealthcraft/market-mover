@@ -1094,9 +1094,11 @@ const SubNavigation = () => {
       return null;
     }
 
-    let currentPlatformTab = "users";
+    let currentPlatformTab = "unfinished";
     
-    if (location.pathname.includes('/users')) {
+    if (location.pathname.includes('/unfinished')) {
+      currentPlatformTab = 'unfinished';
+    } else if (location.pathname.includes('/users')) {
       currentPlatformTab = 'users';
     } else if (location.pathname.includes('/announcements')) {
       currentPlatformTab = 'announcements';
@@ -1106,17 +1108,15 @@ const SubNavigation = () => {
       currentPlatformTab = 'policies';
     } else if (location.pathname.includes('/style-guide')) {
       currentPlatformTab = 'style-guide';
-    } else if (location.pathname.includes('/unfinished')) {
-      currentPlatformTab = 'unfinished';
     }
 
     const platformTabs = [
+      { id: "unfinished", label: "Unfinished", icon: Construction, path: "/app/platform/unfinished" },
       { id: "users", label: "User Management", icon: UserCheck, path: "/app/platform/users" },
       { id: "announcements", label: "System Announcements", icon: MessageCircle, path: "/app/platform/announcements" },
       { id: "feedback", label: "Feedback Approvals", icon: MessageCircle, path: "/app/platform/feedback" },
       { id: "policies", label: "Policy Management", icon: FileText, path: "/app/platform/policies" },
-      { id: "style-guide", label: "Style Guide", icon: Palette, path: "/app/platform/style-guide" },
-      { id: "unfinished", label: "Unfinished", icon: Construction, path: "/app/platform/unfinished" }
+      { id: "style-guide", label: "Style Guide", icon: Palette, path: "/app/platform/style-guide" }
     ];
 
     return (

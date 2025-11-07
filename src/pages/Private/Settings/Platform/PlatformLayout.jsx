@@ -61,7 +61,7 @@ export default function PlatformLayout() {
   return (
     <div className={styles.content}>
       <Routes>
-        <Route index element={<Navigate to="users" replace />} />
+        <Route index element={<Navigate to="unfinished" replace />} />
         <Route path="users" element={<UserList />} />
         <Route path="announcements" element={<ManageAnnouncements />} />
         <Route path="feedback" element={<ManageFeedback />} />
@@ -72,7 +72,7 @@ export default function PlatformLayout() {
         <Route path="unfinished/medicare-pos" element={<TestProviderOfServices />} />
         <Route path="unfinished/medicare-pos-enriched" element={<TestProviderOfServicesEnriched />} />
         <Route path="unfinished/referral-pathways" element={<ReferralPathways />} />
-        <Route path="*" element={<Navigate to="users" replace />} />
+        <Route path="*" element={<Navigate to="unfinished" replace />} />
       </Routes>
     </div>
   );

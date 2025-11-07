@@ -22,7 +22,8 @@ import {
   Activity,
   Database,
   GitBranch,
-  LineChart
+  LineChart,
+  Shield
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
@@ -36,7 +37,7 @@ const Header = ({ currentView, selectedMarket }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentProvider } = useProviderContext();
-  const { user, profile } = useUser();
+  const { user, profile, permissions } = useUser();
 
   // Check if we're on a public page
   const isPublicPage = !location.pathname.startsWith('/app');
@@ -404,6 +405,16 @@ const Header = ({ currentView, selectedMarket }) => {
       </div>
 
       <div className={styles.headerRight}>
+        {permissions?.canAccessPlatform && !isPublicPage && (
+          <button
+            type="button"
+            className={styles.platformButton}
+            onClick={() => navigate('/app/platform')}
+          >
+            <Shield size={16} />
+            <span>Platform</span>
+          </button>
+        )}
         <div className={styles.userSection}>
           {user ? (
             // Logged in user - show profile dropdown

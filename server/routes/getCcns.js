@@ -44,7 +44,6 @@ router.post("/related-ccns", async (req, res) => {
         CAST(npi AS STRING) AS npi
       FROM \`aegis_access.hco_flat\`
       WHERE atlas_definitive_id IS NOT NULL
-        AND atlas_definitive_id_primary_npi = TRUE
         AND npi_deactivation_date IS NULL
         AND CAST(atlas_definitive_id AS STRING) IN UNNEST(@dhc_ids)
     `;
