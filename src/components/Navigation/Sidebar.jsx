@@ -25,7 +25,7 @@ import {
   FileBarChart,
   Database,
   GitBranch,
-  TrendingUp
+  LineChart
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useUser } from '../Context/UserContext';
@@ -155,7 +155,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             onMouseEnter={(e) => handleMouseEnter(e, 'Storyteller')}
             onMouseLeave={handleMouseLeave}
           >
-            <TrendingUp size={14} />
+            <LineChart size={14} />
             {!isCollapsed && 'Storyteller'}
           </Link>
           

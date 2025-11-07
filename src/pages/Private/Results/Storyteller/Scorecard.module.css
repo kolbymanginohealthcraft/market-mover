@@ -46,3 +46,13 @@
 .selectSm:focus {
   border: 1.5px solid #4a90e2;
 } 
+
+.noMeasuresMessage {
+  margin: auto;
+  padding: 32px;
+  text-align: center;
+  color: var(--gray-600);
+  font-size: 14px;
+  max-width: 420px;
+  line-height: 1.6;
+}

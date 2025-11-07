@@ -4,7 +4,7 @@ import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
 import styles from "./Storyteller.module.css";
 
-function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false }) {
+function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false, showMyKpisOnly = false, myKpiCodes = [] }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   
@@ -104,6 +104,8 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           availableProviderTypes={finalProviderTypes}
           providerLabels={providerLabels}
           forcedLoading={isLoading}
+          showMyKpisOnly={showMyKpisOnly}
+          myKpiCodes={myKpiCodes}
         />
       } />
       <Route path="benchmarks" element={
@@ -120,6 +122,8 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           setSelectedPublishDate={setSelectedPublishDate}
           availableProviderTypes={finalProviderTypes}
           providerLabels={providerLabels}
+          showMyKpisOnly={showMyKpisOnly}
+          myKpiCodes={myKpiCodes}
         />
       } />
       <Route path="*" element={<Navigate to={`scorecard${location.search}`} replace />} />

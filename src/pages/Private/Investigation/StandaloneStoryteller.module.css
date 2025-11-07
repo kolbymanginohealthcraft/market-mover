@@ -25,6 +25,17 @@
   flex-wrap: wrap;
 }
 
+.activeFilterButton {
+  background: rgba(0, 192, 139, 0.12);
+  border-color: rgba(0, 192, 139, 0.24);
+  color: var(--primary-teal-dark);
+}
+
+.disabledFilterButton {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Search Container */
 .searchContainer {
   position: relative;
@@ -155,6 +166,12 @@
   border-radius: 6px;
   font-size: 12px;
   color: var(--gray-700);
+}
+
+.kpiFilterTag {
+  background: rgba(0, 192, 139, 0.12);
+  border-color: rgba(0, 192, 139, 0.24);
+  color: var(--primary-teal-dark);
 }
 
 .count {

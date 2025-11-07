@@ -19,9 +19,10 @@ import {
   Mail,
   FileText,
   FileBarChart,
-  TrendingUp,
+  Activity,
   Database,
-  GitBranch
+  GitBranch,
+  LineChart
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
@@ -152,6 +153,12 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'My Procedures';
     } else if (location.pathname.includes('/diagnoses')) {
       return 'My Diagnoses';
+    } else if (location.pathname.includes('/kpis')) {
+      return 'My KPIs';
+    } else if (location.pathname.includes('/taxonomies')) {
+      return 'My Taxonomies';
+    } else if (location.pathname.includes('/claims/storyteller')) {
+      return 'Storyteller';
     } else if (location.pathname.includes('/claims')) {
       return 'Claims Data Explorer';
     } else if (location.pathname.includes('/referral-pathways')) {
@@ -261,7 +268,15 @@ const Header = ({ currentView, selectedMarket }) => {
       ];
     } else if (currentPath.includes('/kpis')) {
       return [
-        { text: 'Tag and track metrics and KPIs that matter to your team', type: 'description' }
+        { text: 'Monitor the metrics your team prioritizes most', type: 'description' }
+      ];
+    } else if (currentPath.includes('/taxonomies')) {
+      return [
+        { text: 'Keep shared definitions aligned across metrics and measures', type: 'description' }
+      ];
+    } else if (currentPath.includes('/claims/storyteller')) {
+      return [
+        { text: 'Highlight the differentiators that set your organization apart', type: 'description' }
       ];
     } else if (currentPath.includes('/claims')) {
       return [
@@ -332,9 +347,17 @@ const Header = ({ currentView, selectedMarket }) => {
       return <Building2 size={18} />;
     } else if (location.pathname.includes('/market/')) {
       return <MapPin size={18} />;
+    } else if (location.pathname.includes('/claims/storyteller')) {
+      return <LineChart size={18} />;
     } else if (location.pathname.includes('/network')) {
       return <Network size={18} />;
     } else if (location.pathname.includes('/procedures')) {
+      return <FileBarChart size={18} />;
+    } else if (location.pathname.includes('/diagnoses')) {
+      return <FileBarChart size={18} />;
+    } else if (location.pathname.includes('/kpis')) {
+      return <Activity size={18} />;
+    } else if (location.pathname.includes('/taxonomies')) {
       return <FileBarChart size={18} />;
     } else if (location.pathname.includes('/claims')) {
       return <Database size={18} />;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Spinner from "../../../../components/Buttons/Spinner";
 import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
@@ -16,7 +16,9 @@ export default function Scorecard({
   setSelectedPublishDate,
   availableProviderTypes,
   providerLabels = {},
-  forcedLoading = false
+  forcedLoading = false,
+  showMyKpisOnly = false,
+  myKpiCodes = []
 }) {
   const [isHydrating, setIsHydrating] = useState(true);
   // Always use the hook to ensure we get all providers, but use prefetched data if available
@@ -133,7 +135,24 @@ export default function Scorecard({
   });
 
   // Use only the filtered measures for display
-  const finalFilteredMeasures = filteredMeasures;
+  const kpiCodeSet = useMemo(() => {
+    if (!Array.isArray(myKpiCodes) || myKpiCodes.length === 0) {
+      return new Set();
+    }
+    return new Set(
+      myKpiCodes
+        .map(code => (code ? String(code).trim().toUpperCase() : ''))
+        .filter(Boolean)
+    );
+  }, [myKpiCodes]);
+
+  const finalFilteredMeasures = filteredMeasures.filter(measure => {
+    if (!showMyKpisOnly) return true;
+    if (kpiCodeSet.size === 0) return false;
+    const code = measure?.code ? String(measure.code).trim().toUpperCase() : '';
+    if (!code) return false;
+    return kpiCodeSet.has(code);
+  });
 
   // Filter providers to only show those that have data for at least one of the selected measures
   const filteredProviders = finalAllProviders.filter(currentProvider => {
@@ -216,6 +235,17 @@ export default function Scorecard({
 
   if (!finalMeasures.length) {
     return <div>No quality measure data available for this provider.</div>;
+  }
+
+  if (showMyKpisOnly && finalFilteredMeasures.length === 0) {
+    const message = kpiCodeSet.size === 0
+      ? 'Tag KPIs from the KPIs workspace to enable this filter.'
+      : 'None of your tagged KPIs match the current filters. Toggle off "Show My KPIs" to view all measures.';
+    return (
+      <div className={styles.scorecardContainer}>
+        <div className={styles.noMeasuresMessage}>{message}</div>
+      </div>
+    );
   }
 
   return (

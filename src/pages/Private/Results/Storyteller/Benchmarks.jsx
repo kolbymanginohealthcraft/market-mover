@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import BenchmarkChart from './BenchmarkChart';
 import ExportButton from '../../../../components/Buttons/ExportButton';
@@ -18,7 +18,9 @@ export default function Benchmarks({
   selectedPublishDate,
   setSelectedPublishDate,
   availableProviderTypes,
-  providerLabels = {}
+  providerLabels = {},
+  showMyKpisOnly = false,
+  myKpiCodes = []
 }) {
   // Use the same quality measures hook to get consistent date handling
   const {
@@ -44,6 +46,17 @@ export default function Benchmarks({
   const [winsData, setWinsData] = useState({});
   const chartRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  const kpiCodeSet = useMemo(() => {
+    if (!Array.isArray(myKpiCodes) || myKpiCodes.length === 0) {
+      return new Set();
+    }
+    return new Set(
+      myKpiCodes
+        .map(code => (code ? String(code).trim().toUpperCase() : ''))
+        .filter(Boolean)
+    );
+  }, [myKpiCodes]);
 
   // Handle global search behavior integration
   useEffect(() => {
@@ -122,6 +135,16 @@ export default function Benchmarks({
         setAvailableMeasures([]);
         setSelectedMeasure(null);
         setWinsData({});
+        setMeasuresLoading(false);
+        return;
+      }
+
+      if (showMyKpisOnly && kpiCodeSet.size === 0) {
+        console.log('⚠️ KPI-only mode without tagged KPIs');
+        setAvailableMeasures([]);
+        setSelectedMeasure(null);
+        setWinsData({});
+        setMeasuresLoading(false);
         return;
       }
 
@@ -149,9 +172,18 @@ export default function Benchmarks({
         }
 
         // Filter measures by the selected setting
-        const filteredMeasures = result.data.filter(measure => 
+        let filteredMeasures = result.data.filter(measure => 
           measure.setting === providerTypeFilter && measure.active === true
         );
+
+        if (showMyKpisOnly) {
+          filteredMeasures = filteredMeasures.filter(measure => {
+            if (kpiCodeSet.size === 0) return false;
+            const code = measure?.code ? String(measure.code).trim().toUpperCase() : '';
+            if (!code) return false;
+            return kpiCodeSet.has(code);
+          });
+        }
 
         console.log('🔍 Filtered measures:', {
           totalMeasures: result.data.length,
@@ -169,10 +201,10 @@ export default function Benchmarks({
 
 
 
-         setAvailableMeasures(filteredMeasures);
+        setAvailableMeasures(filteredMeasures);
 
         // Fetch quality measure data to calculate wins
-        if (provider && nearbyDhcCcns && nearbyDhcCcns.length > 0) {
+        if (provider && nearbyDhcCcns && nearbyDhcCcns.length > 0 && filteredMeasures.length > 0) {
           const allCcns = nearbyDhcCcns.map(row => String(row.ccn)).filter(Boolean);
           
           if (allCcns.length > 0) {
@@ -268,9 +300,13 @@ export default function Benchmarks({
         }
         
         // Auto-select the first measure if none is selected
-        if (filteredMeasures.length > 0 && !selectedMeasure) {
-          setSelectedMeasure(filteredMeasures[0].code);
-          console.log('🔍 Auto-selected measure:', filteredMeasures[0].code);
+        if (filteredMeasures.length > 0) {
+          if (!selectedMeasure || !filteredMeasures.some(measure => measure.code === selectedMeasure)) {
+            setSelectedMeasure(filteredMeasures[0].code);
+            console.log('🔍 Auto-selected measure:', filteredMeasures[0].code);
+          }
+        } else {
+          setSelectedMeasure(null);
         }
       } catch (err) {
         console.error('❌ Error fetching quality measures:', err);
@@ -297,7 +333,7 @@ export default function Benchmarks({
     }
 
     fetchQualityMeasures();
-  }, [providerTypeFilter, provider, nearbyDhcCcns, currentPublishDate]);
+  }, [providerTypeFilter, provider, nearbyDhcCcns, currentPublishDate, showMyKpisOnly, myKpiCodes, selectedMeasure]);
 
   // Handle chart export
   const handleChartExport = async (format) => {
@@ -461,7 +497,9 @@ export default function Benchmarks({
                 <div className={styles.errorMessage}>Error: {measuresError}</div>
               ) : availableMeasures.length === 0 ? (
                 <div className={styles.noDataMessage}>
-                  {providerTypeFilter ? 'No measures available for this setting' : 'Select a measure setting to view available measures'}
+                  {showMyKpisOnly
+                    ? 'None of your tagged KPIs are available for this setting yet. Toggle off "Show My KPIs" to browse all measures.'
+                    : providerTypeFilter ? 'No measures available for this setting' : 'Select a measure setting to view available measures'}
                 </div>
               ) : filteredMeasures.length === 0 ? (
                 <div className={styles.noDataMessage}>

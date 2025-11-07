@@ -34,6 +34,9 @@ export default function StandaloneStoryteller() {
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const [myKpiCodes, setMyKpiCodes] = useState([]);
+  const [kpiTagsLoading, setKpiTagsLoading] = useState(false);
+  const [showMyKpisOnly, setShowMyKpisOnly] = useState(false);
 
   // Search for providers by name or NPI
   const searchProviders = async (query) => {
@@ -123,6 +126,68 @@ export default function StandaloneStoryteller() {
     fetchMarkets();
     fetchProviderTags();
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchKpiTags() {
+      try {
+        setKpiTagsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (isMounted) setMyKpiCodes([]);
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('team_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError || !profile?.team_id) {
+          if (isMounted) setMyKpiCodes([]);
+          return;
+        }
+
+        const { data: tags, error: tagsError } = await supabase
+          .from('team_kpi_tags')
+          .select('kpi_code')
+          .eq('team_id', profile.team_id);
+
+        if (tagsError) throw tagsError;
+
+        const codes = Array.from(new Set((tags || [])
+          .map(tag => (tag?.kpi_code ? String(tag.kpi_code).trim() : ''))
+          .filter(Boolean)));
+
+        if (isMounted) {
+          setMyKpiCodes(codes);
+        }
+      } catch (err) {
+        console.error('Error fetching KPI tags:', err);
+        if (isMounted) {
+          setMyKpiCodes([]);
+        }
+      } finally {
+        if (isMounted) {
+          setKpiTagsLoading(false);
+        }
+      }
+    }
+
+    fetchKpiTags();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!kpiTagsLoading && myKpiCodes.length === 0 && showMyKpisOnly) {
+      setShowMyKpisOnly(false);
+    }
+  }, [kpiTagsLoading, myKpiCodes, showMyKpisOnly]);
 
   // Handle provider selection from search
   const handleProviderSelect = async (provider) => {
@@ -525,6 +590,7 @@ export default function StandaloneStoryteller() {
     setCcnInput('');
     setSearchDropdownOpen(false);
     setManualProviderDetails({});
+    setShowMyKpisOnly(false);
   };
 
   const fetchManualProviderDetails = useCallback(async (ccnsToFetch) => {
@@ -817,6 +883,16 @@ export default function StandaloneStoryteller() {
             </Dropdown>
           )}
 
+          <button
+            type="button"
+            onClick={() => setShowMyKpisOnly(prev => !prev)}
+            className={`sectionHeaderButton ${showMyKpisOnly ? styles.activeFilterButton : ''} ${(!kpiTagsLoading && myKpiCodes.length === 0) ? styles.disabledFilterButton : ''}`}
+            disabled={(!kpiTagsLoading && myKpiCodes.length === 0)}
+            title={(!kpiTagsLoading && myKpiCodes.length === 0) ? 'Tag KPIs to enable this filter' : undefined}
+          >
+            {showMyKpisOnly ? 'Using My KPI Set' : 'Use My KPI Set'}
+          </button>
+
           {/* Clear All Button */}
           {hasParameters && (
             <button type="button" onClick={handleClearAll} className="sectionHeaderButton">
@@ -847,6 +923,20 @@ export default function StandaloneStoryteller() {
               <FilterIcon size={12} />
               <span>{selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}</span>
               <span className={styles.count}>{tagDhcCcns.length} CCNs</span>
+            </div>
+          )}
+          {showMyKpisOnly && (
+            <div className={`${styles.selectedTag} ${styles.kpiFilterTag}`}>
+              <span>My KPI Set</span>
+              <span className={styles.count}>{myKpiCodes.length}</span>
+              <button
+                type="button"
+                onClick={() => setShowMyKpisOnly(false)}
+                className={styles.removeTagButton}
+                aria-label="Remove My KPI Set filter"
+              >
+                <X size={12} />
+              </button>
             </div>
           )}
           {selectedCcns.map((ccn) => (
@@ -888,6 +978,8 @@ export default function StandaloneStoryteller() {
             mainProviderCcns={storytellerFocusedCcns}
             prefetchedData={null}
             providerLabels={providerLabelMap}
+            showMyKpisOnly={showMyKpisOnly}
+            myKpiCodes={myKpiCodes}
           />
         )}
       </div>

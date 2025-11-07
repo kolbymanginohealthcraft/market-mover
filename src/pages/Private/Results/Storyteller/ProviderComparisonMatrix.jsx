@@ -258,18 +258,33 @@ const ProviderComparisonMatrix = ({
                   <td
                     className={`${styles.stickyCol} ${styles.ellipsisCell}`}
                     onMouseEnter={e => {
-                      if (row.providerObj && (row.providerObj.street || row.providerObj.network)) {
+                      const name = row.label || row.providerObj?.facility_name || '';
+                      const locationParts = [
+                        row.providerObj?.street,
+                        row.providerObj?.city,
+                        row.providerObj?.state,
+                        row.providerObj?.zip,
+                      ].filter(Boolean);
+                      const locationLine = locationParts.length > 0 ? locationParts.join(', ') : '';
+                      const networkLine = row.providerObj?.network ? `Network: ${row.providerObj.network}` : '';
+                      const tooltipLines = [name, locationLine, networkLine].filter(Boolean).join('\n');
+                      if (tooltipLines) {
                         setTooltip({
                           show: true,
-                          text: `${row.providerObj.street ? row.providerObj.street + ', ' : ''}${row.providerObj.city ? row.providerObj.city + ', ' : ''}${row.providerObj.state ? row.providerObj.state + ' ' : ''}${row.providerObj.zip ? row.providerObj.zip : ''}\n${row.providerObj.network ? 'Network: ' + row.providerObj.network : ''}`,
+                          text: tooltipLines,
                           x: e.clientX,
                           y: e.clientY + 12,
                         });
                       }
                     }}
+                    onMouseMove={e => {
+                      if (tooltip.show) {
+                        setTooltip(prev => ({ ...prev, x: e.clientX, y: e.clientY + 12 }));
+                      }
+                    }}
                     onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                   >
-                    <span className={styles.ellipsis}>{row.label}</span>
+                    <span className={styles.ellipsis} title={row.label}>{row.label}</span>
                   </td>
                   <td className={styles.averagePercentile}>
                     {(() => {
