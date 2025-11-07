@@ -122,12 +122,45 @@
 
 .identifierItem {
   background: white;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem;
   border-radius: 6px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
-  color: #1f2937;
   border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.identifierItemHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.identifierName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.identifierBadge {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+  border-radius: 999px;
+}
+
+.identifierCode {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8125rem;
+  color: #1f2937;
+  letter-spacing: 0.02em;
+}
+
+.identifierMeta {
+  font-size: 0.75rem;
+  color: #6b7280;
 }
 
 .identifierLoading {

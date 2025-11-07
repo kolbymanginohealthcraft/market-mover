@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import Spinner from "../../../../components/Buttons/Spinner";
 import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
@@ -12,8 +14,11 @@ export default function Scorecard({
   setProviderTypeFilter,
   selectedPublishDate,
   setSelectedPublishDate,
-  availableProviderTypes
+  availableProviderTypes,
+  providerLabels = {},
+  forcedLoading = false
 }) {
+  const [isHydrating, setIsHydrating] = useState(true);
   // Always use the hook to ensure we get all providers, but use prefetched data if available
   const {
     matrixLoading,
@@ -33,11 +38,22 @@ export default function Scorecard({
     nearbyDhcCcns, 
     selectedPublishDate,
     prefetchedData?.qualityMeasuresDates,
-    providerTypeFilter
+    providerTypeFilter,
+    providerLabels
   );
 
   // Always use the hook data to ensure we get all providers
-  const finalLoading = matrixLoading;
+  useEffect(() => {
+    setIsHydrating(true);
+  }, [provider?.dhc, nearbyDhcCcns, selectedPublishDate, providerTypeFilter]);
+
+  useEffect(() => {
+    if (!matrixLoading && (matrixError || matrixMeasures.length > 0)) {
+      setIsHydrating(false);
+    }
+  }, [matrixLoading, matrixError, matrixMeasures.length]);
+
+  const finalLoading = matrixLoading || forcedLoading || isHydrating;
   const finalMeasures = matrixMeasures;
   const finalData = matrixData;
   const finalMarketAverages = matrixMarketAverages;
@@ -122,23 +138,55 @@ export default function Scorecard({
   // Filter providers to only show those that have data for at least one of the selected measures
   const filteredProviders = finalAllProviders.filter(currentProvider => {
     const providerData = finalData[currentProvider.dhc] || {};
-    // Check if provider has data for at least one of the filtered measures
-    return finalFilteredMeasures.some(measure => providerData[measure.code]);
+    const hasData = finalFilteredMeasures.some(measure => providerData[measure.code]);
+
+    if (hasData) {
+      return true;
+    }
+
+    if (currentProvider?.shouldDisplay) {
+      return true;
+    }
+
+    return false;
   });
 
-  // Main provider for the scorecard (only if they have data for selected measures)
-  const mainProviderInMatrix = filteredProviders.find(p => p.dhc === provider?.dhc);
+  const resolveProviderLabel = (entity) => {
+    if (!entity) return entity;
+    const dhcKey = entity.dhc ? String(entity.dhc) : null;
+    const manualKey = entity.manualCcn ? `ccn:${entity.manualCcn}` : null;
+    const mappedName = (dhcKey && providerLabels[dhcKey]) || (manualKey && providerLabels[manualKey]);
+    const fallbackName = entity.name || entity.facility_name || entity.providerObj?.name || entity.providerObj?.facility_name || (entity.manualCcn ? `CCN ${entity.manualCcn}` : null) || (entity.city && entity.state ? `${entity.city}, ${entity.state}` : null);
+    if (!mappedName && fallbackName === entity.name) {
+      return entity;
+    }
+    return {
+      ...entity,
+      name: mappedName || fallbackName || entity.name,
+      facility_name: entity.facility_name || mappedName || fallbackName || entity.facility_name
+    };
+  };
+
+  const mainProviderInMatrix = resolveProviderLabel(
+    filteredProviders.find(p => p.dhc === provider?.dhc && !p.shouldDisplay) || (provider && provider.dhc ? {
+      dhc: provider.dhc,
+      name: provider.name,
+      facility_name: provider.facility_name,
+      manualCcn: provider.manualCcn,
+      city: provider.city,
+      state: provider.state,
+      providerObj: provider
+    } : null)
+  );
+
+  const competitorProviders = filteredProviders
+    .filter(p => p.dhc !== provider?.dhc)
+    .map(resolveProviderLabel);
 
   if (finalLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <div className={styles.loadingTitle}>
-          Loading Quality Measure Data...
-        </div>
-        <div className={styles.loadingSubtitle}>
-          Fetching provider comparisons, market averages, and national benchmarks
-        </div>
+        <Spinner />
       </div>
     );
   }
@@ -238,7 +286,7 @@ export default function Scorecard({
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <ProviderComparisonMatrix
           provider={mainProviderInMatrix}
-          competitors={filteredProviders.filter(p => p.dhc !== provider?.dhc)}
+          competitors={competitorProviders}
           measures={finalFilteredMeasures}
           data={finalData}
           marketAverages={finalMarketAverages}

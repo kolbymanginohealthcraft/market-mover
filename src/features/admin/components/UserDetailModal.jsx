@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { X, Mail, Shield, Building, Calendar, Activity, UserCheck } from 'lucide-react';
+import { X, UserCheck } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 import { useUser } from '../../../components/Context/UserContext';
@@ -166,8 +166,10 @@ export default function UserDetailModal({ user, isOpen, onClose }) {
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div>
-            <h2>{user.first_name} {user.last_name}</h2>
-            {user.title && <p className={styles.subtitle}>{user.title}</p>}
+            <h2>{user.first_name || user.last_name ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : user.email}</h2>
+            {(user.first_name || user.last_name) && user.email && (
+              <p className={styles.subtitle}>{user.email}</p>
+            )}
           </div>
           <button className={styles.closeButton} onClick={onClose}>
             <X size={20} />
@@ -181,58 +183,6 @@ export default function UserDetailModal({ user, isOpen, onClose }) {
           </div>
         ) : (
           <div className={styles.content}>
-            <div className={styles.section}>
-              <h3>Basic Information</h3>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <Mail size={16} className={styles.icon} />
-                  <div>
-                    <label>Email</label>
-                    <div>{user.email}</div>
-                  </div>
-                </div>
-                <div className={styles.infoItem}>
-                  <Shield size={16} className={styles.icon} />
-                  <div>
-                    <label>Role</label>
-                    <div>{user.role || 'No Role'}</div>
-                  </div>
-                </div>
-                <div className={styles.infoItem}>
-                  <Building size={16} className={styles.icon} />
-                  <div>
-                    <label>Team</label>
-                    <div>{user.teams?.name || 'No Team'}</div>
-                  </div>
-                </div>
-                <div className={styles.infoItem}>
-                  <Calendar size={16} className={styles.icon} />
-                  <div>
-                    <label>Last Login</label>
-                    <div>{formatDate(userDetails?.authData?.lastSignIn)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.section}>
-              <h3>Activity Summary</h3>
-              <div className={styles.statsGrid}>
-                <div className={styles.statCard}>
-                  <div className={styles.statValue}>{userDetails?.activityCount || 0}</div>
-                  <div className={styles.statLabel}>Total Activities</div>
-                </div>
-                <div className={styles.statCard}>
-                  <div className={styles.statValue}>
-                    {userDetails?.activityCount > 10 ? 'Very Active' :
-                     userDetails?.activityCount > 5 ? 'Active' :
-                     userDetails?.activityCount > 0 ? 'Some Activity' : 'No Activity'}
-                  </div>
-                  <div className={styles.statLabel}>Status</div>
-                </div>
-              </div>
-            </div>
-
             {loginHistory && (
               <div className={styles.section}>
                 <h3>Account Information</h3>

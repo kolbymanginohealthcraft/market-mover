@@ -334,14 +334,6 @@ router.post("/qm_combined", async (req, res) => {
   try {
     const { ccns, publish_date, measures } = req.body;
     
-    // Check cache first - create a cache key based on the request parameters
-    const cacheKey = `qm_combined_${ccns?.length || 0}_${publish_date}_${measures?.join('_') || 'all'}`;
-    const cachedData = cache.get(cacheKey, {});
-    if (cachedData) {
-      console.log('📦 Serving qm_combined from cache:', cacheKey);
-      return res.status(200).json({ success: true, data: cachedData });
-    }
-    
     console.log("🔍 qm_combined request:", { 
       ccnsCount: ccns?.length, 
       publish_date,
@@ -595,9 +587,6 @@ router.post("/qm_combined", async (req, res) => {
       nationalAverages,
       availableDates
     };
-
-    // Cache the result for 5 minutes
-    cache.set(cacheKey, {}, responseData, 300);
 
     res.status(200).json({ 
       success: true, 

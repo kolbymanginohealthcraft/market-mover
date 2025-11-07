@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 import { useLocation, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
 import styles from "./Storyteller.module.css";
 
-export default function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData }) {
+function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   
@@ -102,6 +102,8 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
           chartMode={chartMode}
           setChartMode={setChartMode}
           availableProviderTypes={finalProviderTypes}
+          providerLabels={providerLabels}
+          forcedLoading={isLoading}
         />
       } />
       <Route path="benchmarks" element={
@@ -117,9 +119,12 @@ export default function Storyteller({ provider, radiusInMiles, nearbyProviders, 
           selectedPublishDate={selectedPublishDate}
           setSelectedPublishDate={setSelectedPublishDate}
           availableProviderTypes={finalProviderTypes}
+          providerLabels={providerLabels}
         />
       } />
       <Route path="*" element={<Navigate to={`scorecard${location.search}`} replace />} />
     </Routes>
   );
 }
+
+export default memo(Storyteller);

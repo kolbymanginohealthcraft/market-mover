@@ -12,62 +12,24 @@
   border-bottom: 1px solid var(--gray-200);
   padding: 12px 20px;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 30;
+}
+
+.controlsPrimary {
+  display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  position: relative;
-  z-index: 10;
 }
 
 /* Search Container */
 .searchContainer {
   position: relative;
-  min-width: 250px;
-}
-
-.searchWrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 12px;
-  color: #999;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.searchInput {
-  width: 100%;
-  padding: 8px 12px 8px 36px;
-  border: 1px solid var(--gray-200);
-  border-radius: 6px;
-  font-size: 13px;
-  background: white;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: var(--primary-teal);
-}
-
-.clearButton {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #999;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  z-index: 1;
-}
-
-.clearButton:hover {
-  color: #333;
+  min-width: 300px;
+  flex: 0 0 auto;
 }
 
 .searchDropdown {
@@ -88,32 +50,38 @@
 /* CCN Input */
 .ccnInputContainer {
   display: flex;
+  align-items: center;
   gap: 8px;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .ccnInput {
   flex: 1;
-  padding: 8px 12px;
+  height: 28px;
+  padding: 6px 12px;
   border: 1px solid var(--gray-200);
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 13px;
+  background: white;
+  transition: border-color 0.2s ease;
 }
 
 .ccnInput:focus {
   outline: none;
   border-color: var(--primary-teal);
+  box-shadow: 0 0 0 2px rgba(0, 192, 139, 0.1);
 }
 
 .addButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
+  height: 28px;
+  padding: 0 12px;
   background: var(--primary-teal);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
   transition: background 0.2s;
@@ -121,27 +89,6 @@
 
 .addButton:hover {
   background: var(--primary-teal-dark);
-}
-
-/* Filter Buttons */
-.filterButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid var(--gray-200);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--gray-700);
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.filterButton:hover {
-  background: var(--gray-50);
-  border-color: var(--gray-300);
 }
 
 /* Dropdown Styles */
@@ -190,31 +137,11 @@
   margin-top: 2px;
 }
 
-/* Clear All Button */
-.clearAllButton {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--gray-100);
-  border: 1px solid var(--gray-200);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--gray-700);
-  transition: all 0.2s;
-}
-
-.clearAllButton:hover {
-  background: var(--gray-200);
-}
-
 /* Selected Items Display */
 .selectedItems {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  flex: 1;
   align-items: center;
 }
 
@@ -285,4 +212,15 @@
   font-size: 16px;
   margin: 0;
   color: var(--gray-600);
+}
+
+.loadingState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--gray-600);
+  font-size: 14px;
 }

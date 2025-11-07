@@ -17,7 +17,8 @@ export default function Benchmarks({
   setProviderTypeFilter,
   selectedPublishDate,
   setSelectedPublishDate,
-  availableProviderTypes
+  availableProviderTypes,
+  providerLabels = {}
 }) {
   // Use the same quality measures hook to get consistent date handling
   const {
@@ -29,7 +30,8 @@ export default function Benchmarks({
     nearbyDhcCcns, 
     selectedPublishDate,
     prefetchedData?.qualityMeasuresDates,
-    providerTypeFilter
+    providerTypeFilter,
+    providerLabels
   );
 
   const [availableMeasures, setAvailableMeasures] = useState([]);

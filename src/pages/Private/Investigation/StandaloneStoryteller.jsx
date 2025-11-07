@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { Search, X, Plus, Building2, MapPin, Filter as FilterIcon, ChevronDown } from "lucide-react";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
 import Dropdown from '../../../components/Buttons/Dropdown';
+import Spinner from '../../../components/Buttons/Spinner';
 import Storyteller from '../Results/Storyteller/Storyteller';
 import styles from './StandaloneStoryteller.module.css';
 
@@ -19,7 +20,9 @@ export default function StandaloneStoryteller() {
   const [radiusInMiles, setRadiusInMiles] = useState(10);
   const [nearbyProviders, setNearbyProviders] = useState([]);
   const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]);
-  const [mainProviderCcns, setMainProviderCcns] = useState([]);
+  const [focusedProviderCcns, setFocusedProviderCcns] = useState([]);
+  const [manualProviderDetails, setManualProviderDetails] = useState({});
+  const [providerLabelMap, setProviderLabelMap] = useState({});
 
   // Saved markets and network tags
   const [savedMarkets, setSavedMarkets] = useState([]);
@@ -123,7 +126,23 @@ export default function StandaloneStoryteller() {
 
   // Handle provider selection from search
   const handleProviderSelect = async (provider) => {
-    setSelectedProvider(provider);
+    const providerKey = provider?.dhc ? String(provider.dhc) : null;
+    const providerDisplayName = provider?.name || provider?.facility_name || (providerKey ? providerLabelMap[providerKey] : '') || (provider?.city && provider?.state ? `${provider.city}, ${provider.state}` : 'Selected Provider');
+
+    const normalizedProvider = {
+      ...provider,
+      name: providerDisplayName,
+      facility_name: provider?.facility_name || providerDisplayName
+    };
+
+    if (providerKey) {
+      setProviderLabelMap(prev => ({
+        ...prev,
+        [providerKey]: providerDisplayName
+      }));
+    }
+
+    setSelectedProvider(normalizedProvider);
     setProviderSearch('');
     setSearchResults([]);
     setSearchDropdownOpen(false);
@@ -147,7 +166,7 @@ export default function StandaloneStoryteller() {
           const result = await response.json();
           if (result.success) {
             const ccns = result.data.map(row => row.ccn);
-            setMainProviderCcns(ccns);
+            setFocusedProviderCcns(ccns);
           }
         }
       } catch (err) {
@@ -203,7 +222,7 @@ export default function StandaloneStoryteller() {
     
     setSelectedMarket(market);
     setSelectedProvider(null); // Clear provider selection
-    setMainProviderCcns([]);
+    setFocusedProviderCcns([]);
     setNearbyProviders([]);
     setNearbyDhcCcns([]);
     setSelectedTag(null); // Clear tag selection
@@ -259,7 +278,7 @@ export default function StandaloneStoryteller() {
     
     setSelectedTag(tagType);
     setSelectedProvider(null); // Clear provider selection
-    setMainProviderCcns([]);
+    setFocusedProviderCcns([]);
     setNearbyProviders([]);
     setNearbyDhcCcns([]);
     setSelectedMarket(null); // Clear market selection
@@ -303,8 +322,36 @@ export default function StandaloneStoryteller() {
           if (providerResponse.ok) {
             const providerResult = await providerResponse.json();
             if (providerResult.success && providerResult.providers) {
+              const normalizedProviders = (providerResult.providers || []).map(item => {
+                const dhcKey = item?.dhc ? String(item.dhc) : null;
+                const label = item?.name || item?.facility_name || (dhcKey ? providerLabelMap[dhcKey] : null) || `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} Network`;
+                return {
+                  ...item,
+                  name: label,
+                  facility_name: item?.facility_name || label,
+                  context: 'tag',
+                  tagType: tagType,
+                  tagLabel: label,
+                  shouldDisplay: true
+                };
+              });
+
+              const labelUpdates = {};
+              normalizedProviders.forEach(item => {
+                if (item?.dhc) {
+                  labelUpdates[String(item.dhc)] = item.name;
+                }
+              });
+
+              if (Object.keys(labelUpdates).length > 0) {
+                setProviderLabelMap(prev => ({
+                  ...prev,
+                  ...labelUpdates
+                }));
+              }
+
               // Store providers so they show up individually in the matrix
-              setNearbyProviders(providerResult.providers || []);
+              setNearbyProviders(normalizedProviders);
             }
           }
         } catch (err) {
@@ -341,6 +388,10 @@ export default function StandaloneStoryteller() {
   const handleCcnAdd = () => {
     const ccn = ccnInput.trim();
     if (ccn && !selectedCcns.includes(ccn)) {
+      setProviderLabelMap(prev => ({
+        ...prev,
+        [`ccn:${String(ccn)}`]: prev[`ccn:${String(ccn)}`] || `CCN ${ccn}`
+      }));
       setSelectedCcns([...selectedCcns, ccn]);
       setCcnInput('');
     }
@@ -348,6 +399,12 @@ export default function StandaloneStoryteller() {
 
   const handleCcnRemove = (ccn) => {
     setSelectedCcns(selectedCcns.filter(c => c !== ccn));
+    setManualProviderDetails(prev => {
+      if (!prev[ccn]) return prev;
+      const next = { ...prev };
+      delete next[ccn];
+      return next;
+    });
   };
 
   const handleCcnKeyPress = (e) => {
@@ -357,29 +414,100 @@ export default function StandaloneStoryteller() {
     }
   };
 
-  // Convert manually entered CCNs to {dhc, ccn} format
-  // Group all manually entered CCNs under a single 'ccn-only' DHC
-  const manualDhcCcns = selectedCcns.map(ccn => ({
-    dhc: 'ccn-only', // Single placeholder DHC for all manually entered CCNs
-    ccn: String(ccn)
-  }));
+  const manualDhcCcns = useMemo(() => (
+    selectedCcns.map(ccn => ({
+      dhc: `ccn:${String(ccn)}`,
+      ccn: String(ccn)
+    }))
+  ), [selectedCcns]);
 
-  // Combine all CCN sources
-  const allDhcCcns = [...nearbyDhcCcns, ...marketDhcCcns, ...tagDhcCcns, ...manualDhcCcns];
-  const allCcns = [...new Set([...selectedCcns, ...mainProviderCcns, ...allDhcCcns.map(c => c.ccn)])];
-  
-  // Check if we have any parameters set
-  const hasParameters = selectedProvider || selectedMarket || selectedTag || selectedCcns.length > 0;
-  
-  // Create a minimal provider object when only CCNs are provided (no actual provider)
-  // This is needed for markets, tags, or manually entered CCNs
-  // Always create it if we have parameters set, even if CCNs are still loading
-  const storyTellerProvider = selectedProvider || (hasParameters ? {
-    dhc: 'ccn-only',
-    name: selectedMarket ? selectedMarket.name : (selectedTag ? `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} Network` : 'CCN Selection'),
-    latitude: null,
-    longitude: null
-  } : null);
+  const manualProviders = useMemo(() => (
+    selectedCcns.map(ccn => {
+      const detail = manualProviderDetails[ccn];
+      const mapKey = `ccn:${String(ccn)}`;
+      const mappedName = providerLabelMap[mapKey];
+      const displayName = detail?.FAC_NAME || detail?.name || mappedName || `CCN ${ccn}`;
+      return {
+        dhc: `ccn:${String(ccn)}`,
+        name: displayName,
+        facilityName: detail?.FAC_NAME,
+        ccn: String(ccn),
+        manualCcn: String(ccn),
+        latitude: null,
+        longitude: null,
+      };
+    })
+  ), [selectedCcns, manualProviderDetails, providerLabelMap]);
+
+  const combinedNearbyProviders = useMemo(() => {
+    const baseProviders = Array.isArray(nearbyProviders) ? nearbyProviders : [];
+    const uniqueByDhc = new Map();
+
+    baseProviders.forEach(provider => {
+      if (provider?.dhc) {
+        const dhcKey = String(provider.dhc);
+        const mappedName = providerLabelMap[dhcKey];
+        uniqueByDhc.set(dhcKey, {
+          ...provider,
+          name: mappedName || provider.name || provider.facility_name || providerLabelMap[dhcKey] || provider.name,
+          facility_name: provider.facility_name || mappedName || provider.name
+        });
+      }
+    });
+
+    manualProviders.forEach(provider => {
+      const dhcKey = String(provider.dhc);
+      if (!uniqueByDhc.has(dhcKey)) {
+        uniqueByDhc.set(dhcKey, provider);
+      }
+    });
+
+    return Array.from(uniqueByDhc.values());
+  }, [nearbyProviders, manualProviders, providerLabelMap]);
+
+  const allDhcCcns = useMemo(() => (
+    [...nearbyDhcCcns, ...marketDhcCcns, ...tagDhcCcns, ...manualDhcCcns]
+  ), [nearbyDhcCcns, marketDhcCcns, tagDhcCcns, manualDhcCcns]);
+
+  const storytellerFocusedCcns = useMemo(() => (
+    [...new Set([
+      ...focusedProviderCcns.map(ccn => String(ccn)),
+      ...allDhcCcns.map(c => String(c.ccn))
+    ])]
+  ), [focusedProviderCcns, allDhcCcns]);
+
+  const hasParameters = useMemo(() => {
+    const tagHasProviders = Boolean(
+      selectedTag && (
+        (tagDhcCcns && tagDhcCcns.length > 0) ||
+        (nearbyProviders && nearbyProviders.length > 0)
+      )
+    );
+    return Boolean(
+      selectedProvider ||
+      selectedMarket ||
+      tagHasProviders ||
+      (selectedCcns && selectedCcns.length > 0)
+    );
+  }, [selectedProvider, selectedMarket, selectedTag, selectedCcns.length, tagDhcCcns, nearbyProviders]);
+
+  const storyTellerProvider = useMemo(() => {
+    if (selectedProvider) {
+      const dhcKey = selectedProvider?.dhc ? String(selectedProvider.dhc) : null;
+      const mappedName = dhcKey ? providerLabelMap[dhcKey] : null;
+      const fallbackName = selectedProvider?.name || selectedProvider?.facility_name || (selectedProvider?.manualCcn ? providerLabelMap[`ccn:${selectedProvider.manualCcn}`] : null) || (selectedProvider?.city && selectedProvider?.state ? `${selectedProvider.city}, ${selectedProvider.state}` : null) || 'Selected Provider';
+      const finalName = mappedName || fallbackName;
+      return {
+        ...selectedProvider,
+        name: finalName,
+        facility_name: selectedProvider?.facility_name || finalName
+      };
+    }
+    if (manualProviders.length > 0) {
+      return manualProviders[0];
+    }
+    return null;
+  }, [selectedProvider, manualProviders, providerLabelMap]);
 
   // Clear all selections
   const handleClearAll = () => {
@@ -387,7 +515,7 @@ export default function StandaloneStoryteller() {
     setSelectedCcns([]);
     setNearbyProviders([]);
     setNearbyDhcCcns([]);
-    setMainProviderCcns([]);
+    setFocusedProviderCcns([]);
     setSelectedMarket(null);
     setMarketDhcCcns([]);
     setSelectedTag(null);
@@ -396,7 +524,86 @@ export default function StandaloneStoryteller() {
     setSearchResults([]);
     setCcnInput('');
     setSearchDropdownOpen(false);
+    setManualProviderDetails({});
   };
+
+  const fetchManualProviderDetails = useCallback(async (ccnsToFetch) => {
+    const normalized = (ccnsToFetch || [])
+      .map(ccn => String(ccn).trim())
+      .filter(Boolean);
+    if (normalized.length === 0) return;
+
+    const uniqueCcns = Array.from(new Set(normalized));
+
+    try {
+      const response = await fetch(apiUrl('/api/provider-of-services'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filters: { PRVDR_NUM: uniqueCcns },
+          limit: uniqueCcns.length
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch provider details for CCNs:', uniqueCcns, response.statusText);
+        return null;
+      }
+
+      const result = await response.json();
+      if (!result.success || !Array.isArray(result.data)) {
+        console.warn('No provider-of-services data for CCNs:', uniqueCcns);
+        return null;
+      }
+
+      const detailsMap = {};
+      result.data.forEach(item => {
+        const ccn = item?.PRVDR_NUM ? String(item.PRVDR_NUM) : null;
+        if (!ccn) return;
+        detailsMap[ccn] = {
+          ...item,
+          name: item?.FAC_NAME || `CCN ${ccn}`
+        };
+      });
+
+      return detailsMap;
+    } catch (error) {
+      console.error('Error loading provider-of-services details for CCNs:', error);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const missingCcns = selectedCcns.filter(ccn => !manualProviderDetails[ccn]);
+    if (missingCcns.length === 0) return;
+
+    let isMounted = true;
+
+    (async () => {
+      const details = await fetchManualProviderDetails(missingCcns);
+      if (!isMounted || !details || Object.keys(details).length === 0) return;
+      setManualProviderDetails(prev => ({
+        ...prev,
+        ...details
+      }));
+      setProviderLabelMap(prev => {
+        const updates = {};
+        Object.entries(details).forEach(([ccnValue, info]) => {
+          const label = info?.FAC_NAME || info?.name || `CCN ${ccnValue}`;
+          updates[`ccn:${ccnValue}`] = label;
+        });
+        if (Object.keys(updates).length === 0) return prev;
+        return {
+          ...prev,
+          ...updates
+        };
+      });
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCcns, manualProviderDetails, fetchManualProviderDetails]);
 
   // Close search dropdown when clicking outside
   useEffect(() => {
@@ -413,202 +620,211 @@ export default function StandaloneStoryteller() {
     <div className={styles.container}>
       {/* Filter Controls Bar */}
       <div className={styles.controlsBar}>
-        {/* Provider Search */}
-        <div className={styles.searchContainer} ref={searchContainerRef}>
-          <div className={styles.searchWrapper}>
-            <Search size={14} className={styles.searchIcon} />
-            <input
-              type="text"
-              placeholder="Search providers..."
-              value={providerSearch}
-              onChange={(e) => setProviderSearch(e.target.value)}
-              onFocus={() => setSearchDropdownOpen(true)}
-              className={styles.searchInput}
-            />
-            {selectedProvider && (
-              <button
-                onClick={() => {
-                  setSelectedProvider(null);
-                  setMainProviderCcns([]);
-                  setNearbyProviders([]);
-                  setNearbyDhcCcns([]);
-                }}
-                className={styles.clearButton}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          {searchDropdownOpen && (providerSearch || searchResults.length > 0) && (
-            <div className={styles.searchDropdown}>
-              {searchLoading ? (
-                <div className={styles.dropdownItem}>Loading...</div>
-              ) : searchResults.length === 0 && providerSearch.length >= 2 ? (
-                <div className={styles.dropdownItem}>No providers found</div>
-              ) : (
-                searchResults.map((provider) => (
-                  <button
-                    key={provider.dhc}
-                    className={styles.dropdownItem}
-                    onClick={() => handleProviderSelect(provider)}
-                  >
-                    <Building2 size={14} />
-                    <div>
-                      <div>{provider.name || provider.facility_name}</div>
-                      {provider.city && provider.state && (
-                        <div className={styles.providerLocation}>
-                          {provider.city}, {provider.state}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))
+        <div className={styles.controlsPrimary}>
+          {/* Provider Search */}
+          <div className={styles.searchContainer} ref={searchContainerRef}>
+            <div className="searchBarContainer">
+              <div className="searchIcon">
+                <Search />
+              </div>
+              <input
+                type="text"
+                placeholder="Search providers..."
+                value={providerSearch}
+                onChange={(e) => setProviderSearch(e.target.value)}
+                onFocus={() => setSearchDropdownOpen(true)}
+                className="searchInput"
+                style={{ paddingRight: (selectedProvider || providerSearch) ? '60px' : undefined }}
+              />
+              {(selectedProvider || providerSearch) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProvider(null);
+                    setFocusedProviderCcns([]);
+                    setNearbyProviders([]);
+                    setNearbyDhcCcns([]);
+                    setProviderSearch('');
+                    setSearchResults([]);
+                    setSearchDropdownOpen(false);
+                  }}
+                  className="clearButton"
+                >
+                  <X size={12} />
+                </button>
               )}
             </div>
+            {searchDropdownOpen && (providerSearch || searchResults.length > 0) && (
+              <div className={styles.searchDropdown}>
+                {searchLoading ? (
+                  <div className={styles.dropdownItem}>Loading...</div>
+                ) : searchResults.length === 0 && providerSearch.length >= 2 ? (
+                  <div className={styles.dropdownItem}>No providers found</div>
+                ) : (
+                  searchResults.map((provider) => (
+                    <button
+                      key={provider.dhc}
+                      className={styles.dropdownItem}
+                      onClick={() => handleProviderSelect(provider)}
+                    >
+                      <Building2 size={14} />
+                      <div>
+                        <div>{provider.name || provider.facility_name}</div>
+                        {provider.city && provider.state && (
+                          <div className={styles.providerLocation}>
+                            {provider.city}, {provider.state}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* CCN Input */}
+          <div className={styles.ccnInputContainer}>
+            <input
+              type="text"
+              placeholder="Enter CCN..."
+              value={ccnInput}
+              onChange={(e) => setCcnInput(e.target.value)}
+              onKeyPress={handleCcnKeyPress}
+              className={styles.ccnInput}
+            />
+            <button type="button" onClick={handleCcnAdd} className={styles.addButton}>
+              <Plus size={14} />
+            </button>
+          </div>
+
+          {/* Network Tags */}
+          {providerTags && (
+            <Dropdown
+              trigger={
+                <button type="button" className="sectionHeaderButton">
+                  <FilterIcon />
+                  {selectedTag ? 
+                    `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} (${tagDhcCcns.length})` : 
+                    'Network Tag'}
+                  <ChevronDown />
+                </button>
+              }
+              isOpen={tagDropdownOpen}
+              onToggle={setTagDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              <button 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('');
+                  setTagDropdownOpen(false);
+                }}
+              >
+                All Providers
+              </button>
+              {providerTags.me?.length > 0 && (
+                <button 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleTagSelect('me');
+                    setTagDropdownOpen(false);
+                  }}
+                >
+                  My Providers ({providerTags.me.length})
+                </button>
+              )}
+              {providerTags.partner?.length > 0 && (
+                <button 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleTagSelect('partner');
+                    setTagDropdownOpen(false);
+                  }}
+                >
+                  Partners ({providerTags.partner.length})
+                </button>
+              )}
+              {providerTags.competitor?.length > 0 && (
+                <button 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleTagSelect('competitor');
+                    setTagDropdownOpen(false);
+                  }}
+                >
+                  Competitors ({providerTags.competitor.length})
+                </button>
+              )}
+              {providerTags.target?.length > 0 && (
+                <button 
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleTagSelect('target');
+                    setTagDropdownOpen(false);
+                  }}
+                >
+                  Targets ({providerTags.target.length})
+                </button>
+              )}
+            </Dropdown>
           )}
-        </div>
 
-        {/* CCN Input */}
-        <div className={styles.ccnInputContainer}>
-          <input
-            type="text"
-            placeholder="Enter CCN..."
-            value={ccnInput}
-            onChange={(e) => setCcnInput(e.target.value)}
-            onKeyPress={handleCcnKeyPress}
-            className={styles.ccnInput}
-          />
-          <button onClick={handleCcnAdd} className={styles.addButton}>
-            <Plus size={14} />
-          </button>
-        </div>
-
-        {/* Network Tags */}
-        {providerTags && (
-          <Dropdown
-            trigger={
-              <button className={styles.filterButton}>
-                <FilterIcon size={14} />
-                {selectedTag ? 
-                  `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} (${tagDhcCcns.length})` : 
-                  'Network Tag'}
-                <ChevronDown size={14} />
-              </button>
-            }
-            isOpen={tagDropdownOpen}
-            onToggle={setTagDropdownOpen}
-            className={styles.dropdownMenu}
-          >
-            <button 
-              className={styles.dropdownItem}
-              onClick={() => {
-                handleTagSelect('');
-                setTagDropdownOpen(false);
-              }}
+          {/* Saved Markets */}
+          {savedMarkets.length > 0 && (
+            <Dropdown
+              trigger={
+                <button type="button" className="sectionHeaderButton">
+                  <MapPin />
+                  {selectedMarket ? 
+                    `${selectedMarket.name} (${marketDhcCcns.length})` : 
+                    'Saved Market'}
+                  <ChevronDown />
+                </button>
+              }
+              isOpen={marketDropdownOpen}
+              onToggle={setMarketDropdownOpen}
+              className={styles.dropdownMenu}
             >
-              All Providers
-            </button>
-            {providerTags.me?.length > 0 && (
               <button 
                 className={styles.dropdownItem}
                 onClick={() => {
-                  handleTagSelect('me');
-                  setTagDropdownOpen(false);
-                }}
-              >
-                My Providers ({providerTags.me.length})
-              </button>
-            )}
-            {providerTags.partner?.length > 0 && (
-              <button 
-                className={styles.dropdownItem}
-                onClick={() => {
-                  handleTagSelect('partner');
-                  setTagDropdownOpen(false);
-                }}
-              >
-                Partners ({providerTags.partner.length})
-              </button>
-            )}
-            {providerTags.competitor?.length > 0 && (
-              <button 
-                className={styles.dropdownItem}
-                onClick={() => {
-                  handleTagSelect('competitor');
-                  setTagDropdownOpen(false);
-                }}
-              >
-                Competitors ({providerTags.competitor.length})
-              </button>
-            )}
-            {providerTags.target?.length > 0 && (
-              <button 
-                className={styles.dropdownItem}
-                onClick={() => {
-                  handleTagSelect('target');
-                  setTagDropdownOpen(false);
-                }}
-              >
-                Targets ({providerTags.target.length})
-              </button>
-            )}
-          </Dropdown>
-        )}
-
-        {/* Saved Markets */}
-        {savedMarkets.length > 0 && (
-          <Dropdown
-            trigger={
-              <button className={styles.filterButton}>
-                <MapPin size={14} />
-                {selectedMarket ? 
-                  `${selectedMarket.name} (${marketDhcCcns.length})` : 
-                  'Saved Market'}
-                <ChevronDown size={14} />
-              </button>
-            }
-            isOpen={marketDropdownOpen}
-            onToggle={setMarketDropdownOpen}
-            className={styles.dropdownMenu}
-          >
-            <button 
-              className={styles.dropdownItem}
-              onClick={() => {
-                handleMarketSelect('');
-                setMarketDropdownOpen(false);
-              }}
-            >
-              No Market
-            </button>
-            {savedMarkets.map(market => (
-              <button 
-                key={market.id}
-                className={styles.dropdownItem}
-                onClick={() => {
-                  handleMarketSelect(market.id);
+                  handleMarketSelect('');
                   setMarketDropdownOpen(false);
                 }}
-                style={{
-                  fontWeight: selectedMarket?.id === market.id ? '600' : '500',
-                  background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
-                }}
               >
-                <div>{market.name}</div>
-                <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
-                  {market.city}, {market.state} • {market.radius_miles} mi
-                </div>
+                No Market
               </button>
-            ))}
-          </Dropdown>
-        )}
+              {savedMarkets.map(market => (
+                <button 
+                  key={market.id}
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleMarketSelect(market.id);
+                    setMarketDropdownOpen(false);
+                  }}
+                  style={{
+                    fontWeight: selectedMarket?.id === market.id ? '600' : '500',
+                    background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                  }}
+                >
+                  <div>{market.name}</div>
+                  <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                    {market.city}, {market.state} • {market.radius_miles} mi
+                  </div>
+                </button>
+              ))}
+            </Dropdown>
+          )}
 
-        {/* Clear All Button */}
-        {hasParameters && (
-          <button onClick={handleClearAll} className={styles.clearAllButton}>
-            <X size={14} />
-            Clear All
-          </button>
-        )}
+          {/* Clear All Button */}
+          {hasParameters && (
+            <button type="button" onClick={handleClearAll} className="sectionHeaderButton">
+              <X />
+              Clear All
+            </button>
+          )}
+        </div>
 
         {/* Selected Items Display */}
         <div className={styles.selectedItems}>
@@ -616,7 +832,7 @@ export default function StandaloneStoryteller() {
             <div className={styles.selectedTag}>
               <Building2 size={12} />
               <span>{selectedProvider.name || selectedProvider.facility_name}</span>
-              <span className={styles.count}>{mainProviderCcns.length} CCNs</span>
+              <span className={styles.count}>{focusedProviderCcns.length} CCNs</span>
             </div>
           )}
           {selectedMarket && (
@@ -635,8 +851,12 @@ export default function StandaloneStoryteller() {
           )}
           {selectedCcns.map((ccn) => (
             <div key={ccn} className={styles.selectedTag}>
-              <span>CCN: {ccn}</span>
+              <span>
+                {manualProviderDetails[ccn]?.FAC_NAME || `CCN ${ccn}`}
+                {manualProviderDetails[ccn]?.FAC_NAME ? ` • CCN ${ccn}` : ''}
+              </span>
               <button
+                type="button"
                 onClick={() => handleCcnRemove(ccn)}
                 className={styles.removeTagButton}
               >
@@ -649,7 +869,12 @@ export default function StandaloneStoryteller() {
 
       {/* Content Area */}
       <div className={styles.content}>
-        {!hasParameters ? (
+        {selectedTag && tagDhcCcns.length > 0 && combinedNearbyProviders.length === 0 ? (
+          <div className={styles.loadingState}>
+            <Spinner />
+            <p>Loading network results…</p>
+          </div>
+        ) : !hasParameters ? (
           <div className={styles.emptyState}>
             <h2>Select Parameters to View Quality Measures</h2>
             <p>Use the filters above to select providers, markets, network tags, or enter CCNs directly.</p>
@@ -658,10 +883,11 @@ export default function StandaloneStoryteller() {
           <Storyteller
             provider={storyTellerProvider}
             radiusInMiles={radiusInMiles}
-            nearbyProviders={nearbyProviders}
+            nearbyProviders={combinedNearbyProviders}
             nearbyDhcCcns={allDhcCcns}
-            mainProviderCcns={[...new Set([...mainProviderCcns, ...allDhcCcns.map(c => c.ccn)])]}
+            mainProviderCcns={storytellerFocusedCcns}
             prefetchedData={null}
+            providerLabels={providerLabelMap}
           />
         )}
       </div>

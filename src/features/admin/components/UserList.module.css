@@ -92,6 +92,21 @@
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
+  min-height: 0;
+}
+
+.sidebarStats {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.sidebarMetricRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700, #374151);
 }
 
 .sidebarHeader {
@@ -217,6 +232,48 @@
   gap: 4px;
 }
 
+.filterOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-700, #374151);
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.filterOption:hover {
+  color: #3599b8;
+  background: var(--gray-50, #f9fafb);
+}
+
+.filterOptionActive {
+  color: #3599b8;
+  font-weight: 600;
+  background: var(--gray-50, #f9fafb);
+}
+
+.filterOptionLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.filterOptionCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500, #6b7280);
+  margin-left: 12px;
+}
+
+.filterOptionActive .filterOptionCount {
+  color: #3599b8;
+}
+
 .filterCheckbox {
   display: flex;
   align-items: center;
@@ -242,6 +299,17 @@
   background: var(--gray-50, #f9fafb);
   overflow-y: auto;
   overflow-x: hidden;
+  min-height: 0;
+}
+
+.filterFooter {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--gray-100, #f3f4f6);
+  margin-top: auto;
+}
+
+.filterFooter :global(button) {
+  width: 100%;
 }
 
 .overviewTab {
@@ -264,6 +332,12 @@
 .overviewTable {
   width: 100%;
   border-collapse: collapse;
+}
+
+.sidebarTableCount {
+  text-align: right;
+  font-weight: 600;
+  color: #265947;
 }
 
 .overviewTable th {
@@ -307,6 +381,38 @@
   width: 100%;
 }
 
+.tableControls {
+  margin-bottom: 16px;
+}
+
+.tableSearchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.tableSearch {
+  flex: 1;
+  max-width: 340px;
+}
+
+.tableFilterChips {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.tableFilterChips .filterChips {
+  justify-content: flex-end;
+}
+
+.tableFilterChips .clearAllButton {
+  flex-shrink: 0;
+}
 .teamsTab {
   width: 100%;
 }
@@ -417,7 +523,7 @@
 .tableContainer {
   background: white;
   border: 1px solid var(--gray-200, #e5e7eb);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -428,19 +534,22 @@
 
 .table th {
   background: #f9fbfa;
-  padding: 12px;
+  padding: 8px 10px;
   text-align: left;
   font-weight: 600;
   color: #265947;
   border-bottom: 1px solid var(--gray-200, #e5e7eb);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
 }
 
 .table td {
-  padding: 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--gray-100, #f3f4f6);
   vertical-align: middle;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 .table tr:hover {
@@ -470,7 +579,7 @@
 .userName {
   font-weight: 600;
   color: #265947;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 .noTeam {

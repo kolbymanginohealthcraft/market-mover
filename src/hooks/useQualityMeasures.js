@@ -18,22 +18,36 @@ function getCacheKey(endpoint, params = {}) {
   return `${endpoint}:${JSON.stringify(params)}`;
 }
 
-function getCachedData(key) {
-  const cached = apiCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
+function getCachedData() {
   return null;
 }
 
-function setCachedData(key, data) {
-  apiCache.set(key, {
-    data,
-    timestamp: Date.now()
-  });
+function setCachedData() {
+  return;
 }
 
-export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate = null, qualityMeasuresDates = null, currentMeasureSetting = null) {
+function normalizeCcn(value) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return raw;
+  return digits.padStart(6, '0');
+}
+
+function getCcnVariants(value) {
+  if (value === null || value === undefined) return [];
+  const raw = String(value).trim();
+  if (!raw) return [];
+  const digits = raw.replace(/\D/g, '');
+  const padded = digits ? digits.padStart(6, '0') : raw;
+  const variants = new Set([raw]);
+  if (digits) variants.add(digits);
+  if (padded) variants.add(padded);
+  return Array.from(variants);
+}
+
+export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcCcns, selectedPublishDate = null, qualityMeasuresDates = null, currentMeasureSetting = null, providerLabels = {}) {
   const [matrixLoading, setMatrixLoading] = useState(true);
   const [matrixMeasures, setMatrixMeasures] = useState([]);
   const [matrixData, setMatrixData] = useState({});
@@ -133,7 +147,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         allProviders = allProviders.filter((p, idx, arr) => p && arr.findIndex(x => x.dhc === p.dhc) === idx);
 
         // 2. Build provider.dhc -> [ccn, ...] mapping from nearbyDhcCcns
-        const providerDhcToCcns = {};
+        const providerCcnSets = {};
         
         console.log('🔍 Building CCN mapping from nearbyDhcCcns:', {
           nearbyDhcCcnsLength: memoizedNearbyDhcCcns?.length || 0,
@@ -144,16 +158,19 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         
         (memoizedNearbyDhcCcns || []).forEach(row => {
           const dhcKey = String(row.dhc);
-          if (!providerDhcToCcns[dhcKey]) providerDhcToCcns[dhcKey] = [];
-          // Ensure CCN is a string
-          const ccnString = String(row.ccn);
-          providerDhcToCcns[dhcKey].push(ccnString);
+          if (!providerCcnSets[dhcKey]) providerCcnSets[dhcKey] = new Set();
+          getCcnVariants(row.ccn).forEach(variant => {
+            const normalized = normalizeCcn(variant);
+            if (normalized) {
+              providerCcnSets[dhcKey].add(normalized);
+            }
+          });
         });
         
-        console.log('🔍 CCN mapping after processing nearbyDhcCcns:', providerDhcToCcns);
+        console.log('🔍 CCN mapping after processing nearbyDhcCcns:', Object.fromEntries(Object.entries(providerCcnSets).map(([dhc, set]) => [dhc, Array.from(set)])));
         
         // 3. If the main provider is not in nearbyDhcCcns, fetch its CCNs (only for numeric DHCs and not placeholder)
-        if (provider && !isPlaceholderProvider && provider.dhc && !providerDhcToCcns[String(provider.dhc)]) {
+        if (provider && !isPlaceholderProvider && provider.dhc && !providerCcnSets[String(provider.dhc)]) {
           console.log('🔍 Main provider not in nearbyDhcCcns, fetching CCNs for:', provider.dhc);
           const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
             method: 'POST',
@@ -165,11 +182,20 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           if (!ccnResult.success) throw new Error(ccnResult.error);
           ccnResult.data.forEach(row => {
             const dhcKey = String(row.dhc);
-            if (!providerDhcToCcns[dhcKey]) providerDhcToCcns[dhcKey] = [];
-            providerDhcToCcns[dhcKey].push(String(row.ccn));
+            if (!providerCcnSets[dhcKey]) providerCcnSets[dhcKey] = new Set();
+            getCcnVariants(row.ccn).forEach(variant => {
+              const normalized = normalizeCcn(variant);
+              if (normalized) {
+                providerCcnSets[dhcKey].add(normalized);
+              }
+            });
           });
-          console.log('🔍 CCN mapping after fetching main provider CCNs:', providerDhcToCcns);
+          console.log('🔍 CCN mapping after fetching main provider CCNs:', Object.fromEntries(Object.entries(providerCcnSets).map(([dhc, set]) => [dhc, Array.from(set)])));
         }
+
+        const providerDhcToCcns = Object.fromEntries(
+          Object.entries(providerCcnSets).map(([dhc, set]) => [dhc, Array.from(set)])
+        );
 
 
 
@@ -196,7 +222,16 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
                  // 5. Get all CCNs for the combined request
         const allCcns = Object.values(providerDhcToCcns).flat();
-        const uniqueCcns = Array.from(new Set(allCcns.map(ccn => String(ccn))));
+        const ccnsForQuerySet = new Set();
+        allCcns.forEach(ccn => {
+          getCcnVariants(ccn).forEach(variant => {
+            const normalizedVariant = normalizeCcn(variant) || String(variant);
+            if (normalizedVariant) {
+              ccnsForQuerySet.add(normalizedVariant);
+            }
+          });
+        });
+        const uniqueCcns = Array.from(ccnsForQuerySet);
          
          console.log('🔍 CCNs for quality measures:', {
           totalCcns: uniqueCcns.length,
@@ -325,6 +360,10 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         }
 
         const { measures, providerData, nationalAverages } = combinedData;
+        const normalizedProviderData = (providerData || []).map(row => ({
+          ...row,
+          ccn: normalizeCcn(row.ccn) || String(row.ccn)
+        }));
         
         // 10. Set available publish dates and current publish date
         setAvailablePublishDates(availableDates);
@@ -369,8 +408,10 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
         // 11. Calculate market averages from the provider data
         let marketAverages = {};
         if (memoizedNearbyDhcCcns.length > 0) {
-          const marketCcns = memoizedNearbyDhcCcns.map(row => row.ccn).filter(Boolean);
-          const marketRows = providerData.filter(d => marketCcns.includes(d.ccn));
+          const marketCcns = memoizedNearbyDhcCcns
+            .map(row => normalizeCcn(row.ccn) || String(row.ccn))
+            .filter(Boolean);
+          const marketRows = normalizedProviderData.filter(d => marketCcns.includes(d.ccn));
           
           // Aggregate in JS
           const marketAgg = {};
@@ -401,7 +442,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           let providerHasData = false;
           measures.forEach(m => {
             // Aggregate quality measure data for all CCNs for this provider and measure
-            const foundData = providerData.filter(d => ccns.includes(d.ccn) && d.code === m.code);
+            const foundData = normalizedProviderData.filter(d => ccns.includes(d.ccn) && d.code === m.code);
             if (foundData.length > 0) {
               providerHasData = true;
               // Average if multiple CCNs
@@ -429,7 +470,7 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
             let providerHasData = false;
             measures.forEach(m => {
               // Aggregate quality measure data for all CCNs for this placeholder DHC and measure
-              const foundData = providerData.filter(d => ccns.includes(d.ccn) && d.code === m.code);
+              const foundData = normalizedProviderData.filter(d => ccns.includes(d.ccn) && d.code === m.code);
               if (foundData.length > 0) {
                 providerHasData = true;
                 // Average if multiple CCNs
@@ -456,28 +497,30 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
 
         // Save allProviders and providerDhcToCcns for filtering in render
         // Also include placeholder providers for manually entered CCNs
-        const allProvidersWithPlaceholders = [...allProviders];
-        if (isPlaceholderProvider && provider) {
-          // Add the placeholder provider if it has data
-          if (dataByDhc[provider.dhc] && Object.keys(dataByDhc[provider.dhc]).length > 0) {
-            allProvidersWithPlaceholders.push(provider);
-          }
+        const tagContexts = {};
+        if (provider && provider.context === 'tag') {
+          tagContexts[provider.context] = true;
         }
-        // Also add any placeholder DHCs that have data
-        Object.keys(providerDhcToCcns).forEach(dhc => {
-          if (dhc === 'ccn-only' && 
-              !allProvidersWithPlaceholders.some(p => p.dhc === dhc) &&
-              dataByDhc[dhc] && Object.keys(dataByDhc[dhc]).length > 0) {
-            allProvidersWithPlaceholders.push({
-              dhc: dhc,
-              name: 'CCN Selection',
-              latitude: null,
-              longitude: null
-            });
+        memoizedNearbyProviders.forEach(p => {
+          if (p?.context === 'tag') {
+            tagContexts[p.context] = true;
           }
         });
-        
-        setAllMatrixProviders(allProvidersWithPlaceholders);
+
+        const normalizedProviders = allProviders.map(p => {
+          if (p?.context === 'tag') {
+            const labelKey = p.dhc ? String(p.dhc) : null;
+            const name = p.tagLabel || (labelKey && providerLabels?.[labelKey]) || p.name || `${p.context.charAt(0).toUpperCase() + p.context.slice(1)} Network`;
+            return {
+              ...p,
+              name,
+              source: 'tag'
+            };
+          }
+          return p;
+        });
+
+        setAllMatrixProviders(normalizedProviders);
         setMatrixProviderIdToCcns(providerDhcToCcns);
       } catch (err) {
         console.error('❌ Error in fetchMatrixData:', err);
