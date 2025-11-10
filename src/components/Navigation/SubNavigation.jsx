@@ -1330,20 +1330,13 @@ const SubNavigation = () => {
     // Filter tabs based on user permissions
     const visibleTabs = allTabs.filter(tab => tab.show);
 
-         // If we're on a subscription sub-page, render both navigation levels
-     if (location.pathname.includes('/settings/subscription/')) {
-             // Determine the correct active subscription sub-tab
-      let currentSubscriptionTab = "manage"; // Default to manage
-      
-      if (location.pathname.includes('/checkout')) {
-        currentSubscriptionTab = 'checkout';
-      } else if (location.pathname.includes('/manage')) {
-        currentSubscriptionTab = 'manage';
-      }
+    // If we're on a subscription sub-page, render both navigation levels
+    if (location.pathname.includes('/settings/subscription/')) {
+      // Determine the correct active subscription sub-tab
+      const currentSubscriptionTab = 'manage';
 
-             const subscriptionTabs = [
-        { id: "manage", label: "Manage", icon: Settings, path: "/app/settings/subscription/manage" },
-        { id: "checkout", label: "Checkout", icon: Plus, path: "/app/settings/subscription/checkout" },
+      const subscriptionTabs = [
+        { id: 'manage', label: 'Manage', icon: Settings, path: '/app/settings/subscription/manage' }
       ];
 
       return (

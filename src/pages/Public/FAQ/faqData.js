@@ -32,12 +32,12 @@ const faqSections = [
       {
         question: 'What kind of support do you offer?',
         answer:
-          'Market Mover is a self-service subscription. For help, leverage the tool tips within the platform, or email us at info@healthcraftcreative.com.',
+          'Market Mover is a self-service subscription. For help, leverage the tool tips within the platform, or email us at support@healthcraftcreative.com.',
       },
       {
         question: 'Who can I contact with questions?',
         answer:
-          'Email info@healthcraftcreative.com with any inquiries.',
+          'Email support@healthcraftcreative.com with any inquiries.',
       },
       {
         question: 'Where can I find your Privacy Policy?',
@@ -67,7 +67,7 @@ const faqSections = [
       {
         question: "I'm locked out of my account how can I regain access?",
         answer:
-          'Contact info@healthcraftcreative.com for help restoring access to your account.',
+          'Contact support@healthcraftcreative.com for help restoring access to your account.',
       },
     ],
   },

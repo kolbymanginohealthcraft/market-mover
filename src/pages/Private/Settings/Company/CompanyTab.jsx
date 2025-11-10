@@ -291,127 +291,88 @@ export default function CompanyTab() {
       />
       
       <div className={styles.content}>
-        <div className={styles.sections}>
-          {/* Company Attributes Section */}
-          <div className={styles.section}>
-            <p className={styles.sectionDescription}>
-              Define your company's attributes to help potential partners understand your business.
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <h2 className={styles.panelTitle}>Company Details</h2>
+            <p className={styles.panelDescription}>
+              Use your verified company information so partners see an accurate profile.
             </p>
+          </header>
 
-          <div className={styles.formGrid}>
-            <div className={styles.formGroup}>
-              <label>Company Name</label>
-              <input
-                type="text"
-                value={companyProfile.company_name}
-                onChange={(e) => handleCompanyChange("company_name", e.target.value)}
-                placeholder="Enter your company name"
-              />
+          <div className={styles.fieldStack}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="company-name">Company Name</label>
+              <div className={styles.fieldControl}>
+                <input
+                  id="company-name"
+                  type="text"
+                  value={companyProfile.company_name}
+                  onChange={(e) => handleCompanyChange("company_name", e.target.value)}
+                  placeholder="Enter your company name"
+                />
+              </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label>Company Type</label>
-              <div className={styles.buttonGroupContainer}>
-                <div className="button-group-outline" style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Company Type</span>
+              <div className={styles.fieldControl}>
+                <div className={styles.companyTypeRadios} role="radiogroup" aria-label="Company type">
                   {companyTypes.map(type => {
                     const isActive = companyProfile.company_type === type.value;
-                    const className = [
-                      'button',
-                      'button-outline',
-                      'blue',
-                      isActive ? 'active' : ''
-                    ].join(' ').trim();
 
                     return (
-                      <button
+                      <label
                         key={type.value}
-                        onClick={() => handleCompanyChange("company_type", type.value)}
-                        className={className}
+                        className={`${styles.radioOption} ${isActive ? styles.radioOptionActive : ""}`}
                       >
-                        <div className={styles.buttonContent}>
-                          <div className={styles.buttonLabel}>{type.shortLabel}</div>
+                        <input
+                          type="radio"
+                          name="company-type"
+                          value={type.value}
+                          checked={isActive}
+                          onChange={() => handleCompanyChange("company_type", type.value)}
+                        />
+                        <span className={styles.radioIndicator} aria-hidden="true" />
+                        <div className={styles.radioContent}>
+                          <span className={styles.radioLabel}>{type.shortLabel}</span>
+                          <p className={styles.radioDescription}>{type.helpText}</p>
                         </div>
-                      </button>
+                      </label>
                     );
                   })}
                 </div>
-                {companyProfile.company_type && (
-                  <div className={styles.helpTextRight}>
-                    {companyTypes.find(t => t.value === companyProfile.company_type)?.helpText}
-                  </div>
-                )}
               </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label>Industry Vertical</label>
-              <select
-                value={companyProfile.industry_vertical}
-                onChange={(e) => handleCompanyChange("industry_vertical", e.target.value)}
-                disabled={!companyProfile.company_type}
-              >
-                <option value="">
-                  {companyProfile.company_type 
-                    ? `Select ${companyProfile.company_type.toLowerCase()} vertical` 
-                    : "Select company type first"}
-                </option>
-                {companyProfile.company_type === "Provider" && 
-                  providerVerticals.map(vertical => (
-                    <option key={vertical} value={vertical}>{vertical}</option>
-                  ))
-                }
-                {companyProfile.company_type === "Supplier" && 
-                  supplierVerticals.map(vertical => (
-                    <option key={vertical} value={vertical}>{vertical}</option>
-                  ))
-                }
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Target Audience Section */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Target Partners</h2>
-          <p className={styles.sectionDescription}>
-            Define your ideal partnership criteria to find the right matches.
-          </p>
-
-          <div className={styles.targetSection}>
-            <div className={styles.targetGroup}>
-              <h3 className={styles.targetTitle}>Organization Types</h3>
-              <div className={styles.targetGrid}>
-                {organizationTypes.map(type => (
-                  <label key={type} className={styles.targetCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={targetAudience.organization_types.includes(type)}
-                      onChange={() => handleArrayChange("organization_types", type, false)}
-                    />
-                    <span className={styles.targetLabel}>{type}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.targetGroup}>
-              <h3 className={styles.targetTitle}>Practitioner Specialties</h3>
-              <div className={styles.targetGrid}>
-                {practitionerSpecialties.map(specialty => (
-                  <label key={specialty} className={styles.targetCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={targetAudience.practitioner_specialties.includes(specialty)}
-                      onChange={() => handleArrayChange("practitioner_specialties", specialty, false)}
-                    />
-                    <span className={styles.targetLabel}>{specialty}</span>
-                  </label>
-                ))}
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="industry-vertical">Industry Vertical</label>
+              <div className={styles.fieldControl}>
+                <select
+                  id="industry-vertical"
+                  value={companyProfile.industry_vertical}
+                  onChange={(e) => handleCompanyChange("industry_vertical", e.target.value)}
+                  disabled={!companyProfile.company_type}
+                >
+                  <option value="">
+                    {companyProfile.company_type 
+                      ? `Select ${companyProfile.company_type.toLowerCase()} vertical` 
+                      : "Select company type first"}
+                  </option>
+                  {companyProfile.company_type === "Provider" && 
+                    providerVerticals.map(vertical => (
+                      <option key={vertical} value={vertical}>{vertical}</option>
+                    ))
+                  }
+                  {companyProfile.company_type === "Supplier" && 
+                    supplierVerticals.map(vertical => (
+                      <option key={vertical} value={vertical}>{vertical}</option>
+                    ))
+                  }
+                </select>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
       </div>
 
       {/* Sticky Footer */}
@@ -420,8 +381,6 @@ export default function CompanyTab() {
           <div className={styles.stickyFooterContent}>
             {message && (
               <div className={`${styles.footerMessage} ${styles[messageType]}`}>
-                {messageType === "success" && "✅"}
-                {messageType === "error" && "❌"}
                 {message}
               </div>
             )}
