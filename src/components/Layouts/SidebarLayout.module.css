@@ -6,6 +6,10 @@
   min-width: 0;
 }
 
+.page.mobile {
+  position: relative;
+}
+
 .contentArea {
   flex: 1;
   margin-left: 280px;
@@ -24,6 +28,17 @@
 .contentArea.sidebarCollapsed {
   margin-left: 60px;
   width: calc(100vw - 60px);
+}
+
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  border: none;
+  padding: 0;
+  margin: 0;
+  z-index: 110;
+  cursor: pointer;
 }
 
 .main {
@@ -51,14 +66,14 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .contentArea {
-    margin-left: 60px;
-    width: calc(100vw - 60px);
+    margin-left: 0;
+    width: 100%;
   }
   
   .contentArea.sidebarCollapsed {
-    margin-left: 60px;
-    width: calc(100vw - 60px);
+    margin-left: 0;
+    width: 100%;
   }
 }

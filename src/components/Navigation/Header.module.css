@@ -12,16 +12,29 @@
   backdrop-filter: blur(10px);
 }
 
+.condensed {
+  padding: 0.75rem 1rem;
+  min-height: 56px;
+}
+
 .headerLeft {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .titleSection {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.condensed .titleSection {
+  gap: 0.75rem;
 }
 
 .moduleIcon {
@@ -43,6 +56,56 @@
   color: white;
 }
 
+.menuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.menuButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.menuButton:hover {
+  border-color: var(--primary-teal);
+  color: var(--primary-teal-dark);
+  background: rgba(63, 185, 133, 0.08);
+}
+
+.menuButton:focus-visible {
+  outline: 2px solid var(--primary-teal);
+  outline-offset: 2px;
+}
+
+.menuButtonActive {
+  border-color: var(--primary-teal);
+  background: rgba(63, 185, 133, 0.15);
+  color: var(--primary-teal-dark);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .titleContent {
   display: flex;
   flex-direction: column;
@@ -50,11 +113,26 @@
 }
 
 .pageTitle {
-  font-size: 2.25rem;
+  font-size: 2.25rem !important;
   font-weight: 600;
   color: var(--gray-900);
   margin: 0;
   line-height: 1.1;
+}
+
+.pageTitleCollapsed {
+  font-size: 1.75rem !important;
+}
+
+.condensed .pageTitle.pageTitleCollapsed {
+  font-size: 1.35rem !important;
+}
+
+.condensed .pageTitle {
+  font-size: 1.4rem !important;
+  white-space: nowrap;
+  /* overflow: hidden; */
+  text-overflow: ellipsis;
 }
 
 .breadcrumb {
@@ -67,6 +145,10 @@
   overflow: hidden;
   white-space: nowrap;
   width: 100%;
+}
+
+.condensed .breadcrumb {
+  display: none;
 }
 
 .breadcrumbItem {
@@ -138,6 +220,11 @@
   gap: 1rem;
   flex-shrink: 0;
   min-width: 100px;
+}
+
+.condensed .headerRight {
+  margin-top: 0;
+  align-self: center;
 }
 
 .platformButton {
@@ -389,6 +476,11 @@
     align-self: flex-start;
     margin-top: calc((1.5rem * 1.1 - 32px) / 2);
   }
+
+  .header.condensed .headerRight {
+    align-self: center;
+    margin-top: 0;
+  }
   
   .breadcrumb {
     overflow-x: auto;
@@ -416,5 +508,11 @@
   
   .userName {
     display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .menuButton {
+    display: inline-flex;
   }
 }

@@ -233,7 +233,7 @@ const Signup = () => {
                   lineHeight: '1.5',
                   margin: '0 0 8px 0'
                 }}>
-                  Create your free account to explore the Market Mover platform. Upgrade to a monthly subscription for $2,000 to unlock all premium features.
+                  This creates your free account to explore the Market Mover platform. Upgrade anytime to a monthly subscription to access all premium features for $2,000 per month.
                 </p>
                 <p style={{
                   fontSize: '12px',
@@ -241,7 +241,7 @@ const Signup = () => {
                   lineHeight: '1.5',
                   margin: 0
                 }}>
-                  All subscriptions include three user licenses, with optional bundles of three additional seats available for $250 per month.
+                  Paid subscriptions include three user licenses, with optional bundles of three additional seats available for $250 per month.
                 </p>
               </div>
             </form>

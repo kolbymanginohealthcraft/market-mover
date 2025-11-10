@@ -14,18 +14,48 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import styles from './Sidebar.module.css';
 
-const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
+const PublicSidebar = ({
+  isCollapsed = false,
+  onToggleCollapse,
+  isMobile = false,
+  isDrawerOpen = false,
+  onCloseDrawer
+}) => {
   const location = useLocation();
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const tooltipRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
+  const collapsed = isMobile ? false : isCollapsed;
+  const sidebarClassName = [
+    styles.sidebar,
+    collapsed ? styles.collapsed : '',
+    isMobile ? styles.sidebarMobile : '',
+    isMobile && isDrawerOpen ? styles.sidebarMobileOpen : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const dialogA11yProps = isMobile
+    ? {
+        role: 'dialog',
+        'aria-modal': true,
+        'aria-hidden': !isDrawerOpen
+      }
+    : {};
   const toggleSidebar = () => {
     if (onToggleCollapse) {
-      onToggleCollapse(!isCollapsed);
+      onToggleCollapse(!collapsed);
     }
   };
+
+  const handleNavItemClick = () => {
+    if (isMobile && onCloseDrawer) {
+      onCloseDrawer();
+    }
+  };
+
+  const mobileLinkHandlers = isMobile ? { onClick: handleNavItemClick } : {};
 
   const handleMouseEnter = (e, text, alwaysShow = false) => {
     if (!isCollapsed && !alwaysShow) return;
@@ -54,9 +84,18 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
   return (
     <>
-      <div className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+      <div
+        id="app-sidebar"
+        className={sidebarClassName}
+        tabIndex={isMobile ? -1 : undefined}
+        {...dialogA11yProps}
+      >
         {/* Brand Section */}
-        <Link to="/" className={styles.brandLink}>
+        <Link
+          to="/"
+          className={styles.brandLink}
+          {...mobileLinkHandlers}
+        >
           <div className={styles.brand}>
             <div className={styles.logo}>MM</div>
             {!isCollapsed && (
@@ -75,6 +114,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={`${styles.navItem} ${isActive('/') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Home')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <Home size={14} />
             {!isCollapsed && 'Home'}
@@ -85,6 +125,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={`${styles.navItem} ${isActive('/faq') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'FAQ')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <HelpCircle size={14} />
             {!isCollapsed && 'FAQ'}
@@ -98,6 +139,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={`${styles.navItem} ${isActive('/login') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Log In')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <Mail size={14} />
             {!isCollapsed && 'Log In'}
@@ -107,6 +149,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={`${styles.navItem} ${isActive('/signup') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Sign Up')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <UserPlus size={14} />
             {!isCollapsed && 'Sign Up'}
@@ -116,6 +159,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={`${styles.navItem} ${isActive('/legal') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Legal Info')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <FileText size={14} />
             {!isCollapsed && 'Legal Info'}
@@ -127,6 +171,7 @@ const PublicSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={styles.navItem}
             onMouseEnter={(e) => handleMouseEnter(e, 'Visit Healthcraft')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <ExternalLink size={14} />
             {!isCollapsed && 'Visit Healthcraft'}

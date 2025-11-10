@@ -10,55 +10,129 @@ import styles from './SidebarLayout.module.css';
 export default function UnifiedSidebarLayout({ isPublic = false }) {
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState(false);
 
-  // Auto-collapse sidebar on mobile devices
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth <= 768) {
-        setIsSidebarCollapsed(true);
+      const mobile = window.innerWidth <= 900;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setIsSidebarDrawerOpen(false);
       }
     };
 
-    // Set initial state
     handleResize();
-
-    // Add event listener
     window.addEventListener('resize', handleResize);
-    
-    // Cleanup
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Keyboard shortcut for sidebar toggle ([ key) - only when button is visible
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only allow shortcut if screen is larger than mobile (button is visible)
-      if (window.innerWidth > 768) {
-        // Check if [ key is pressed (single key, no modifiers)
-        if (e.key === '[' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-          e.preventDefault(); // Prevent default browser behavior
-          setIsSidebarCollapsed(!isSidebarCollapsed);
-        }
+    if (isMobile) {
+      setIsSidebarCollapsed(false);
+    }
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (
+        event.key === '[' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        setIsSidebarCollapsed((prev) => !prev);
       }
     };
 
-    // Add event listener
     document.addEventListener('keydown', handleKeyDown);
-    
-    // Cleanup
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isSidebarCollapsed]);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile && isSidebarDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobile, isSidebarDrawerOpen]);
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarDrawerOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || !isSidebarDrawerOpen) {
+      return undefined;
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsSidebarDrawerOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isMobile, isSidebarDrawerOpen]);
+
+  const handleDrawerToggle = () => {
+    setIsSidebarDrawerOpen((prev) => !prev);
+  };
+
+  const handleDrawerClose = () => {
+    setIsSidebarDrawerOpen(false);
+  };
+
+  const handleMenuToggle = () => {
+    if (isMobile) {
+      handleDrawerToggle();
+    } else {
+      setIsSidebarCollapsed((prev) => !prev);
+    }
+  };
 
   const SidebarComponent = isPublic ? PublicSidebar : Sidebar;
 
   return (
-    <div className={styles.page}>
-      <SidebarComponent 
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={setIsSidebarCollapsed}
+    <div className={`${styles.page} ${isMobile ? styles.mobile : ''}`}>
+      <SidebarComponent
+        isCollapsed={isMobile ? false : isSidebarCollapsed}
+        onToggleCollapse={isMobile ? handleDrawerToggle : setIsSidebarCollapsed}
+        isMobile={isMobile}
+        isDrawerOpen={isMobile && isSidebarDrawerOpen}
+        onCloseDrawer={handleDrawerClose}
       />
-      <div className={`${styles.contentArea} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
-        <Header />
+      {isMobile && isSidebarDrawerOpen && (
+        <button
+          type="button"
+          className={styles.drawerBackdrop}
+          onClick={handleDrawerClose}
+          aria-label="Close navigation overlay"
+        />
+      )}
+      <div
+        className={`${styles.contentArea} ${isSidebarCollapsed && !isMobile ? styles.sidebarCollapsed : ''}`}
+        aria-hidden={isMobile && isSidebarDrawerOpen}
+      >
+        <Header
+          onMenuToggle={handleMenuToggle}
+          isMenuOpen={isMobile ? isSidebarDrawerOpen : !isSidebarCollapsed}
+          isMobile={isMobile}
+          isSidebarCollapsed={!isMobile && isSidebarCollapsed}
+        />
         <ImpersonationBanner />
         <SubNavigation />
         <main className={styles.main}>

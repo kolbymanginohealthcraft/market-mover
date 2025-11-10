@@ -23,14 +23,22 @@ import {
   Database,
   GitBranch,
   LineChart,
-  Shield
+  Shield,
+  Menu
 } from 'lucide-react';
 import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
 import { supabase } from '../../app/supabaseClient';
 import styles from './Header.module.css';
 
-const Header = ({ currentView, selectedMarket }) => {
+const Header = ({
+  currentView,
+  selectedMarket,
+  onMenuToggle,
+  isMenuOpen = false,
+  isMobile = false,
+  isSidebarCollapsed = false
+}) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentMarket, setCurrentMarket] = useState(null);
   const dropdownRef = useRef(null);
@@ -385,22 +393,59 @@ const Header = ({ currentView, selectedMarket }) => {
     }
   };
 
+  const shouldShowMenuButton = Boolean(isMobile && onMenuToggle);
+  const hideUserSection = shouldShowMenuButton || isSidebarCollapsed;
+  const headerClassName = [
+    styles.header,
+    isMobile ? styles.condensed : '',
+    hideUserSection ? styles.headerCollapsed : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const showPlatformButton =
+    permissions?.canAccessPlatform && !isPublicPage && !hideUserSection;
+  const breadcrumbItems = getBreadcrumbItems();
+  const handleMenuButtonClick = () => {
+    if (onMenuToggle) {
+      onMenuToggle();
+    }
+  };
+
   return (
-    <header className={styles.header}>
+    <header className={headerClassName}>
       <div className={styles.headerLeft}>
+        {shouldShowMenuButton && (
+          <button
+            type="button"
+            className={`${styles.menuButton} ${isMenuOpen ? styles.menuButtonActive : ''}`}
+            onClick={handleMenuButtonClick}
+            aria-label="Toggle navigation"
+            aria-expanded={isMenuOpen}
+            aria-controls="app-sidebar"
+          >
+            <Menu size={18} />
+            <span className={styles.srOnly}>Toggle navigation</span>
+          </button>
+        )}
         <div className={styles.titleSection}>
           <div className={styles.moduleIcon}>
             {getModuleIcon()}
           </div>
           <div className={styles.titleContent}>
-            <h1 className={styles.pageTitle}>{getViewTitle()}</h1>
+            <h1
+              className={`${styles.pageTitle} ${
+                hideUserSection ? styles.pageTitleCollapsed : ''
+              }`}
+            >
+              {getViewTitle()}
+            </h1>
             <div className={styles.breadcrumb}>
-              {getBreadcrumbItems().map((item, index) => (
+              {breadcrumbItems.map((item, index) => (
                 <React.Fragment key={index}>
                   <span className={`${styles.breadcrumbItem} ${styles[item.type]}`}>
                     {item.text}
                   </span>
-                  {index < getBreadcrumbItems().length - 1 && (
+                  {index < breadcrumbItems.length - 1 && (
                     <span className={styles.breadcrumbSeparator}>•</span>
                   )}
                 </React.Fragment>
@@ -411,7 +456,7 @@ const Header = ({ currentView, selectedMarket }) => {
       </div>
 
       <div className={styles.headerRight}>
-        {permissions?.canAccessPlatform && !isPublicPage && (
+        {showPlatformButton && (
           <button
             type="button"
             className={styles.platformButton}
@@ -421,8 +466,9 @@ const Header = ({ currentView, selectedMarket }) => {
             <span>Platform</span>
           </button>
         )}
-        <div className={styles.userSection}>
-          {user ? (
+        {!hideUserSection && (
+          <div className={styles.userSection}>
+            {user ? (
             // Logged in user - show profile dropdown
             <div className={styles.userProfileContainer} ref={dropdownRef}>
               <button 
@@ -459,24 +505,29 @@ const Header = ({ currentView, selectedMarket }) => {
                 </div>
               )}
             </div>
-          ) : (
-            // Not logged in - show CTA buttons
-            <div className={styles.ctaButtons}>
-              <button 
-                onClick={() => navigate('/login')} 
-                className={styles.loginButton}
-              >
-                Log In
-              </button>
-              <button 
-                onClick={() => navigate('/signup')} 
-                className={styles.signupButton}
-              >
-                Sign Up
-              </button>
-            </div>
-          )}
-        </div>
+            ) : (
+              // Not logged in - show CTA buttons
+              <div className={styles.ctaButtons}>
+                {!isMobile && (
+                  <button 
+                    onClick={() => navigate('/login')} 
+                    className={styles.loginButton}
+                  >
+                    Log In
+                  </button>
+                )}
+                {!isMobile && (
+                  <button 
+                    onClick={() => navigate('/signup')} 
+                    className={styles.signupButton}
+                  >
+                    Sign Up
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

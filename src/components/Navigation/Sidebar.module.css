@@ -12,16 +12,33 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  transition: transform 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease, padding 0.3s ease;
   box-sizing: border-box;
-  will-change: transform, width, padding;
+  will-change: transform, opacity, width, padding;
   contain: layout style;
+  z-index: 120;
 }
 
 .sidebar.collapsed {
   width: 60px;
   padding: 24px 12px;
   align-items: center;
+}
+
+.sidebarMobile {
+  transform: translateX(-110%);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
+  visibility: hidden;
+}
+
+.sidebarMobileOpen {
+  transform: translateX(0) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.24);
 }
 
 /* Custom branded tooltip styles */
@@ -577,47 +594,40 @@
   height: 12px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .sidebar {
-    width: 60px;
-    position: fixed;
-    height: 100vh;
-    padding: 16px 12px;
-    align-items: center;
+    width: 260px;
+    padding: 20px 16px;
   }
-  
+
   .sidebar.collapsed {
-    width: 60px;
-    padding: 16px 12px;
-    align-items: center;
+    width: 260px;
+    padding: 20px 16px;
+    align-items: flex-start;
   }
-  
+
+  .sidebarMobile {
+    transform: translateX(-115%);
+  }
+
   .brand {
     padding-bottom: 16px;
   }
-  
+
   .navItems {
-    gap: 2px;
+    gap: 6px;
   }
-  
+
   .navItem {
-    padding: 8px;
-    justify-content: center;
-    gap: 0;
-    font-size: 13px;
+    padding: 10px 12px;
+    justify-content: flex-start;
+    gap: 10px;
   }
-  
-  .sidebar.collapsed .navItem {
-    padding: 8px;
-    justify-content: center;
-    gap: 0;
-  }
-  
+
   .collapseButton {
     display: none;
   }
-  
-  /* Hide radius control on mobile */
+
   .radiusControl {
     display: none;
   }

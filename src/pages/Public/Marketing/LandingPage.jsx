@@ -57,7 +57,7 @@ import {
 } from 'lucide-react';
 
 import styles from './LandingPage.module.css';
-import heroImage from '../../../assets/hero-illustration.jpg';
+import heroImage from '../../../assets/screenshot-enrollment.png';
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('overview');

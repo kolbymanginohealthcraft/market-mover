@@ -109,13 +109,22 @@
     min-height: 44px;
   }
   
-  .leftSection,
-  .centerSection,
+  .leftSection {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .centerSection {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
   .rightSection {
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   .searchInput {
     min-width: 100%;
     max-width: none;

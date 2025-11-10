@@ -31,7 +31,13 @@ import { useUser } from '../Context/UserContext';
 import { useState, useRef, useEffect } from 'react';
 import styles from './Sidebar.module.css';
 
-const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
+const Sidebar = ({
+  isCollapsed = false,
+  onToggleCollapse,
+  isMobile = false,
+  isDrawerOpen = false,
+  onCloseDrawer
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -63,6 +69,22 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   }, [searchParams, isProviderPage]);
 
   const hasRadiusChanged = pendingRadius !== currentRadius;
+  const collapsed = isMobile ? false : isCollapsed;
+  const sidebarClassName = [
+    styles.sidebar,
+    collapsed ? styles.collapsed : '',
+    isMobile ? styles.sidebarMobile : '',
+    isMobile && isDrawerOpen ? styles.sidebarMobileOpen : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const dialogA11yProps = isMobile
+    ? {
+        role: 'dialog',
+        'aria-modal': true,
+        'aria-hidden': !isDrawerOpen
+      }
+    : {};
   
   const handleApplyRadius = () => {
     const params = new URLSearchParams(searchParams);
@@ -72,9 +94,17 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
   const toggleSidebar = () => {
     if (onToggleCollapse) {
-      onToggleCollapse(!isCollapsed);
+      onToggleCollapse(!collapsed);
     }
   };
+
+  const handleNavItemClick = () => {
+    if (isMobile && onCloseDrawer) {
+      onCloseDrawer();
+    }
+  };
+
+  const mobileLinkHandlers = isMobile ? { onClick: handleNavItemClick } : {};
 
   const handleMouseEnter = (e, text, alwaysShow = false) => {
     if (!isCollapsed && !alwaysShow) return;
@@ -103,9 +133,18 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
   return (
     <>
-      <div className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+      <div
+        id="app-sidebar"
+        className={sidebarClassName}
+        tabIndex={isMobile ? -1 : undefined}
+        {...dialogA11yProps}
+      >
         {/* Brand Section */}
-        <Link to="/app/dashboard" className={styles.brandLink}>
+        <Link
+          to="/app/dashboard"
+          className={styles.brandLink}
+          {...mobileLinkHandlers}
+        >
           <div className={styles.brand}>
             <div className={styles.logo}>MM</div>
             {!isCollapsed && (
@@ -119,60 +158,66 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
         {/* Main Navigation */}
         <div className={styles.navItems}>
-          <Link 
+        <Link 
             to="/app/dashboard" 
             className={`${styles.navItem} ${isActive('/dashboard') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Dashboard')}
-            onMouseLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
           >
             <LayoutDashboard size={14} />
             {!isCollapsed && 'Dashboard'}
           </Link>
-          <Link 
+        <Link 
             to="/app/search/basic" 
             className={`${styles.navItem} ${isActive('/search') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Search the Industry')}
-            onMouseLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
           >
             <Search size={14} />
             {!isCollapsed && 'Search the Industry'}
           </Link>
           
-          <Link 
+        <Link 
             to="/app/claims" 
             className={`${styles.navItem} ${isActive('/claims') && !isActive('/claims/storyteller') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Claims Data Explorer')}
-            onMouseLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
           >
             <Database size={14} />
             {!isCollapsed && 'Claims Data Explorer'}
           </Link>
           
-          <Link 
+        <Link 
             to="/app/claims/storyteller" 
             className={`${styles.navItem} ${isActive('/claims/storyteller') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Storyteller')}
-            onMouseLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
           >
             <LineChart size={14} />
             {!isCollapsed && 'Storyteller'}
           </Link>
 
-          <Link 
+        <Link 
             to="/app/population" 
             className={`${styles.navItem} ${isActive('/population') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Population Demographics')}
-            onMouseLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
           >
             <Users size={14} />
             {!isCollapsed && 'Population'}
           </Link>
 
-          <Link 
+        <Link 
             to="/app/enrollment" 
             className={`${styles.navItem} ${isActive('/enrollment') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Enrollment Insights')}
-            onMouseLeave={handleMouseLeave}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
           >
             <BarChart3 size={14} />
             {!isCollapsed && 'Enrollment'}
@@ -187,6 +232,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/markets') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'Saved Markets')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <MapPin size={14} />
               {!isCollapsed && 'Saved Markets'}
@@ -208,6 +254,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/network') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'My Network')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <Network size={14} />
               {!isCollapsed && 'My Network'}
@@ -229,6 +276,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/procedures') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'My Procedures')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <FileBarChart size={14} />
               {!isCollapsed && 'My Procedures'}
@@ -250,6 +298,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/diagnoses') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'My Diagnoses')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <FileBarChart size={14} />
               {!isCollapsed && 'My Diagnoses'}
@@ -271,6 +320,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/metrics') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'My Metrics')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <Activity size={14} />
               {!isCollapsed && 'My Metrics'}
@@ -292,6 +342,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/taxonomies') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'My Taxonomies')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <FileBarChart size={14} />
               {!isCollapsed && 'My Taxonomies'}
@@ -390,6 +441,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             className={`${styles.navItem} ${isActive('/settings') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Account Settings')}
             onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <Settings size={14} />
             {!isCollapsed && 'Account Settings'}
@@ -400,6 +452,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               className={`${styles.navItem} ${isActive('/feedback') ? styles.active : ''}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'Leave Feedback')}
               onMouseLeave={handleMouseLeave}
+              {...mobileLinkHandlers}
             >
               <Lightbulb size={14} />
               {!isCollapsed && 'Leave Feedback'}
