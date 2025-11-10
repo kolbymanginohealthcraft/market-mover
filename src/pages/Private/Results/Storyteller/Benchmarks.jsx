@@ -20,7 +20,11 @@ export default function Benchmarks({
   availableProviderTypes,
   providerLabels = {},
   showMyKpisOnly = false,
-  myKpiCodes = []
+  myKpiCodes = [],
+  highlightedDhcKeys = [],
+  highlightedDhcByType = new Map(),
+  highlightTagTypes = [],
+  highlightPrimaryProvider = true
 }) {
   // Use the same quality measures hook to get consistent date handling
   const {
@@ -140,7 +144,7 @@ export default function Benchmarks({
       }
 
       if (showMyKpisOnly && kpiCodeSet.size === 0) {
-        console.log('⚠️ KPI-only mode without tagged KPIs');
+        console.log('⚠️ Metric-only mode without tagged metrics');
         setAvailableMeasures([]);
         setSelectedMeasure(null);
         setWinsData({});
@@ -498,7 +502,7 @@ export default function Benchmarks({
               ) : availableMeasures.length === 0 ? (
                 <div className={styles.noDataMessage}>
                   {showMyKpisOnly
-                    ? 'None of your tagged KPIs are available for this setting yet. Toggle off "Show My KPIs" to browse all measures.'
+                    ? 'None of your tagged metrics are available for this setting yet. Toggle off "Show My Metrics" to browse all measures.'
                     : providerTypeFilter ? 'No measures available for this setting' : 'Select a measure setting to view available measures'}
                 </div>
               ) : filteredMeasures.length === 0 ? (

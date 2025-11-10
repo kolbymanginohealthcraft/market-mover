@@ -23,6 +23,8 @@ export default function StandaloneStoryteller() {
   const [focusedProviderCcns, setFocusedProviderCcns] = useState([]);
   const [manualProviderDetails, setManualProviderDetails] = useState({});
   const [providerLabelMap, setProviderLabelMap] = useState({});
+  const [marketProviders, setMarketProviders] = useState([]);
+  const [tagProviders, setTagProviders] = useState([]);
 
   // Saved markets and network tags
   const [savedMarkets, setSavedMarkets] = useState([]);
@@ -34,6 +36,8 @@ export default function StandaloneStoryteller() {
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const [highlightTagTypes, setHighlightTagTypes] = useState([]);
+  const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false);
   const [myKpiCodes, setMyKpiCodes] = useState([]);
   const [kpiTagsLoading, setKpiTagsLoading] = useState(false);
   const [showMyKpisOnly, setShowMyKpisOnly] = useState(false);
@@ -118,6 +122,10 @@ export default function StandaloneStoryteller() {
         };
         
         setProviderTags(organized);
+        setHighlightTagTypes(prev => {
+          if (!Array.isArray(prev) || prev.length === 0) return prev;
+          return prev.filter(type => (organized?.[type] || []).length > 0);
+        });
       } catch (err) {
         console.error('Error fetching provider tags:', err);
       }
@@ -217,6 +225,8 @@ export default function StandaloneStoryteller() {
     setMarketDhcCcns([]);
     setSelectedTag(null);
     setTagDhcCcns([]);
+    setMarketProviders([]);
+    setTagProviders([]);
     
     // Fetch CCNs for the selected provider
     if (provider.dhc) {
@@ -279,6 +289,7 @@ export default function StandaloneStoryteller() {
     if (!marketId) {
       setSelectedMarket(null);
       setMarketDhcCcns([]);
+      setMarketProviders([]);
       return;
     }
     
@@ -290,8 +301,6 @@ export default function StandaloneStoryteller() {
     setFocusedProviderCcns([]);
     setNearbyProviders([]);
     setNearbyDhcCcns([]);
-    setSelectedTag(null); // Clear tag selection
-    setTagDhcCcns([]);
     
     try {
       // Fetch providers in the market area
@@ -300,7 +309,7 @@ export default function StandaloneStoryteller() {
         const result = await response.json();
         if (result.success) {
           // Store providers so they show up individually in the matrix
-          setNearbyProviders(result.data || []);
+            setMarketProviders(result.data || []);
           
           // Get DHCs from providers
           const dhcIds = Array.from(new Set(result.data.map(p => p.dhc).filter(Boolean).map(String)));
@@ -325,6 +334,7 @@ export default function StandaloneStoryteller() {
             }
           } else {
             setMarketDhcCcns([]);
+            setMarketProviders([]);
           }
         }
       }
@@ -338,6 +348,7 @@ export default function StandaloneStoryteller() {
     if (!tagType) {
       setSelectedTag(null);
       setTagDhcCcns([]);
+      setTagProviders([]);
       return;
     }
     
@@ -346,8 +357,6 @@ export default function StandaloneStoryteller() {
     setFocusedProviderCcns([]);
     setNearbyProviders([]);
     setNearbyDhcCcns([]);
-    setSelectedMarket(null); // Clear market selection
-    setMarketDhcCcns([]);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -370,7 +379,7 @@ export default function StandaloneStoryteller() {
       
       if (!tags || tags.length === 0) {
         setTagDhcCcns([]);
-        setNearbyProviders([]);
+        setTagProviders([]);
         return;
       }
       
@@ -416,11 +425,12 @@ export default function StandaloneStoryteller() {
               }
 
               // Store providers so they show up individually in the matrix
-              setNearbyProviders(normalizedProviders);
+              setTagProviders(normalizedProviders);
             }
           }
         } catch (err) {
           console.error('Error fetching provider info for tags:', err);
+          setTagProviders([]);
         }
         
         // Fetch CCNs for tagged providers
@@ -442,10 +452,11 @@ export default function StandaloneStoryteller() {
         }
       } else {
         setTagDhcCcns([]);
-        setNearbyProviders([]);
+        setTagProviders([]);
       }
     } catch (err) {
       console.error('Error loading tag:', err);
+      setTagProviders([]);
     }
   };
 
@@ -504,8 +515,20 @@ export default function StandaloneStoryteller() {
     })
   ), [selectedCcns, manualProviderDetails, providerLabelMap]);
 
+  const marketDhcKeySet = useMemo(() => new Set(
+    (marketDhcCcns || []).map(item => String(item.dhc))
+  ), [marketDhcCcns]);
+
+  const tagDhcKeySet = useMemo(() => new Set(
+    (tagDhcCcns || []).map(item => String(item.dhc))
+  ), [tagDhcCcns]);
+
   const combinedNearbyProviders = useMemo(() => {
-    const baseProviders = Array.isArray(nearbyProviders) ? nearbyProviders : [];
+    const baseProviders = [
+      ...(Array.isArray(nearbyProviders) ? nearbyProviders : []),
+      ...(Array.isArray(marketProviders) ? marketProviders : []),
+      ...(Array.isArray(tagProviders) ? tagProviders : [])
+    ];
     const uniqueByDhc = new Map();
 
     baseProviders.forEach(provider => {
@@ -527,12 +550,28 @@ export default function StandaloneStoryteller() {
       }
     });
 
-    return Array.from(uniqueByDhc.values());
-  }, [nearbyProviders, manualProviders, providerLabelMap]);
+    return Array.from(uniqueByDhc.values()).filter(provider => {
+      const dhcKey = provider?.dhc ? String(provider.dhc) : null;
+      if (!dhcKey) return false;
+      const isManual = dhcKey.startsWith('ccn:');
+      const matchesMarket = !selectedMarket || isManual || marketDhcKeySet.has(dhcKey);
+      const matchesTag = !selectedTag || isManual || tagDhcKeySet.has(dhcKey);
+      return matchesMarket && matchesTag;
+    });
+  }, [nearbyProviders, marketProviders, tagProviders, manualProviders, providerLabelMap, selectedMarket, selectedTag, marketDhcKeySet, tagDhcKeySet]);
 
-  const allDhcCcns = useMemo(() => (
-    [...nearbyDhcCcns, ...marketDhcCcns, ...tagDhcCcns, ...manualDhcCcns]
-  ), [nearbyDhcCcns, marketDhcCcns, tagDhcCcns, manualDhcCcns]);
+  const activeDhcKeySet = useMemo(() => new Set(
+    combinedNearbyProviders
+      .map(provider => (provider?.dhc ? String(provider.dhc) : null))
+      .filter(Boolean)
+  ), [combinedNearbyProviders]);
+
+  const allDhcCcns = useMemo(() => {
+    const filteredNearby = (nearbyDhcCcns || []).filter(item => activeDhcKeySet.has(String(item.dhc)));
+    const filteredMarket = (marketDhcCcns || []).filter(item => activeDhcKeySet.has(String(item.dhc)));
+    const filteredTag = (tagDhcCcns || []).filter(item => activeDhcKeySet.has(String(item.dhc)));
+    return [...filteredNearby, ...filteredMarket, ...filteredTag, ...manualDhcCcns];
+  }, [nearbyDhcCcns, marketDhcCcns, tagDhcCcns, manualDhcCcns, activeDhcKeySet]);
 
   const storytellerFocusedCcns = useMemo(() => (
     [...new Set([
@@ -545,7 +584,7 @@ export default function StandaloneStoryteller() {
     const tagHasProviders = Boolean(
       selectedTag && (
         (tagDhcCcns && tagDhcCcns.length > 0) ||
-        (nearbyProviders && nearbyProviders.length > 0)
+        (tagProviders && tagProviders.length > 0)
       )
     );
     return Boolean(
@@ -554,7 +593,56 @@ export default function StandaloneStoryteller() {
       tagHasProviders ||
       (selectedCcns && selectedCcns.length > 0)
     );
-  }, [selectedProvider, selectedMarket, selectedTag, selectedCcns.length, tagDhcCcns, nearbyProviders]);
+  }, [selectedProvider, selectedMarket, selectedTag, selectedCcns.length, tagDhcCcns, tagProviders]);
+
+  const highlightCounts = useMemo(() => ({
+    me: providerTags?.me?.length || 0,
+    partner: providerTags?.partner?.length || 0,
+    competitor: providerTags?.competitor?.length || 0,
+    target: providerTags?.target?.length || 0
+  }), [providerTags]);
+
+  const hasHighlightOptions = useMemo(() => (
+    Object.values(highlightCounts).some(count => count > 0)
+  ), [highlightCounts]);
+
+  const highlightLabels = useMemo(() => ({
+    me: 'My Providers',
+    partner: 'Partners',
+    competitor: 'Competitors',
+    target: 'Targets'
+  }), []);
+
+  const highlightSelectionSet = useMemo(() => new Set(highlightTagTypes), [highlightTagTypes]);
+
+  const highlightTriggerLabel = useMemo(() => {
+    if (!highlightTagTypes || highlightTagTypes.length === 0) return 'Highlight Providers';
+    if (highlightTagTypes.length === 1) {
+      const type = highlightTagTypes[0];
+      const label = highlightLabels[type] || type;
+      return `Highlight: ${label}`;
+    }
+    return `Highlight: ${highlightTagTypes.length} types`;
+  }, [highlightTagTypes, highlightLabels]);
+
+  const highlightedDhcByType = useMemo(() => {
+    if (!providerTags || highlightTagTypes.length === 0) return new Map();
+    const map = new Map();
+    highlightTagTypes.forEach(type => {
+      const entries = providerTags?.[type] || [];
+      entries.forEach(item => {
+        const dhcKey = item?.provider_dhc ? String(item.provider_dhc) : null;
+        if (!dhcKey) return;
+        if (!map.has(dhcKey)) {
+          map.set(dhcKey, new Set());
+        }
+        map.get(dhcKey).add(type);
+      });
+    });
+    return map;
+  }, [providerTags, highlightTagTypes]);
+
+  const highlightedDhcKeys = useMemo(() => Array.from(highlightedDhcByType.keys()), [highlightedDhcByType]);
 
   const storyTellerProvider = useMemo(() => {
     if (selectedProvider) {
@@ -585,12 +673,16 @@ export default function StandaloneStoryteller() {
     setMarketDhcCcns([]);
     setSelectedTag(null);
     setTagDhcCcns([]);
+    setMarketProviders([]);
+    setTagProviders([]);
     setProviderSearch('');
     setSearchResults([]);
     setCcnInput('');
     setSearchDropdownOpen(false);
     setManualProviderDetails({});
     setShowMyKpisOnly(false);
+    setHighlightTagTypes([]);
+    setHighlightDropdownOpen(false);
   };
 
   const fetchManualProviderDetails = useCallback(async (ccnsToFetch) => {
@@ -836,6 +928,103 @@ export default function StandaloneStoryteller() {
             </Dropdown>
           )}
 
+          {/* Highlight Providers */}
+          {hasHighlightOptions && (
+            <Dropdown
+              trigger={
+                <button
+                  type="button"
+                  className={`sectionHeaderButton ${highlightTagTypes.length > 0 ? styles.activeFilterButton : ''}`}
+                >
+                  <FilterIcon />
+                  {highlightTriggerLabel}
+                  <ChevronDown />
+                </button>
+              }
+              isOpen={highlightDropdownOpen}
+              onToggle={setHighlightDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              <button
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setHighlightTagTypes([]);
+                  setHighlightDropdownOpen(false);
+                }}
+                style={{
+                  fontWeight: highlightTagTypes.length === 0 ? '600' : '500',
+                  background: highlightTagTypes.length === 0 ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                }}
+              >
+                No Highlight
+              </button>
+              {highlightCounts.me > 0 && (
+                <button
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    setHighlightTagTypes(prev => (
+                      prev.includes('me') ? prev.filter(type => type !== 'me') : [...prev, 'me']
+                    ));
+                  }}
+                  style={{
+                    fontWeight: highlightSelectionSet.has('me') ? '600' : '500',
+                    background: highlightSelectionSet.has('me') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                  }}
+                >
+                  Highlight My Providers ({highlightCounts.me})
+                </button>
+              )}
+              {highlightCounts.partner > 0 && (
+                <button
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    setHighlightTagTypes(prev => (
+                      prev.includes('partner') ? prev.filter(type => type !== 'partner') : [...prev, 'partner']
+                    ));
+                  }}
+                  style={{
+                    fontWeight: highlightSelectionSet.has('partner') ? '600' : '500',
+                    background: highlightSelectionSet.has('partner') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                  }}
+                >
+                  Highlight Partners ({highlightCounts.partner})
+                </button>
+              )}
+              {highlightCounts.competitor > 0 && (
+                <button
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    setHighlightTagTypes(prev => (
+                      prev.includes('competitor') ? prev.filter(type => type !== 'competitor') : [...prev, 'competitor']
+                    ));
+                  }}
+                  style={{
+                    fontWeight: highlightSelectionSet.has('competitor') ? '600' : '500',
+                    background: highlightSelectionSet.has('competitor') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                  }}
+                >
+                  Highlight Competitors ({highlightCounts.competitor})
+                </button>
+              )}
+              {highlightCounts.target > 0 && (
+                <button
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    setHighlightTagTypes(prev => (
+                      prev.includes('target') ? prev.filter(type => type !== 'target') : [...prev, 'target']
+                    ));
+                  }}
+                  style={{
+                    fontWeight: highlightSelectionSet.has('target') ? '600' : '500',
+                    background: highlightSelectionSet.has('target') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                  }}
+                >
+                  Highlight Targets ({highlightCounts.target})
+                </button>
+              )}
+            </Dropdown>
+          )}
+
           {/* Saved Markets */}
           {savedMarkets.length > 0 && (
             <Dropdown
@@ -888,9 +1077,9 @@ export default function StandaloneStoryteller() {
             onClick={() => setShowMyKpisOnly(prev => !prev)}
             className={`sectionHeaderButton ${showMyKpisOnly ? styles.activeFilterButton : ''} ${(!kpiTagsLoading && myKpiCodes.length === 0) ? styles.disabledFilterButton : ''}`}
             disabled={(!kpiTagsLoading && myKpiCodes.length === 0)}
-            title={(!kpiTagsLoading && myKpiCodes.length === 0) ? 'Tag KPIs to enable this filter' : undefined}
+            title={(!kpiTagsLoading && myKpiCodes.length === 0) ? 'Tag metrics to enable this filter' : undefined}
           >
-            {showMyKpisOnly ? 'Using My KPI Set' : 'Use My KPI Set'}
+            {showMyKpisOnly ? 'Using My Metrics' : 'Use My Metrics'}
           </button>
 
           {/* Clear All Button */}
@@ -916,6 +1105,14 @@ export default function StandaloneStoryteller() {
               <MapPin size={12} />
               <span>{selectedMarket.name}</span>
               <span className={styles.count}>{marketDhcCcns.length} CCNs</span>
+              <button
+                type="button"
+                onClick={() => handleMarketSelect('')}
+                className={styles.removeTagButton}
+                aria-label="Remove market filter"
+              >
+                <X size={12} />
+              </button>
             </div>
           )}
           {selectedTag && (
@@ -923,17 +1120,25 @@ export default function StandaloneStoryteller() {
               <FilterIcon size={12} />
               <span>{selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}</span>
               <span className={styles.count}>{tagDhcCcns.length} CCNs</span>
+              <button
+                type="button"
+                onClick={() => handleTagSelect('')}
+                className={styles.removeTagButton}
+                aria-label="Remove network tag filter"
+              >
+                <X size={12} />
+              </button>
             </div>
           )}
           {showMyKpisOnly && (
             <div className={`${styles.selectedTag} ${styles.kpiFilterTag}`}>
-              <span>My KPI Set</span>
+              <span>My Metrics</span>
               <span className={styles.count}>{myKpiCodes.length}</span>
               <button
                 type="button"
                 onClick={() => setShowMyKpisOnly(false)}
                 className={styles.removeTagButton}
-                aria-label="Remove My KPI Set filter"
+                aria-label="Remove My Metrics filter"
               >
                 <X size={12} />
               </button>
@@ -980,6 +1185,10 @@ export default function StandaloneStoryteller() {
             providerLabels={providerLabelMap}
             showMyKpisOnly={showMyKpisOnly}
             myKpiCodes={myKpiCodes}
+            highlightedDhcKeys={highlightedDhcKeys}
+            highlightedDhcByType={highlightedDhcByType}
+            highlightTagTypes={highlightTagTypes}
+            highlightPrimaryProvider={false}
           />
         )}
       </div>

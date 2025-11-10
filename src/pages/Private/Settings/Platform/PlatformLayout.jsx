@@ -15,6 +15,7 @@ import PolicyManagement from './PolicyManagement';
 import StyleGuide from './StyleGuide';
 import UserList from '../../../../features/admin/components/UserList';
 import UnfinishedItems from './UnfinishedItems';
+import MobileNavigationWorkshop from './MobileNavigationWorkshop';
 import GeographyAnalysis from '../../GeographyAnalysis/GeographyAnalysis';
 import TestProviderOfServices from '../../../TestProviderOfServices';
 import TestProviderOfServicesEnriched from '../../../TestProviderOfServicesEnriched';
@@ -60,20 +61,30 @@ export default function PlatformLayout() {
 
   return (
     <div className={styles.content}>
-      <Routes>
-        <Route index element={<Navigate to="unfinished" replace />} />
-        <Route path="users" element={<UserList />} />
-        <Route path="announcements" element={<ManageAnnouncements />} />
-        <Route path="feedback" element={<ManageFeedback />} />
-        <Route path="policies" element={<PolicyManagement />} />
-        <Route path="style-guide" element={<StyleGuide />} />
-        <Route path="unfinished" element={<UnfinishedItems />} />
-        <Route path="unfinished/geography" element={<GeographyAnalysis />} />
-        <Route path="unfinished/medicare-pos" element={<TestProviderOfServices />} />
-        <Route path="unfinished/medicare-pos-enriched" element={<TestProviderOfServicesEnriched />} />
-        <Route path="unfinished/referral-pathways" element={<ReferralPathways />} />
-        <Route path="*" element={<Navigate to="unfinished" replace />} />
-      </Routes>
+      <div className={styles.routeArea}>
+        <Routes>
+          <Route index element={<Navigate to="unfinished" replace />} />
+          <Route
+            path="users"
+            element={
+              <div className={styles.usersLayout}>
+                <UserList />
+              </div>
+            }
+          />
+          <Route path="announcements" element={<ManageAnnouncements />} />
+          <Route path="feedback" element={<ManageFeedback />} />
+          <Route path="policies" element={<PolicyManagement />} />
+          <Route path="style-guide" element={<StyleGuide />} />
+          <Route path="unfinished" element={<UnfinishedItems />} />
+          <Route path="unfinished/geography" element={<GeographyAnalysis />} />
+          <Route path="unfinished/medicare-pos" element={<TestProviderOfServices />} />
+          <Route path="unfinished/medicare-pos-enriched" element={<TestProviderOfServicesEnriched />} />
+          <Route path="unfinished/referral-pathways" element={<ReferralPathways />} />
+          <Route path="unfinished/mobile-workshop" element={<MobileNavigationWorkshop />} />
+          <Route path="*" element={<Navigate to="unfinished" replace />} />
+        </Routes>
+      </div>
     </div>
   );
 }

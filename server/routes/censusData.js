@@ -6,6 +6,67 @@ import * as turf from '@turf/turf';
 
 const router = express.Router();
 
+const DEFAULT_AVAILABLE_ACS_YEARS = [
+  '2023',
+  '2022',
+  '2021',
+  '2020',
+  '2019',
+  '2018',
+  '2017',
+  '2016',
+  '2015'
+];
+
+const ACS_VARS = [
+  'B01001_001E', // total pop
+  'B01001_003E','B01001_004E','B01001_005E','B01001_006E', // male under 18
+  'B01001_027E','B01001_028E','B01001_029E','B01001_030E', // female under 18
+  'B01001_020E','B01001_021E','B01001_022E','B01001_023E','B01001_024E','B01001_025E', // male 65+
+  'B01001_044E','B01001_045E','B01001_046E','B01001_047E','B01001_048E','B01001_049E', // female 65+
+  'B02001_002E', 'B02001_003E', 'B02001_004E', 'B02001_005E', 'B02001_006E', 'B02001_007E', 'B02001_008E', // race
+  'B03003_003E', // Hispanic/Latino
+  'B19013_001E', 'B19301_001E', 'B17001_001E', 'B17001_002E', // economic
+  'B27010_001E', 'B27010_017E', // insurance
+  'B18101_001E', 'B18101_004E', 'B18101_007E', // disability
+  'B15003_001E', 'B15003_022E','B15003_023E','B15003_024E','B15003_025E', // education
+  'B25064_001E', 'B25077_001E' // housing
+].join(',');
+
+/**
+ * GET /api/census-data/available-years
+ *
+ * Returns the list of ACS 5-year dataset years supported by the application.
+ * If the CENSUS_ACS_YEARS environment variable is provided (comma-separated list),
+ * those values take precedence over the defaults.
+ */
+router.get('/census-data/available-years', (req, res) => {
+  try {
+    const configuredYears = process.env.CENSUS_ACS_YEARS
+      ? process.env.CENSUS_ACS_YEARS.split(',').map(value => value.trim()).filter(Boolean)
+      : [];
+
+    const candidates = configuredYears.length > 0 ? configuredYears : DEFAULT_AVAILABLE_ACS_YEARS;
+
+    const years = Array.from(
+      new Set(
+        candidates.filter(year => /^\d{4}$/.test(year))
+      )
+    ).sort((a, b) => Number(b) - Number(a));
+
+    res.status(200).json({
+      success: true,
+      data: years
+    });
+  } catch (error) {
+    console.error('❌ Error determining available ACS years:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Unable to determine available ACS years'
+    });
+  }
+});
+
 /**
  * GET /api/census-data/county-names
  * 
@@ -267,21 +328,319 @@ async function getCountyAverages(stateFips, countyFips, year) {
   }
 }
 
+async function getZipCodesWithinRadius(lat, lon, radiusMiles) {
+  const cacheParams = { lat, lon, radiusMiles };
+  const cached = cache.get('zip_codes_within_radius', cacheParams);
+  if (cached) {
+    return cached;
+  }
+
+  const radiusMeters = parseFloat(radiusMiles) * 1609.34;
+  const centerLat = parseFloat(lat);
+  const centerLon = parseFloat(lon);
+
+  const zipQuery = `
+    SELECT
+      zip_code,
+      state_code,
+      ST_AREA(zip_code_geom) AS area_land_meters,
+      ST_Y(ST_CENTROID(zip_code_geom)) AS centroid_lat,
+      ST_X(ST_CENTROID(zip_code_geom)) AS centroid_lon,
+      ST_DISTANCE(
+        ST_GEOGPOINT(CAST(ST_X(ST_CENTROID(zip_code_geom)) AS FLOAT64), CAST(ST_Y(ST_CENTROID(zip_code_geom)) AS FLOAT64)),
+        ST_GEOGPOINT(@centerLon, @centerLat)
+      ) AS distance_to_center_meters
+    FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\`
+    WHERE ST_INTERSECTS(
+      zip_code_geom,
+      ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
+    )
+    ORDER BY distance_to_center_meters ASC
+  `;
+
+  const [rows] = await myBigQuery.query({
+    query: zipQuery,
+    location: 'US',
+    params: {
+      centerLat: Number(centerLat),
+      centerLon: Number(centerLon),
+      radiusMeters: Number(radiusMeters)
+    }
+  });
+
+  cache.set('zip_codes_within_radius', cacheParams, rows);
+  return rows;
+}
+
+async function fetchZipAcsData(zipRow, year) {
+  const zip = String(zipRow.zip_code).padStart(5, '0');
+  const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=zip%20code%20tabulation%20area:${zip}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`⚠️ Census API error for ZIP ${zip}: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length < 2) {
+      console.warn(`⚠️ Census API returned no data for ZIP ${zip}`);
+      return null;
+    }
+
+    const header = data[0];
+    const row = data[1];
+    const obj = {};
+    header.forEach((h, idx) => { obj[h] = row[idx]; });
+
+    const m65 = ['B01001_020E','B01001_021E','B01001_022E','B01001_023E','B01001_024E','B01001_025E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    const f65 = ['B01001_044E','B01001_045E','B01001_046E','B01001_047E','B01001_048E','B01001_049E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    const mUnder18 = ['B01001_003E','B01001_004E','B01001_005E','B01001_006E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    const fUnder18 = ['B01001_027E','B01001_028E','B01001_029E','B01001_030E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+    const bachelors = ['B15003_022E','B15003_023E','B15003_024E','B15003_025E']
+      .map(k => Number(obj[k]) || 0).reduce((a,b) => a+b, 0);
+
+    const population = Number(obj['B01001_001E']) || 0;
+    if (population === 0) {
+      console.warn(`⚠️ ZIP ${zip} returned population 0 for ${year}`);
+    }
+
+    const geoIdRaw = obj['zip code tabulation area'] || zip;
+
+    return {
+      total_pop: population,
+      pop_65_plus: m65 + f65,
+      pop_under_18: mUnder18 + fUnder18,
+      white: Number(obj['B02001_002E']) || 0,
+      black: Number(obj['B02001_003E']) || 0,
+      native_american: Number(obj['B02001_004E']) || 0,
+      asian: Number(obj['B02001_005E']) || 0,
+      pacific_islander: Number(obj['B02001_006E']) || 0,
+      some_other_race: Number(obj['B02001_007E']) || 0,
+      two_or_more: Number(obj['B02001_008E']) || 0,
+      hispanic: Number(obj['B03003_003E']) || 0,
+      median_income: Number(obj['B19013_001E']) || 0,
+      per_capita_income: Number(obj['B19301_001E']) || 0,
+      poverty_universe: Number(obj['B17001_001E']) || 0,
+      below_poverty: Number(obj['B17001_002E']) || 0,
+      insurance_universe: Number(obj['B27010_001E']) || 0,
+      uninsured: Number(obj['B27010_017E']) || 0,
+      disability_universe: Number(obj['B18101_001E']) || 0,
+      male_disability: Number(obj['B18101_004E']) || 0,
+      female_disability: Number(obj['B18101_007E']) || 0,
+      education_universe: Number(obj['B15003_001E']) || 0,
+      bachelors_plus: bachelors,
+      median_rent: Number(obj['B25064_001E']) || 0,
+      median_home_value: Number(obj['B25077_001E']) || 0,
+      land_area_meters: Number(zipRow.area_land_meters) || 0,
+      latitude: Number(zipRow.centroid_lat) || 0,
+      longitude: Number(zipRow.centroid_lon) || 0,
+      zip_code: zip,
+      state: obj['state'] || zipRow.state_code || null,
+      county: obj['county'] || null,
+      geo_id: geoIdRaw ? `8600000US${String(geoIdRaw).padStart(5, '0')}` : null,
+      distance_to_center_meters: Number(zipRow.distance_to_center_meters) || 0,
+      geography_type: 'zip'
+    };
+  } catch (error) {
+    console.error(`❌ Error fetching ACS data for ZIP ${zip}:`, error);
+    return null;
+  }
+}
+
+async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: providedZipRows = null }) {
+  const zipRows = providedZipRows || await getZipCodesWithinRadius(lat, lon, radiusMiles);
+  if (!zipRows || zipRows.length === 0) {
+    return {
+      geography: 'zip',
+      metadata: { zip_codes: [], matched_zips: [], missing_zips: [] },
+      market_totals: {
+        total_population: 0,
+        population_65_plus: 0,
+        population_under_18: 0,
+        median_income: 0,
+        total_tracts: 0,
+        total_zip_codes: 0,
+        acs_year: year
+      },
+      national_averages: null,
+      state_averages: {},
+      county_averages: {},
+      geographic_units: []
+    };
+  }
+
+  const allZipData = [];
+  const missingZips = [];
+  const matchedZips = [];
+  const chunkSize = 8;
+
+  for (let i = 0; i < zipRows.length; i += chunkSize) {
+    const chunk = zipRows.slice(i, i + chunkSize);
+    const chunkResults = await Promise.all(chunk.map(row => fetchZipAcsData(row, year)));
+    chunkResults.forEach((result, idx) => {
+      const zipCode = String(chunk[idx].zip_code).padStart(5, '0');
+      if (result) {
+        matchedZips.push(zipCode);
+        allZipData.push(result);
+      } else {
+        missingZips.push(zipCode);
+      }
+    });
+
+    if (i + chunkSize < zipRows.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  const totals = allZipData.reduce((acc, z) => {
+    acc.total_population += z.total_pop;
+    acc.population_65_plus += z.pop_65_plus;
+    acc.population_under_18 += z.pop_under_18;
+    acc.white += z.white;
+    acc.black += z.black;
+    acc.native_american += z.native_american;
+    acc.asian += z.asian;
+    acc.pacific_islander += z.pacific_islander;
+    acc.some_other_race += z.some_other_race;
+    acc.two_or_more += z.two_or_more;
+    acc.hispanic += z.hispanic;
+    acc.below_poverty += z.below_poverty;
+    acc.poverty_universe += z.poverty_universe;
+    acc.uninsured += z.uninsured;
+    acc.insurance_universe += z.insurance_universe;
+    acc.disability += z.male_disability + z.female_disability;
+    acc.disability_universe += z.disability_universe;
+    acc.bachelors_plus += z.bachelors_plus;
+    acc.education_universe += z.education_universe;
+    acc.total_land_area_meters += z.land_area_meters;
+
+    if (z.median_income > 0) { acc.median_income_sum += z.median_income; acc.median_income_count++; }
+    if (z.per_capita_income > 0) { acc.per_capita_income_sum += z.per_capita_income; acc.per_capita_income_count++; }
+    if (z.median_rent > 0) { acc.median_rent_sum += z.median_rent; acc.median_rent_count++; }
+    if (z.median_home_value > 0) { acc.median_home_value_sum += z.median_home_value; acc.median_home_value_count++; }
+
+    return acc;
+  }, {
+    total_population: 0, population_65_plus: 0, population_under_18: 0,
+    white: 0, black: 0, native_american: 0, asian: 0, pacific_islander: 0,
+    some_other_race: 0, two_or_more: 0, hispanic: 0,
+    below_poverty: 0, poverty_universe: 0,
+    uninsured: 0, insurance_universe: 0,
+    disability: 0, disability_universe: 0,
+    bachelors_plus: 0, education_universe: 0,
+    total_land_area_meters: 0,
+    median_income_sum: 0, median_income_count: 0,
+    per_capita_income_sum: 0, per_capita_income_count: 0,
+    median_rent_sum: 0, median_rent_count: 0,
+    median_home_value_sum: 0, median_home_value_count: 0
+  });
+
+  const nationalAverages = await getNationalAverages(year);
+
+  const stateSet = new Set(allZipData.map(z => z.state).filter(Boolean));
+  const stateAverages = {};
+  for (const stateFips of stateSet) {
+    const average = await getStateAverages(stateFips, year);
+    if (average) {
+      stateAverages[stateFips] = {
+        median_income: average.median_income,
+        per_capita_income: average.per_capita_income,
+        poverty_rate: average.poverty_universe ? average.below_poverty / average.poverty_universe : null,
+        uninsured_rate: average.insurance_universe ? average.uninsured / average.insurance_universe : null,
+        disability_rate: average.disability_universe ? (average.male_disability + average.female_disability) / average.disability_universe : null,
+        bachelors_plus_rate: average.education_universe ? average.bachelors_plus / average.education_universe : null,
+        median_rent: average.median_rent,
+        median_home_value: average.median_home_value
+      };
+    }
+  }
+
+  const marketTotals = {
+    total_population: totals.total_population,
+    population_65_plus: totals.population_65_plus,
+    population_under_18: totals.population_under_18,
+    white: totals.white,
+    black: totals.black,
+    native_american: totals.native_american,
+    asian: totals.asian,
+    pacific_islander: totals.pacific_islander,
+    some_other_race: totals.some_other_race,
+    two_or_more: totals.two_or_more,
+    hispanic: totals.hispanic,
+    median_income: totals.median_income_count ? Math.round(totals.median_income_sum / totals.median_income_count) : null,
+    per_capita_income: totals.per_capita_income_count ? Math.round(totals.per_capita_income_sum / totals.per_capita_income_count) : null,
+    poverty_rate: totals.poverty_universe ? totals.below_poverty / totals.poverty_universe : null,
+    uninsured_rate: totals.insurance_universe ? totals.uninsured / totals.insurance_universe : null,
+    disability_rate: totals.disability_universe ? totals.disability / totals.disability_universe : null,
+    bachelors_plus_rate: totals.education_universe ? totals.bachelors_plus / totals.education_universe : null,
+    median_rent: totals.median_rent_count ? Math.round(totals.median_rent_sum / totals.median_rent_count) : null,
+    median_home_value: totals.median_home_value_count ? Math.round(totals.median_home_value_sum / totals.median_home_value_count) : null,
+    total_tracts: zipRows.length,
+    total_zip_codes: zipRows.length,
+    matched_zip_codes: matchedZips.length,
+    acs_year: year,
+    total_land_area_meters: totals.total_land_area_meters
+  };
+
+  return {
+    geography: 'zip',
+    market_totals: marketTotals,
+    national_averages: nationalAverages ? {
+      median_income: nationalAverages.median_income,
+      per_capita_income: nationalAverages.per_capita_income,
+      poverty_rate: nationalAverages.poverty_universe ? nationalAverages.below_poverty / nationalAverages.poverty_universe : null,
+      uninsured_rate: nationalAverages.insurance_universe ? nationalAverages.uninsured / nationalAverages.insurance_universe : null,
+      disability_rate: nationalAverages.disability_universe ? (nationalAverages.male_disability + nationalAverages.female_disability) / nationalAverages.disability_universe : null,
+      bachelors_plus_rate: nationalAverages.education_universe ? nationalAverages.bachelors_plus / nationalAverages.education_universe : null,
+      median_rent: nationalAverages.median_rent,
+      median_home_value: nationalAverages.median_home_value
+    } : null,
+    state_averages: stateAverages,
+    county_averages: {},
+    geographic_units: allZipData,
+    metadata: {
+      geography: 'zip',
+      zip_codes: zipRows.map(row => String(row.zip_code).padStart(5, '0')),
+      matched_zips: matchedZips,
+      missing_zips: missingZips
+    }
+  };
+}
+
 router.get('/census-acs-api', async (req, res) => {
   const { lat, lon, radius, year = '2023' } = req.query;
+  const geography = (req.query.geography || 'tract').toLowerCase();
   if (!lat || !lon || !radius) {
     return res.status(400).json({ success: false, error: 'lat, lon, and radius are required' });
   }
 
   // Check cache first
-  const cacheKey = `census_acs_${lat}_${lon}_${radius}_${year}`;
-  const cachedData = cache.get('census_acs', { lat, lon, radius, year });
+  const cacheParams = { lat, lon, radius, year, geography };
+  const cachedData = cache.get('census_acs', cacheParams);
   if (cachedData) {
     console.log('📦 Serving census ACS data from cache');
     return res.status(200).json({ success: true, data: cachedData });
   }
 
   try {
+    if (geography === 'zip') {
+      const result = await buildZipCensusData({
+        lat: Number(lat),
+        lon: Number(lon),
+        radiusMiles: parseFloat(radius),
+        year
+      });
+
+      cache.set('census_acs', cacheParams, result, 60 * 60 * 1000);
+      return res.status(200).json({ success: true, data: result });
+    }
+
     const radiusMeters = parseFloat(radius) * 1609.34;
     const centerLat = parseFloat(lat);
     const centerLon = parseFloat(lon);
@@ -326,7 +685,7 @@ router.get('/census-acs-api', async (req, res) => {
       };
       
       // Cache empty results for a shorter time
-      cache.set('census_acs', { lat, lon, radius, year }, emptyResult, 5 * 60 * 1000); // 5 minutes
+      cache.set('census_acs', cacheParams, emptyResult, 5 * 60 * 1000); // 5 minutes
       return res.status(200).json({ success: true, data: emptyResult });
     }
 
@@ -547,6 +906,7 @@ router.get('/census-acs-api', async (req, res) => {
     }
     
     const result = {
+      geography: 'tract',
       market_totals: {
         total_population: totals.total_population,
         population_65_plus: totals.population_65_plus,
@@ -587,12 +947,194 @@ router.get('/census-acs-api', async (req, res) => {
     };
 
     // Cache the result for 1 hour (census data doesn't change frequently)
-    cache.set('census_acs', { lat, lon, radius, year }, result, 60 * 60 * 1000);
+    cache.set('census_acs', cacheParams, result, 60 * 60 * 1000);
 
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     console.error('❌ Census ACS API error:', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/census-acs-zip-summary', async (req, res) => {
+  const { lat, lon, radius, years } = req.query;
+
+  if (!lat || !lon || !radius) {
+    return res.status(400).json({
+      success: false,
+      error: 'lat, lon, and radius are required'
+    });
+  }
+
+  try {
+    const requestedYears = years
+      ? years.split(',').map(value => value.trim()).filter(Boolean)
+      : DEFAULT_AVAILABLE_ACS_YEARS;
+
+    const uniqueYears = Array.from(new Set(
+      requestedYears.filter(year => /^\d{4}$/.test(year))
+    )).sort((a, b) => Number(b) - Number(a));
+
+    const zipRows = await getZipCodesWithinRadius(lat, lon, radius);
+    if (!zipRows || zipRows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          zipCodes: [],
+          totalZipCodes: 0,
+          summaries: {},
+          availableYears: uniqueYears
+        }
+      });
+    }
+
+    const summaries = {};
+
+    for (const year of uniqueYears) {
+      const data = await buildZipCensusData({
+        lat: Number(lat),
+        lon: Number(lon),
+        radiusMiles: parseFloat(radius),
+        year,
+        zipRows
+      });
+
+      summaries[year] = {
+        totalPopulation: data.market_totals.total_population,
+        matchedZipCount: data.market_totals.matched_zip_codes ?? (data.metadata?.matched_zips?.length ?? 0),
+        missingZipCount: data.metadata?.missing_zips?.length ?? 0,
+        matchedZips: data.metadata?.matched_zips ?? [],
+        missingZips: data.metadata?.missing_zips ?? [],
+        marketTotals: data.market_totals
+      };
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        zipCodes: zipRows.map(row => String(row.zip_code).padStart(5, '0')),
+        totalZipCodes: zipRows.length,
+        summaries,
+        availableYears: uniqueYears
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error generating ACS ZIP summary:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    });
+  }
+});
+
+router.get('/census-acs-zip-trend', async (req, res) => {
+  const { lat, lon, radius, startYear, endYear } = req.query;
+
+  if (!lat || !lon || !radius) {
+    return res.status(400).json({
+      success: false,
+      error: 'lat, lon, and radius are required'
+    });
+  }
+
+  try {
+    const radiusMiles = parseFloat(radius);
+    const cacheKey = {
+      lat,
+      lon,
+      radius: radiusMiles,
+      startYear: startYear || null,
+      endYear: endYear || null,
+      endpoint: 'zip_trend'
+    };
+
+    const cached = cache.get('census_acs_zip_trend', cacheKey);
+    if (cached) {
+      console.log('📦 Serving cached ZIP trend results');
+      return res.status(200).json({ success: true, data: cached, cached: true });
+    }
+
+    const zipRows = await getZipCodesWithinRadius(lat, lon, radiusMiles);
+    if (!zipRows || zipRows.length === 0) {
+      const empty = {
+        zipCodes: [],
+        totalZipCodes: 0,
+        trend: [],
+        matchedZipCodes: [],
+        missingZipCodes: []
+      };
+      cache.set('census_acs_zip_trend', cacheKey, empty, 30 * 60 * 1000);
+      return res.status(200).json({ success: true, data: empty });
+    }
+
+    const yearsRange = (() => {
+      const start = startYear ? Number(startYear) : Number(DEFAULT_AVAILABLE_ACS_YEARS[DEFAULT_AVAILABLE_ACS_YEARS.length - 1]);
+      const end = endYear ? Number(endYear) : Number(DEFAULT_AVAILABLE_ACS_YEARS[0]);
+      const yearsList = [];
+      for (let y = end; y >= start; y -= 1) {
+        yearsList.push(String(y));
+      }
+      return yearsList.filter(year => /^\d{4}$/.test(year));
+    })();
+
+    const trend = [];
+    const aggregateMatched = new Set();
+    const aggregateMissing = new Set();
+
+    for (const year of yearsRange) {
+      const result = await buildZipCensusData({
+        lat: Number(lat),
+        lon: Number(lon),
+        radiusMiles,
+        year,
+        zipRows
+      });
+
+      const matched = result.metadata?.matched_zips ?? [];
+      const missing = result.metadata?.missing_zips ?? [];
+
+      matched.forEach(zip => aggregateMatched.add(zip));
+      missing.forEach(zip => aggregateMissing.add(zip));
+
+      trend.push({
+        year,
+        totalPopulation: result.market_totals.total_population,
+        population65Plus: result.market_totals.population_65_plus,
+        populationUnder18: result.market_totals.population_under_18,
+        medianIncome: result.market_totals.median_income,
+        perCapitaIncome: result.market_totals.per_capita_income,
+        povertyRate: result.market_totals.poverty_rate,
+        uninsuredRate: result.market_totals.uninsured_rate,
+        disabilityRate: result.market_totals.disability_rate,
+        matchedZipCount: result.market_totals.matched_zip_codes ?? matched.length,
+        missingZipCount: missing.length,
+        matchedZips: matched,
+        missingZips: missing
+      });
+    }
+
+    const payload = {
+      geography: 'zip',
+      zipCodes: zipRows.map(row => String(row.zip_code).padStart(5, '0')),
+      totalZipCodes: zipRows.length,
+      trend,
+      matchedZipCodes: Array.from(aggregateMatched),
+      missingZipCodes: Array.from(aggregateMissing)
+    };
+
+    cache.set('census_acs_zip_trend', cacheKey, payload, 60 * 60 * 1000);
+
+    res.status(200).json({
+      success: true,
+      data: payload,
+      cached: false
+    });
+  } catch (error) {
+    console.error('❌ Error generating ACS ZIP trend:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    });
   }
 });
 

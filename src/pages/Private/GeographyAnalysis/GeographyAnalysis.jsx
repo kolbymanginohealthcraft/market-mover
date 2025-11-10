@@ -337,66 +337,76 @@ export default function GeographyAnalysis() {
                       }
                       return 0;
                     })
-                    .map((element, index) => (
-                    <div 
-                      key={index} 
-                      className={styles.elementItem}
-                      onMouseEnter={() => useDemographics ? setHoveredTractId(element.properties.geo_id) : null}
-                      onMouseLeave={() => useDemographics ? setHoveredTractId(null) : null}
-                    >
-                      {useDemographics ? (
-                        <div className={styles.tractInfo}>
-                          <div className={styles.tractId}>
-                            {element.properties.geo_id || 'Tract ID N/A'}
-                          </div>
-                          <div className={styles.tractDetails}>
-                            <div className={styles.metricValue}>
-                              {element.properties.has_data 
-                                ? formatMetricValue(element.properties.metric_value, selectedMetric)
-                                : 'No data'}
+                  .map((element, index) => {
+                    const zipCityLine = [
+                      element?.properties?.city || element?.properties?.area_name,
+                      element?.properties?.state_code
+                    ].filter(Boolean).join(', ');
+
+                    return (
+                      <div 
+                        key={index} 
+                        className={styles.elementItem}
+                        onMouseEnter={() => useDemographics ? setHoveredTractId(element.properties.geo_id) : null}
+                        onMouseLeave={() => useDemographics ? setHoveredTractId(null) : null}
+                      >
+                        {useDemographics ? (
+                          <div className={styles.tractInfo}>
+                            <div className={styles.tractId}>
+                              {element.properties.geo_id || 'Tract ID N/A'}
                             </div>
-                            {element.properties.total_population && (
-                              <div className={styles.tractLocation}>
-                                Pop: {element.properties.total_population.toLocaleString()}
+                            <div className={styles.tractDetails}>
+                              <div className={styles.metricValue}>
+                                {element.properties.has_data 
+                                  ? formatMetricValue(element.properties.metric_value, selectedMetric)
+                                  : 'No data'}
+                              </div>
+                              {element.properties.total_population && (
+                                <div className={styles.tractLocation}>
+                                  Pop: {element.properties.total_population.toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {boundaryType === 'tracts' && (
+                              <div className={styles.tractInfo}>
+                                <div className={styles.tractId}>{element.properties.geo_id}</div>
+                                <div className={styles.tractDetails}>
+                                  {element.properties.state_fips_code && element.properties.county_fips_code && (
+                                    <span className={styles.tractLocation}>
+                                      State: {element.properties.state_fips_code}, County: {element.properties.county_fips_code}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             )}
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {boundaryType === 'tracts' && (
-                            <div className={styles.tractInfo}>
-                              <div className={styles.tractId}>{element.properties.geo_id}</div>
-                              <div className={styles.tractDetails}>
-                                {element.properties.state_fips_code && element.properties.county_fips_code && (
-                                  <span className={styles.tractLocation}>
-                                    State: {element.properties.state_fips_code}, County: {element.properties.county_fips_code}
-                                  </span>
+                            {boundaryType === 'zips' && (
+                              <div className={styles.zipInfo}>
+                                <div className={styles.zipCode}>{element.properties.zip_code}</div>
+                                {zipCityLine && (
+                                  <div className={styles.zipCity}>{zipCityLine}</div>
                                 )}
                               </div>
-                            </div>
-                          )}
-                          {boundaryType === 'zips' && (
-                            <div className={styles.zipInfo}>
-                              <div className={styles.zipCode}>{element.properties.zip_code}</div>
-                            </div>
-                          )}
-                          {boundaryType === 'counties' && (
-                            <div className={styles.countyInfo}>
-                              <div className={styles.countyName}>{element.properties.county_name}</div>
-                              <div className={styles.countyDetails}>
-                                {element.properties.state_fips_code && (
-                                  <span className={styles.countyLocation}>
-                                    State: {element.properties.state_fips_code}
-                                  </span>
-                                )}
+                            )}
+                            {boundaryType === 'counties' && (
+                              <div className={styles.countyInfo}>
+                                <div className={styles.countyName}>{element.properties.county_name}</div>
+                                <div className={styles.countyDetails}>
+                                  {element.properties.state_fips_code && (
+                                    <span className={styles.countyLocation}>
+                                      State: {element.properties.state_fips_code}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className={styles.emptyState}>

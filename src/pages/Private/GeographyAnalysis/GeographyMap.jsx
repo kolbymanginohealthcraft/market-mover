@@ -506,7 +506,22 @@ export default function GeographyMap({
           if (boundaryType === 'tracts') {
             description = `<strong>Census Tract</strong><br/>ID: ${properties.geo_id}`;
           } else if (boundaryType === 'zips') {
-            description = `<strong>ZIP Code</strong><br/>${properties.zip_code}`;
+            const city = properties.city || properties.area_name || '';
+            const state = properties.state_code || '';
+            const details = [
+              city ? `City: ${city}` : null,
+              state ? `State: ${state}` : null
+            ].filter(Boolean).join('<br/>');
+
+            description = `
+              <div style="min-width: 180px;">
+                <strong>ZIP Code</strong><br/>
+                <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin: 6px 0;">
+                  ${properties.zip_code || 'N/A'}
+                </div>
+                ${details ? `<div style="font-size: 12px; color: #555;">${details}</div>` : ''}
+              </div>
+            `;
           } else if (boundaryType === 'counties') {
             description = `<strong>County</strong><br/>${properties.county_name}`;
           }

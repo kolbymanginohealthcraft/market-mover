@@ -157,6 +157,26 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             <LineChart size={14} />
             {!isCollapsed && 'Storyteller'}
           </Link>
+
+          <Link 
+            to="/app/population" 
+            className={`${styles.navItem} ${isActive('/population') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Population Demographics')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Users size={14} />
+            {!isCollapsed && 'Population'}
+          </Link>
+
+          <Link 
+            to="/app/enrollment" 
+            className={`${styles.navItem} ${isActive('/enrollment') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Enrollment Insights')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <BarChart3 size={14} />
+            {!isCollapsed && 'Enrollment'}
+          </Link>
           
           {/* Section divider */}
           {!isCollapsed && <div className={styles.sectionDivider}>My Parameters</div>}
@@ -247,22 +267,22 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           )}
           {hasTeam ? (
             <Link 
-              to="/app/kpis" 
-              className={`${styles.navItem} ${isActive('/kpis') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My KPIs')}
+              to="/app/metrics" 
+              className={`${styles.navItem} ${isActive('/metrics') ? styles.active : ''}`}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Metrics')}
               onMouseLeave={handleMouseLeave}
             >
               <Activity size={14} />
-              {!isCollapsed && 'My KPIs'}
+              {!isCollapsed && 'My Metrics'}
             </Link>
           ) : (
             <div 
               className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My KPIs - Join or create a team to access KPI tagging features')}
+              onMouseEnter={(e) => handleMouseEnter(e, 'My Metrics - Join or create a team to access metric tagging features')}
               onMouseLeave={handleMouseLeave}
             >
               <Activity size={14} />
-              {!isCollapsed && 'My KPIs'}
+              {!isCollapsed && 'My Metrics'}
               {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
             </div>
           )}

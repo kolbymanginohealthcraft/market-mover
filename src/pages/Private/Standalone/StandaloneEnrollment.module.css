@@ -1,0 +1,633 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  background: #f7f9fc;
+}
+
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.searchGroup,
+.dhcGroup,
+.marketGroup,
+.modeGroup,
+.planGroup,
+.radiusGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  min-width: 220px;
+}
+
+.modeGroup,
+.planGroup {
+  min-width: 180px;
+}
+
+.radiusGroup {
+  min-width: 200px;
+}
+
+.controlLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input,
+.inputSmall {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.95rem;
+  color: #1f2937;
+  transition: border-color 0.2s ease;
+}
+
+.inputSmall {
+  width: 140px;
+}
+
+.input:focus,
+.inputSmall:focus,
+.numberInput:focus {
+  outline: none;
+  border-color: #1dadbe;
+  box-shadow: 0 0 0 3px rgba(29, 173, 190, 0.15);
+}
+
+.searchResults {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 40;
+}
+
+.searchResult {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.searchResult:hover {
+  background: #f3f4f6;
+}
+
+.resultTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.resultSubtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.searchStatus {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.dhcRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownTrigger {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  color: #1f2937;
+}
+
+.dropdownTrigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dropdownMenu {
+  min-width: 280px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.dropdownList {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background: rgba(29, 173, 190, 0.08);
+}
+
+.dropdownTitle {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dropdownSubtitle {
+  display: block;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.dropdownEmpty {
+  padding: 16px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.dropdownFooter {
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.segmentedControl {
+  display: inline-flex;
+  padding: 4px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  gap: 4px;
+}
+
+.segmentButton {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.segmentButton:hover {
+  background: rgba(15, 118, 110, 0.1);
+}
+
+.segmentActive {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.radiusChips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.radiusChip {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radiusChipActive {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.radiusChipDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.radiusRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.radiusInputGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+
+.numberInput {
+  width: 64px;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.suffix {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.radiusLock {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.manualRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manualInputs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.helperText {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.viewContainer {
+  flex: 1;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 24px;
+  min-height: 0;
+}
+
+.panelWrapper {
+  min-height: 400px;
+}
+
+.errorPanel {
+  border: 1px solid #fee2e2;
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.emptyState {
+  width: 100%;
+  padding: 80px 24px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+}
+
+.emptyState h2 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+.tableCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.tableHeader {
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tableHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tableHeader p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.tableScroll {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.9rem;
+  color: #0f766e;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+.deepDiveLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.deepDiveHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.deepDiveHeader h3 {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.deepDiveHeader p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.deepDiveSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deepDiveSelector label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.deepDiveSelector select {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.95rem;
+}
+
+.deepDiveGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.deepDiveCard,
+.deepDiveCardFull {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.deepDiveCardFull {
+  grid-column: 1 / -1;
+}
+
+.cardTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.metricCard,
+.metricCardWide {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metricCardWide {
+  grid-column: span 2;
+}
+
+.metricLabel {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metricValue {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.metricRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.metricDelta {
+  margin-left: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #047857;
+}
+
+.metricSubline {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.planList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.planRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.planRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.planName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.planMeta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.planTag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.planEnrollment {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.trendChart {
+  width: 100%;
+  height: 320px;
+}
+
+.emptyInline {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .controlsPrimary,
+  .controlsSecondary {
+    align-items: stretch;
+  }
+
+  .summaryStrip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .deepDiveHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .controlsBar {
+    padding: 20px;
+  }
+
+  .tabBar {
+    padding: 12px 20px 0;
+  }
+
+  .tabContent {
+    padding: 20px;
+  }
+}
+

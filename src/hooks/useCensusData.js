@@ -12,7 +12,7 @@ import { apiUrl } from '../utils/api';
  * @param {string} year - ACS year (defaults to '2023')
  * @returns {object} { data, loading, error, refetch }
  */
-export default function useCensusData(provider, radiusInMiles, year = '2023') {
+export default function useCensusData(provider, radiusInMiles, year = '2023', geography = 'tract') {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,7 +39,7 @@ export default function useCensusData(provider, radiusInMiles, year = '2023') {
 
     try {
       const response = await fetch(
-        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}`),
+        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}&year=${year}&geography=${geography}`),
         {
           signal: abortControllerRef.current.signal,
           headers: {
@@ -82,7 +82,7 @@ export default function useCensusData(provider, radiusInMiles, year = '2023') {
         abortControllerRef.current.abort();
       }
     };
-  }, [provider?.latitude, provider?.longitude, radiusInMiles, year]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, year, geography]);
 
   const refetch = () => {
     fetchCensusData();
@@ -120,6 +120,13 @@ export function useAvailableCensusYears() {
           }
         });
         
+        if (response.status === 404) {
+          console.warn('⚠️ Available census years endpoint not found, using default year list');
+          setYears(['2023']);
+          setError(null);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

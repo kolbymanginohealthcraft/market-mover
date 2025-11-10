@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   User, 
@@ -28,11 +28,14 @@ import {
   Scale,
   UserCheck,
   Construction,
-  Database
+  Database,
+  ChevronDown
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { useUser } from '../Context/UserContext';
 import { useUserTeam } from '../../hooks/useUserTeam';
+import Dropdown from '../Buttons/Dropdown';
+import { supabase } from '../../app/supabaseClient';
 
 const SubNavigation = () => {
   const location = useLocation();
@@ -40,6 +43,8 @@ const SubNavigation = () => {
   const [marketsViewMode, setMarketsViewMode] = useState('list');
   const { user, profile, permissions, loading: userLoading } = useUser();
   const { hasTeam, loading: teamLoading } = useUserTeam();
+  const [enrollmentMarkets, setEnrollmentMarkets] = useState([]);
+  const [enrollmentDropdownOpen, setEnrollmentDropdownOpen] = useState(false);
 
   
   // Extract the active tab from the current path
@@ -56,6 +61,62 @@ const SubNavigation = () => {
 
   // Determine if we're on the Network page
   const isNetworkPage = location.pathname.includes('/network') || location.pathname === '/app/network';
+  const isEnrollmentRoute = location.pathname.startsWith('/app/enrollment');
+
+  useEffect(() => {
+    async function fetchEnrollmentMarkets() {
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          setEnrollmentMarkets([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('markets')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setEnrollmentMarkets(data || []);
+      } catch (err) {
+        console.error('Error fetching enrollment markets:', err);
+        setEnrollmentMarkets([]);
+      }
+    }
+
+    fetchEnrollmentMarkets();
+  }, []);
+
+  const enrollmentParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const enrollmentMarketId = isEnrollmentRoute ? enrollmentParams.get('marketId') : null;
+
+  const selectedEnrollmentMarket = useMemo(() => {
+    if (!isEnrollmentRoute) return null;
+    if (!enrollmentMarkets.length) return null;
+    if (!enrollmentMarketId) return null;
+    return enrollmentMarkets.find((market) => String(market.id) === enrollmentMarketId) || null;
+  }, [isEnrollmentRoute, enrollmentMarkets, enrollmentMarketId]);
+
+  const handleEnrollmentMarketSelect = (marketId) => {
+    if (!isEnrollmentRoute) return;
+    const params = new URLSearchParams(location.search);
+    if (marketId) {
+      params.set('marketId', marketId);
+    } else {
+      params.delete('marketId');
+    }
+    const queryString = params.toString();
+    navigate(queryString ? `${location.pathname}?${queryString}` : location.pathname);
+    setEnrollmentDropdownOpen(false);
+  };
+
+  const toggleEnrollmentDropdown = (nextOpen) => {
+    if (!isEnrollmentRoute) return;
+    if (!enrollmentMarkets.length) return;
+    setEnrollmentDropdownOpen(nextOpen);
+  };
 
   // Handle legal page navigation
   if (location.pathname === '/legal') {
@@ -188,6 +249,104 @@ const SubNavigation = () => {
     );
   }
 
+  // Handle standalone enrollment navigation
+  if (isEnrollmentRoute) {
+    const searchSuffix = location.search || '';
+    const enrollmentTabs = [
+      { id: 'overview', label: 'Overview', icon: BarChart3, path: `/app/enrollment/overview${searchSuffix}` },
+      { id: 'listing', label: 'Payer Listing', icon: Users, path: `/app/enrollment/listing${searchSuffix}` },
+      { id: 'payer', label: 'Payer Deep Dive', icon: Activity, path: `/app/enrollment/payer${searchSuffix}` }
+    ];
+
+    let currentEnrollmentTab = 'overview';
+    if (location.pathname.includes('/listing')) {
+      currentEnrollmentTab = 'listing';
+    } else if (location.pathname.includes('/payer')) {
+      currentEnrollmentTab = 'payer';
+    }
+
+    const hasEnrollmentMarkets = enrollmentMarkets.length > 0;
+    const enrollmentMeta = selectedEnrollmentMarket
+      ? {
+          location: [selectedEnrollmentMarket.city, selectedEnrollmentMarket.state].filter(Boolean).join(', ') || 'Location unavailable',
+          radius: selectedEnrollmentMarket.radius_miles ? `${selectedEnrollmentMarket.radius_miles} mi` : 'Radius not set',
+        }
+      : null;
+
+    return (
+      <>
+        <div className={styles.enrollmentControlsRow}>
+          <Dropdown
+            trigger={
+              <button
+                type="button"
+                className="sectionHeaderButton"
+                disabled={!hasEnrollmentMarkets}
+              >
+                <MapPin size={14} />
+                {hasEnrollmentMarkets
+                  ? (selectedEnrollmentMarket ? selectedEnrollmentMarket.name : 'Select a saved market')
+                  : 'No saved markets yet'}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={enrollmentDropdownOpen && hasEnrollmentMarkets}
+            onToggle={toggleEnrollmentDropdown}
+            className={styles.enrollmentDropdownMenu}
+          >
+            <div className={styles.enrollmentDropdownList}>
+              <button
+                type="button"
+                className={styles.enrollmentDropdownItem}
+                onClick={() => handleEnrollmentMarketSelect(null)}
+              >
+                <span className={styles.enrollmentDropdownTitle}>No market selected</span>
+              </button>
+              {enrollmentMarkets.map((market) => (
+                <button
+                  key={market.id}
+                  type="button"
+                  className={styles.enrollmentDropdownItem}
+                  onClick={() => handleEnrollmentMarketSelect(String(market.id))}
+                >
+                  <span className={styles.enrollmentDropdownTitle}>{market.name || 'Unnamed market'}</span>
+                  <span className={styles.enrollmentDropdownSubtitle}>
+                    {[market.city, market.state].filter(Boolean).join(', ')} · {market.radius_miles || 10} mi
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Dropdown>
+
+          {enrollmentMeta && (
+            <div className={styles.enrollmentMeta}>
+              <span>{enrollmentMeta.location}</span>
+              <span>{enrollmentMeta.radius}</span>
+            </div>
+          )}
+        </div>
+
+        <nav className={`${styles.subNavigation} ${styles.enrollmentSubNav}`}>
+          <div className={styles.navLeft}>
+            {enrollmentTabs.map((tab) => {
+              const IconComponent = tab.icon;
+              return (
+                <Link
+                  key={tab.id}
+                  to={tab.path}
+                  className={`${styles.tab} ${currentEnrollmentTab === tab.id ? styles.active : ''}`}
+                >
+                  <IconComponent size={16} />
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </>
+    );
+  }
+
   // Handle Procedures page navigation
   const isProceduresPage = location.pathname.includes('/procedures') || location.pathname === '/app/procedures';
   
@@ -282,10 +441,10 @@ const SubNavigation = () => {
     );
   }
 
-  // Handle KPIs page navigation
-  const isKPIsPage = location.pathname.includes('/kpis') || location.pathname === '/app/kpis';
+  // Handle Metrics page navigation
+  const isMetricsPage = location.pathname.includes('/metrics') || location.pathname === '/app/metrics';
   
-  if (isKPIsPage) {
+  if (isMetricsPage) {
     if (!teamLoading && !hasTeam) {
       return (
         <nav className={styles.subNavigation}>
@@ -297,7 +456,7 @@ const SubNavigation = () => {
           </div>
           <div className={styles.navRight}>
             <div className={styles.teamRequiredMessage}>
-              Join or create a team to access KPI tagging features
+              Join or create a team to access metric tagging features
             </div>
           </div>
         </nav>
@@ -305,20 +464,20 @@ const SubNavigation = () => {
     }
 
     // Determine the current view from the URL
-    const currentView = location.pathname.includes('/kpis/browse') ? 'browse' : 'tags';
+    const currentView = location.pathname.includes('/metrics/browse') ? 'browse' : 'tags';
 
     return (
       <nav className={styles.subNavigation}>
         <div className={styles.navLeft}>
           <Link
-            to="/app/kpis/tags"
+            to="/app/metrics/tags"
             className={`${styles.tab} ${currentView === 'tags' ? styles.active : ''}`}
           >
             <Bookmark size={16} />
             My Tags
           </Link>
           <Link
-            to="/app/kpis/browse"
+            to="/app/metrics/browse"
             className={`${styles.tab} ${currentView === 'browse' ? styles.active : ''}`}
           >
             <Search size={16} />

@@ -24,6 +24,13 @@ export default function MarketsList() {
     fetchMarkets();
   }, []);
 
+  useEffect(() => {
+    if (location.state?.refreshMarkets) {
+      fetchMarkets();
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state?.refreshMarkets, navigate]);
+
   const fetchMarkets = async () => {
     try {
       setLoading(true);

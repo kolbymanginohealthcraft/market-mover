@@ -148,14 +148,16 @@ const Header = ({ currentView, selectedMarket }) => {
       return 'Provider Profile';
     } else if (location.pathname.includes('/market/')) {
       return 'Market Analysis';
+    } else if (location.pathname.includes('/enrollment')) {
+      return 'Enrollment Intelligence';
     } else if (location.pathname.includes('/network')) {
       return 'My Network';
     } else if (location.pathname.includes('/procedures')) {
       return 'My Procedures';
     } else if (location.pathname.includes('/diagnoses')) {
       return 'My Diagnoses';
-    } else if (location.pathname.includes('/kpis')) {
-      return 'My KPIs';
+    } else if (location.pathname.includes('/metrics')) {
+      return 'My Metrics';
     } else if (location.pathname.includes('/taxonomies')) {
       return 'My Taxonomies';
     } else if (location.pathname.includes('/claims/storyteller')) {
@@ -255,6 +257,10 @@ const Header = ({ currentView, selectedMarket }) => {
       return [
         { text: 'Geographic market management and intelligence', type: 'description' }
       ];
+    } else if (currentPath.includes('/enrollment')) {
+      return [
+        { text: 'Medicare Advantage enrollment metrics for your saved markets', type: 'description' }
+      ];
     } else if (currentPath.includes('/network')) {
       return [
         { text: 'Manage your provider network and relationships', type: 'description' }
@@ -267,13 +273,13 @@ const Header = ({ currentView, selectedMarket }) => {
       return [
         { text: 'Tag and track diagnosis codes relevant to your business', type: 'description' }
       ];
-    } else if (currentPath.includes('/kpis')) {
+    } else if (currentPath.includes('/metrics')) {
       return [
-        { text: 'Monitor the metrics your team prioritizes most', type: 'description' }
+        { text: 'Monitor the measures your team prioritizes the most', type: 'description' }
       ];
     } else if (currentPath.includes('/taxonomies')) {
       return [
-        { text: 'Keep shared definitions aligned across metrics and measures', type: 'description' }
+        { text: 'Manage your preferences to make analysis of referrals and recruiting easier', type: 'description' }
       ];
     } else if (currentPath.includes('/claims/storyteller')) {
       return [
@@ -356,7 +362,7 @@ const Header = ({ currentView, selectedMarket }) => {
       return <FileBarChart size={18} />;
     } else if (location.pathname.includes('/diagnoses')) {
       return <FileBarChart size={18} />;
-    } else if (location.pathname.includes('/kpis')) {
+    } else if (location.pathname.includes('/metrics')) {
       return <Activity size={18} />;
     } else if (location.pathname.includes('/taxonomies')) {
       return <FileBarChart size={18} />;

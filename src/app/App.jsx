@@ -70,13 +70,15 @@ import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarke
 import Network from "../pages/Private/Network/Network";
 import Procedures from "../pages/Private/Procedures/Procedures";
 import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
-import KPIs from "../pages/Private/KPIs/KPIsLayout";
+import Metrics from "../pages/Private/Metrics/MetricsLayout";
 import Taxonomies from "../pages/Private/Taxonomies/TaxonomiesLayout";
 import ClaimsDataExplorerLayout from "../pages/Private/Investigation/ClaimsDataExplorerLayout";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 import TestProviderOfServices from "../pages/TestProviderOfServices";
 import TestProviderOfServicesEnriched from "../pages/TestProviderOfServicesEnriched";
+import StandaloneEnrollment from "../pages/Private/Standalone/StandaloneEnrollment";
+import StandalonePopulation from "../pages/Private/Standalone/StandalonePopulation";
 
 // Inner App component that has access to UserContext
 function AppContent({ location }) {
@@ -133,6 +135,8 @@ function AppContent({ location }) {
             <Route path="search/ind" element={<AdvancedSearch />} />
             <Route path="explore" element={<Explore />} />
             <Route path="feedback" element={<Feedback />} />
+            <Route path="enrollment/*" element={<StandaloneEnrollment />} />
+            <Route path="population" element={<StandalonePopulation />} />
             
             {/* Provider market analysis view - must come before the simpler provider route */}
             <Route path=":dhc/market/*" element={<ProviderMarketAnalysis />} />
@@ -161,7 +165,8 @@ function AppContent({ location }) {
             <Route path="network/*" element={<Network />} />
             <Route path="procedures/*" element={<Procedures />} />
             <Route path="diagnoses/*" element={<Diagnoses />} />
-            <Route path="kpis/*" element={<KPIs />} />
+            <Route path="metrics/*" element={<Metrics />} />
+            <Route path="kpis/*" element={<Navigate to="/app/metrics" replace />} />
             <Route path="taxonomies/*" element={<Taxonomies />} />
             <Route path="claims/*" element={<ClaimsDataExplorerLayout />} />
             {/* Redirect old HCO/HCP Directory routes to Search the Industry */}

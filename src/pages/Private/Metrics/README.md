@@ -1,25 +1,25 @@
-# My KPIs
+# My Metrics
 
-This directory contains components for managing team-specific KPI (Key Performance Indicator) tags from the storyteller metrics.
+This directory contains components for managing team-specific metric tags (KPIs) from the storyteller metrics.
 
 ## Components
 
-### KPIsLayout.jsx
+### MetricsLayout.jsx
 Parent layout component that handles:
 - Team membership validation
 - Routing between "My Tags" and "Browse All" views
 - Team required state for users without teams
 
-### KPIsTagsView.jsx
-Displays all KPIs tagged by the user's team:
+### MetricsTagsView.jsx
+Displays all metrics tagged by the user's team:
 - Fetches tagged KPIs from `team_kpi_tags` table
 - Enriches tags with details from BigQuery `qm_dictionary`
 - Shows comprehensive KPI information (code, name, label, direction, setting, source, description)
 - Visual direction indicators (up/down arrows with color coding)
 - Delete functionality with confirmation
 
-### KPIsBrowseView.jsx
-Browse and tag KPIs from the storyteller metrics:
+### MetricsBrowseView.jsx
+Browse and tag metrics from the storyteller metrics:
 - Search across code, name, label, and description
 - Filter by setting (Hospital, SNF, HH, etc.) and source
 - Pagination support (50 items per page)
@@ -35,7 +35,7 @@ Browse and tag KPIs from the storyteller metrics:
 
 ## Styling
 
-Uses `KPIs.module.css` with:
+Uses `Metrics.module.css` with:
 - Power BI-inspired table design
 - Consistent with Procedures/Diagnoses styling
 - Responsive pagination
@@ -45,13 +45,13 @@ Uses `KPIs.module.css` with:
 
 ## Routes
 
-- `/app/kpis` - Redirects to `/app/kpis/tags`
-- `/app/kpis/tags` - My Tags view
-- `/app/kpis/browse` - Browse All view
+- `/app/metrics` - Redirects to `/app/metrics/tags`
+- `/app/metrics/tags` - My Tags view
+- `/app/metrics/browse` - Browse All view
 
 ## Dependencies
 
-- Supabase: Team authentication and KPI tag storage
+- Supabase: Team authentication and metric tag storage
 - BigQuery: KPI reference data from `qm_dictionary`
 - Backend API: `/api/kpis-reference`, `/api/kpis-details`, `/api/kpis-filters`
 

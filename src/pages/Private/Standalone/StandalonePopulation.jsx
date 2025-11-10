@@ -1,0 +1,600 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { MapPin, CalendarDays, ChevronDown } from 'lucide-react';
+import { supabase } from '../../../app/supabaseClient';
+import { apiUrl } from '../../../utils/api';
+import useCensusData, { useAvailableCensusYears } from '../../../hooks/useCensusData';
+import useCensusZipTrend from '../../../hooks/useCensusZipTrend';
+import Spinner from '../../../components/Buttons/Spinner';
+import Dropdown from '../../../components/Buttons/Dropdown';
+import CensusDataPanel from '../Results/Population/CensusDataPanel';
+import styles from './StandalonePopulation.module.css';
+
+export default function StandalonePopulation() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [savedMarkets, setSavedMarkets] = useState([]);
+  const [marketsLoading, setMarketsLoading] = useState(false);
+  const [marketsError, setMarketsError] = useState(null);
+
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [selectedMarketId, setSelectedMarketId] = useState(searchParams.get('marketId') || null);
+
+  const initialRadius = useMemo(() => {
+    const param = Number(searchParams.get('radius'));
+    return Number.isFinite(param) && param > 0 ? param : 10;
+  }, [searchParams]);
+
+  const dhcParam = searchParams.get('dhc');
+  const marketIdParam = searchParams.get('marketId');
+  const [radiusInMiles, setRadiusInMiles] = useState(initialRadius);
+
+  const [selectedYear, setSelectedYear] = useState(searchParams.get('year') || '2023');
+  const [geoLevel, setGeoLevel] = useState('tract');
+
+  const { years: availableYears, loading: yearsLoading, error: yearsError } = useAvailableCensusYears();
+
+  const updateSearchParams = useCallback(
+    (changes) => {
+      const next = new URLSearchParams(searchParams);
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === '') {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      });
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  useEffect(() => {
+    if (location.pathname === '/app/population') {
+      return;
+    }
+    // Ensure navigation stays within standalone population routes
+    if (!location.pathname.startsWith('/app/population')) {
+      navigate('/app/population', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    setMarketsLoading(true);
+    setMarketsError(null);
+
+    const loadMarkets = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setSavedMarkets([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('markets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setSavedMarkets(data || []);
+      } catch (err) {
+        console.error('Error fetching markets:', err);
+        setMarketsError('Unable to load saved markets right now.');
+        setSavedMarkets([]);
+      } finally {
+        setMarketsLoading(false);
+      }
+    };
+
+    loadMarkets();
+  }, []);
+
+  useEffect(() => {
+    if (!dhcParam) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchProviderByDhc = async () => {
+      try {
+        const response = await fetch(apiUrl('/api/getProvidersByDhc'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dhc_ids: [String(dhcParam)] }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load provider (${response.status})`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !Array.isArray(result.providers) || result.providers.length === 0) {
+          if (isMounted) {
+            setSelectedProvider(null);
+          }
+          return;
+        }
+
+        const provider = result.providers[0];
+        const normalized = {
+          ...provider,
+          dhc: provider.dhc ? String(provider.dhc) : String(dhcParam),
+          latitude: provider.latitude ? Number(provider.latitude) : null,
+          longitude: provider.longitude ? Number(provider.longitude) : null,
+        };
+
+        const displayName =
+          provider.name ||
+          provider.facility_name ||
+          (provider.city && provider.state ? `${provider.city}, ${provider.state}` : 'Selected provider');
+
+        normalized.name = displayName;
+        normalized.facility_name = provider.facility_name || displayName;
+
+        if (isMounted) {
+          setSelectedProvider(normalized);
+          setSelectedMarketId(null);
+        }
+      } catch (err) {
+        console.error('Error loading provider by DHC:', err);
+        if (isMounted) {
+          setSelectedProvider(null);
+        }
+      }
+    };
+
+    fetchProviderByDhc();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dhcParam]);
+
+  useEffect(() => {
+    if (marketIdParam) {
+      setSelectedProvider(null);
+      setSelectedMarketId(marketIdParam);
+    } else {
+      setSelectedMarketId(null);
+    }
+  }, [marketIdParam]);
+
+  const selectedMarket = useMemo(() => {
+    if (!selectedMarketId) return null;
+    return savedMarkets.find((market) => String(market.id) === String(selectedMarketId)) || null;
+  }, [savedMarkets, selectedMarketId]);
+
+  useEffect(() => {
+    if (!selectedProvider) return;
+    const paramRadius = Number(searchParams.get('radius'));
+    if (Number.isFinite(paramRadius) && paramRadius > 0) {
+      setRadiusInMiles(paramRadius);
+    } else {
+      setRadiusInMiles(10);
+    }
+  }, [selectedProvider, searchParams]);
+
+  useEffect(() => {
+    const sortedYears = [...availableYears]
+      .map((year) => String(year))
+      .filter(Boolean)
+      .sort((a, b) => Number(b) - Number(a));
+
+    if (!sortedYears.length) {
+      return;
+    }
+
+    if (!sortedYears.includes(selectedYear)) {
+      const fallbackYear = sortedYears[0];
+      setSelectedYear(fallbackYear);
+      updateSearchParams({ year: fallbackYear });
+    }
+  }, [availableYears, selectedYear, updateSearchParams]);
+
+  const handleMarketSelect = (market) => {
+    if (!market) {
+      setSelectedMarketId(null);
+      updateSearchParams({ marketId: null });
+      return;
+    }
+    setSelectedMarketId(String(market.id));
+    setSelectedProvider(null);
+    updateSearchParams({
+      marketId: market.id,
+      dhc: null,
+      radius: null,
+      year: selectedYear,
+    });
+  };
+
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    updateSearchParams({ year });
+  };
+
+  const effectiveProvider = useMemo(() => {
+    if (selectedProvider) {
+      const { latitude, longitude } = selectedProvider;
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return null;
+      }
+      return selectedProvider;
+    }
+
+    if (selectedMarket) {
+      const lat = Number(selectedMarket.latitude);
+      const lon = Number(selectedMarket.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return null;
+      }
+      return {
+        name: selectedMarket.name || 'Saved market',
+        facility_name: selectedMarket.name || 'Saved market',
+        latitude: lat,
+        longitude: lon,
+        city: selectedMarket.city,
+        state: selectedMarket.state,
+      };
+    }
+
+    return null;
+  }, [selectedProvider, selectedMarket]);
+
+  const effectiveRadius = useMemo(() => {
+    if (selectedProvider) {
+      return radiusInMiles;
+    }
+    if (selectedMarket) {
+      const value = Number(selectedMarket.radius_miles);
+      return Number.isFinite(value) ? value : null;
+    }
+    return null;
+  }, [selectedProvider, selectedMarket, radiusInMiles]);
+
+  const { data: censusData, loading: censusLoading, error: censusError } = useCensusData(
+    effectiveProvider,
+    effectiveRadius,
+    selectedYear,
+    geoLevel
+  );
+
+  const hasSelection = useMemo(
+    () => Boolean(effectiveProvider && effectiveRadius),
+    [effectiveProvider, effectiveRadius]
+  );
+
+  const zipTrendYears = useMemo(() => {
+    if (!availableYears || availableYears.length === 0) {
+      return { start: selectedYear, end: selectedYear };
+    }
+    const filtered = availableYears
+      .map((year) => Number(year))
+      .filter((year) => Number.isFinite(year) && year >= 2020)
+      .sort((a, b) => a - b);
+
+    if (filtered.length === 0) {
+      const latest = Number(selectedYear) >= 2020 ? Number(selectedYear) : 2020;
+      return { start: String(latest), end: String(latest) };
+    }
+
+    return {
+      start: String(filtered[0]),
+      end: String(filtered[filtered.length - 1]),
+    };
+  }, [availableYears, selectedYear]);
+
+  const {
+    data: zipTrendData,
+    loading: zipTrendLoading,
+    error: zipTrendError,
+  } = useCensusZipTrend(
+    geoLevel === 'zip' && hasSelection ? effectiveProvider : null,
+    geoLevel === 'zip' && hasSelection ? effectiveRadius : null,
+    zipTrendYears.start,
+    zipTrendYears.end,
+    geoLevel === 'zip' && hasSelection
+  );
+
+  const marketTotals = censusData?.market_totals || {};
+  const geographyLabel = geoLevel === 'zip' ? 'ZIP codes' : 'census tracts';
+  const totalUnits = geoLevel === 'zip'
+    ? (marketTotals.total_zip_codes ?? marketTotals.total_tracts ?? 0)
+    : (marketTotals.total_tracts ?? 0);
+  const selectedTrendEntry = useMemo(() => {
+    if (geoLevel !== 'zip' || !zipTrendData?.trend) return null;
+    const targetYear = String(selectedYear);
+    return zipTrendData.trend.find((entry) => entry.year === targetYear) || null;
+  }, [geoLevel, zipTrendData, selectedYear]);
+  const zipTrendRows = useMemo(() => {
+    if (geoLevel !== 'zip' || !zipTrendData?.trend) return [];
+    return [...zipTrendData.trend].sort((a, b) => Number(b.year) - Number(a.year));
+  }, [geoLevel, zipTrendData]);
+  const matchedZipCount = geoLevel === 'zip'
+    ? (selectedTrendEntry?.matchedZipCount
+      ?? marketTotals.matched_zip_codes
+      ?? zipTrendData?.matchedZipCodes?.length
+      ?? censusData?.metadata?.matched_zips?.length
+      ?? 0)
+    : null;
+  const missingZipList = geoLevel === 'zip'
+    ? (selectedTrendEntry?.missingZips ?? [])
+    : [];
+  const missingZipCount = geoLevel === 'zip' ? missingZipList.length : null;
+  const numberFormatter = useMemo(() => new Intl.NumberFormat('en-US'), []);
+  const formatNumber = useCallback(
+    (value) => numberFormatter.format(Math.round(value || 0)),
+    [numberFormatter]
+  );
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.controlsBar}>
+        <div className={styles.controlsGroup}>
+          {savedMarkets.length > 0 ? (
+            <Dropdown
+              trigger={
+                <button type="button" className="sectionHeaderButton">
+                  <MapPin size={14} />
+                  {selectedMarket ? selectedMarket.name : 'Saved Market'}
+                  <ChevronDown size={14} />
+                </button>
+              }
+              isOpen={marketDropdownOpen}
+              onToggle={setMarketDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              {marketsLoading ? (
+                <div className={styles.dropdownStatus}>Loading markets…</div>
+              ) : marketsError ? (
+                <div className={styles.dropdownStatus}>{marketsError}</div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      handleMarketSelect(null);
+                      setMarketDropdownOpen(false);
+                    }}
+                  >
+                    No Market
+                  </button>
+                  <div className={styles.dropdownDivider} />
+                  <div className={styles.dropdownList}>
+                    {savedMarkets.map((market) => {
+                      const isActive =
+                        selectedMarket && String(selectedMarket.id) === String(market.id);
+                      return (
+                        <button
+                          key={market.id}
+                          type="button"
+                          className={`${styles.dropdownItem} ${isActive ? styles.dropdownItemActive : ''}`}
+                          onClick={() => {
+                            handleMarketSelect(market);
+                            setMarketDropdownOpen(false);
+                          }}
+                        >
+                          <span className={styles.dropdownTitle}>{market.name || 'Unnamed market'}</span>
+                          <span className={styles.dropdownSubtitle}>
+                            {market.city}, {market.state} • {market.radius_miles} mi
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </Dropdown>
+          ) : (
+            <div className={styles.emptyNotice}>
+              {marketsLoading ? 'Loading saved markets…' : 'No saved markets yet'}
+            </div>
+          )}
+
+          <Dropdown
+            trigger={
+              <button type="button" className="sectionHeaderButton">
+                <CalendarDays size={14} />
+                {`ACS ${selectedYear}`}
+                <ChevronDown size={14} />
+              </button>
+            }
+            isOpen={yearDropdownOpen}
+            onToggle={setYearDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            {yearsLoading ? (
+              <div className={styles.dropdownStatus}>Loading years…</div>
+            ) : yearsError ? (
+              <div className={styles.dropdownStatus}>Unable to load years.</div>
+            ) : (
+              (availableYears || [])
+                .map((year) => String(year))
+                .filter(Boolean)
+                .sort((a, b) => Number(b) - Number(a))
+                .map((year) => (
+                  <button
+                    key={year}
+                    type="button"
+                    className={`${styles.dropdownItem} ${
+                      selectedYear === year ? styles.dropdownItemActive : ''
+                    }`}
+                    onClick={() => {
+                      handleYearChange(year);
+                      setYearDropdownOpen(false);
+                    }}
+                  >
+                    {year}
+                  </button>
+                ))
+            )}
+          </Dropdown>
+        </div>
+
+        <div className={styles.geoToggle} role="group" aria-label="Geography level">
+          <button
+            type="button"
+            className={`sectionHeaderButton ${styles.geoButton} ${geoLevel === 'tract' ? styles.geoButtonActive : ''}`}
+            onClick={() => setGeoLevel('tract')}
+            aria-pressed={geoLevel === 'tract'}
+          >
+            Census tracts
+          </button>
+          <button
+            type="button"
+            className={`sectionHeaderButton ${styles.geoButton} ${geoLevel === 'zip' ? styles.geoButtonActive : ''}`}
+            onClick={() => setGeoLevel('zip')}
+            aria-pressed={geoLevel === 'zip'}
+          >
+            ZIP codes
+          </button>
+        </div>
+
+        <div className={styles.spacer} />
+
+        <div className={styles.metaGroup}>
+          {hasSelection && (
+            <div className={styles.metaPill}>
+              <span>{totalUnits}</span>
+              <span className={styles.metaDivider}>•</span>
+              <span>{geographyLabel}</span>
+            </div>
+          )}
+          {geoLevel === 'zip' && hasSelection && (
+            <div className={`${styles.metaPill} ${missingZipCount ? styles.metaPillWarning : ''}`}>
+              <span>{matchedZipCount} ZIPs in ACS</span>
+              {missingZipCount ? (
+                <>
+                  <span className={styles.metaDivider}>•</span>
+                  <span>{missingZipCount} missing</span>
+                </>
+              ) : null}
+            </div>
+          )}
+          {selectedMarket && (
+            <div className={styles.metaPill}>
+              <span>{selectedMarket.city}, {selectedMarket.state}</span>
+              {selectedMarket.radius_miles && (
+                <>
+                  <span className={styles.metaDivider}>•</span>
+                  <span>{selectedMarket.radius_miles} mi radius</span>
+                </>
+              )}
+            </div>
+          )}
+          {selectedProvider && (
+            <div className={styles.metaPill}>
+              <span>{selectedProvider.name}</span>
+              {radiusInMiles && (
+                <>
+                  <span className={styles.metaDivider}>•</span>
+                  <span>{radiusInMiles} mi radius</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {geoLevel === 'zip' && hasSelection && selectedTrendEntry && missingZipCount ? (
+        <div className={styles.missingNotice}>
+          Some ZIP codes in this circle are not available for ACS {selectedYear}:{" "}
+          {missingZipList.slice(0, 6).join(', ')}
+          {missingZipCount > 6 ? ` (+${missingZipCount - 6} more)` : ''}
+        </div>
+      ) : null}
+
+      <div className={styles.content}>
+        {!hasSelection ? (
+          <div className={styles.emptyState}>
+            <h2>Select a saved market</h2>
+            <p>Choose a market from the controls above to explore {geographyLabel.toLowerCase()} demographics.</p>
+          </div>
+        ) : censusLoading ? (
+          <div className={styles.loadingState}>
+            <Spinner message="Loading population data…" />
+          </div>
+        ) : censusError ? (
+          <div className={styles.errorPanel}>
+            <h3>Population data unavailable</h3>
+            <p>{censusError}</p>
+          </div>
+        ) : (
+          <>
+            {geoLevel === 'zip' && (
+              <div className={styles.trendSection}>
+                <div className={styles.trendCard}>
+                  <div className={styles.trendHeader}>
+                    <div>
+                      <h3>ZIP population trend</h3>
+                      <p>
+                        ACS 5-year estimates ({zipTrendYears.start}–{zipTrendYears.end})
+                      </p>
+                    </div>
+                  </div>
+                  {zipTrendLoading ? (
+                    <div className={styles.trendLoading}>
+                      <Spinner message="Loading ZIP trend…" />
+                    </div>
+                  ) : zipTrendError ? (
+                    <div className={styles.trendError}>
+                      Unable to load ZIP trend data: {zipTrendError}
+                    </div>
+                  ) : zipTrendRows?.length ? (
+                    <table className={styles.trendTable}>
+                      <thead>
+                        <tr>
+                          <th>Year</th>
+                          <th>Total population</th>
+                          <th>ZIPs matched</th>
+                          <th>Missing ZIPs</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {zipTrendRows.map((entry) => (
+                          <tr
+                            key={entry.year}
+                            className={entry.year === String(selectedYear) ? styles.trendRowActive : undefined}
+                          >
+                            <td>{entry.year}</td>
+                            <td>{formatNumber(entry.totalPopulation)}</td>
+                            <td>{entry.matchedZipCount}</td>
+                            <td className={entry.missingZipCount ? styles.missingCell : undefined}>
+                              {entry.missingZipCount}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className={styles.trendEmpty}>
+                      No ZIP trend data available for this location.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <CensusDataPanel
+              provider={effectiveProvider}
+              radiusInMiles={effectiveRadius}
+              censusData={censusData}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Code, GitBranch } from 'lucide-react';
+import { MapPin, Code, GitBranch, LayoutTemplate } from 'lucide-react';
 import styles from './UnfinishedItems.module.css';
 
 export default function UnfinishedItems() {
@@ -31,6 +31,13 @@ export default function UnfinishedItems() {
       description: 'Referral source and downstream facility analysis',
       path: '/app/platform/unfinished/referral-pathways',
       icon: GitBranch
+    },
+    {
+      id: 'mobile-workshop',
+      title: 'Mobile Navigation Workshop',
+      description: 'Prototype responsive header and sidebar behavior',
+      path: '/app/platform/unfinished/mobile-workshop',
+      icon: LayoutTemplate
     }
   ];
 

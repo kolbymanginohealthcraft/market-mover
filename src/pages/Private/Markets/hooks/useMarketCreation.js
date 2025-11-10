@@ -95,8 +95,8 @@ export const useMarketCreation = () => {
 
       const market = await saveMarket(marketData);
 
-      // Navigate to the new market
-      navigate(`/app/market/${market.id}/overview`);
+      // Navigate back to the markets list and trigger a refresh
+      navigate('/app/markets/list', { state: { refreshMarkets: true } });
 
     } catch (err) {
       console.error('Error creating market:', err);

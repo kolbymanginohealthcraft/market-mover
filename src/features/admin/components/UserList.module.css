@@ -1,5 +1,6 @@
 .container {
   width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--gray-50, #f9fafb);
@@ -76,6 +77,7 @@
 /* Main Layout */
 .mainLayout {
   flex: 1;
+  height: 100%;
   display: flex;
   position: relative;
   min-height: 0;
@@ -84,7 +86,8 @@
 
 /* Left Sidebar */
 .sidebar {
-  width: 320px;
+  width: 260px;
+  height: 100%;
   background: white;
   border-right: 1px solid var(--gray-200, #e5e7eb);
   display: flex;
@@ -96,7 +99,7 @@
 }
 
 .sidebarStats {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--gray-100, #f3f4f6);
 }
 
@@ -110,20 +113,20 @@
 }
 
 .sidebarHeader {
-  padding: 20px;
+  padding: 16px;
   border-bottom: 1px solid var(--gray-200, #e5e7eb);
 }
 
 .sidebarHeader h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 2px 0;
+  font-size: 15px;
   font-weight: 600;
   color: var(--gray-900, #111827);
 }
 
 .sidebarHeader p {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--gray-600, #4b5563);
 }
 
@@ -210,7 +213,7 @@
 }
 
 .filterSectionPadding {
-  padding: 16px 20px;
+  padding: 12px 16px;
 }
 
 .filterSectionPadding :global(.searchBarContainer) {
@@ -220,16 +223,16 @@
 
 .filterSectionLabel {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--gray-700, #374151);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .filterList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .filterOption {
@@ -239,9 +242,9 @@
   width: 100%;
   background: none;
   border: none;
-  padding: 8px 0;
+  padding: 6px 0;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--gray-700, #374151);
   border-radius: 6px;
   transition: color 0.15s ease, background 0.15s ease;
@@ -264,46 +267,47 @@
 }
 
 .filterOptionCount {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--gray-500, #6b7280);
-  margin-left: 12px;
+  margin-left: 8px;
 }
 
 .filterOptionActive .filterOptionCount {
   color: #3599b8;
 }
 
-.filterCheckbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--gray-700, #374151);
+.filterPlaceholder {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gray-100, #f3f4f6) 0%, var(--gray-200, #e5e7eb) 50%, var(--gray-100, #f3f4f6) 100%);
+  background-size: 200% 100%;
+  animation: filterPlaceholderShimmer 1.5s ease-in-out infinite;
 }
 
-.filterCheckbox input[type="radio"] {
-  cursor: pointer;
-}
-
-.filterCheckbox:hover {
-  color: #3599b8;
+@keyframes filterPlaceholderShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Content Area */
 .contentArea {
   flex: 1;
-  padding: 24px;
+  padding: 20px;
   background: var(--gray-50, #f9fafb);
-  overflow-y: auto;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .filterFooter {
-  padding: 16px 20px 20px;
+  padding: 12px 16px 16px;
   border-top: 1px solid var(--gray-100, #f3f4f6);
   margin-top: auto;
 }
@@ -377,12 +381,23 @@
   font-weight: 600;
 }
 
+.loadingText {
+  color: var(--gray-500, #6b7280);
+  font-style: italic;
+}
+
 .listingTab {
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 16px;
 }
 
 .tableControls {
-  margin-bottom: 16px;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .tableSearchRow {
@@ -415,6 +430,11 @@
 }
 .teamsTab {
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Filter Chips */
@@ -525,11 +545,27 @@
   border: 1px solid var(--gray-200, #e5e7eb);
   border-radius: 6px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.tableScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .table th {
@@ -651,12 +687,12 @@
     padding: 16px;
   }
 
-  .stats {
-    grid-template-columns: 1fr;
+  .tableScroll {
+    overflow-x: auto;
   }
 
-  .tableContainer {
-    overflow-x: auto;
+  .stats {
+    grid-template-columns: 1fr;
   }
 
   .table {

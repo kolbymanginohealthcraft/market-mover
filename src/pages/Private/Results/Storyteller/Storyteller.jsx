@@ -4,7 +4,7 @@ import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
 import styles from "./Storyteller.module.css";
 
-function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false, showMyKpisOnly = false, myKpiCodes = [] }) {
+function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false, showMyKpisOnly = false, myKpiCodes = [], highlightedDhcKeys = [], highlightedDhcByType = new Map(), highlightTagTypes = [], highlightPrimaryProvider = true }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   
@@ -106,6 +106,10 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           forcedLoading={isLoading}
           showMyKpisOnly={showMyKpisOnly}
           myKpiCodes={myKpiCodes}
+          highlightedDhcKeys={highlightedDhcKeys}
+          highlightedDhcByType={highlightedDhcByType}
+          highlightTagTypes={highlightTagTypes}
+          highlightPrimaryProvider={highlightPrimaryProvider}
         />
       } />
       <Route path="benchmarks" element={
@@ -124,6 +128,10 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           providerLabels={providerLabels}
           showMyKpisOnly={showMyKpisOnly}
           myKpiCodes={myKpiCodes}
+          highlightedDhcKeys={highlightedDhcKeys}
+          highlightedDhcByType={highlightedDhcByType}
+          highlightTagTypes={highlightTagTypes}
+          highlightPrimaryProvider={highlightPrimaryProvider}
         />
       } />
       <Route path="*" element={<Navigate to={`scorecard${location.search}`} replace />} />

@@ -6,6 +6,23 @@ import vendorBigQuery from "../utils/vendorBigQueryClient.js";
 
 const router = express.Router();
 
+const cleanCityName = (value) => {
+  if (!value || typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  const suffixes = new Set(['city', 'village', 'town', 'cdp']);
+  const parts = trimmed.split(/\s+/);
+  if (parts.length < 2) return trimmed;
+  const last = parts[parts.length - 1];
+  const normalized = last.toLowerCase();
+  const isAllLower = last === last.toLowerCase();
+  const isAllUpper = last === last.toUpperCase();
+  if (suffixes.has(normalized) && (isAllLower || isAllUpper || normalized === 'cdp')) {
+    parts.pop();
+    return parts.join(' ');
+  }
+  return trimmed;
+};
+
 /**
  * GET /api/market-geography/profile
  * Get geographic breakdown of HCO data by county, city, ZIP
@@ -197,6 +214,8 @@ router.get("/boundaries", async (req, res) => {
       query = `
         SELECT 
           zip_code,
+          city,
+          state_code,
           ST_AsGeoJSON(ST_SIMPLIFY(zip_code_geom, 100)) as geometry
         FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\`
         WHERE ST_INTERSECTS(
@@ -229,6 +248,7 @@ router.get("/boundaries", async (req, res) => {
       type: 'Feature',
       properties: {
         ...row,
+        city: cleanCityName(row.city),
         geometry: undefined // Remove geometry from properties
       },
       geometry: JSON.parse(row.geometry)

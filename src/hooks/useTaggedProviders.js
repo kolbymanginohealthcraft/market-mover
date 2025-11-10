@@ -128,41 +128,52 @@ export default function useTaggedProviders() {
     }
   };
 
+  const getTeamContext = async () => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('team_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.team_id) {
+      throw new Error('User not part of a team');
+    }
+
+    return { teamId: profile.team_id };
+  };
+
+  const deleteTagsForProviders = async (providerDhcs) => {
+    const uniqueDhcs = Array.from(new Set(providerDhcs));
+    if (uniqueDhcs.length === 0) return;
+    
+    const { teamId } = await getTeamContext();
+
+    const { error: deleteError } = await supabase
+      .from('team_provider_tags')
+      .delete()
+      .eq('team_id', teamId)
+      .in('provider_dhc', uniqueDhcs);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
+    const removalSet = new Set(uniqueDhcs);
+    setTaggedProviders(prev => prev.filter(p => !removalSet.has(p.provider_dhc)));
+  };
+
   // Remove all tags for a provider
   const removeAllProviderTags = async (providerDhc) => {
     try {
       setRemovingTag(providerDhc);
       setError(null);
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Get user's team_id
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('team_id')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profile?.team_id) {
-        throw new Error('User not part of a team');
-      }
-
-      // Remove all tags for this provider
-      const { error: deleteError } = await supabase
-        .from('team_provider_tags')
-        .delete()
-        .eq('team_id', profile.team_id)
-        .eq('provider_dhc', providerDhc);
-
-      if (deleteError) {
-        throw new Error(deleteError.message);
-      }
-
-      // Update local state
-      setTaggedProviders(prev => prev.filter(p => p.provider_dhc !== providerDhc));
+      await deleteTagsForProviders([providerDhc]);
     } catch (err) {
       console.error('Error removing provider tags:', err);
       setError(err.message);
@@ -171,65 +182,75 @@ export default function useTaggedProviders() {
     }
   };
 
-  // Change a specific tag for a provider
-  const changeProviderTag = async (providerDhc, oldTagType, newTagType) => {
+  // Remove all tags for multiple providers at once
+  const removeMultipleProviderTags = async (providerDhcs) => {
     try {
-      setRemovingTag(providerDhc);
       setError(null);
+      await deleteTagsForProviders(providerDhcs);
+    } catch (err) {
+      console.error('Error removing provider tags:', err);
+      setError(err.message);
+      throw err;
+    }
+  };
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('User not authenticated');
-      }
+  const changeMultipleProviderTags = async (providerDhcs, newTagType) => {
+    const uniqueDhcs = Array.from(new Set(providerDhcs));
+    if (uniqueDhcs.length === 0) return;
 
-      // Get user's team_id
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('team_id')
-        .eq('id', user.id)
-        .single();
+    try {
+      setError(null);
+      const { teamId } = await getTeamContext();
 
-      if (profileError || !profile?.team_id) {
-        throw new Error('User not part of a team');
-      }
-
-      // Remove ALL existing tags for this provider first
       const { error: deleteError } = await supabase
         .from('team_provider_tags')
         .delete()
-        .eq('team_id', profile.team_id)
-        .eq('provider_dhc', providerDhc);
+        .eq('team_id', teamId)
+        .in('provider_dhc', uniqueDhcs);
 
       if (deleteError) {
         throw new Error(deleteError.message);
       }
 
-      // Add the new tag
+      const rows = uniqueDhcs.map(provider_dhc => ({
+        team_id: teamId,
+        provider_dhc,
+        tag_type: newTagType
+      }));
+
       const { error: insertError } = await supabase
         .from('team_provider_tags')
-        .insert({
-          team_id: profile.team_id,
-          provider_dhc: providerDhc,
-          tag_type: newTagType
-        });
+        .insert(rows);
 
       if (insertError) {
         throw new Error(insertError.message);
       }
 
-      // Update local state - replace all tags with just the new one
+      const updateSet = new Set(uniqueDhcs);
       setTaggedProviders(prev => prev.map(provider => {
-        if (provider.provider_dhc === providerDhc) {
+        if (updateSet.has(provider.provider_dhc)) {
           return {
             ...provider,
-            tags: [newTagType] // Only one tag per provider
+            tags: [newTagType]
           };
         }
         return provider;
       }));
     } catch (err) {
-      console.error('Error changing provider tag:', err);
+      console.error('Error changing provider tags:', err);
       setError(err.message);
+      throw err;
+    }
+  };
+
+  // Change a specific tag for a provider
+  const changeProviderTag = async (providerDhc, _oldTagType, newTagType) => {
+    try {
+      setRemovingTag(providerDhc);
+      await changeMultipleProviderTags([providerDhc], newTagType);
+    } catch (err) {
+      // changeMultipleProviderTags handles logging and error state
+      throw err;
     } finally {
       setRemovingTag(null);
     }
@@ -264,6 +285,8 @@ export default function useTaggedProviders() {
     error,
     removingTag,
     removeAllProviderTags,
+    removeMultipleProviderTags,
+    changeMultipleProviderTags,
     changeProviderTag,
     isTaggedProvider,
     getProviderTags,

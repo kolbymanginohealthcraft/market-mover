@@ -25,6 +25,7 @@ export default function UserList() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('listing');
+  const [metadataLoading, setMetadataLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -100,10 +101,13 @@ export default function UserList() {
   };
 
   const loadUserMetadata = async (userIds) => {
+    setMetadataLoading(true);
+
     if (!userIds || userIds.length === 0) {
       setLoginHistory({});
       setActivityCounts({});
       setActivityCounts7Days({});
+      setMetadataLoading(false);
       return;
     }
 
@@ -119,6 +123,8 @@ export default function UserList() {
       setActivityCounts7Days(counts7Days || {});
     } catch (err) {
       console.error('Error loading user metadata:', err);
+    } finally {
+      setMetadataLoading(false);
     }
   };
 
@@ -649,16 +655,22 @@ export default function UserList() {
                 <div className={styles.filterSectionPadding}>
                   <span className={styles.filterSectionLabel}>Total Activity</span>
                   <div className={styles.filterList}>
-                    {usageOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        className={`${styles.filterOption} ${activityLevelFilter === option.value ? styles.filterOptionActive : ''}`}
-                        onClick={() => handleRowFilter('activityLevel', option.value)}
-                      >
-                        <span className={styles.filterOptionLabel}>{option.label}</span>
-                        <span className={styles.filterOptionCount}>{option.count}</span>
-                      </button>
-                    ))}
+                    {metadataLoading ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <div key={index} className={styles.filterPlaceholder} />
+                      ))
+                    ) : (
+                      usageOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          className={`${styles.filterOption} ${activityLevelFilter === option.value ? styles.filterOptionActive : ''}`}
+                          onClick={() => handleRowFilter('activityLevel', option.value)}
+                        >
+                          <span className={styles.filterOptionLabel}>{option.label}</span>
+                          <span className={styles.filterOptionCount}>{option.count}</span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -667,16 +679,22 @@ export default function UserList() {
                 <div className={styles.filterSectionPadding}>
                   <span className={styles.filterSectionLabel}>7-Day Activity</span>
                   <div className={styles.filterList}>
-                    {recentActivityOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        className={`${styles.filterOption} ${activityLevel7DaysFilter === option.value ? styles.filterOptionActive : ''}`}
-                        onClick={() => handleRowFilter('activityLevel7Days', option.value)}
-                      >
-                        <span className={styles.filterOptionLabel}>{option.label}</span>
-                        <span className={styles.filterOptionCount}>{option.count}</span>
-                      </button>
-                    ))}
+                    {metadataLoading ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <div key={index} className={styles.filterPlaceholder} />
+                      ))
+                    ) : (
+                      recentActivityOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          className={`${styles.filterOption} ${activityLevel7DaysFilter === option.value ? styles.filterOptionActive : ''}`}
+                          onClick={() => handleRowFilter('activityLevel7Days', option.value)}
+                        >
+                          <span className={styles.filterOptionLabel}>{option.label}</span>
+                          <span className={styles.filterOptionCount}>{option.count}</span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -685,16 +703,22 @@ export default function UserList() {
                 <div className={styles.filterSectionPadding}>
                   <span className={styles.filterSectionLabel}>Login Status</span>
                   <div className={styles.filterList}>
-                    {loginStatusOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        className={`${styles.filterOption} ${loginStatusFilter === option.value ? styles.filterOptionActive : ''}`}
-                        onClick={() => handleRowFilter('loginStatus', option.value)}
-                      >
-                        <span className={styles.filterOptionLabel}>{option.label}</span>
-                        <span className={styles.filterOptionCount}>{option.count}</span>
-                      </button>
-                    ))}
+                    {metadataLoading ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <div key={index} className={styles.filterPlaceholder} />
+                      ))
+                    ) : (
+                      loginStatusOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          className={`${styles.filterOption} ${loginStatusFilter === option.value ? styles.filterOptionActive : ''}`}
+                          onClick={() => handleRowFilter('loginStatus', option.value)}
+                        >
+                          <span className={styles.filterOptionLabel}>{option.label}</span>
+                          <span className={styles.filterOptionCount}>{option.count}</span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -762,110 +786,122 @@ export default function UserList() {
                   </div>
                 </div>
                 <div className={styles.tableContainer}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th onClick={() => handleSort('email')} className={styles.sortable}>
-                          Email
-                          {sortBy === 'email' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                        <th onClick={() => handleSort('name')} className={styles.sortable}>
-                          Name
-                          {sortBy === 'name' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                        <th onClick={() => handleSort('role')} className={styles.sortable}>
-                          Role
-                          {sortBy === 'role' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                        <th onClick={() => handleSort('team')} className={styles.sortable}>
-                          Team
-                          {sortBy === 'team' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                        <th onClick={() => handleSort('last_login')} className={styles.sortable}>
-                          Last Login
-                          {sortBy === 'last_login' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                        <th onClick={() => handleSort('total_activities')} className={styles.sortable}>
-                          Total Activities
-                          {sortBy === 'total_activities' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                        <th onClick={() => handleSort('activities_7days')} className={styles.sortable}>
-                          Activities (7 Days)
-                          {sortBy === 'activities_7days' && (
-                            <span className={styles.sortIndicator}>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map(user => {
-                        return (
-                          <tr 
-                            key={user.id}
-                            className={styles.clickableRow}
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsModalOpen(true);
-                            }}
-                          >
-                            <td>{user.email}</td>
-                            <td>
-                              <div className={styles.userName}>
-                                {user.first_name} {user.last_name}
-                              </div>
-                            </td>
-                            <td>
-                              {user.role || 'No Role'}
-                            </td>
-                            <td>
-                              {user.teams ? user.teams.name : <span className={styles.noTeam}>No Team</span>}
-                            </td>
-                            <td>
-                              {loginHistory[user.id]?.lastSignIn ? (
-                                formatDate(loginHistory[user.id].lastSignIn)
-                              ) : (
-                                <span className={styles.noTeam}>Never</span>
+                  {filteredUsers.length > 0 ? (
+                    <div className={styles.tableScroll}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th onClick={() => handleSort('email')} className={styles.sortable}>
+                              Email
+                              {sortBy === 'email' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
                               )}
-                            </td>
-                            <td>
-                              {activityCounts[user.id] || 0}
-                            </td>
-                            <td>
-                              {activityCounts7Days[user.id] || 0}
-                            </td>
+                            </th>
+                            <th onClick={() => handleSort('name')} className={styles.sortable}>
+                              Name
+                              {sortBy === 'name' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
+                            <th onClick={() => handleSort('role')} className={styles.sortable}>
+                              Role
+                              {sortBy === 'role' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
+                            <th onClick={() => handleSort('team')} className={styles.sortable}>
+                              Team
+                              {sortBy === 'team' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
+                            <th onClick={() => handleSort('last_login')} className={styles.sortable}>
+                              Last Login
+                              {sortBy === 'last_login' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
+                            <th onClick={() => handleSort('total_activities')} className={styles.sortable}>
+                              Total Activities
+                              {sortBy === 'total_activities' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
+                            <th onClick={() => handleSort('activities_7days')} className={styles.sortable}>
+                              Activities (7 Days)
+                              {sortBy === 'activities_7days' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-
-                  {filteredUsers.length === 0 && (
+                        </thead>
+                        <tbody>
+                          {filteredUsers.map(user => {
+                            return (
+                              <tr 
+                                key={user.id}
+                                className={styles.clickableRow}
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setIsModalOpen(true);
+                                }}
+                              >
+                                <td>{user.email}</td>
+                                <td>
+                                  <div className={styles.userName}>
+                                    {user.first_name} {user.last_name}
+                                  </div>
+                                </td>
+                                <td>
+                                  {user.role || 'No Role'}
+                                </td>
+                                <td>
+                                  {user.teams ? user.teams.name : <span className={styles.noTeam}>No Team</span>}
+                                </td>
+                                <td>
+                                  {metadataLoading ? (
+                                    <span className={styles.loadingText}>Loading…</span>
+                                  ) : loginHistory[user.id]?.lastSignIn ? (
+                                    formatDate(loginHistory[user.id].lastSignIn)
+                                  ) : (
+                                    <span className={styles.noTeam}>Never</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {metadataLoading ? (
+                                    <span className={styles.loadingText}>Loading…</span>
+                                  ) : (
+                                    activityCounts[user.id] ?? 0
+                                  )}
+                                </td>
+                                <td>
+                                  {metadataLoading ? (
+                                    <span className={styles.loadingText}>Loading…</span>
+                                  ) : (
+                                    activityCounts7Days[user.id] ?? 0
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
                     <div className={styles.emptyState}>
                       <Users className={styles.emptyIcon} />
                       <h3>No users found</h3>

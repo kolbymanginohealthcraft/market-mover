@@ -40,7 +40,9 @@ export default function NetworkListView() {
     loading,
     error,
     removingTag,
+    removeMultipleProviderTags,
     removeAllProviderTags,
+    changeMultipleProviderTags,
     changeProviderTag,
     getProviderTags,
   } = useTaggedProviders();
@@ -173,13 +175,7 @@ export default function NetworkListView() {
     
     try {
       const editCount = selectedProviders.size;
-      for (const providerDhc of selectedProviders) {
-        // Find the first tag for this provider to change
-        const provider = taggedProviders.find(p => p.provider_dhc === providerDhc);
-        if (provider && provider.tags.length > 0) {
-          await changeProviderTag(providerDhc, provider.tags[0], bulkEditTag);
-        }
-      }
+      await changeMultipleProviderTags(Array.from(selectedProviders), bulkEditTag);
       setSelectedProviders(new Set());
       setBulkEditTag('');
       setBulkMessage(`✅ Successfully updated ${editCount} provider${editCount !== 1 ? 's' : ''}`);
@@ -205,9 +201,7 @@ export default function NetworkListView() {
     if (window.confirm(`Remove all tags for ${selectedProviders.size} selected providers?`)) {
       try {
         const deleteCount = selectedProviders.size;
-        for (const providerDhc of selectedProviders) {
-          await removeAllProviderTags(providerDhc);
-        }
+        await removeMultipleProviderTags(Array.from(selectedProviders));
         setSelectedProviders(new Set());
         setBulkMessage(`✅ Successfully removed tags from ${deleteCount} provider${deleteCount !== 1 ? 's' : ''}`);
         setBulkMessageType('success');
@@ -644,11 +638,20 @@ export default function NetworkListView() {
                     </Dropdown>
                     
                     <button 
+                      className={styles.removeButton}
+                      onClick={handleBulkDelete}
+                      type="button"
+                    >
+                      Remove tags
+                    </button>
+
+                    <button 
                       className={styles.cancelButton}
                       onClick={() => {
                         setSelectedProviders(new Set());
                         setBulkEditTag('');
                       }}
+                      type="button"
                     >
                       Cancel
                     </button>
@@ -656,6 +659,7 @@ export default function NetworkListView() {
                     <button 
                       className={styles.saveButton}
                       onClick={handleBulkEdit}
+                      type="button"
                       disabled={!bulkEditTag}
                     >
                       Apply

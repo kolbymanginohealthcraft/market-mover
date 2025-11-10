@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from './ProviderComparisonMatrix.module.css'; // Create this CSS module for styling
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -32,6 +32,10 @@ const ProviderComparisonMatrix = ({
   availablePublishDates = [],
   selectedPublishDate,
   setSelectedPublishDate,
+  highlightedDhcKeys = [],
+  highlightedDhcByType = new Map(),
+  highlightTagTypes = [],
+  highlightPrimaryProvider = true,
 }) => {
   // Sidebar: measure selection and drag-and-drop order
   const allMeasureCodes = measures.map((m) => m.code);
@@ -72,6 +76,40 @@ const ProviderComparisonMatrix = ({
     ...(provider ? [{ key: provider.dhc, label: provider.name, type: 'provider', providerObj: provider }] : []),
     ...competitors.map((c) => ({ key: c.dhc, label: c.name, type: 'competitor', providerObj: c })),
   ];
+
+  const highlightedSet = useMemo(() => {
+    if (!Array.isArray(highlightedDhcKeys) || highlightedDhcKeys.length === 0) {
+      return new Set();
+    }
+    return new Set(highlightedDhcKeys.map(key => String(key)));
+  }, [highlightedDhcKeys]);
+
+  const highlightTypePriority = useMemo(() => (
+    Array.isArray(highlightTagTypes) ? highlightTagTypes : []
+  ), [highlightTagTypes]);
+
+  const highlightTypeClassMap = useMemo(() => ({
+    me: styles.highlightMeRow,
+    partner: styles.highlightPartnerRow,
+    competitor: styles.highlightCompetitorRow,
+    target: styles.highlightTargetRow,
+  }), []);
+
+  const highlightedMap = useMemo(() => {
+    if (highlightedDhcByType && typeof highlightedDhcByType.get === 'function') {
+      return highlightedDhcByType;
+    }
+    const fallback = new Map();
+    if (Array.isArray(highlightedDhcByType)) {
+      highlightedDhcByType.forEach(entry => {
+        if (!entry) return;
+        const { dhc, tagTypes } = entry;
+        if (!dhc) return;
+        fallback.set(String(dhc), new Set(Array.isArray(tagTypes) ? tagTypes : []));
+      });
+    }
+    return fallback;
+  }, [highlightedDhcByType]);
 
   // Helper to get cell value
   const getCell = (rowKey, measureCode) => {
@@ -253,10 +291,46 @@ const ProviderComparisonMatrix = ({
               </tr>
             </thead>
             <tbody>
-              {sortedRows.map((row, rowIdx) => (
-                <tr key={row.key} className={row.key === provider?.dhc ? styles.mainProviderRow : undefined}>
+              {sortedRows.map((row, rowIdx) => {
+                const rowKeyString = row?.key !== null && row?.key !== undefined ? String(row.key) : '';
+                const providerKeyString = provider?.dhc !== null && provider?.dhc !== undefined ? String(provider.dhc) : '';
+                const isPrimaryProviderRow = Boolean(highlightPrimaryProvider && providerKeyString && rowKeyString === providerKeyString);
+
+                const rowHighlightEntry = rowKeyString ? highlightedMap.get(rowKeyString) : null;
+                const rowHighlightSet = rowHighlightEntry instanceof Set
+                  ? rowHighlightEntry
+                  : Array.isArray(rowHighlightEntry)
+                    ? new Set(rowHighlightEntry)
+                    : null;
+
+                const hasRowHighlight = Boolean(rowHighlightSet && rowHighlightSet.size > 0 && highlightedSet.has(rowKeyString));
+
+                let appliedHighlightType = null;
+                if (hasRowHighlight) {
+                  if (highlightTypePriority.length > 0) {
+                    appliedHighlightType = highlightTypePriority.find(type => rowHighlightSet.has(type)) || null;
+                  }
+                  if (!appliedHighlightType) {
+                    const [firstType] = Array.from(rowHighlightSet.values());
+                    appliedHighlightType = firstType || null;
+                  }
+                }
+
+                const rowClassNames = [];
+                if (hasRowHighlight && appliedHighlightType) {
+                  const typeClass = highlightTypeClassMap[appliedHighlightType];
+                  if (typeClass) {
+                    rowClassNames.push(typeClass);
+                  }
+                } else if (isPrimaryProviderRow) {
+                  rowClassNames.push(styles.mainProviderRow);
+                }
+
+                return (
+                  <tr key={row.key} className={rowClassNames.length > 0 ? rowClassNames.join(' ') : undefined}>
                   <td
                     className={`${styles.stickyCol} ${styles.ellipsisCell}`}
+                    data-highlight-tag={hasRowHighlight && appliedHighlightType ? appliedHighlightType : undefined}
                     onMouseEnter={e => {
                       const name = row.label || row.providerObj?.facility_name || '';
                       const locationParts = [
@@ -312,8 +386,9 @@ const ProviderComparisonMatrix = ({
                       </td>
                     );
                   })}
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {/* Tooltip popup (fixed position, not clipped) */}

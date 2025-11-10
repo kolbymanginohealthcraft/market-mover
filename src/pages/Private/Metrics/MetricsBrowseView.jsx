@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import { Plus, Search as SearchIcon, Tag, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
-import styles from './KPIs.module.css';
+import styles from './Metrics.module.css';
 
-export default function KPIsBrowseView() {
+export default function MetricsBrowseView() {
   const [kpiTags, setKpiTags] = useState([]);
   const [referenceKpis, setReferenceKpis] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +45,7 @@ export default function KPIsBrowseView() {
 
       setKpiTags(data || []);
     } catch (err) {
-      console.error('Error fetching KPI tags:', err);
+      console.error('Error fetching metric tags:', err);
     }
   }
 
@@ -80,13 +80,13 @@ export default function KPIsBrowseView() {
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error(result.message || 'Failed to fetch KPIs');
+        throw new Error(result.message || 'Failed to fetch metrics');
       }
       
       setTotalCount(result.pagination.total);
       setReferenceKpis(result.data || []);
     } catch (err) {
-      console.error('Error fetching reference KPIs:', err);
+      console.error('Error fetching reference metrics:', err);
       setError(err.message);
     } finally {
       setSearchLoading(false);
@@ -156,7 +156,7 @@ export default function KPIsBrowseView() {
 
       await fetchKpiTags();
     } catch (err) {
-      console.error('Error toggling KPI tag:', err);
+      console.error('Error toggling metric tag:', err);
       setError(err.message);
     }
   }
@@ -307,12 +307,12 @@ export default function KPIsBrowseView() {
       {searchLoading && referenceKpis.length === 0 ? (
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
-          <p>Loading KPIs...</p>
+          <p>Loading metrics...</p>
         </div>
       ) : referenceKpis.length === 0 ? (
         <div className={styles.emptyState}>
           <SearchIcon size={48} />
-          <h3>No KPIs Found</h3>
+          <h3>No Metrics Found</h3>
           <p>Try adjusting your search terms or filters</p>
         </div>
       ) : (
@@ -364,7 +364,7 @@ export default function KPIsBrowseView() {
                         <button
                           className={`sectionHeaderButton ${tagged ? 'primary' : ''}`}
                           onClick={() => handleToggleTag(kpi.code)}
-                          title={tagged ? 'Remove from my KPIs' : 'Add to my KPIs'}
+                          title={tagged ? 'Remove from My Metrics' : 'Add to My Metrics'}
                         >
                           {tagged ? (
                             <>

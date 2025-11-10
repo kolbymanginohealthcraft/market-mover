@@ -4,6 +4,23 @@ import cache from '../utils/cache.js';
 
 const router = express.Router();
 
+const cleanCityName = (value) => {
+  if (!value || typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  const suffixes = new Set(['city', 'village', 'town', 'cdp']);
+  const parts = trimmed.split(/\s+/);
+  if (parts.length < 2) return trimmed;
+  const last = parts[parts.length - 1];
+  const normalized = last.toLowerCase();
+  const isAllLower = last === last.toLowerCase();
+  const isAllUpper = last === last.toUpperCase();
+  if (suffixes.has(normalized) && (isAllLower || isAllUpper || normalized === 'cdp')) {
+    parts.pop();
+    return parts.join(' ');
+  }
+  return trimmed;
+};
+
 /**
  * GET /api/geographic-boundaries
  * Query params:
@@ -82,6 +99,8 @@ router.get('/geographic-boundaries', async (req, res) => {
           zip_code,
           state_fips_code,
           county_fips_code,
+          city,
+          state_code,
           area_name,
           ST_ASGEOJSON(zip_geom) AS geometry
         FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\`
@@ -168,6 +187,8 @@ router.get('/geographic-boundaries', async (req, res) => {
               zip_code: row.zip_code,
               state_fips_code: row.state_fips_code,
               county_fips_code: row.county_fips_code,
+          city: cleanCityName(row.city),
+              state_code: row.state_code,
               area_name: row.area_name
             };
           }

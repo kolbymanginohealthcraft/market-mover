@@ -18,7 +18,11 @@ export default function Scorecard({
   providerLabels = {},
   forcedLoading = false,
   showMyKpisOnly = false,
-  myKpiCodes = []
+  myKpiCodes = [],
+  highlightedDhcKeys = [],
+  highlightedDhcByType = new Map(),
+  highlightTagTypes = [],
+  highlightPrimaryProvider = true
 }) {
   const [isHydrating, setIsHydrating] = useState(true);
   // Always use the hook to ensure we get all providers, but use prefetched data if available
@@ -239,8 +243,8 @@ export default function Scorecard({
 
   if (showMyKpisOnly && finalFilteredMeasures.length === 0) {
     const message = kpiCodeSet.size === 0
-      ? 'Tag KPIs from the KPIs workspace to enable this filter.'
-      : 'None of your tagged KPIs match the current filters. Toggle off "Show My KPIs" to view all measures.';
+      ? 'Tag metrics from the My Metrics workspace to enable this filter.'
+      : 'None of your tagged metrics match the current filters. Toggle off "Show My Metrics" to view all measures.';
     return (
       <div className={styles.scorecardContainer}>
         <div className={styles.noMeasuresMessage}>{message}</div>
@@ -328,6 +332,10 @@ export default function Scorecard({
           availablePublishDates={finalPublishDates}
           selectedPublishDate={selectedPublishDate}
           setSelectedPublishDate={setSelectedPublishDate}
+        highlightedDhcKeys={highlightedDhcKeys}
+        highlightedDhcByType={highlightedDhcByType}
+        highlightTagTypes={highlightTagTypes}
+        highlightPrimaryProvider={highlightPrimaryProvider}
         />
       </div>
     </div>

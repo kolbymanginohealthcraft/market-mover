@@ -28,16 +28,35 @@ const formatPercent = (num) => {
   return `${(num * 100).toFixed(1)}%`;
 };
 
+const useProviderAnalysisOptional = () => {
+  try {
+    return useProviderAnalysis();
+  } catch (err) {
+    if (err?.message?.includes('useProviderAnalysis must be used within a ProviderAnalysisProvider')) {
+      return null;
+    }
+    throw err;
+  }
+};
+
 const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propCensusData, counties: propCounties, censusTracts: propCensusTracts }) => {
-  // Use props if provided (for market analysis), otherwise use context (for provider analysis)
-  const contextData = propCensusData ? null : useProviderAnalysis();
-  
-  const data = propCensusData || contextData?.censusData;
-  const loading = propCensusData ? false : contextData?.censusLoading || false;
-  const error = propCensusData ? null : contextData?.censusError || null;
+  const contextData = useProviderAnalysisOptional();
+
+  const hasPropCensusData = typeof propCensusData !== 'undefined';
+  const hasPropCounties = typeof propCounties !== 'undefined';
+  const hasPropCensusTracts = typeof propCensusTracts !== 'undefined';
+
+  const data = hasPropCensusData ? propCensusData : contextData?.censusData;
+  const loading = hasPropCensusData ? false : contextData?.censusLoading || false;
+  const error = hasPropCensusData ? null : contextData?.censusError || null;
   const { hasTeam, loading: teamLoading } = useUserTeam();
   const [selectedBenchmark, setSelectedBenchmark] = useState('national');
   const [countyNames, setCountyNames] = useState({});
+  const geography = data?.geography === 'zip' ? 'zip' : 'tract';
+  const unitLabel = geography === 'zip' ? 'ZIP codes' : 'census tracts';
+  const unitCount = geography === 'zip'
+    ? (data?.market_totals?.total_zip_codes ?? data?.market_totals?.total_tracts ?? 0)
+    : (data?.market_totals?.total_tracts ?? 0);
 
   // State and county name mappings
   const stateNames = {
@@ -56,6 +75,10 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
 
   // Fetch county names when data is available
   React.useEffect(() => {
+    if (geography === 'zip') {
+      return;
+    }
+
     if (data && !countyNames.loaded) {
       // Get the specific counties that are actually in the market data
       const countiesInMarket = getAvailableCounties();
@@ -79,7 +102,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
       });
       setCountyNames(prev => ({ ...prev, loaded: true }));
     }
-  }, [data, countyNames]);
+  }, [data, countyNames, geography]);
 
 
 
@@ -173,7 +196,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
   const { market_totals, agePieData, agePieColors, racePieData, racePieColors, populationDensity } = processedData;
 
   // Helper function to get current benchmark data
-  const getCurrentBenchmark = () => {
+  function getCurrentBenchmark() {
     if (!data) return null;
     
     if (selectedBenchmark === 'national') {
@@ -188,21 +211,21 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
     }
     
     return data.national_averages;
-  };
+  }
 
   // Get available states and counties
-  const getAvailableStates = () => {
+  function getAvailableStates() {
     if (!data?.state_averages) return [];
     return Object.keys(data.state_averages);
-  };
+  }
 
-  const getAvailableCounties = () => {
+  function getAvailableCounties() {
     if (!data?.county_averages) return [];
     return Object.keys(data.county_averages);
-  };
+  }
 
   // Get display name for selected benchmark (without indentation)
-  const getSelectedBenchmarkDisplay = () => {
+  function getSelectedBenchmarkDisplay() {
     if (selectedBenchmark === 'national') {
       return 'National';
     } else if (selectedBenchmark.startsWith('state-')) {
@@ -213,10 +236,10 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
       return getCountyName(stateFips, countyFips);
     }
     return 'National';
-  };
+  }
 
   // Build hierarchical dropdown options
-  const buildBenchmarkOptions = () => {
+  function buildBenchmarkOptions() {
     const options = [];
     
     // Add National option
@@ -225,6 +248,10 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
         National
       </option>
     );
+
+    if (geography === 'zip') {
+      return options;
+    }
     
     // Group counties by state
     const countiesByState = {};
@@ -261,7 +288,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
     });
     
     return options;
-  };
+  }
 
   // Create a custom display component that shows clean names
   const BenchmarkDropdown = () => {
@@ -318,7 +345,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
   };
 
   // Function to get county names for a state (only for specific counties)
-  const fetchCountyNames = async (stateFips, specificCounties = null) => {
+  async function fetchCountyNames(stateFips, specificCounties = null) {
     if (countyNames[stateFips]) return; // Already cached
     
     try {
@@ -358,13 +385,13 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
       console.error('Error fetching county names:', error);
       // Don't throw the error, just log it and continue
     }
-  };
+  }
 
   // Helper function to get county name from state and county FIPS codes
-  const getCountyName = (stateFips, countyFips) => {
+  function getCountyName(stateFips, countyFips) {
     const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
     return countyNames[stateFips]?.[fullCountyFips] || `County ${countyFips}`;
-  };
+  }
 
   const currentBenchmark = getCurrentBenchmark();
 
@@ -426,7 +453,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
         <div className={styles.headerContent}>
           <h2>Market Demographics</h2>
           <p className={styles.subtitle}>
-            {market_totals.total_tracts} census tracts • Census tracts are small, permanent statistical subdivisions of counties averaging 4,000 residents
+            {unitCount} {unitLabel} • {unitLabel === 'census tracts' ? 'Census tracts are small, permanent statistical subdivisions of counties averaging 4,000 residents' : 'ZIP Code Tabulation Areas approximate USPS ZIP codes for statistical purposes'}
           </p>
         </div>
 
@@ -649,7 +676,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
             Source: U.S. Census Bureau American Community Survey ({market_totals.acs_year} 5-Year Estimates)
           </p>
           <p className={styles.note}>
-            Data represents census tract-level demographics within {radiusInMiles} miles of {provider.name}
+            Data represents {unitLabel.toLowerCase()} within {radiusInMiles} miles of {provider.name}
           </p>
         </div>
       </div>

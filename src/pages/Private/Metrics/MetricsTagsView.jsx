@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import { Trash2, Bookmark, TrendingUp, TrendingDown } from 'lucide-react';
-import styles from './KPIs.module.css';
+import styles from './Metrics.module.css';
 
-export default function KPIsTagsView() {
+export default function MetricsTagsView() {
   const [kpiTags, setKpiTags] = useState([]);
   const [enrichedTags, setEnrichedTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,7 @@ export default function KPIsTagsView() {
         setEnrichedTags([]);
       }
     } catch (err) {
-      console.error('Error fetching KPI tags:', err);
+      console.error('Error fetching metric tags:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -89,14 +89,14 @@ export default function KPIsTagsView() {
 
       setEnrichedTags(enriched);
     } catch (err) {
-      console.error('Error fetching KPI details:', err);
+      console.error('Error fetching metric details:', err);
       // If BigQuery fetch fails, just use the tags without details
       setEnrichedTags(tags.map(tag => ({ ...tag, details: null })));
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm('Are you sure you want to remove this KPI tag?')) return;
+    if (!confirm('Are you sure you want to remove this metric tag?')) return;
 
     try {
       setError(null);
@@ -108,7 +108,7 @@ export default function KPIsTagsView() {
       if (error) throw error;
       await fetchKpiTags();
     } catch (err) {
-      console.error('Error deleting KPI tag:', err);
+      console.error('Error deleting metric tag:', err);
       setError(err.message);
     }
   }
@@ -126,7 +126,7 @@ export default function KPIsTagsView() {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner}></div>
-        <p>Loading KPI tags...</p>
+        <p>Loading metric tags...</p>
       </div>
     );
   }
@@ -142,7 +142,7 @@ export default function KPIsTagsView() {
       {enrichedTags.length === 0 && !loading ? (
         <div className={styles.emptyState}>
           <Bookmark size={48} />
-          <h3>No Tagged KPIs Yet</h3>
+          <h3>No Tagged Metrics Yet</h3>
           <p>Use the "Browse All" tab to search and tag storyteller metrics you want to follow for your team.</p>
         </div>
       ) : (
@@ -199,7 +199,7 @@ export default function KPIsTagsView() {
                       <button
                         className="sectionHeaderButton"
                         onClick={() => handleDelete(tag.id)}
-                        title="Remove KPI"
+                        title="Remove metric"
                         style={{ color: '#dc2626' }}
                       >
                         <Trash2 size={14} />

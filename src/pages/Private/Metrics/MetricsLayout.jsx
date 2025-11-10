@@ -1,13 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import KPIsTagsView from './KPIsTagsView';
-import KPIsBrowseView from './KPIsBrowseView';
+import MetricsTagsView from './MetricsTagsView';
+import MetricsBrowseView from './MetricsBrowseView';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { Lock } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import { useNavigate } from 'react-router-dom';
-import styles from './KPIs.module.css';
+import styles from './Metrics.module.css';
 
-export default function KPIsLayout() {
+export default function MetricsLayout() {
   const { hasTeam, loading } = useUserTeam();
   const navigate = useNavigate();
 
@@ -15,7 +15,7 @@ export default function KPIsLayout() {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
-          Loading KPIs...
+          Loading metrics...
         </div>
       </div>
     );
@@ -29,7 +29,7 @@ export default function KPIsLayout() {
             <Lock size={48} />
           </div>
           <h3>Team Required</h3>
-          <p>Join or create a team to access KPI tagging features.</p>
+          <p>Join or create a team to access metric tagging features.</p>
           <p>These features help you collaborate with your team and track important quality metrics.</p>
           <div className={styles.teamRequiredActions}>
             <Button variant="gold" size="lg" onClick={() => navigate('/app/settings/company')}>
@@ -47,8 +47,8 @@ export default function KPIsLayout() {
   return (
     <div className={styles.container}>
       <Routes>
-        <Route path="tags" element={<KPIsTagsView />} />
-        <Route path="browse" element={<KPIsBrowseView />} />
+        <Route path="tags" element={<MetricsTagsView />} />
+        <Route path="browse" element={<MetricsBrowseView />} />
         <Route path="*" element={<Navigate to="tags" replace />} />
       </Routes>
     </div>
