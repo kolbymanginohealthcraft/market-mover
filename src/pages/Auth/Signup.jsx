@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Target, BarChart3, TrendingUp, Gift } from "lucide-react";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
 import styles from "./Signup.module.css";
@@ -219,15 +218,35 @@ const Signup = () => {
                 {loading ? "Creating Account..." : "Create Your Account"}
               </Button>
               
-              <p style={{
-                fontSize: '12px',
-                color: '#5f6b6d',
-                textAlign: 'left',
+              <div style={{
                 margin: '12px 0 0 0',
-                lineHeight: '1.4'
+                padding: '14px 16px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(38, 89, 71, 0.08)',
+                border: '1px solid rgba(38, 89, 71, 0.12)',
+                textAlign: 'left'
               }}>
-                You'll be defaulted to a free tier but can upgrade to a paid profile anytime by creating a team or joining a team.
-              </p>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#5f6b6d',
+                  lineHeight: '1.5',
+                  margin: '0 0 8px 0'
+                }}>
+                  You'll be defaulted to a free tier but can upgrade to a paid profile anytime by creating a team or joining a team.
+                </p>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  fontSize: '12px',
+                  color: '#265947',
+                  lineHeight: '1.5'
+                }}>
+                  <strong style={{ fontWeight: 600 }}>Paid Plan</strong>
+                  <span>$2,000 per month includes three seats.</span>
+                  <span>Add bundles of three more seats for $250 per month.</span>
+                </div>
+              </div>
             </form>
 
             {status && (
@@ -253,93 +272,81 @@ const Signup = () => {
               fontWeight: '600',
               margin: '0 0 20px 0'
             }}>
-              Why Healthcare Leaders Choose Market Mover
+              Platform Capabilities
             </h3>
-            
-                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-               <div style={{
-                 padding: '20px',
-                 backgroundColor: 'rgba(38, 89, 71, 0.05)',
-                 borderRadius: '12px',
-                 border: '1px solid rgba(38, 89, 71, 0.1)'
-               }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <Target size={16} color="#265947" className={styles.icon} />
-                    <h4 style={{
-                      color: '#265947',
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      margin: 0
-                    }}>
-                      Data-Driven Marketing
-                    </h4>
-                  </div>
-                 <p style={{
-                   color: '#5f6b6d',
-                   fontSize: '14px',
-                   lineHeight: '1.6',
-                   margin: 0
-                 }}>
-                   Make informed marketing decisions with comprehensive healthcare market data, provider networks, and audience insights.
-                 </p>
-               </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{
+                padding: '20px',
+                backgroundColor: 'rgba(38, 89, 71, 0.05)',
+                borderRadius: '12px',
+                border: '1px solid rgba(38, 89, 71, 0.1)'
+              }}>
+                <h4 style={{
+                  color: '#265947',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  margin: '0 0 12px 0'
+                }}>
+                  Segmentation Workbench
+                </h4>
+                <p style={{
+                  color: '#5f6b6d',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  margin: 0
+                }}>
+                  Create reusable parameters by tagging the providers, codes, metrics, and markets that matter, and apply them for easy analysis.
+                </p>
+              </div>
 
-               <div style={{
-                 padding: '20px',
-                 backgroundColor: 'rgba(38, 89, 71, 0.05)',
-                 borderRadius: '12px',
-                 border: '1px solid rgba(38, 89, 71, 0.1)'
-               }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <BarChart3 size={16} color="#265947" className={styles.icon} />
-                    <h4 style={{
-                      color: '#265947',
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      margin: 0
-                    }}>
-                      Measurable Growth
-                    </h4>
-                  </div>
-                                   <p style={{
-                    color: '#5f6b6d',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    margin: 0
-                  }}>
-                    Monitor market trends, track competitor activity, and measure your market position with comprehensive analytics.
-                  </p>
-               </div>
+              <div style={{
+                padding: '20px',
+                backgroundColor: 'rgba(38, 89, 71, 0.05)',
+                borderRadius: '12px',
+                border: '1px solid rgba(38, 89, 71, 0.1)'
+              }}>
+                <h4 style={{
+                  color: '#265947',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  margin: '0 0 12px 0'
+                }}>
+                  Connected Data Signals
+                </h4>
+                <p style={{
+                  color: '#5f6b6d',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  margin: 0
+                }}>
+                  Analyze claims, quality, enrollment, and demographic signals to get a full market picture of the 5 dimensions of healthcare: Population, Payers, Providers, Pathways, and Positioning.
+                </p>
+              </div>
 
-               <div style={{
-                 padding: '20px',
-                 backgroundColor: 'rgba(38, 89, 71, 0.05)',
-                 borderRadius: '12px',
-                 border: '1px solid rgba(38, 89, 71, 0.1)'
-               }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <TrendingUp size={16} color="#265947" className={styles.icon} />
-                    <h4 style={{
-                      color: '#265947',
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      margin: 0
-                    }}>
-                      Compliance & Professionalism
-                    </h4>
-                  </div>
-                 <p style={{
-                   color: '#5f6b6d',
-                   fontSize: '14px',
-                   lineHeight: '1.6',
-                   margin: 0
-                 }}>
-                   Maintain the highest standards of healthcare compliance while reaching the right audiences at the right time.
-                 </p>
-               </div>
-             </div>
-
-            
+              <div style={{
+                padding: '20px',
+                backgroundColor: 'rgba(38, 89, 71, 0.05)',
+                borderRadius: '12px',
+                border: '1px solid rgba(38, 89, 71, 0.1)'
+              }}>
+                <h4 style={{
+                  color: '#265947',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  margin: '0 0 12px 0'
+                }}>
+                  Team-Ready Execution
+                </h4>
+                <p style={{
+                  color: '#5f6b6d',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  margin: 0
+                }}>
+                  Collaborate with your team to build strategies built for sales, marketing, and leadership alignment.
+                </p>
+              </div>
+            </div>
           </div>
                  </div>
        </div>
