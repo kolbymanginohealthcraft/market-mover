@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import { Users, X, List, Search } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
@@ -26,12 +26,9 @@ export default function UserList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('listing');
   const [metadataLoading, setMetadataLoading] = useState(false);
+  const metadataUserIdsKey = useRef(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [sortBy, sortOrder]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,18 +46,7 @@ export default function UserList() {
           teams(name)
         `);
       
-      // Handle sorting - some fields need special handling
-      if (sortBy === 'name') {
-        query = query.order('last_name', { ascending: sortOrder === 'asc' });
-      } else if (sortBy === 'team') {
-        query = query.order('team_id', { ascending: sortOrder === 'asc' });
-      } else if (sortBy === 'last_login' || sortBy === 'total_activities' || sortBy === 'activities_7days') {
-        query = query.order('email', { ascending: true });
-      } else if (sortBy === 'email') {
-        query = query.order('email', { ascending: sortOrder === 'asc' });
-      } else {
-        query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-      }
+      query = query.order('email', { ascending: true });
 
       const { data, error } = await query;
 
@@ -98,18 +84,35 @@ export default function UserList() {
     } finally {
       // noop
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const loadUserMetadata = async (userIds) => {
-    setMetadataLoading(true);
-
     if (!userIds || userIds.length === 0) {
       setLoginHistory({});
       setActivityCounts({});
       setActivityCounts7Days({});
+      metadataUserIdsKey.current = null;
       setMetadataLoading(false);
       return;
     }
+
+    const sortedKey = JSON.stringify([...userIds].sort());
+    if (
+      metadataUserIdsKey.current === sortedKey &&
+      Object.keys(loginHistory).length > 0 &&
+      Object.keys(activityCounts).length > 0 &&
+      Object.keys(activityCounts7Days).length > 0
+    ) {
+      setMetadataLoading(false);
+      return;
+    }
+
+    metadataUserIdsKey.current = sortedKey;
+    setMetadataLoading(true);
 
     try {
       const [history, counts, counts7Days] = await Promise.all([
@@ -370,39 +373,82 @@ export default function UserList() {
   const sortedUsers = useMemo(() => {
     if (users.length === 0) return [];
 
-    const base = [...users];
+    const sorted = [...users];
+
+    const sortStrings = (getter) => {
+      sorted.sort((a, b) => {
+        const aVal = (getter(a) || '').toLowerCase();
+        const bVal = (getter(b) || '').toLowerCase();
+        if (aVal === bVal) return 0;
+        const comparison = aVal.localeCompare(bVal);
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+      return sorted;
+    };
+
+    if (sortBy === 'email') {
+      return sortStrings((user) => user.email);
+    }
+
+    if (sortBy === 'name') {
+      return sortStrings((user) => `${user.last_name || ''} ${user.first_name || ''}`.trim());
+    }
+
+    if (sortBy === 'role') {
+      return sortStrings((user) => user.role || '');
+    }
+
+    if (sortBy === 'team') {
+      return sortStrings((user) => user.teams?.name || '');
+    }
 
     if (sortBy === 'last_login' && Object.keys(loginHistory).length > 0) {
-      return base.sort((a, b) => {
+      sorted.sort((a, b) => {
         const aLogin = loginHistory[a.id]?.lastSignIn;
         const bLogin = loginHistory[b.id]?.lastSignIn;
         if (!aLogin && !bLogin) return 0;
-        if (!aLogin) return 1;
-        if (!bLogin) return -1;
+        if (!aLogin) return sortOrder === 'asc' ? -1 : 1;
+        if (!bLogin) return sortOrder === 'asc' ? 1 : -1;
         const comparison = new Date(aLogin) - new Date(bLogin);
         return sortOrder === 'asc' ? comparison : -comparison;
       });
+      return sorted;
+    }
+
+    if (sortBy === 'created_at' && Object.keys(loginHistory).length > 0) {
+      sorted.sort((a, b) => {
+        const aCreated = loginHistory[a.id]?.createdAt;
+        const bCreated = loginHistory[b.id]?.createdAt;
+        if (!aCreated && !bCreated) return 0;
+        if (!aCreated) return sortOrder === 'asc' ? -1 : 1;
+        if (!bCreated) return sortOrder === 'asc' ? 1 : -1;
+        const comparison = new Date(aCreated) - new Date(bCreated);
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+      return sorted;
     }
 
     if (sortBy === 'total_activities' && Object.keys(activityCounts).length > 0) {
-      return base.sort((a, b) => {
+      sorted.sort((a, b) => {
         const aCount = activityCounts[a.id] || 0;
         const bCount = activityCounts[b.id] || 0;
         const comparison = aCount - bCount;
         return sortOrder === 'asc' ? comparison : -comparison;
       });
+      return sorted;
     }
 
     if (sortBy === 'activities_7days' && Object.keys(activityCounts7Days).length > 0) {
-      return base.sort((a, b) => {
+      sorted.sort((a, b) => {
         const aCount = activityCounts7Days[a.id] || 0;
         const bCount = activityCounts7Days[b.id] || 0;
         const comparison = aCount - bCount;
         return sortOrder === 'asc' ? comparison : -comparison;
       });
+      return sorted;
     }
 
-    return base;
+    return sorted;
   }, [users, sortBy, sortOrder, loginHistory, activityCounts, activityCounts7Days]);
 
   const filteredUsers = sortedUsers.filter(user => {
@@ -823,6 +869,14 @@ export default function UserList() {
                                 </span>
                               )}
                             </th>
+                            <th onClick={() => handleSort('created_at')} className={styles.sortable}>
+                              Created
+                              {sortBy === 'created_at' && (
+                                <span className={styles.sortIndicator}>
+                                  {sortOrder === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </th>
                             <th onClick={() => handleSort('last_login')} className={styles.sortable}>
                               Last Login
                               {sortBy === 'last_login' && (
@@ -871,6 +925,15 @@ export default function UserList() {
                                 </td>
                                 <td>
                                   {user.teams ? user.teams.name : <span className={styles.noTeam}>No Team</span>}
+                                </td>
+                                <td>
+                                  {metadataLoading ? (
+                                    <span className={styles.loadingText}>Loading…</span>
+                                  ) : loginHistory[user.id]?.createdAt ? (
+                                    formatDate(loginHistory[user.id].createdAt)
+                                  ) : (
+                                    <span className={styles.noTeam}>—</span>
+                                  )}
                                 </td>
                                 <td>
                                   {metadataLoading ? (
