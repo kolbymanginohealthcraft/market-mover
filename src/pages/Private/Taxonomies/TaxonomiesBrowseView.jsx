@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Plus, Search as SearchIcon, Tag, ChevronDown } from 'lucide-react';
+import { Search as SearchIcon, ChevronDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import TaxonomyTooltip from '../../../components/UI/TaxonomyTooltip';
 import styles from './Taxonomies.module.css';
+import { ensureSingleTeamTaxonomyTag } from '../../../utils/taxonomyTagUtils';
 
 const TAG_TYPES = [
   { value: 'staff', label: 'Staff' },
@@ -34,7 +35,6 @@ export default function TaxonomiesBrowseView() {
   
   // Tag type dropdown state
   const [taggingCode, setTaggingCode] = useState(null);
-  const [tagTypeDropdownOpen, setTagTypeDropdownOpen] = useState(false);
   
   // Search states for each dropdown
   const [groupingSearch, setGroupingSearch] = useState('');
@@ -60,9 +60,17 @@ export default function TaxonomiesBrowseView() {
       const { data } = await supabase
         .from('team_taxonomy_tags')
         .select('*')
-        .eq('team_id', profile.team_id);
+        .eq('team_id', profile.team_id)
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      setTaxonomyTags(data || []);
+      const uniqueTags = await ensureSingleTeamTaxonomyTag(
+        supabase,
+        profile.team_id,
+        data || []
+      );
+
+      setTaxonomyTags(uniqueTags);
     } catch (err) {
       console.error('Error fetching taxonomy tags:', err);
     }
@@ -226,15 +234,54 @@ export default function TaxonomiesBrowseView() {
 
       if (!profile?.team_id) throw new Error('No team found');
 
-      const { error } = await supabase
+      const { data: existingTags, error: fetchError } = await supabase
         .from('team_taxonomy_tags')
-        .insert({
-          team_id: profile.team_id,
-          taxonomy_code: code,
-          tag_type: tagType
-        });
+        .select('id, tag_type, created_at, updated_at')
+        .eq('team_id', profile.team_id)
+        .eq('taxonomy_code', code)
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
+
+      if (existingTags && existingTags.length > 0) {
+        const [primaryTag, ...duplicates] = existingTags;
+
+        if (primaryTag.tag_type === tagType) {
+          setTaggingCode(null);
+          return;
+        }
+
+        if (duplicates.length > 0) {
+          const duplicateIds = duplicates.map(tag => tag.id);
+          const { error: cleanupError } = await supabase
+            .from('team_taxonomy_tags')
+            .delete()
+            .in('id', duplicateIds);
+
+          if (cleanupError) throw cleanupError;
+        }
+
+        const { error: updateError } = await supabase
+          .from('team_taxonomy_tags')
+          .update({
+            tag_type: tagType,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', primaryTag.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('team_taxonomy_tags')
+          .insert({
+            team_id: profile.team_id,
+            taxonomy_code: code,
+            tag_type: tagType
+          });
+
+        if (insertError) throw insertError;
+      }
 
       setTaggingCode(null);
       await fetchTaxonomyTags();
@@ -244,7 +291,7 @@ export default function TaxonomiesBrowseView() {
     }
   }
 
-  async function handleRemoveTag(code, tagType) {
+  async function handleRemoveTag(code) {
     try {
       setError(null);
 
@@ -263,11 +310,11 @@ export default function TaxonomiesBrowseView() {
         .from('team_taxonomy_tags')
         .delete()
         .eq('team_id', profile.team_id)
-        .eq('taxonomy_code', code)
-        .eq('tag_type', tagType);
+        .eq('taxonomy_code', code);
 
       if (error) throw error;
 
+      setTaggingCode(null);
       await fetchTaxonomyTags();
     } catch (err) {
       console.error('Error removing taxonomy tag:', err);
@@ -275,12 +322,8 @@ export default function TaxonomiesBrowseView() {
     }
   }
 
-  function getTagsForCode(code) {
-    return taxonomyTags.filter(tag => tag.taxonomy_code === code);
-  }
-
-  function isTagged(code) {
-    return taxonomyTags.some(tag => tag.taxonomy_code === code);
+  function getTagForCode(code) {
+    return taxonomyTags.find(tag => tag.taxonomy_code === code) || null;
   }
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -502,7 +545,7 @@ export default function TaxonomiesBrowseView() {
               </thead>
               <tbody>
                 {referenceCodes.map((tax) => {
-                  const tagged = isTagged(tax.code);
+                  const currentTag = getTagForCode(tax.code);
                   return (
                     <tr key={tax.code}>
                       <td className={styles.codeCell}>
@@ -524,67 +567,41 @@ export default function TaxonomiesBrowseView() {
                       <td>{tax.specialization || 'N/A'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {getTagsForCode(tax.code).map(tag => (
-                            <button
-                              key={tag.tag_type}
-                              className="sectionHeaderButton primary"
-                              onClick={() => handleRemoveTag(tax.code, tag.tag_type)}
-                              title={`Remove ${TAG_TYPES.find(t => t.value === tag.tag_type)?.label || tag.tag_type} tag`}
-                              style={{ fontSize: '12px', padding: '4px 8px' }}
-                            >
-                              {TAG_TYPES.find(t => t.value === tag.tag_type)?.label || tag.tag_type}
-                              <span style={{ marginLeft: '4px' }}>×</span>
-                            </button>
-                          ))}
-                          {taggingCode === tax.code ? (
-                            <Dropdown
-                              trigger={
-                                <button className="sectionHeaderButton">
-                                  Add Tag Type
-                                  <ChevronDown size={10} style={{ marginLeft: '8px' }} />
-                                </button>
-                              }
-                              isOpen={tagTypeDropdownOpen}
-                              onToggle={(open) => {
-                                setTagTypeDropdownOpen(open);
-                                if (!open) {
-                                  setTaggingCode(null);
-                                }
-                              }}
-                              className={styles.dropdownMenu}
-                            >
-                              {TAG_TYPES.map(tagType => {
-                                const alreadyTagged = getTagsForCode(tax.code).some(t => t.tag_type === tagType.value);
-                                return (
-                                  <div
-                                    key={tagType.value}
-                                    className={styles.dropdownItem}
-                                    onClick={() => {
-                                      if (!alreadyTagged) {
-                                        handleAddTag(tax.code, tagType.value);
-                                      }
-                                    }}
-                                    style={alreadyTagged ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                                  >
-                                    {tagType.label}
-                                    {alreadyTagged && <span style={{ marginLeft: '8px', fontSize: '11px' }}>(tagged)</span>}
-                                  </div>
-                                );
-                              })}
-                            </Dropdown>
-                          ) : (
-                            <button
-                              className="sectionHeaderButton"
-                              onClick={() => {
-                                setTaggingCode(tax.code);
-                                setTagTypeDropdownOpen(true);
-                              }}
-                              title="Add tag"
-                            >
-                              <Plus size={14} />
-                              Add
-                            </button>
-                          )}
+                          <Dropdown
+                            trigger={
+                              <button
+                                className={`sectionHeaderButton ${currentTag ? 'primary' : ''}`}
+                              >
+                                {currentTag
+                                  ? (TAG_TYPES.find(t => t.value === currentTag.tag_type)?.label || currentTag.tag_type)
+                                  : 'Select Tag'}
+                                <ChevronDown size={10} style={{ marginLeft: '8px' }} />
+                              </button>
+                            }
+                            isOpen={taggingCode === tax.code}
+                            onToggle={(open) => setTaggingCode(open ? tax.code : null)}
+                            className={styles.dropdownMenu}
+                          >
+                            {currentTag ? (
+                              <div
+                                className={styles.dropdownItem}
+                                onClick={() => handleRemoveTag(tax.code)}
+                                style={{ color: '#dc2626' }}
+                              >
+                                Remove Tag
+                              </div>
+                            ) : (
+                              TAG_TYPES.map(tagType => (
+                                <div
+                                  key={tagType.value}
+                                  className={styles.dropdownItem}
+                                  onClick={() => handleAddTag(tax.code, tagType.value)}
+                                >
+                                  {tagType.label}
+                                </div>
+                              ))
+                            )}
+                          </Dropdown>
                         </div>
                       </td>
                     </tr>

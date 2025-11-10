@@ -4,6 +4,7 @@ import { Trash2, Bookmark, ChevronDown } from 'lucide-react';
 import TaxonomyTooltip from '../../../components/UI/TaxonomyTooltip';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import styles from './Taxonomies.module.css';
+import { ensureSingleTeamTaxonomyTag } from '../../../utils/taxonomyTagUtils';
 
 const TAG_TYPES = [
   { value: 'staff', label: 'Staff' },
@@ -58,10 +59,16 @@ export default function TaxonomiesTagsView() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTaxonomyTags(data || []);
+      const uniqueTags = await ensureSingleTeamTaxonomyTag(
+        supabase,
+        profile.team_id,
+        data || []
+      );
 
-      if (data && data.length > 0) {
-        await fetchTaxonomyDetails(data);
+      setTaxonomyTags(uniqueTags);
+
+      if (uniqueTags && uniqueTags.length > 0) {
+        await fetchTaxonomyDetails(uniqueTags);
       } else {
         setEnrichedTags([]);
       }
@@ -138,53 +145,15 @@ export default function TaxonomiesTagsView() {
     try {
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('team_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.team_id) throw new Error('No team found');
-
-      const { data: existingTag } = await supabase
+      const { error: updateError } = await supabase
         .from('team_taxonomy_tags')
-        .select('*')
-        .eq('id', tagId)
-        .single();
-
-      if (!existingTag) throw new Error('Tag not found');
-
-      const { data: duplicateCheck } = await supabase
-        .from('team_taxonomy_tags')
-        .select('id')
-        .eq('team_id', profile.team_id)
-        .eq('taxonomy_code', existingTag.taxonomy_code)
-        .eq('tag_type', newTagType)
-        .maybeSingle();
-
-      if (duplicateCheck) {
-        throw new Error(`This taxonomy already has a "${TAG_TYPE_MAP[newTagType]}" tag`);
-      }
-
-      const { error: deleteError } = await supabase
-        .from('team_taxonomy_tags')
-        .delete()
+        .update({
+          tag_type: newTagType,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', tagId);
 
-      if (deleteError) throw deleteError;
-
-      const { error: insertError } = await supabase
-        .from('team_taxonomy_tags')
-        .insert({
-          team_id: profile.team_id,
-          taxonomy_code: existingTag.taxonomy_code,
-          tag_type: newTagType
-        });
-
-      if (insertError) throw insertError;
+      if (updateError) throw updateError;
 
       setTagTypeDropdownOpen({});
       await fetchTaxonomyTags();

@@ -585,7 +585,8 @@ export default function ProviderSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTag, selectedMarket, selectedTypes, selectedNetworks, selectedCities, selectedStates, selectedTaxonomyCodes]);
 
-  const handleSearch = async (searchTerm = null, fromUrl = false) => {
+  const handleSearch = async (searchTerm = null, fromUrl = false, overrideState = null) => {
+    const requestId = ++latestSearchRequestRef.current;
     setLoading(true);
     setError(null);
     setCurrentPage(1);
@@ -604,8 +605,17 @@ export default function ProviderSearch() {
     }
     
     // Check if we have any active filters (excluding the search term we're about to set)
-    const hasFilters = selectedTypes.length > 0 || selectedNetworks.length > 0 ||
-      selectedCities.length > 0 || selectedStates.length > 0 || selectedTaxonomyCodes.length > 0 || selectedTag || selectedMarket;
+    const currentSelectedTypes = overrideState?.selectedTypes ?? selectedTypes;
+    const currentSelectedNetworks = overrideState?.selectedNetworks ?? selectedNetworks;
+    const currentSelectedCities = overrideState?.selectedCities ?? selectedCities;
+    const currentSelectedStates = overrideState?.selectedStates ?? selectedStates;
+    const currentSelectedTaxonomyCodes = overrideState?.selectedTaxonomyCodes ?? selectedTaxonomyCodes;
+    const currentSelectedTag = overrideState?.selectedTag ?? selectedTag;
+    const currentTagNPIs = overrideState?.tagNPIs !== undefined ? overrideState.tagNPIs : tagNPIs;
+    const currentSelectedMarket = overrideState?.selectedMarket ?? selectedMarket;
+
+    const hasFilters = currentSelectedTypes.length > 0 || currentSelectedNetworks.length > 0 ||
+      currentSelectedCities.length > 0 || currentSelectedStates.length > 0 || currentSelectedTaxonomyCodes.length > 0 || currentSelectedTag || currentSelectedMarket;
     
     // Always allow search - if no search term or filters, get first 500 results
     // No need to return early - always fetch results
@@ -630,31 +640,31 @@ export default function ProviderSearch() {
       // Otherwise, fetch all matching results (no limit) so overview reflects full dataset
       
       // Add filter parameters
-      if (selectedTypes.length > 0) {
-        selectedTypes.forEach(type => params.append('types', type));
+      if (currentSelectedTypes.length > 0) {
+        currentSelectedTypes.forEach(type => params.append('types', type));
       }
-      if (selectedNetworks.length > 0) {
-        selectedNetworks.forEach(network => params.append('networks', network));
+      if (currentSelectedNetworks.length > 0) {
+        currentSelectedNetworks.forEach(network => params.append('networks', network));
       }
-      if (selectedCities.length > 0) {
-        selectedCities.forEach(city => params.append('cities', city));
+      if (currentSelectedCities.length > 0) {
+        currentSelectedCities.forEach(city => params.append('cities', city));
       }
-      if (selectedStates.length > 0) {
-        selectedStates.forEach(state => params.append('states', state));
+      if (currentSelectedStates.length > 0) {
+        currentSelectedStates.forEach(state => params.append('states', state));
       }
-      if (selectedTaxonomyCodes.length > 0) {
-        selectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+      if (currentSelectedTaxonomyCodes.length > 0) {
+        currentSelectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
       }
 
       // Add tag filter (DHC IDs)
-      if (selectedTag && tagNPIs) {
-        const dhcIds = providerTags[selectedTag].map(t => t.provider_dhc);
+      if (currentSelectedTag && currentTagNPIs) {
+        const dhcIds = providerTags[currentSelectedTag].map(t => t.provider_dhc);
         dhcIds.forEach(dhc => params.append('dhcs', dhc));
       }
 
       // Add market filter (location)
-      if (selectedMarket) {
-        const market = savedMarkets.find(m => m.id === selectedMarket);
+      if (currentSelectedMarket) {
+        const market = savedMarkets.find(m => m.id === currentSelectedMarket);
         if (market) {
           params.append('lat', market.latitude);
           params.append('lon', market.longitude);
@@ -669,6 +679,9 @@ export default function ProviderSearch() {
       const result = await response.json();
 
       if (result.success && Array.isArray(result.data)) {
+        if (requestId !== latestSearchRequestRef.current) {
+          return;
+        }
         setResults(result.data);
         // Always update filter options from search results (even if empty)
         // This ensures filter options update correctly when filters are changed/cleared
@@ -705,6 +718,9 @@ export default function ProviderSearch() {
           lastTrackedSearch.current = q;
         }
       } else {
+        if (requestId !== latestSearchRequestRef.current) {
+          return;
+        }
         setError(result.error || 'No results found');
         setResults([]);
         if (lastTrackedSearch.current !== q) {
@@ -714,6 +730,9 @@ export default function ProviderSearch() {
       }
     } catch (err) {
       console.error("💥 Search error:", err);
+      if (requestId !== latestSearchRequestRef.current) {
+        return;
+      }
       setError(err.message);
       setResults([]);
       if (lastTrackedSearch.current !== q) {
@@ -722,7 +741,9 @@ export default function ProviderSearch() {
       }
     }
 
-    setLoading(false);
+    if (requestId === latestSearchRequestRef.current) {
+      setLoading(false);
+    }
   };
 
   // Filter options state - populated from national overview or search results
@@ -740,6 +761,7 @@ export default function ProviderSearch() {
     cities: {},
     states: {}
   });
+  const latestSearchRequestRef = useRef(0);
 
   // National overview state for summary before search
   const [nationalOverview, setNationalOverview] = useState(null);
@@ -913,7 +935,16 @@ export default function ProviderSearch() {
     };
     loadNationalFilterOptions();
     // Trigger search to get first 500 results
-    handleSearch('');
+    handleSearch('', false, {
+      selectedTypes: [],
+      selectedNetworks: [],
+      selectedCities: [],
+      selectedStates: [],
+      selectedTaxonomyCodes: [],
+      selectedTag: null,
+      tagNPIs: null,
+      selectedMarket: null
+    });
   };
 
   const toggleSection = (section) => {
@@ -1486,30 +1517,34 @@ export default function ProviderSearch() {
             <div className={styles.spacer}></div>
             
             {((results && results.length > 0) || nationalOverview) && (
-              <div className={styles.contextInfo}>
-                {selectedMarket ? (
-                  (() => {
-                    const market = savedMarkets.find(m => m.id === selectedMarket);
-                    return market ? (
-                      <span>{market.city}, {market.state_code} • {market.radius_miles}mi radius</span>
-                    ) : (
-                      <span>
-                        {hasActiveFilters || submittedSearchTerm.trim()
+            <div className={styles.contextInfo}>
+              {selectedMarket ? (
+                (() => {
+                  const market = savedMarkets.find(m => m.id === selectedMarket);
+                  return market ? (
+                    <span>{market.city}, {market.state_code} • {market.radius_miles}mi radius</span>
+                  ) : (
+                    <span>
+                      {loading
+                        ? 'Loading...'
+                        : hasActiveFilters || submittedSearchTerm.trim()
                           ? `${formatNumber(filteredResults.length)} organizations`
                           : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
-                        }
-                      </span>
-                    );
-                  })()
-                ) : (
-                  <span>
-                    {hasActiveFilters || submittedSearchTerm.trim()
+                      }
+                    </span>
+                  );
+                })()
+              ) : (
+                <span>
+                  {loading
+                    ? 'Loading...'
+                    : hasActiveFilters || submittedSearchTerm.trim()
                       ? `${formatNumber(filteredResults.length)} organizations`
                       : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
-                    }
-                  </span>
-                )}
-              </div>
+                  }
+                </span>
+              )}
+            </div>
             )}
             
             <div className={styles.controlsBarButtons}>

@@ -78,6 +78,7 @@ export default function AdvancedSearch() {
   const escapeTimeoutRef = useRef(null);
   const hasInitialized = useRef(false);
   const isClearingRef = useRef(false);
+  const latestSearchRequestRef = useRef(0);
   const [escapeCount, setEscapeCount] = useState(0);
   
   useEffect(() => {
@@ -221,6 +222,7 @@ export default function AdvancedSearch() {
   };
   
   const searchPractitioners = async (overrides = {}) => {
+    const requestId = ++latestSearchRequestRef.current;
     setLoading(true);
     setError(null);
     setPage(1);
@@ -262,24 +264,30 @@ export default function AdvancedSearch() {
         throw new Error(result.error || 'Failed to search');
       }
       
-      setResults(result.data);
-      setResultStats(result.data.stats);
-      
-      // Update filter options if they're included (national view)
-      if (result.data.filterOptions) {
-        setFilterOptions({
-          states: result.data.filterOptions.states || [],
-          specialties: result.data.filterOptions.specialties || []
-        });
+      if (requestId === latestSearchRequestRef.current) {
+        setResults(result.data);
+        setResultStats(result.data.stats);
+        
+        // Update filter options if they're included (national view)
+        if (result.data.filterOptions) {
+          setFilterOptions({
+            states: result.data.filterOptions.states || [],
+            specialties: result.data.filterOptions.specialties || []
+          });
+        }
+        
+        console.log(`✅ Found ${result.data.totalCount} total practitioners (showing ${result.data.count})`);
       }
-      
-      console.log(`✅ Found ${result.data.totalCount} total practitioners (showing ${result.data.count})`);
       
     } catch (err) {
       console.error('Error searching:', err);
-      setError(err.message);
+      if (requestId === latestSearchRequestRef.current) {
+        setError(err.message);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === latestSearchRequestRef.current) {
+        setLoading(false);
+      }
     }
   };
   
@@ -844,13 +852,19 @@ export default function AdvancedSearch() {
         
         <div className={styles.spacer}></div>
         
-        {((results && results.totalCount) || selectedMarket) && (
+        {(((results && results.totalCount) || selectedMarket) || loading) && (
           <div className={styles.contextInfo}>
             {selectedMarket ? (
-              <span>{selectedMarket.city}, {selectedMarket.state_code} • {selectedMarket.radius_miles}mi radius</span>
+              <span>
+                {loading
+                  ? 'Loading...'
+                  : `${selectedMarket.city}, ${selectedMarket.state_code} • ${selectedMarket.radius_miles}mi radius`}
+              </span>
             ) : (
               <span>
-                {results && results.totalCount
+                {loading
+                  ? 'Loading...'
+                  : results && results.totalCount
                   ? `${formatNumber(results.totalCount)} practitioners nationwide`
                   : 'Loading...'}
               </span>

@@ -263,6 +263,7 @@ CREATE TABLE public.team_taxonomy_tags (
   taxonomy_code text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  tag_type text NOT NULL CHECK (tag_type = ANY (ARRAY['staff'::text, 'my_setting'::text, 'upstream'::text, 'downstream'::text])),
   CONSTRAINT team_taxonomy_tags_pkey PRIMARY KEY (id),
   CONSTRAINT team_taxonomy_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );

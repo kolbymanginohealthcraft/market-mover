@@ -8,7 +8,7 @@ CREATE TABLE public.team_taxonomy_tags (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT team_taxonomy_tags_pkey PRIMARY KEY (id),
   CONSTRAINT team_taxonomy_tags_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id) ON DELETE CASCADE,
-  CONSTRAINT team_taxonomy_tags_unique_team_taxonomy UNIQUE (team_id, taxonomy_code, tag_type)
+  CONSTRAINT team_taxonomy_tags_unique_team_taxonomy UNIQUE (team_id, taxonomy_code)
 );
 
 -- Create index for faster lookups

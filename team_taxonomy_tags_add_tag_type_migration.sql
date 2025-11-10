@@ -24,10 +24,10 @@ CHECK (tag_type = ANY (ARRAY['staff'::text, 'my_setting'::text, 'upstream'::text
 ALTER TABLE public.team_taxonomy_tags 
 DROP CONSTRAINT IF EXISTS team_taxonomy_tags_unique_team_taxonomy;
 
--- Add new unique constraint including tag_type (allows same taxonomy with different tag types)
+-- Reinstate unique constraint so each team can tag a taxonomy only once
 ALTER TABLE public.team_taxonomy_tags 
 ADD CONSTRAINT team_taxonomy_tags_unique_team_taxonomy 
-UNIQUE (team_id, taxonomy_code, tag_type);
+UNIQUE (team_id, taxonomy_code);
 
 -- Add index for tag_type lookups
 CREATE INDEX IF NOT EXISTS idx_team_taxonomy_tags_tag_type 
