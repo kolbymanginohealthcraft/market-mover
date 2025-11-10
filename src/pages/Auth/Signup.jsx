@@ -221,32 +221,28 @@ const Signup = () => {
               
               <div style={{
                 margin: '12px 0 0 0',
-                padding: '14px 16px',
-                borderRadius: '10px',
+                padding: '16px 18px',
+                borderRadius: '12px',
                 backgroundColor: 'rgba(38, 89, 71, 0.08)',
                 border: '1px solid rgba(38, 89, 71, 0.12)',
                 textAlign: 'left'
               }}>
                 <p style={{
                   fontSize: '12px',
-                  color: '#5f6b6d',
+                  color: '#265947',
                   lineHeight: '1.5',
                   margin: '0 0 8px 0'
                 }}>
-                  You'll be defaulted to a free tier but can upgrade to a paid profile anytime by creating a team or joining a team.
+                  Create your free account to explore the Market Mover platform. Upgrade to a monthly subscription for $2,000 to unlock all premium features.
                 </p>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
+                <p style={{
                   fontSize: '12px',
-                  color: '#265947',
-                  lineHeight: '1.5'
+                  color: '#5f6b6d',
+                  lineHeight: '1.5',
+                  margin: 0
                 }}>
-                  <strong style={{ fontWeight: 600 }}>Paid Plan</strong>
-                  <span>$2,000 per month includes three seats.</span>
-                  <span>Add bundles of three more seats for $250 per month.</span>
-                </div>
+                  All subscriptions include three user licenses, with optional bundles of three additional seats available for $250 per month.
+                </p>
               </div>
             </form>
 
@@ -326,7 +322,7 @@ const Signup = () => {
                   lineHeight: '1.6',
                   margin: 0
                 }}>
-                  Analyze claims, quality, enrollment, and demographic signals to get a full market picture of the 5 dimensions of healthcare: Population, Payers, Providers, Pathways, and Positioning.
+                  Analyze claims, quality, enrollment, and demographic signals to get a full market picture of the five dimensions of healthcare: <strong>Population</strong>, <strong>Payers</strong>, <strong>Providers</strong>, <strong>Pathways</strong>, and <strong>Positioning</strong>.
                 </p>
               </div>
 
