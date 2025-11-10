@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Tag, Layers, Users } from "lucide-react";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
 import styles from "./Signup.module.css";
@@ -281,14 +282,17 @@ const Signup = () => {
                 borderRadius: '12px',
                 border: '1px solid rgba(38, 89, 71, 0.1)'
               }}>
-                <h4 style={{
-                  color: '#265947',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  margin: '0 0 12px 0'
-                }}>
-                  Segmentation Workbench
-                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <Tag size={18} color="#265947" className={styles.icon} />
+                  <h4 style={{
+                    color: '#265947',
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    margin: 0
+                  }}>
+                    Segmentation Workbench
+                  </h4>
+                </div>
                 <p style={{
                   color: '#5f6b6d',
                   fontSize: '14px',
@@ -305,14 +309,17 @@ const Signup = () => {
                 borderRadius: '12px',
                 border: '1px solid rgba(38, 89, 71, 0.1)'
               }}>
-                <h4 style={{
-                  color: '#265947',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  margin: '0 0 12px 0'
-                }}>
-                  Connected Data Signals
-                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <Layers size={18} color="#265947" className={styles.icon} />
+                  <h4 style={{
+                    color: '#265947',
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    margin: 0
+                  }}>
+                    Connected Data Signals
+                  </h4>
+                </div>
                 <p style={{
                   color: '#5f6b6d',
                   fontSize: '14px',
@@ -329,21 +336,24 @@ const Signup = () => {
                 borderRadius: '12px',
                 border: '1px solid rgba(38, 89, 71, 0.1)'
               }}>
-                <h4 style={{
-                  color: '#265947',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  margin: '0 0 12px 0'
-                }}>
-                  Team-Ready Execution
-                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <Users size={18} color="#265947" className={styles.icon} />
+                  <h4 style={{
+                    color: '#265947',
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    margin: 0
+                  }}>
+                    Team-Ready Execution
+                  </h4>
+                </div>
                 <p style={{
                   color: '#5f6b6d',
                   fontSize: '14px',
                   lineHeight: '1.6',
                   margin: 0
                 }}>
-                  Collaborate with your team to build strategies built for sales, marketing, and leadership alignment.
+                  Collaborate with your team to create strategies built for sales, marketing, and leadership alignment.
                 </p>
               </div>
             </div>
