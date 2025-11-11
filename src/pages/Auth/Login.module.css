@@ -39,6 +39,8 @@ input.form-input:focus {
   color: white !important;
   font-size: 18px !important;
   font-weight: 600 !important;
+  min-height: 40px;
+  padding: 16px 20px !important;
 }
 
 .primaryButton:hover {
@@ -78,5 +80,22 @@ input.form-input:focus {
   
   .primaryButton {
     width: 100%;
+    min-height: 60px;
+    padding: 18px 20px !important;
   }
+}
+
+.headerText {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.headerSubtitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #5f6b6d;
 }

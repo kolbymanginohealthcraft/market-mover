@@ -113,7 +113,7 @@
 }
 
 .pageTitle {
-  font-size: 2.25rem !important;
+  /* font-size: 2.25rem !important; */
   font-weight: 600;
   color: var(--gray-900);
   margin: 0;

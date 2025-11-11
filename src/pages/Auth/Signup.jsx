@@ -4,6 +4,7 @@ import { Tag, Layers, Users } from "lucide-react";
 import { supabase } from "../../app/supabaseClient";
 import Button from "../../components/Buttons/Button";
 import styles from "./Signup.module.css";
+import authStyles from "./AuthForm.module.css";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -71,293 +72,132 @@ const Signup = () => {
   };
 
                    return (
-        <div style={{
-          background: 'linear-gradient(135deg, #265947 0%, #3fb985 100%)',
-          // minHeight: '100vh'
-        }}>
-          <div style={{
-           background: 'rgba(255, 255, 255, 0.95)',
-           borderRadius: '16px',
-           padding: '60px',
-           width: '100%',
-           maxWidth: '1000px',
-           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
-           position: 'relative',
-           margin: '24px auto'
-         }}>
-        
-
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{
-            color: '#265947',
-            fontSize: '36px',
-            fontWeight: 'bold',
-            margin: '0 0 16px 0'
-          }}>
-            Join Market Mover
-          </h1>
-          <p style={{
-            color: '#5f6b6d',
-            fontSize: '18px',
-            margin: '0 0 8px 0',
-            lineHeight: '1.5'
-          }}>
-            Unlock the power of healthcare market intelligence
-          </p>
-          <p style={{
-            color: '#5f6b6d',
-            fontSize: '14px',
-            margin: 0,
-            lineHeight: '1.5'
-          }}>
-                         Already have an account? <span 
-               style={{ color: '#265947', cursor: 'pointer', textDecoration: 'underline' }}
-               onClick={() => navigate('/login')}
-             >
-               Sign in here
-             </span>
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'start' }}>
-          {/* Signup Form */}
-          <div>
-            <h2 style={{
-              color: '#265947',
-              fontSize: '24px',
-              fontWeight: '600',
-              margin: '0 0 24px 0'
-            }}>
-              Create Your Account
-            </h2>
-            
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontWeight: '600',
-                  color: '#5f6b6d',
-                  marginBottom: '8px',
-                  fontSize: '14px'
-                }}>
-                  Email Address
-                </label>
-                                 <input
-                   ref={emailRef}
-                   name="email"
-                   type="email"
-                   value={formData.email}
-                   onChange={handleChange}
-                   required
-                   className={`form-input ${styles['form-input']}`}
-                   style={{
-                     width: '100%',
-                     padding: '16px',
-                     border: '2px solid #e0e0e0',
-                     borderRadius: '12px',
-                     fontSize: '16px',
-                     boxSizing: 'border-box',
-                     transition: 'all 0.2s ease'
-                   }}
-                 />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontWeight: '600',
-                  color: '#5f6b6d',
-                  marginBottom: '8px',
-                  fontSize: '14px'
-                }}>
-                  Password
-                </label>
-                                 <input
-                   name="password"
-                   type="password"
-                   value={formData.password}
-                   onChange={handleChange}
-                   required
-                   className={`form-input ${styles['form-input']}`}
-                   style={{
-                     width: '100%',
-                     padding: '16px',
-                     border: '2px solid #e0e0e0',
-                     borderRadius: '12px',
-                     fontSize: '16px',
-                     boxSizing: 'border-box',
-                     transition: 'all 0.2s ease'
-                   }}
-                 />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <input
-                  type="checkbox"
-                  name="acceptedTerms"
-                  checked={formData.acceptedTerms}
-                  onChange={handleChange}
-                  required
-                  style={{ marginTop: '4px' }}
-                />
-                                 <span style={{
-                   fontSize: '14px',
-                   color: '#5f6b6d',
-                   lineHeight: '1.5'
-                 }}>
-                   I agree to the <a href="/legal" target="_blank" rel="noopener noreferrer" style={{ color: '#265947', textDecoration: 'underline' }}>Terms of Service</a>
-                 </span>
-              </div>
-
-              <Button
-                type="submit"
-                variant="green"
-                size="lg"
-                disabled={loading}
-                style={{ marginTop: '8px' }}
-              >
-                {loading ? "Creating Account..." : "Create Your Account"}
-              </Button>
-              
-              <div style={{
-                margin: '12px 0 0 0',
-                padding: '16px 18px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(38, 89, 71, 0.08)',
-                border: '1px solid rgba(38, 89, 71, 0.12)',
-                textAlign: 'left'
-              }}>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#265947',
-                  lineHeight: '1.5',
-                  margin: '0 0 8px 0'
-                }}>
-                  This creates your free account to explore the Market Mover platform. Upgrade anytime to a monthly subscription to access all premium features for $2,000 per month.
-                </p>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#5f6b6d',
-                  lineHeight: '1.5',
-                  margin: 0
-                }}>
-                  Paid subscriptions include three user licenses, with optional bundles of three additional seats available for $250 per month.
-                </p>
-              </div>
-            </form>
-
-            {status && (
-              <p style={{
-                marginTop: '20px',
-                padding: '16px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(38, 89, 71, 0.1)',
-                color: '#265947',
-                textAlign: 'center',
-                fontSize: '14px'
-              }}>
-                {status}
-              </p>
-            )}
+    <div className={`${authStyles.page} ${authStyles.pageGreen}`}>
+      <div className={`${authStyles.container} ${authStyles.containerWide}`}>
+        <div className={authStyles.card}>
+          <div className={styles.heroHeader}>
+            <h1 className={styles.heroTitle}>Join Market Mover</h1>
+            <p className={styles.heroSubtitle}>Unlock the power of healthcare market intelligence</p>
+            <p className={styles.heroHelper}>
+              Already have an account?{' '}
+              <button type="button" className={styles.heroLink} onClick={() => navigate('/login')}>
+                Sign in here
+              </button>
+            </p>
           </div>
 
-          {/* Marketing Content */}
-          <div style={{ paddingLeft: '40px', borderLeft: '2px solid #e0e0e0' }}>
-            <h3 style={{
-              color: '#265947',
-              fontSize: '24px',
-              fontWeight: '600',
-              margin: '0 0 20px 0'
-            }}>
-              Platform Capabilities
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{
-                padding: '20px',
-                backgroundColor: 'rgba(38, 89, 71, 0.05)',
-                borderRadius: '12px',
-                border: '1px solid rgba(38, 89, 71, 0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <Tag size={18} color="#265947" className={styles.icon} />
-                  <h4 style={{
-                    color: '#265947',
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    margin: 0
-                  }}>
-                    Segmentation Workbench
-                  </h4>
+          <div className={styles.contentGrid}>
+            <div className={styles.formColumn}>
+              <h2 className={styles.formTitle}>Create Your Account</h2>
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.field}>
+                  <label className={styles.label}>Email Address</label>
+                  <input
+                    ref={emailRef}
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className={`${authStyles.input} ${styles.inputOverride}`}
+                  />
                 </div>
-                <p style={{
-                  color: '#5f6b6d',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  margin: 0
-                }}>
-                  Create reusable parameters by tagging the providers, codes, metrics, and markets that matter, and apply them for easy analysis.
-                </p>
-              </div>
 
-              <div style={{
-                padding: '20px',
-                backgroundColor: 'rgba(38, 89, 71, 0.05)',
-                borderRadius: '12px',
-                border: '1px solid rgba(38, 89, 71, 0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <Layers size={18} color="#265947" className={styles.icon} />
-                  <h4 style={{
-                    color: '#265947',
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    margin: 0
-                  }}>
-                    Connected Data Signals
-                  </h4>
+                <div className={styles.field}>
+                  <label className={styles.label}>Password</label>
+                  <input
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className={`${authStyles.input} ${styles.inputOverride}`}
+                  />
                 </div>
-                <p style={{
-                  color: '#5f6b6d',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  margin: 0
-                }}>
-                  Analyze claims, quality, enrollment, and demographic signals to get a full market picture of the five dimensions of healthcare: <strong>Population</strong>, <strong>Payers</strong>, <strong>Providers</strong>, <strong>Pathways</strong>, and <strong>Positioning</strong>.
-                </p>
-              </div>
 
-              <div style={{
-                padding: '20px',
-                backgroundColor: 'rgba(38, 89, 71, 0.05)',
-                borderRadius: '12px',
-                border: '1px solid rgba(38, 89, 71, 0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <Users size={18} color="#265947" className={styles.icon} />
-                  <h4 style={{
-                    color: '#265947',
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    margin: 0
-                  }}>
-                    Team-Ready Execution
-                  </h4>
+                <label className={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    name="acceptedTerms"
+                    checked={formData.acceptedTerms}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>
+                    I agree to the{' '}
+                    <a href="/legal" target="_blank" rel="noopener noreferrer" className={styles.inlineLink}>
+                      Terms of Service
+                    </a>
+                  </span>
+                </label>
+
+                <Button
+                 type="submit"
+                 variant="green"
+                 size="lg"
+                 disabled={loading}
+                 className={styles.primaryAction}
+               >
+                 {loading ? 'Creating Account...' : 'Create Your Account'}
+               </Button>
+
+                <div className={styles.guardrail}>
+                  <p>
+                    This creates your free account to explore the Market Mover platform. Upgrade anytime to a monthly
+                    subscription to access all premium features for $2,000 per month.
+                  </p>
+                  <p>
+                    Paid subscriptions include three user licenses, with optional bundles of three additional seats available
+                    for $250 per month.
+                  </p>
                 </div>
-                <p style={{
-                  color: '#5f6b6d',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  margin: 0
-                }}>
-                  Collaborate with your team to create strategies built for sales, marketing, and leadership alignment.
-                </p>
+              </form>
+
+              {status && <p className={styles.status}>{status}</p>}
+            </div>
+
+            <div className={styles.marketingColumn}>
+              <h3 className={styles.sectionTitle}>Platform Capabilities</h3>
+              <div className={styles.featureList}>
+                <div className={styles.featureCard}>
+                  <div className={styles.featureHeading}>
+                    <Tag size={18} color="#265947" className={styles.icon} />
+                    <h4 className={styles.featureTitle}>Segmentation Workbench</h4>
+                  </div>
+                  <p className={styles.featureCopy}>
+                    Create reusable parameters by tagging the providers, codes, metrics, and markets that matter, and apply them
+                    for easy analysis.
+                  </p>
+                </div>
+
+                <div className={styles.featureCard}>
+                  <div className={styles.featureHeading}>
+                    <Layers size={18} color="#265947" className={styles.icon} />
+                    <h4 className={styles.featureTitle}>Connected Data Signals</h4>
+                  </div>
+                  <p className={styles.featureCopy}>
+                    Analyze claims, quality, enrollment, and demographic signals to get a full market picture of the five
+                    dimensions of healthcare: <strong>Population</strong>, <strong>Payers</strong>, <strong>Providers</strong>,
+                    <strong> Pathways</strong>, and <strong>Positioning</strong>.
+                  </p>
+                </div>
+
+                <div className={styles.featureCard}>
+                  <div className={styles.featureHeading}>
+                    <Users size={18} color="#265947" className={styles.icon} />
+                    <h4 className={styles.featureTitle}>Team-Ready Execution</h4>
+                  </div>
+                  <p className={styles.featureCopy}>
+                    Collaborate with your team to create strategies built for sales, marketing, and leadership alignment.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-                 </div>
-       </div>
-     </div>
-   );
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Signup;
