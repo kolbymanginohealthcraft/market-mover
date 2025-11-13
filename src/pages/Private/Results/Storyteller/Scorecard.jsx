@@ -3,6 +3,7 @@ import Spinner from "../../../../components/Buttons/Spinner";
 import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
+import { sanitizeProviderName } from "../../../../utils/providerName";
 
 export default function Scorecard({ 
   provider, 
@@ -180,21 +181,24 @@ export default function Scorecard({
     const manualKey = entity.manualCcn ? `ccn:${entity.manualCcn}` : null;
     const mappedName = (dhcKey && providerLabels[dhcKey]) || (manualKey && providerLabels[manualKey]);
     const fallbackName = entity.name || entity.facility_name || entity.providerObj?.name || entity.providerObj?.facility_name || (entity.manualCcn ? `CCN ${entity.manualCcn}` : null) || (entity.city && entity.state ? `${entity.city}, ${entity.state}` : null);
-    if (!mappedName && fallbackName === entity.name) {
+    const candidateName = mappedName || fallbackName || entity.name;
+    const sanitizedName = sanitizeProviderName(candidateName) || candidateName;
+    const sanitizedFacility = sanitizeProviderName(entity.facility_name || mappedName || fallbackName) || entity.facility_name || mappedName || fallbackName;
+    if (!mappedName && fallbackName === entity.name && sanitizedName === entity.name) {
       return entity;
     }
     return {
       ...entity,
-      name: mappedName || fallbackName || entity.name,
-      facility_name: entity.facility_name || mappedName || fallbackName || entity.facility_name
+      name: sanitizedName,
+      facility_name: sanitizedFacility
     };
   };
 
   const mainProviderInMatrix = resolveProviderLabel(
     filteredProviders.find(p => p.dhc === provider?.dhc && !p.shouldDisplay) || (provider && provider.dhc ? {
       dhc: provider.dhc,
-      name: provider.name,
-      facility_name: provider.facility_name,
+      name: sanitizeProviderName(provider.name) || provider.name,
+      facility_name: sanitizeProviderName(provider.facility_name) || provider.facility_name,
       manualCcn: provider.manualCcn,
       city: provider.city,
       state: provider.state,

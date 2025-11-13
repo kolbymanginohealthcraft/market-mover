@@ -1,4 +1,5 @@
 import { supabase } from '../app/supabaseClient';
+import { sanitizeProviderName } from './providerName';
 
 // Activity tracking utility
 export const trackActivity = async (activityType, targetId = null, targetName = null, metadata = {}) => {
@@ -13,13 +14,15 @@ export const trackActivity = async (activityType, targetId = null, targetName = 
 
     console.log('✅ User authenticated:', user.id);
 
+    const sanitizedTargetName = targetName ? sanitizeProviderName(targetName) : null;
+
     const { data, error } = await supabase
       .from('user_activities')
       .insert({
         user_id: user.id,
         activity_type: activityType,
         target_id: targetId,
-        target_name: targetName,
+        target_name: sanitizedTargetName,
         metadata
       })
       .select()

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Code, GitBranch, LayoutTemplate } from 'lucide-react';
+import { MapPin, Code, GitBranch, LayoutTemplate, Globe, Users } from 'lucide-react';
 import styles from './UnfinishedItems.module.css';
 
 export default function UnfinishedItems() {
@@ -10,6 +10,13 @@ export default function UnfinishedItems() {
       description: 'Geographic analysis and mapping tools',
       path: '/app/platform/unfinished/geography',
       icon: MapPin
+    },
+    {
+      id: 'osm-explorer',
+      title: 'OpenStreetMap Explorer',
+      description: 'Explore OSM planet feature coverage by market',
+      path: '/app/platform/unfinished/osm-explorer',
+      icon: Globe
     },
     {
       id: 'medicare-pos',
@@ -31,6 +38,13 @@ export default function UnfinishedItems() {
       description: 'Referral source and downstream facility analysis',
       path: '/app/platform/unfinished/referral-pathways',
       icon: GitBranch
+    },
+    {
+      id: 'provider-affiliations',
+      title: 'Provider Affiliations',
+      description: 'Explore relationships between service locations and performing providers',
+      path: '/app/platform/unfinished/provider-affiliations',
+      icon: Users
     },
     {
       id: 'mobile-workshop',

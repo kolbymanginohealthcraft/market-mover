@@ -36,6 +36,10 @@ import { useUser } from '../Context/UserContext';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import Dropdown from '../Buttons/Dropdown';
 import { supabase } from '../../app/supabaseClient';
+import {
+  getNavigationIcon,
+  getNavigationIconProps
+} from '../../utils/navigationIcons';
 
 const SubNavigation = () => {
   const location = useLocation();
@@ -1450,13 +1454,14 @@ const SubNavigation = () => {
         <div className={styles.navLeft}>
           {visibleTabs.map((tab) => {
             const IconComponent = tab.icon;
+            const iconProps = tab.iconProps || { size: 16 };
             return (
               <Link
                 key={tab.id}
                 to={tab.path}
                 className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
               >
-                <IconComponent size={16} />
+                <IconComponent {...iconProps} />
                 {tab.label}
               </Link>
             );
@@ -1470,8 +1475,18 @@ const SubNavigation = () => {
   if (location.pathname.includes('/search')) {
     const searchTab = location.pathname.includes('/ind') ? 'individuals' : 'orgs';
     
+    const searchOrgIconComponent =
+      getNavigationIcon('searchOrganizations') || Building2;
+    const defaultSearchIconProps = getNavigationIconProps({ size: 16 });
+
     const tabs = [
-      { id: "orgs", label: "Search Organizations", icon: Building2, path: "/app/search/orgs" },
+      {
+        id: "orgs",
+        label: "Search Organizations",
+        icon: searchOrgIconComponent,
+        iconProps: defaultSearchIconProps,
+        path: "/app/search/orgs"
+      },
       { 
         id: "individuals", 
         label: "Search Individuals", 
@@ -1488,6 +1503,7 @@ const SubNavigation = () => {
             const IconComponent = tab.icon;
             
             // If tab requires team and user doesn't have one, show disabled version
+            const iconProps = tab.iconProps || { size: 16 };
             if (tab.requiresTeam && !teamLoading && !hasTeam) {
               return (
                 <div
@@ -1495,7 +1511,7 @@ const SubNavigation = () => {
                   className={`${styles.tab} ${styles.disabled}`}
                   title="Join or create a team to access advanced search features"
                 >
-                  <IconComponent size={16} />
+                  <IconComponent {...iconProps} />
                   {tab.label}
                   <Lock size={12} style={{ marginLeft: 'auto' }} />
                 </div>
@@ -1508,7 +1524,7 @@ const SubNavigation = () => {
                 to={tab.path}
                 className={`${styles.tab} ${searchTab === tab.id ? styles.active : ''}`}
               >
-                <IconComponent size={16} />
+                <IconComponent {...iconProps} />
                 {tab.label}
               </Link>
             );

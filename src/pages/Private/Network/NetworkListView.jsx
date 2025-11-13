@@ -13,6 +13,7 @@ import { ProviderTagBadge } from '../../../components/Tagging/ProviderTagBadge';
 import styles from './Network.module.css';
 import dropdownStyles from '../../../components/Buttons/Dropdown.module.css';
 import controlsStyles from '../../../components/Layouts/ControlsRow.module.css';
+import { sanitizeProviderName } from '../../../utils/providerName';
 
 
 export default function NetworkListView() {
@@ -239,16 +240,16 @@ export default function NetworkListView() {
         let aValue, bValue;
         switch (sortBy) {
           case 'name': 
-            aValue = a.name || ''; 
-            bValue = b.name || ''; 
+            aValue = sanitizeProviderName(a.name) || a.name || ''; 
+            bValue = sanitizeProviderName(b.name) || b.name || ''; 
             break;
           case 'type': 
             aValue = a.type || ''; 
             bValue = b.type || ''; 
             break;
           case 'network': 
-            aValue = a.network || ''; 
-            bValue = b.network || ''; 
+            aValue = sanitizeProviderName(a.network) || a.network || ''; 
+            bValue = sanitizeProviderName(b.network) || b.network || ''; 
             break;
           case 'location': 
             aValue = `${a.city || ''} ${a.state || ''}`; 
@@ -539,7 +540,7 @@ export default function NetworkListView() {
                           onClick={() => handleViewProvider(provider.provider_dhc)}
                           style={{ cursor: 'pointer' }}
                         >
-                          {provider.name}
+                          {sanitizeProviderName(provider.name) || provider.name || 'Provider'}
                         </div>
                       </td>
                       <td>
@@ -557,7 +558,7 @@ export default function NetworkListView() {
                         />
                       </td>
                       <td>{provider.type}</td>
-                      <td>{provider.network}</td>
+                      <td>{sanitizeProviderName(provider.network) || provider.network || '—'}</td>
                       <td>{provider.city}, {provider.state}</td>
                       <td>{provider.formattedDate}</td>
                     </tr>

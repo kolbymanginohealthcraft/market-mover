@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Bell, 
+import {
+  Bell,
   HelpCircle,
-  Eye,
   Building2,
   MapPin,
   Search,
@@ -12,15 +11,10 @@ import {
   LogOut,
   User,
   LayoutDashboard,
-  Network,
   Settings,
   Home,
-  DollarSign,
   Mail,
   FileText,
-  FileBarChart,
-  Activity,
-  Database,
   GitBranch,
   LineChart,
   Shield,
@@ -30,6 +24,15 @@ import { useProviderContext } from '../Context/ProviderContext';
 import { useUser } from '../Context/UserContext';
 import { supabase } from '../../app/supabaseClient';
 import styles from './Header.module.css';
+import { sanitizeProviderName } from '../../utils/providerName';
+import {
+  getSegmentationIcon,
+  getSegmentationIconProps
+} from '../../utils/segmentationIcons';
+import {
+  getNavigationIcon,
+  getNavigationIconProps
+} from '../../utils/navigationIcons';
 
 const Header = ({
   currentView,
@@ -152,6 +155,8 @@ const Header = ({
       return 'Saved Markets';
     } else if (location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+\/market\//)) {
       return 'Provider Analysis';
+    } else if (location.pathname.match(/^\/app\/\d+\/(?!market\/).+/)) {
+      return 'Provider Analysis';
     } else if (location.pathname.match(/^\/app\/\d+$/)) {
       return 'Provider Profile';
     } else if (location.pathname.includes('/market/')) {
@@ -223,8 +228,9 @@ const Header = ({
     
     // Provider Analysis/Profile Mode
     if ((location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+/)) && currentProvider) {
+      const sanitizedName = sanitizeProviderName(currentProvider.name) || currentProvider.name || 'Provider';
       return [
-        { text: currentProvider.name, type: 'provider' },
+        { text: sanitizedName, type: 'provider' },
         { text: `${currentProvider.street}, ${currentProvider.city}, ${currentProvider.state} ${currentProvider.zip}`, type: 'location' },
         { text: currentProvider.type, type: 'category' }
       ];
@@ -333,6 +339,78 @@ const Header = ({
     }
   };
 
+  const getSegmentationIconKey = () => {
+    if (location.pathname.includes('/markets')) {
+      return 'savedMarkets';
+    }
+
+    if (location.pathname.includes('/market/')) {
+      return 'savedMarkets';
+    }
+
+    if (location.pathname.includes('/network')) {
+      return 'network';
+    }
+
+    if (location.pathname.includes('/procedures')) {
+      return 'procedures';
+    }
+
+    if (location.pathname.includes('/diagnoses')) {
+      return 'diagnoses';
+    }
+
+    if (location.pathname.includes('/metrics')) {
+      return 'metrics';
+    }
+
+    if (location.pathname.includes('/taxonomies')) {
+      return 'taxonomies';
+    }
+
+    return null;
+  };
+
+  const isProviderAnalysisPath = () => {
+    if (location.pathname.includes('/provider/')) {
+      return true;
+    }
+
+    if (location.pathname.match(/^\/app\/\d+\/market\//)) {
+      return true;
+    }
+
+    if (location.pathname.match(/^\/app\/\d+\/(?!market\/).+/)) {
+      return true;
+    }
+
+    if (location.pathname.match(/^\/app\/\d+$/)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const getNavigationIconKey = () => {
+    if (isProviderAnalysisPath()) {
+      return 'provider';
+    }
+
+    if (location.pathname.includes('/claims/storyteller')) {
+      return null;
+    }
+
+    if (location.pathname.includes('/claims')) {
+      return 'claims';
+    }
+
+    if (location.pathname.includes('/enrollment')) {
+      return 'enrollment';
+    }
+
+    return null;
+  };
+
   const getModuleIcon = () => {
     // Public pages
     if (isPublicPage) {
@@ -352,30 +430,34 @@ const Header = ({
     }
     
     // Private pages
+    const segmentationIconKey = getSegmentationIconKey();
+    if (segmentationIconKey) {
+      const IconComponent = getSegmentationIcon(segmentationIconKey);
+      if (IconComponent) {
+        return (
+          <IconComponent {...getSegmentationIconProps({ size: 18 })} />
+        );
+      }
+    }
+
+    const navigationIconKey = getNavigationIconKey();
+    if (navigationIconKey) {
+      const IconComponent = getNavigationIcon(navigationIconKey);
+      if (IconComponent) {
+        return (
+          <IconComponent {...getNavigationIconProps({ size: 18 })} />
+        );
+      }
+    }
+
     if (location.pathname.includes('/dashboard')) {
       return <LayoutDashboard size={18} />;
     } else if (location.pathname.includes('/search')) {
       return <Search size={18} />;
-    } else if (location.pathname.includes('/markets')) {
-      return <MapPin size={18} />;
-    } else if (location.pathname.includes('/provider/')) {
-      return <Building2 size={18} />;
     } else if (location.pathname.includes('/market/')) {
       return <MapPin size={18} />;
     } else if (location.pathname.includes('/claims/storyteller')) {
       return <LineChart size={18} />;
-    } else if (location.pathname.includes('/network')) {
-      return <Network size={18} />;
-    } else if (location.pathname.includes('/procedures')) {
-      return <FileBarChart size={18} />;
-    } else if (location.pathname.includes('/diagnoses')) {
-      return <FileBarChart size={18} />;
-    } else if (location.pathname.includes('/metrics')) {
-      return <Activity size={18} />;
-    } else if (location.pathname.includes('/taxonomies')) {
-      return <FileBarChart size={18} />;
-    } else if (location.pathname.includes('/claims')) {
-      return <Database size={18} />;
     } else if (location.pathname.includes('/referral-pathways')) {
       return <GitBranch size={18} />;
     } else if (location.pathname.includes('/geography')) {

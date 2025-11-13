@@ -33,9 +33,13 @@ import hcoData from "./server/routes/hcoData.js";
 import hcpData from "./server/routes/hcpData.js";
 import hcoDirectory from "./server/routes/hcoDirectory.js";
 import marketGeography from "./server/routes/marketGeography.js";
+import geographicBoundaries from "./server/routes/geographicBoundaries.js";
 import patientJourney from "./server/routes/patientJourney.js";
 import referralPathways from "./server/routes/referralPathways.js";
 import kpis from "./server/routes/kpis.js";
+import planetFeatures from "./server/routes/planetFeatures.js";
+import networkSiblings from "./server/routes/networkSiblings.js";
+import affiliationsProvider from "./server/routes/affiliationsProvider.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
@@ -94,9 +98,13 @@ app.use("/api/hco-data", hcoData);
 app.use("/api/hcp-data", hcpData);
 app.use("/api/hco-directory", hcoDirectory);
 app.use("/api/market-geography", marketGeography);
+app.use("/api", geographicBoundaries);
 app.use("/api/patient-journey", patientJourney);
 app.use("/api/referral-pathways", referralPathways);
 app.use("/api", kpis);
+app.use("/api", planetFeatures);
+app.use("/api", networkSiblings);
+app.use("/api/provider-affiliations", affiliationsProvider);
 
 // app.use("/api/admin", admin);
 // app.use("/api/policies", policyManagement);

@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Search, Building2, MapPin } from 'lucide-react';
+import { Search, MapPin, Building2 } from 'lucide-react';
 import styles from './ActivityPanel.module.css';
+import {
+  getNavigationIcon,
+  getNavigationIconProps
+} from '../../../utils/navigationIcons';
 
 export default function ActivityPanel({ 
   activities, 
@@ -8,13 +12,16 @@ export default function ActivityPanel({
   onClearAll, 
   onClearActivity 
 }) {
+  const ProviderIcon = getNavigationIcon('provider') || Building2;
+  const providerIconProps = getNavigationIconProps({ size: 14 });
+
   // Helper function to get activity icon
   const getActivityIcon = (activityType) => {
     const icons = {
-      'search_providers': <Search size={14} />,
-      'view_provider': <Building2 size={14} />,
-      'save_market': <MapPin size={14} />,
-      'view_market': <MapPin size={14} />
+      search_providers: <Search size={14} />,
+      view_provider: <ProviderIcon {...providerIconProps} />,
+      save_market: <MapPin size={14} />,
+      view_market: <MapPin size={14} />
     };
     
     return icons[activityType] || <Search size={14} />;

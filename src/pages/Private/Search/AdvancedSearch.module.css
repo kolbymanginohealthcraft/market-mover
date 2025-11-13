@@ -874,9 +874,11 @@
   display: flex;
   flex-direction: column;
   background: white;
-  border-radius: 8px;
-  border: 1px solid var(--gray-200);
+  border-radius: 0;
+  border: none;
   overflow: hidden;
+  position: relative;
+  margin: 0;
 }
 
 .densityHeader {
@@ -904,6 +906,11 @@
 .densityControls {
   padding: 20px;
   border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .locationModeSelector {
@@ -923,33 +930,9 @@
   cursor: pointer;
 }
 
-.locationInputWrapper {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.densityInput {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid var(--gray-300);
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.densityInput:focus {
-  outline: none;
-  border-color: var(--blue-500);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.densityInput:disabled {
-  background: var(--gray-100);
-  cursor: not-allowed;
-}
 
 .densityError {
+  width: 100%;
   margin-top: 12px;
   padding: 10px 14px;
   background: var(--red-50);
@@ -960,7 +943,6 @@
 }
 
 .densityLocation {
-  margin-top: 12px;
   padding: 8px 12px;
   background: var(--blue-50);
   border: 1px solid var(--blue-200);
@@ -970,6 +952,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .densityLoading {
@@ -1014,7 +997,7 @@
 }
 
 .densityTable th {
-  padding: 12px 16px;
+  padding: 6px 12px;
   text-align: left;
   font-size: 12px;
   font-weight: 600;
@@ -1026,7 +1009,7 @@
 }
 
 .densityTable td {
-  padding: 12px 16px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--gray-100);
   color: var(--gray-700);
 }
@@ -1037,10 +1020,10 @@
 
 .taxonomyCode {
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 11px;
   background: var(--gray-100);
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
   color: var(--gray-900);
 }
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Users, X, List, Search } from 'lucide-react';
+import { Users, X, List, Search, ChevronDown } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 import UserDetailModal from './UserDetailModal';
 import ManageTeams from '../../../pages/Private/Settings/Platform/ManageTeams';
+import Dropdown from '../../../components/Buttons/Dropdown';
 import styles from './UserList.module.css';
 
 export default function UserList() {
@@ -26,6 +27,7 @@ export default function UserList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('listing');
   const [metadataLoading, setMetadataLoading] = useState(false);
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const metadataUserIdsKey = useRef(null);
 
   const fetchUsers = useCallback(async () => {
@@ -269,6 +271,44 @@ export default function UserList() {
 
     return Object.values(groups).sort((a, b) => b.count - a.count);
   }, [users]);
+
+  const teamOptions = useMemo(() => {
+    if (users.length === 0) {
+      return [{ value: 'all', label: 'All teams', count: 0 }];
+    }
+
+    const groups = users.reduce((acc, user) => {
+      const key = user.teams?.name ?? 'no_team';
+      if (!acc[key]) {
+        acc[key] = {
+          value: key,
+          label: user.teams?.name ?? 'No Team',
+          count: 0,
+        };
+      }
+      acc[key].count += 1;
+      return acc;
+    }, {});
+
+    const sortedOptions = Object.values(groups).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+
+    return [
+      { value: 'all', label: 'All teams', count: users.length },
+      ...sortedOptions,
+    ];
+  }, [users]);
+
+  useEffect(() => {
+    if (teamFilter !== 'all' && !teamOptions.some((option) => option.value === teamFilter)) {
+      setTeamFilter('all');
+    }
+  }, [teamOptions, teamFilter]);
+
+  const selectedTeamOption = useMemo(() => {
+    return teamOptions.find((option) => option.value === teamFilter) ?? teamOptions[0];
+  }, [teamOptions, teamFilter]);
 
   const usageOptions = useMemo(() => {
     if (users.length === 0) return [];
@@ -780,32 +820,76 @@ export default function UserList() {
               <div className={styles.listingTab}>
                 <div className={styles.tableControls}>
                   <div className={styles.tableSearchRow}>
-                    <div className={styles.tableSearch}>
-                      <div className="searchBarContainer">
-                        <div className="searchIcon">
-                          <Search size={16} />
+                    <div className={styles.searchAndFilters}>
+                      <div className={styles.tableSearch}>
+                        <div className="searchBarContainer">
+                          <div className="searchIcon">
+                            <Search size={16} />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Search users..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                setSearchTerm('');
+                              }
+                            }}
+                            className="searchInput"
+                          />
+                          {searchTerm && (
+                            <button
+                              onClick={() => setSearchTerm('')}
+                              className="clearButton"
+                              title="Clear search"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
                         </div>
-                        <input
-                          type="text"
-                          placeholder="Search users..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                              setSearchTerm('');
-                            }
-                          }}
-                          className="searchInput"
-                        />
-                        {searchTerm && (
-                          <button
-                            onClick={() => setSearchTerm('')}
-                            className="clearButton"
-                            title="Clear search"
-                          >
-                            <X size={16} />
-                          </button>
-                        )}
+                      </div>
+                      <div className={styles.teamFilterWrapper}>
+                        <Dropdown
+                          trigger={
+                            <button
+                              type="button"
+                              className={`sectionHeaderButton ${styles.teamFilterTrigger}`}
+                            >
+                              <span className={styles.teamFilterText}>
+                                Team: {selectedTeamOption?.label ?? 'All teams'}
+                              </span>
+                              <ChevronDown className={styles.teamFilterCaret} />
+                            </button>
+                          }
+                          isOpen={teamDropdownOpen}
+                          onToggle={setTeamDropdownOpen}
+                          className={styles.teamFilterDropdown}
+                        >
+                          <ul className={styles.teamFilterList}>
+                            {teamOptions.map((option) => (
+                              <li key={option.value}>
+                                <button
+                                  type="button"
+                                  className={`${styles.teamFilterItem} ${
+                                    teamFilter === option.value ? styles.teamFilterItemActive : ''
+                                  }`}
+                                  onClick={() => {
+                                    setTeamFilter(option.value);
+                                    setTeamDropdownOpen(false);
+                                  }}
+                                >
+                                  <span className={styles.teamFilterItemLabel}>
+                                    {option.label}
+                                  </span>
+                                  <span className={styles.teamFilterCount}>
+                                    {option.count}
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </Dropdown>
                       </div>
                     </div>
                     {hasActiveFilters() && (

@@ -1,35 +1,31 @@
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Search, 
-  MapPin, 
-  Building2,
-  Building,
-  FileText,
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Search,
   Users,
-  UserCheck,
   BarChart3,
-  Bookmark,
-  Network,
-  Activity,
   Settings,
   Lightbulb,
-  Code,
   Lock,
   ChevronLeft,
   ChevronRight,
   Radius,
   Check,
   X,
-  FileBarChart,
-  Database,
-  GitBranch,
   LineChart
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useUser } from '../Context/UserContext';
 import { useState, useRef, useEffect } from 'react';
 import styles from './Sidebar.module.css';
+import {
+  getSegmentationIcon,
+  getSegmentationIconProps
+} from '../../utils/segmentationIcons';
+import {
+  getNavigationIcon,
+  getNavigationIconProps
+} from '../../utils/navigationIcons';
 
 const Sidebar = ({
   isCollapsed = false,
@@ -39,7 +35,6 @@ const Sidebar = ({
   onCloseDrawer
 }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { hasTeam, teamInfo, loading } = useUserTeam();
   const { permissions } = useUser();
@@ -69,6 +64,65 @@ const Sidebar = ({
   }, [searchParams, isProviderPage]);
 
   const hasRadiusChanged = pendingRadius !== currentRadius;
+  const navigationIcons = {
+    claims: getNavigationIcon('claims'),
+    enrollment: getNavigationIcon('enrollment'),
+    provider: getNavigationIcon('provider')
+  };
+  const navigationIconProps = getNavigationIconProps({ size: 14 });
+  const ClaimsIcon = navigationIcons.claims;
+  const EnrollmentIcon = navigationIcons.enrollment;
+  const ProviderIcon = navigationIcons.provider;
+  const segmentationNavItems = [
+    {
+      key: 'savedMarkets',
+      label: 'Saved Markets',
+      path: '/app/markets',
+      tooltip: 'Saved Markets',
+      lockedTooltip:
+        'Saved Markets - Join or create a team to access markets and network features'
+    },
+    {
+      key: 'network',
+      label: 'My Network',
+      path: '/app/network',
+      tooltip: 'My Network',
+      lockedTooltip:
+        'My Network - Join or create a team to access markets and network features'
+    },
+    {
+      key: 'procedures',
+      label: 'My Procedures',
+      path: '/app/procedures',
+      tooltip: 'My Procedures',
+      lockedTooltip:
+        'My Procedures - Join or create a team to access procedure tagging features'
+    },
+    {
+      key: 'diagnoses',
+      label: 'My Diagnoses',
+      path: '/app/diagnoses',
+      tooltip: 'My Diagnoses',
+      lockedTooltip:
+        'My Diagnoses - Join or create a team to access diagnosis tagging features'
+    },
+    {
+      key: 'metrics',
+      label: 'My Metrics',
+      path: '/app/metrics',
+      tooltip: 'My Metrics',
+      lockedTooltip:
+        'My Metrics - Join or create a team to access metric tagging features'
+    },
+    {
+      key: 'taxonomies',
+      label: 'My Taxonomies',
+      path: '/app/taxonomies',
+      tooltip: 'My Taxonomies',
+      lockedTooltip:
+        'My Taxonomies - Join or create a team to access taxonomy tagging features'
+    }
+  ];
   const collapsed = isMobile ? false : isCollapsed;
   const sidebarClassName = [
     styles.sidebar,
@@ -158,6 +212,7 @@ const Sidebar = ({
 
         {/* Main Navigation */}
         <div className={styles.navItems}>
+          {!isCollapsed && <div className={styles.sectionDivider}>Market Intelligence</div>}
         <Link 
             to="/app/dashboard" 
             className={`${styles.navItem} ${isActive('/dashboard') ? styles.active : ''}`}
@@ -186,7 +241,7 @@ const Sidebar = ({
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}
           >
-            <Database size={14} />
+            {ClaimsIcon && <ClaimsIcon {...navigationIconProps} />}
             {!isCollapsed && 'Claims Data Explorer'}
           </Link>
           
@@ -219,156 +274,73 @@ const Sidebar = ({
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}
           >
-            <BarChart3 size={14} />
+            {EnrollmentIcon && <EnrollmentIcon {...navigationIconProps} />}
             {!isCollapsed && 'Enrollment'}
           </Link>
           
           {/* Section divider */}
-          {!isCollapsed && <div className={styles.sectionDivider}>My Parameters</div>}
-          
-          {hasTeam ? (
-            <Link 
-              to="/app/markets" 
-              className={`${styles.navItem} ${isActive('/markets') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'Saved Markets')}
-              onMouseLeave={handleMouseLeave}
-              {...mobileLinkHandlers}
-            >
-              <MapPin size={14} />
-              {!isCollapsed && 'Saved Markets'}
-            </Link>
-          ) : (
-            <div 
-              className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'Saved Markets - Join or create a team to access markets and network features')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <MapPin size={14} />
-              {!isCollapsed && 'Saved Markets'}
-              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
-            </div>
+          {!isCollapsed && (
+            <div className={styles.sectionDivider}>Segmentation Workbench</div>
           )}
-          {hasTeam ? (
-            <Link 
-              to="/app/network" 
-              className={`${styles.navItem} ${isActive('/network') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Network')}
-              onMouseLeave={handleMouseLeave}
-              {...mobileLinkHandlers}
-            >
-              <Network size={14} />
-              {!isCollapsed && 'My Network'}
-            </Link>
-          ) : (
-            <div 
-              className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Network - Join or create a team to access markets and network features')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <Network size={14} />
-              {!isCollapsed && 'My Network'}
-              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
-            </div>
-          )}
-          {hasTeam ? (
-            <Link 
-              to="/app/procedures" 
-              className={`${styles.navItem} ${isActive('/procedures') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Procedures')}
-              onMouseLeave={handleMouseLeave}
-              {...mobileLinkHandlers}
-            >
-              <FileBarChart size={14} />
-              {!isCollapsed && 'My Procedures'}
-            </Link>
-          ) : (
-            <div 
-              className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Procedures - Join or create a team to access procedure tagging features')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <FileBarChart size={14} />
-              {!isCollapsed && 'My Procedures'}
-              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
-            </div>
-          )}
-          {hasTeam ? (
-            <Link 
-              to="/app/diagnoses" 
-              className={`${styles.navItem} ${isActive('/diagnoses') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Diagnoses')}
-              onMouseLeave={handleMouseLeave}
-              {...mobileLinkHandlers}
-            >
-              <FileBarChart size={14} />
-              {!isCollapsed && 'My Diagnoses'}
-            </Link>
-          ) : (
-            <div 
-              className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Diagnoses - Join or create a team to access diagnosis tagging features')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <FileBarChart size={14} />
-              {!isCollapsed && 'My Diagnoses'}
-              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
-            </div>
-          )}
-          {hasTeam ? (
-            <Link 
-              to="/app/metrics" 
-              className={`${styles.navItem} ${isActive('/metrics') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Metrics')}
-              onMouseLeave={handleMouseLeave}
-              {...mobileLinkHandlers}
-            >
-              <Activity size={14} />
-              {!isCollapsed && 'My Metrics'}
-            </Link>
-          ) : (
-            <div 
-              className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Metrics - Join or create a team to access metric tagging features')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <Activity size={14} />
-              {!isCollapsed && 'My Metrics'}
-              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
-            </div>
-          )}
-          {hasTeam ? (
-            <Link 
-              to="/app/taxonomies" 
-              className={`${styles.navItem} ${isActive('/taxonomies') ? styles.active : ''}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Taxonomies')}
-              onMouseLeave={handleMouseLeave}
-              {...mobileLinkHandlers}
-            >
-              <FileBarChart size={14} />
-              {!isCollapsed && 'My Taxonomies'}
-            </Link>
-          ) : (
-            <div 
-              className={`${styles.navItem} ${styles.disabled}`}
-              onMouseEnter={(e) => handleMouseEnter(e, 'My Taxonomies - Join or create a team to access taxonomy tagging features')}
-              onMouseLeave={handleMouseLeave}
-            >
-              <FileBarChart size={14} />
-              {!isCollapsed && 'My Taxonomies'}
-              {!isCollapsed && <Lock size={12} style={{ marginLeft: 'auto' }} />}
-            </div>
+
+          {segmentationNavItems.map(
+            ({ key, label, path, tooltip, lockedTooltip }) => {
+              const IconComponent = getSegmentationIcon(key);
+              const icon =
+                IconComponent && (
+                  <IconComponent {...getSegmentationIconProps({ size: 14 })} />
+                );
+              const isItemActive = isActive(path.replace('/app', ''));
+
+              if (hasTeam) {
+                return (
+                  <Link
+                    key={key}
+                    to={path}
+                    className={`${styles.navItem} ${
+                      isItemActive ? styles.active : ''
+                    }`}
+                    onMouseEnter={(e) => handleMouseEnter(e, tooltip)}
+                    onMouseLeave={handleMouseLeave}
+                    {...mobileLinkHandlers}
+                  >
+                    {icon}
+                    {!isCollapsed && label}
+                  </Link>
+                );
+              }
+
+              return (
+                <div
+                  key={key}
+                  className={`${styles.navItem} ${styles.disabled}`}
+                  onMouseEnter={(e) => handleMouseEnter(e, lockedTooltip)}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {icon}
+                  {!isCollapsed && label}
+                  {!isCollapsed && (
+                    <Lock size={12} style={{ marginLeft: 'auto' }} />
+                  )}
+                </div>
+              );
+            }
           )}
         </div>
 
         {/* Provider Analysis Section (only shown on provider pages) */}
         {isProviderPage && (
           <div className={styles.navItems}>
-            <div 
+            <div
               className={`${styles.navItem} ${styles.active}`}
               onMouseEnter={(e) => handleMouseEnter(e, 'Provider Analysis')}
               onMouseLeave={handleMouseLeave}
             >
-              <BarChart3 size={14} />
+              {ProviderIcon ? (
+                <ProviderIcon {...navigationIconProps} />
+              ) : (
+                <BarChart3 size={14} />
+              )}
               {!isCollapsed && 'Provider Analysis'}
             </div>
             

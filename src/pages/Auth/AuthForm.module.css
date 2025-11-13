@@ -44,7 +44,7 @@
 
 .container {
   width: min(100%, 600px);
-  margin: 16px auto 24px;
+  /* margin: 16px auto 24px; */
   display: flex;
   justify-content: center;
   align-items: stretch;
@@ -58,7 +58,8 @@
 .card {
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
-  padding: 48px 48px 40px;
+  /* padding: 48px 48px 40px; */
+  padding: 60px;
   width: 100%;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
@@ -151,6 +152,24 @@
 .button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.statusMessage {
+  font-size: 14px;
+  text-align: center;
+  margin-top: 0;
+}
+
+.statusInfo {
+  color: #2d7fa3;
+}
+
+.statusSuccess {
+  color: #2f855a;
+}
+
+.statusError {
+  color: #d64550;
 }
 
 .error {

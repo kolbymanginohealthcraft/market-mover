@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../app/supabaseClient';
+import { sanitizeProviderName } from '../utils/providerName';
 
 export default function useUserActivity() {
   const [activities, setActivities] = useState([]);
@@ -85,12 +86,14 @@ export default function useUserActivity() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const sanitizedTargetName = targetName ? sanitizeProviderName(targetName) : null;
+
       const { data, error } = await supabase
         .from('user_activities')
         .insert({
           activity_type: activityType,
           target_id: targetId,
-          target_name: targetName,
+          target_name: sanitizedTargetName,
           metadata
         })
         .select()

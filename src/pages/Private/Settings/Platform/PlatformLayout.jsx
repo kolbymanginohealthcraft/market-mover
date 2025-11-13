@@ -17,6 +17,8 @@ import UserList from '../../../../features/admin/components/UserList';
 import UnfinishedItems from './UnfinishedItems';
 import MobileNavigationWorkshop from './MobileNavigationWorkshop';
 import GeographyAnalysis from '../../GeographyAnalysis/GeographyAnalysis';
+import PlanetFeaturesExplorer from './PlanetFeaturesExplorer';
+import ProviderAffiliationsExplorer from './ProviderAffiliationsExplorer';
 import TestProviderOfServices from '../../../TestProviderOfServices';
 import TestProviderOfServicesEnriched from '../../../TestProviderOfServicesEnriched';
 import ReferralPathways from '../../ReferralPathways/ReferralPathways';
@@ -78,6 +80,8 @@ export default function PlatformLayout() {
           <Route path="style-guide" element={<StyleGuide />} />
           <Route path="unfinished" element={<UnfinishedItems />} />
           <Route path="unfinished/geography" element={<GeographyAnalysis />} />
+          <Route path="unfinished/osm-explorer" element={<PlanetFeaturesExplorer />} />
+          <Route path="unfinished/provider-affiliations" element={<ProviderAffiliationsExplorer />} />
           <Route path="unfinished/medicare-pos" element={<TestProviderOfServices />} />
           <Route path="unfinished/medicare-pos-enriched" element={<TestProviderOfServicesEnriched />} />
           <Route path="unfinished/referral-pathways" element={<ReferralPathways />} />

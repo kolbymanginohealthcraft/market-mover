@@ -8,7 +8,7 @@ import authStyles from "./AuthForm.module.css";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(null);
   const emailInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -18,14 +18,14 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setStatus("Processing...");
+    setStatus({ type: "info", message: "Processing..." });
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setStatus(`❌ ${error.message}`);
+      setStatus({ type: "error", message: error.message });
     } else {
-      setStatus("✅ Logged in!");
+      setStatus({ type: "success", message: "Logged in!" });
     }
   };
 
@@ -92,7 +92,19 @@ const Login = () => {
             </Button>
           </div>
 
-          {status && <p className={authStyles.error}>{status}</p>}
+          {status && (
+            <p
+              className={`${authStyles.statusMessage} ${
+                status.type === "error"
+                  ? authStyles.statusError
+                  : status.type === "success"
+                  ? authStyles.statusSuccess
+                  : authStyles.statusInfo
+              }`}
+            >
+              {status.message}
+            </p>
+          )}
         </div>
       </div>
     </div>

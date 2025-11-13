@@ -66,7 +66,6 @@ export default function AdvancedSearch() {
   
   // Density tab state
   const [densityLocationInput, setDensityLocationInput] = useState('');
-  const [densityLocationMode, setDensityLocationMode] = useState('address'); // address, coordinates, zip
   const [densityCoordinates, setDensityCoordinates] = useState({ lat: null, lng: null });
   const [densityLoading, setDensityLoading] = useState(false);
   const [densityError, setDensityError] = useState(null);
@@ -397,28 +396,28 @@ export default function AdvancedSearch() {
 
     try {
       let coords = null;
+      const input = densityLocationInput.trim();
 
-      if (densityLocationMode === 'coordinates') {
+      // Auto-detect if input looks like coordinates (two numbers separated by comma)
+      const coordinatePattern = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/;
+      if (coordinatePattern.test(input)) {
         // Parse coordinates (e.g., "40.7128, -74.0060" or "40.7128,-74.0060")
-        const parts = densityLocationInput.trim().split(/[,\s]+/).filter(p => p);
-        if (parts.length !== 2) {
+        const parts = input.split(/[,\s]+/).filter(p => p);
+        if (parts.length === 2) {
+          const lat = parseFloat(parts[0]);
+          const lng = parseFloat(parts[1]);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+              coords = { lat, lng };
+            }
+          }
+        }
+        if (!coords) {
           throw new Error('Invalid coordinates format. Use: latitude, longitude');
         }
-        const lat = parseFloat(parts[0]);
-        const lng = parseFloat(parts[1]);
-        if (isNaN(lat) || isNaN(lng)) {
-          throw new Error('Invalid coordinates. Please use numbers only.');
-        }
-        if (lat < -90 || lat > 90) {
-          throw new Error('Latitude must be between -90 and 90');
-        }
-        if (lng < -180 || lng > 180) {
-          throw new Error('Longitude must be between -180 and 180');
-        }
-        coords = { lat, lng };
-      } else if (densityLocationMode === 'address' || densityLocationMode === 'zip') {
+      } else {
         // Geocode address or zip code
-        coords = await geocodeAddress(densityLocationInput);
+        coords = await geocodeAddress(input);
       }
 
       if (!coords) {
@@ -1517,87 +1516,66 @@ export default function AdvancedSearch() {
           {/* Density Tab */}
           {activeTab === 'density' && (
             <div className={styles.densityPanel}>
-              <div className={styles.densityHeader}>
-                <h3>
-                  <Layers size={16} />
-                  Taxonomy Density Analysis
-                </h3>
-                <p>Enter a location to see HCP counts by taxonomy within 10, 20, and 30 mile radius bands</p>
-              </div>
-
               {/* Location Input */}
               <div className={styles.densityControls}>
-                <div className={styles.locationModeSelector}>
-                  <label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
+                  <div className="searchBarContainer" style={{ width: '300px' }}>
+                    <div className="searchIcon">
+                      <Search size={16} />
+                    </div>
                     <input
-                      type="radio"
-                      name="locationMode"
-                      value="address"
-                      checked={densityLocationMode === 'address'}
-                      onChange={(e) => setDensityLocationMode(e.target.value)}
+                      type="text"
+                      value={densityLocationInput}
+                      onChange={(e) => setDensityLocationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleDensityLocationSearch();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          if (densityLocationInput) {
+                            setDensityLocationInput('');
+                          } else {
+                            e.currentTarget.blur();
+                          }
+                        }
+                      }}
+                      placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
+                      className="searchInput"
+                      style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
+                      data-search-enhanced="true"
+                      disabled={densityLoading}
                     />
-                    Address
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="locationMode"
-                      value="coordinates"
-                      checked={densityLocationMode === 'coordinates'}
-                      onChange={(e) => setDensityLocationMode(e.target.value)}
-                    />
-                    Coordinates
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="locationMode"
-                      value="zip"
-                      checked={densityLocationMode === 'zip'}
-                      onChange={(e) => setDensityLocationMode(e.target.value)}
-                    />
-                    ZIP Code
-                  </label>
-                </div>
-
-                <div className={styles.locationInputWrapper}>
-                  <input
-                    type="text"
-                    value={densityLocationInput}
-                    onChange={(e) => setDensityLocationInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleDensityLocationSearch();
-                    }}
-                    placeholder={
-                      densityLocationMode === 'coordinates' 
-                        ? 'e.g., 40.7128, -74.0060'
-                        : densityLocationMode === 'zip'
-                        ? 'e.g., 10001'
-                        : 'e.g., New York, NY or 123 Main St, Boston, MA'
-                    }
-                    className={styles.densityInput}
-                    disabled={densityLoading}
-                  />
+                    {densityLocationInput && (
+                      <button
+                        onClick={() => setDensityLocationInput('')}
+                        className="clearButton"
+                        style={{ right: '8px' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                   <button
                     onClick={handleDensityLocationSearch}
                     className="sectionHeaderButton primary"
                     disabled={densityLoading || !densityLocationInput.trim()}
+                    title={densityLoading ? 'Analyzing...' : 'Analyze'}
                   >
                     <Navigation size={14} />
                     {densityLoading ? 'Analyzing...' : 'Analyze'}
                   </button>
                 </div>
 
-                {densityError && (
-                  <div className={styles.densityError}>
-                    {densityError}
-                  </div>
-                )}
-
                 {densityCoordinates.lat && (
                   <div className={styles.densityLocation}>
                     <MapPin size={14} />
                     Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                  </div>
+                )}
+
+                {densityError && (
+                  <div className={styles.densityError}>
+                    {densityError}
                   </div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from './ProviderComparisonMatrix.module.css'; // Create this CSS module for styling
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { sanitizeProviderName } from '../../../../utils/providerName';
 
 /**
  * ProviderComparisonMatrix
@@ -72,10 +73,22 @@ const ProviderComparisonMatrix = ({
     .filter(Boolean);
 
   // Helper to get all rows (main provider if exists, competitors)
-  const rows = [
-    ...(provider ? [{ key: provider.dhc, label: provider.name, type: 'provider', providerObj: provider }] : []),
-    ...competitors.map((c) => ({ key: c.dhc, label: c.name, type: 'competitor', providerObj: c })),
-  ];
+  const rows = useMemo(() => {
+    const sanitizeLabel = (entity) => sanitizeProviderName(entity?.name) || entity?.name || 'Provider';
+    const providerRows = provider ? [{
+      key: provider.dhc,
+      label: sanitizeLabel(provider),
+      type: 'provider',
+      providerObj: { ...provider, name: sanitizeLabel(provider) }
+    }] : [];
+    const competitorRows = competitors.map((c) => ({
+      key: c.dhc,
+      label: sanitizeLabel(c),
+      type: 'competitor',
+      providerObj: { ...c, name: sanitizeLabel(c) }
+    }));
+    return [...providerRows, ...competitorRows];
+  }, [provider, competitors]);
 
   const highlightedSet = useMemo(() => {
     if (!Array.isArray(highlightedDhcKeys) || highlightedDhcKeys.length === 0) {

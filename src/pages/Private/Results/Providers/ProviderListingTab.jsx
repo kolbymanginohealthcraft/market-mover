@@ -15,6 +15,7 @@ import { useUserTeam } from "../../../../hooks/useUserTeam";
 import { getTagColor, getTagLabel, getMapboxTagColors } from "../../../../utils/tagColors";
 import Dropdown from "../../../../components/Buttons/Dropdown";
 import dropdownStyles from "../../../../components/Buttons/Dropdown.module.css";
+import { sanitizeProviderName } from "../../../../utils/providerName";
 
 // MapLibre GL JS is completely free - no API token required!
 // Using OpenStreetMap tiles which are free and open source
@@ -303,6 +304,8 @@ export default function ProviderListingTab({
         map.current.addControl(new maplibregl.NavigationControl(), 'top-left');
         map.current.addControl(new maplibregl.FullscreenControl(), 'top-right');
 
+        const mainProviderDisplayName = sanitizedMainProviderName || provider.name || 'Provider';
+
         // Add main provider marker
         const mainMarker = new maplibregl.Marker({ color: '#d32f2f' })
           .setLngLat([provider.longitude, provider.latitude])
@@ -311,7 +314,7 @@ export default function ProviderListingTab({
               .setHTML(`
                 <div style="padding: 8px;">
                   <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">
-                    ${provider.name}
+                    ${mainProviderDisplayName}
                   </h4>
                   <p style="margin: 0; font-size: 12px; color: #666;">
                     Selected Provider
@@ -468,6 +471,10 @@ export default function ProviderListingTab({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedResults = uniqueResults.slice(startIndex, endIndex);
+  const sanitizedMainProviderName = useMemo(
+    () => sanitizeProviderName(provider?.name),
+    [provider?.name]
+  );
 
   console.log(filteredResults.map(p => ({ name: p.name, distance: p.distance, type: typeof p.distance })));
 
@@ -559,9 +566,9 @@ export default function ProviderListingTab({
             },
             properties: {
               id: p.dhc,
-              name: p.name,
+              name: sanitizeProviderName(p.name) || p.name || 'Provider',
               type: p.type || 'Unknown',
-              network: p.network,
+              network: sanitizeProviderName(p.network) || p.network,
               distance: p.distance,
               hasCCN: ccnProviderIds.has(p.dhc),
               tag: getProviderTags(p.dhc)[0] || null
@@ -991,46 +998,50 @@ export default function ProviderListingTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedResults.map((p) => (
-                    <tr
-                      key={p.dhc}
-                      className={`${
-                        p.dhc === provider.dhc ? styles.highlightedRow : ""
-                      }`}
-                      onMouseEnter={() => {
-                        setHoveredRow(p.dhc);
-                        setHoveredMarker(p.dhc);
-                      }}
-                      onMouseLeave={() => {
-                        setHoveredRow(null);
-                        setHoveredMarker(null);
-                      }}
-                    >
-                      <td>
-                        <div className={styles.providerInfo}>
-                          <div className={styles.providerName}>{p.name}</div>
-                          <div className={styles.providerAddress}>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</div>
-                        </div>
-                      </td>
-                      <td>{p.network || "—"}</td>
-                      <td>{p.type || "Unknown"}</td>
-                      <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <ProviderTagBadge
-                          providerId={p.dhc}
-                          hasTeam={hasTeam}
-                          teamLoading={teamLoading}
-                          primaryTag={getPrimaryTag(p.dhc)}
-                          isSaving={addingTag || removingTag}
-                          onAddTag={handleAddTag}
-                          onRemoveTag={handleRemoveTag}
-                          size="medium"
-                          variant="compact"
-                          showRemoveOption={true}
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedResults.map((p) => {
+                    const displayName = sanitizeProviderName(p.name) || p.name || 'Provider';
+                    const displayNetwork = sanitizeProviderName(p.network) || p.network;
+                    return (
+                      <tr
+                        key={p.dhc}
+                        className={`${
+                          p.dhc === provider.dhc ? styles.highlightedRow : ""
+                        }`}
+                        onMouseEnter={() => {
+                          setHoveredRow(p.dhc);
+                          setHoveredMarker(p.dhc);
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredRow(null);
+                          setHoveredMarker(null);
+                        }}
+                      >
+                        <td>
+                          <div className={styles.providerInfo}>
+                            <div className={styles.providerName}>{displayName}</div>
+                            <div className={styles.providerAddress}>{`${p.street}, ${p.city}, ${p.state} ${p.zip}`}</div>
+                          </div>
+                        </td>
+                        <td>{displayNetwork || "—"}</td>
+                        <td>{p.type || "Unknown"}</td>
+                        <td>{typeof p.distance === 'number' && !isNaN(p.distance) ? p.distance.toFixed(2) : '—'}</td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <ProviderTagBadge
+                            providerId={p.dhc}
+                            hasTeam={hasTeam}
+                            teamLoading={teamLoading}
+                            primaryTag={getPrimaryTag(p.dhc)}
+                            isSaving={addingTag || removingTag}
+                            onAddTag={handleAddTag}
+                            onRemoveTag={handleRemoveTag}
+                            size="medium"
+                            variant="compact"
+                            showRemoveOption={true}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

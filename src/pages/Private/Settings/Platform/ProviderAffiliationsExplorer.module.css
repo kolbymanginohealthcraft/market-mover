@@ -1,0 +1,234 @@
+.page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--gray-50);
+  padding: 24px;
+  margin: 0;
+}
+
+.banner {
+  background: var(--gray-100);
+  padding: 20px 24px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.banner h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+}
+
+.banner p {
+  font-size: 14px;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.loadingContainer,
+.errorContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.errorContainer {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.metadataCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metadataCard {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metadataCardIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  flex-shrink: 0;
+}
+
+.metadataCardIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.metadataCardContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.metadataCardLabel {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+
+.metadataCardValue {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.metadataCardNote {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.controls {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.controlGroup label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--gray-900);
+  background: #fff;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-500);
+}
+
+.searchButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--primary-500);
+  color: #fff;
+  border: 1px solid var(--primary-600);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  height: fit-content;
+}
+
+.searchButton:hover:not(:disabled) {
+  background: var(--primary-600);
+}
+
+.searchButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.summarySection,
+.resultsSection {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.summarySection h2,
+.resultsSection h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 16px 0;
+}
+
+.summaryTable,
+.resultsTable {
+  overflow-x: auto;
+}
+
+.summaryTable table,
+.resultsTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.summaryTable th,
+.resultsTable th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  background: var(--gray-50);
+  border-bottom: 2px solid var(--gray-200);
+  white-space: nowrap;
+}
+
+.summaryTable td,
+.resultsTable td {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--gray-900);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.summaryTable tr:hover,
+.resultsTable tr:hover {
+  background: var(--gray-50);
+}
+
+.noResults {
+  padding: 40px;
+  text-align: center;
+  color: var(--gray-600);
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+

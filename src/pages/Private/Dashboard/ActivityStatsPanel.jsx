@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Flame, BarChart3, MapPin, Users } from 'lucide-react';
+import { Flame, BarChart3 } from 'lucide-react';
 import styles from './ActivityStatsPanel.module.css';
+import {
+  getSegmentationIcon,
+  getSegmentationIconProps
+} from '../../../utils/segmentationIcons';
 
 export default function ActivityStatsPanel() {
+  const defaultIconProps = { size: 16 };
   const [dashboardStats, setDashboardStats] = useState({
     subscriptionTier: 'Free',
     savedMarkets: 0,
     taggedProviders: 0,
-    todaysActivities: 0
+    todaysActivities: 0,
+    procedures: 0,
+    diagnoses: 0,
+    taxonomies: 0,
+    metrics: 0
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [activityStreak, setActivityStreak] = useState({ current: 0, longest: 0 });
@@ -102,6 +111,10 @@ export default function ActivityStatsPanel() {
 
       let subscriptionTier = 'Free';
       let taggedProvidersCount = 0;
+      let procedureTagsCount = 0;
+      let diagnosisTagsCount = 0;
+      let taxonomyTagsCount = 0;
+      let metricTagsCount = 0;
 
              // Fetch subscription data (temporarily disabled due to 406 errors)
        // if (profileData?.team_id) {
@@ -127,9 +140,52 @@ export default function ActivityStatsPanel() {
           .eq('team_id', profileData.team_id);
 
         if (tags) {
-          // Count unique providers (not total tags)
           const uniqueProviders = new Set(tags.map(tag => tag.provider_dhc));
           taggedProvidersCount = uniqueProviders.size;
+        }
+
+        const { count: proceduresCount, error: proceduresError } = await supabase
+          .from('team_procedure_tags')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', profileData.team_id);
+
+        if (proceduresError) {
+          console.error('Error fetching procedure tags count:', proceduresError);
+        } else {
+          procedureTagsCount = proceduresCount || 0;
+        }
+
+        const { count: diagnosesCount, error: diagnosesError } = await supabase
+          .from('team_diagnosis_tags')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', profileData.team_id);
+
+        if (diagnosesError) {
+          console.error('Error fetching diagnosis tags count:', diagnosesError);
+        } else {
+          diagnosisTagsCount = diagnosesCount || 0;
+        }
+
+        const { count: taxonomiesCount, error: taxonomiesError } = await supabase
+          .from('team_taxonomy_tags')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', profileData.team_id);
+
+        if (taxonomiesError) {
+          console.error('Error fetching taxonomy tags count:', taxonomiesError);
+        } else {
+          taxonomyTagsCount = taxonomiesCount || 0;
+        }
+
+        const { count: metricsCount, error: metricsError } = await supabase
+          .from('team_kpi_tags')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', profileData.team_id);
+
+        if (metricsError) {
+          console.error('Error fetching metric tags count:', metricsError);
+        } else {
+          metricTagsCount = metricsCount || 0;
         }
       }
 
@@ -152,7 +208,11 @@ export default function ActivityStatsPanel() {
         subscriptionTier: subscriptionTier,
         savedMarkets: marketsCount || 0,
         taggedProviders: taggedProvidersCount,
-        todaysActivities: todaysActivitiesCount || 0
+        todaysActivities: todaysActivitiesCount || 0,
+        procedures: procedureTagsCount,
+        diagnoses: diagnosisTagsCount,
+        taxonomies: taxonomyTagsCount,
+        metrics: metricTagsCount
       });
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
@@ -166,70 +226,140 @@ export default function ActivityStatsPanel() {
     calculateActivityStreak();
   }, []);
 
+  const activityCards = [
+    {
+      key: 'streak',
+      icon: Flame,
+      value: activityStreak.current,
+      label: 'Daily Streak',
+      subtext: `Longest: ${activityStreak.longest} days`
+    },
+    {
+      key: 'todaysActivities',
+      icon: BarChart3,
+      value: dashboardStats.todaysActivities,
+      label: "Today's Activities",
+      subtext: 'Actions completed today'
+    }
+  ];
+
+  const segmentationCards = [
+    {
+      key: 'savedMarkets',
+      iconKey: 'savedMarkets',
+      value: dashboardStats.savedMarkets,
+      label: 'Saved Markets',
+      subtext: 'Your market research'
+    },
+    {
+      key: 'network',
+      iconKey: 'network',
+      value: dashboardStats.taggedProviders,
+      label: 'My Network',
+      subtext: 'Tagged providers'
+    },
+    {
+      key: 'procedures',
+      iconKey: 'procedures',
+      value: dashboardStats.procedures,
+      label: 'My Procedures',
+      subtext: 'Tagged procedures'
+    },
+    {
+      key: 'diagnoses',
+      iconKey: 'diagnoses',
+      value: dashboardStats.diagnoses,
+      label: 'My Diagnoses',
+      subtext: 'Tagged diagnoses'
+    },
+    {
+      key: 'taxonomies',
+      iconKey: 'taxonomies',
+      value: dashboardStats.taxonomies,
+      label: 'My Taxonomies',
+      subtext: 'Tagged taxonomies'
+    },
+    {
+      key: 'metrics',
+      iconKey: 'metrics',
+      value: dashboardStats.metrics,
+      label: 'My Metrics',
+      subtext: 'Tagged metrics'
+    }
+  ];
+
+  const renderCards = (cards) => (
+    <div className={styles.statsGrid}>
+      {cards.map(({ key, icon: Icon, iconKey, value, label, subtext }) => {
+        const IconComponent = iconKey ? getSegmentationIcon(iconKey) : Icon;
+        const iconProps = iconKey
+          ? getSegmentationIconProps({ size: 16 })
+          : defaultIconProps;
+
+        return (
+          <div key={key} className={styles.statCard}>
+            <div className={styles.statIcon}>
+              {IconComponent && <IconComponent {...iconProps} />}
+            </div>
+            <div className={styles.statContent}>
+              <div className={styles.statValue}>{value}</div>
+              <div className={styles.statLabel}>{label}</div>
+              {subtext && <div className={styles.statSubtext}>{subtext}</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderSkeletons = (count) => (
+    <div className={styles.statsGrid}>
+      {Array.from({ length: count }).map((_, index) => (
+        <div key={`stat-skeleton-${index}`} className={styles.statCard}>
+          <div className={styles.loadingPlaceholder}></div>
+        </div>
+      ))}
+    </div>
+  );
+
   if (statsLoading) {
     return (
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.loadingPlaceholder}></div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.loadingPlaceholder}></div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.loadingPlaceholder}></div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.loadingPlaceholder}></div>
-        </div>
-      </div>
+      <>
+        <section className={styles.sectionGroup}>
+          <header className={styles.groupHeader}>
+            <h3 className={styles.groupTitle}>Logins & Activity</h3>
+            <p className={styles.groupDescription}>Usage signals from your account.</p>
+          </header>
+          {renderSkeletons(activityCards.length)}
+        </section>
+        <section className={styles.sectionGroup}>
+          <header className={styles.groupHeader}>
+            <h3 className={styles.groupTitle}>Segmentation Workbench</h3>
+            <p className={styles.groupDescription}>Counts of tagged assets.</p>
+          </header>
+          {renderSkeletons(segmentationCards.length)}
+        </section>
+      </>
     );
   }
 
   return (
-    <div className={styles.statsGrid}>
-      <div className={styles.statCard}>
-        <div className={styles.statIcon}>
-          <Flame size={16} />
-        </div>
-        <div className={styles.statContent}>
-          <div className={styles.statValue}>{activityStreak.current}</div>
-          <div className={styles.statLabel}>Daily Streak</div>
-          <div className={styles.statSubtext}>Longest: {activityStreak.longest} days</div>
-        </div>
-      </div>
+    <>
+      <section className={styles.sectionGroup}>
+        <header className={styles.groupHeader}>
+          <h3 className={styles.groupTitle}>Logins & Activity</h3>
+          <p className={styles.groupDescription}>Usage signals from your account.</p>
+        </header>
+        {renderCards(activityCards)}
+      </section>
 
-      <div className={styles.statCard}>
-        <div className={styles.statIcon}>
-          <BarChart3 size={16} />
-        </div>
-        <div className={styles.statContent}>
-          <div className={styles.statValue}>{dashboardStats.todaysActivities}</div>
-          <div className={styles.statLabel}>Today's Activities</div>
-          <div className={styles.statSubtext}>Actions completed today</div>
-        </div>
-      </div>
-
-      <div className={styles.statCard}>
-        <div className={styles.statIcon}>
-          <MapPin size={16} />
-        </div>
-        <div className={styles.statContent}>
-          <div className={styles.statValue}>{dashboardStats.savedMarkets}</div>
-          <div className={styles.statLabel}>Saved Markets</div>
-          <div className={styles.statSubtext}>Your market research</div>
-        </div>
-      </div>
-
-      <div className={styles.statCard}>
-        <div className={styles.statIcon}>
-          <Users size={16} />
-        </div>
-        <div className={styles.statContent}>
-          <div className={styles.statValue}>{dashboardStats.taggedProviders}</div>
-          <div className={styles.statLabel}>My Network</div>
-          <div className={styles.statSubtext}>Tagged providers</div>
-        </div>
-      </div>
-    </div>
+      <section className={styles.sectionGroup}>
+        <header className={styles.groupHeader}>
+          <h3 className={styles.groupTitle}>Segmentation Workbench</h3>
+          <p className={styles.groupDescription}>Counts of tagged assets.</p>
+        </header>
+        {renderCards(segmentationCards)}
+      </section>
+    </>
   );
 }
