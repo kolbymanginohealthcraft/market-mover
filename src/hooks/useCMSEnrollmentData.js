@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { apiUrl } from "../utils/api";
+import useCountyFipsCodes from "./useCountyFipsCodes";
 
 /**
  * useCMSEnrollmentData
@@ -19,10 +20,25 @@ export default function useCMSEnrollmentData(provider, radiusInMiles) {
   const [months, setMonths] = useState([]);
   const abortControllerRef = useRef(null);
 
+  // Get county FIPS codes using shared hook (cached)
+  const { fipsList: countyFipsList, loading: fipsLoading, error: fipsError } = useCountyFipsCodes(provider, radiusInMiles);
+
   const fetchCMSEnrollmentData = async () => {
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles) {
       setData(null);
       setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Wait for county FIPS codes to be loaded
+    if (fipsLoading || !countyFipsList) {
+      setLoading(true);
+      return;
+    }
+
+    if (fipsError) {
+      setError(fipsError);
       setLoading(false);
       return;
     }
@@ -37,28 +53,9 @@ export default function useCMSEnrollmentData(provider, radiusInMiles) {
     setError(null);
 
     try {
-      // 1. Get county FIPS codes for the market area
-      const fipsResp = await fetch(
-        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`),
-        { signal: abortControllerRef.current.signal }
-      );
-      if (!fipsResp.ok) throw new Error(`Failed to fetch FIPS codes: ${fipsResp.status}`);
-      const fipsResult = await fipsResp.json();
-      if (!fipsResult.success) throw new Error(fipsResult.error || 'Failed to fetch FIPS codes');
-      // Extract unique county FIPS codes from geographic_units
-      const tracts = fipsResult.data?.geographic_units || [];
-      const fipsSet = new Set();
-      tracts.forEach(t => {
-        if (t.state && t.county) {
-          // FIPS is state + county code, zero-padded
-          const fips = `${t.state.toString().padStart(2, '0')}${t.county.toString().padStart(3, '0')}`;
-          fipsSet.add(fips);
-        }
-      });
-      const fipsList = Array.from(fipsSet);
-      if (fipsList.length === 0) throw new Error('No counties found in market area');
+      const fipsList = countyFipsList;
 
-      // 2. Get available years
+      // Get available years
       const yearsResp = await fetch(apiUrl('/api/cms-enrollment-years'), {
         signal: abortControllerRef.current.signal
       });
@@ -119,7 +116,7 @@ export default function useCMSEnrollmentData(provider, radiusInMiles) {
         abortControllerRef.current.abort();
       }
     };
-  }, [provider?.latitude, provider?.longitude, radiusInMiles]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, countyFipsList, fipsLoading, fipsError]);
 
   const refetch = () => {
     fetchCMSEnrollmentData();

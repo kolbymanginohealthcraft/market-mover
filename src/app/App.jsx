@@ -74,6 +74,7 @@ import Diagnoses from "../pages/Private/Diagnoses/Diagnoses";
 import Metrics from "../pages/Private/Metrics/MetricsLayout";
 import Taxonomies from "../pages/Private/Taxonomies/TaxonomiesLayout";
 import ClaimsDataExplorerLayout from "../pages/Private/Investigation/ClaimsDataExplorerLayout";
+import StandaloneStoryteller from "../pages/Private/Investigation/StandaloneStoryteller";
 
 import Feedback from "../pages/Private/Dashboard/Feedback";
 import TestProviderOfServices from "../pages/TestProviderOfServices";
@@ -139,6 +140,7 @@ function AppContent({ location }) {
             <Route path="feedback" element={<Feedback />} />
             <Route path="enrollment/*" element={<StandaloneEnrollment />} />
             <Route path="population/*" element={<StandalonePopulation />} />
+            <Route path="storyteller/*" element={<StandaloneStoryteller />} />
             
             {/* Provider market analysis view - must come before the simpler provider route */}
             <Route path=":dhc/market/*" element={<ProviderMarketAnalysis />} />

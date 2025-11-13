@@ -236,7 +236,7 @@ const Sidebar = ({
           
         <Link 
             to="/app/claims" 
-            className={`${styles.navItem} ${isActive('/claims') && !isActive('/claims/storyteller') ? styles.active : ''}`}
+            className={`${styles.navItem} ${isActive('/claims') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Claims Data Explorer')}
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}
@@ -246,8 +246,8 @@ const Sidebar = ({
           </Link>
           
         <Link 
-            to="/app/claims/storyteller" 
-            className={`${styles.navItem} ${isActive('/claims/storyteller') ? styles.active : ''}`}
+            to="/app/storyteller" 
+            className={`${styles.navItem} ${isActive('/storyteller') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Quality Storyteller')}
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}

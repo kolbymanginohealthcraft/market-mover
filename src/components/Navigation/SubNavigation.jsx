@@ -545,6 +545,11 @@ const SubNavigation = () => {
     );
   }
 
+  // Handle standalone storyteller route (/app/storyteller) - should not show any sub-navigation
+  if (location.pathname.includes('/storyteller') && !location.pathname.includes('/claims') && !location.pathname.match(/^\/app\/\d+\//)) {
+    return null;
+  }
+
   // Handle new provider market analysis pages (/app/:dhc/market/*)
   if (location.pathname.match(/^\/app\/\d+\/market\//)) {
     const pathSegments = location.pathname.split('/');

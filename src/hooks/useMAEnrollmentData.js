@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { apiUrl } from "../utils/api";
+import useCountyFipsCodes from "./useCountyFipsCodes";
 
 /**
  * useMAEnrollmentData
@@ -18,10 +19,25 @@ export default function useMAEnrollmentData(provider, radiusInMiles, publishDate
   const [error, setError] = useState(null);
   const abortControllerRef = useRef(null);
 
+  // Get county FIPS codes using shared hook (cached)
+  const { fipsList: countyFipsList, loading: fipsLoading, error: fipsError } = useCountyFipsCodes(provider, radiusInMiles);
+
   const fetchMAEnrollmentData = async () => {
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles || !publishDate) {
       setData(null);
       setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Wait for county FIPS codes to be loaded
+    if (fipsLoading || !countyFipsList) {
+      setLoading(true);
+      return;
+    }
+
+    if (fipsError) {
+      setError(fipsError);
       setLoading(false);
       return;
     }
@@ -36,28 +52,9 @@ export default function useMAEnrollmentData(provider, radiusInMiles, publishDate
     setError(null);
 
     try {
-      // 1. Get county FIPS codes for the market area
-      const fipsResp = await fetch(
-        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`),
-        { signal: abortControllerRef.current.signal }
-      );
-      if (!fipsResp.ok) throw new Error(`Failed to fetch FIPS codes: ${fipsResp.status}`);
-      const fipsResult = await fipsResp.json();
-      if (!fipsResult.success) throw new Error(fipsResult.error || 'Failed to fetch FIPS codes');
-      // Extract unique county FIPS codes from geographic_units
-      const tracts = fipsResult.data?.geographic_units || [];
-      const fipsSet = new Set();
-      tracts.forEach(t => {
-        if (t.state && t.county) {
-          // FIPS is state + county code, zero-padded
-          const fips = `${t.state.toString().padStart(2, '0')}${t.county.toString().padStart(3, '0')}`;
-          fipsSet.add(fips);
-        }
-      });
-      const fipsList = Array.from(fipsSet);
-      if (fipsList.length === 0) throw new Error('No counties found in market area');
+      const fipsList = countyFipsList;
 
-      // 2. Fetch MA/PDP Enrollment data for these FIPS codes and publish date
+      // Fetch MA/PDP Enrollment data for these FIPS codes and publish date
       const maResp = await fetch(apiUrl('/api/ma-enrollment'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,7 +81,7 @@ export default function useMAEnrollmentData(provider, radiusInMiles, publishDate
         abortControllerRef.current.abort();
       }
     };
-  }, [provider?.latitude, provider?.longitude, radiusInMiles, publishDate, type]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, publishDate, type, countyFipsList, fipsLoading, fipsError]);
 
   const refetch = () => {
     fetchMAEnrollmentData();
@@ -111,10 +108,25 @@ export function useMAEnrollmentTrendData(provider, radiusInMiles, startDate, end
   const [error, setError] = useState(null);
   const abortControllerRef = useRef(null);
 
+  // Get county FIPS codes using shared hook (cached)
+  const { fipsList: countyFipsList, loading: fipsLoading, error: fipsError } = useCountyFipsCodes(provider, radiusInMiles);
+
   const fetchMAEnrollmentTrendData = async () => {
     if (!provider?.latitude || !provider?.longitude || !radiusInMiles || !startDate || !endDate) {
       setData(null);
       setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Wait for county FIPS codes to be loaded
+    if (fipsLoading || !countyFipsList) {
+      setLoading(true);
+      return;
+    }
+
+    if (fipsError) {
+      setError(fipsError);
       setLoading(false);
       return;
     }
@@ -129,28 +141,9 @@ export function useMAEnrollmentTrendData(provider, radiusInMiles, startDate, end
     setError(null);
 
     try {
-      // 1. Get county FIPS codes for the market area
-      const fipsResp = await fetch(
-        apiUrl(`/api/census-acs-api?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`),
-        { signal: abortControllerRef.current.signal }
-      );
-      if (!fipsResp.ok) throw new Error(`Failed to fetch FIPS codes: ${fipsResp.status}`);
-      const fipsResult = await fipsResp.json();
-      if (!fipsResult.success) throw new Error(fipsResult.error || 'Failed to fetch FIPS codes');
-      // Extract unique county FIPS codes from geographic_units
-      const tracts = fipsResult.data?.geographic_units || [];
-      const fipsSet = new Set();
-      tracts.forEach(t => {
-        if (t.state && t.county) {
-          // FIPS is state + county code, zero-padded
-          const fips = `${t.state.toString().padStart(2, '0')}${t.county.toString().padStart(3, '0')}`;
-          fipsSet.add(fips);
-        }
-      });
-      const fipsList = Array.from(fipsSet);
-      if (fipsList.length === 0) throw new Error('No counties found in market area');
+      const fipsList = countyFipsList;
 
-      // 2. Fetch MA/PDP Enrollment trend data for these FIPS codes and date range
+      // Fetch MA/PDP Enrollment trend data for these FIPS codes and date range
       const maResp = await fetch(apiUrl('/api/ma-enrollment-trend'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +170,7 @@ export function useMAEnrollmentTrendData(provider, radiusInMiles, startDate, end
         abortControllerRef.current.abort();
       }
     };
-  }, [provider?.latitude, provider?.longitude, radiusInMiles, startDate, endDate, type]);
+  }, [provider?.latitude, provider?.longitude, radiusInMiles, startDate, endDate, type, countyFipsList, fipsLoading, fipsError]);
 
   const refetch = () => {
     fetchMAEnrollmentTrendData();

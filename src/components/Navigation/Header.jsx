@@ -175,7 +175,7 @@ const Header = ({
       return 'My Metrics';
     } else if (location.pathname.includes('/taxonomies')) {
       return 'My Taxonomies';
-    } else if (location.pathname.includes('/claims/storyteller')) {
+    } else if (location.pathname.includes('/storyteller')) {
       return 'Quality Storyteller';
     } else if (location.pathname.includes('/claims')) {
       return 'Claims Data Explorer';
@@ -301,7 +301,7 @@ const Header = ({
       return [
         { text: 'Manage your preferences to make analysis of referrals and recruiting easier', type: 'description' }
       ];
-    } else if (currentPath.includes('/claims/storyteller')) {
+    } else if (currentPath.includes('/storyteller')) {
       return [
         { text: 'Highlight the differentiators that set your organization apart', type: 'description' }
       ];
@@ -406,7 +406,7 @@ const Header = ({
       return 'provider';
     }
 
-    if (location.pathname.includes('/claims/storyteller')) {
+    if (location.pathname.includes('/storyteller')) {
       return null;
     }
 
@@ -466,7 +466,7 @@ const Header = ({
       return <Search size={18} />;
     } else if (location.pathname.includes('/market/')) {
       return <MapPin size={18} />;
-    } else if (location.pathname.includes('/claims/storyteller')) {
+    } else if (location.pathname.includes('/storyteller')) {
       return <LineChart size={18} />;
     } else if (location.pathname.includes('/referral-pathways')) {
       return <GitBranch size={18} />;

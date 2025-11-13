@@ -73,16 +73,24 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
     '51': 'Virginia', '53': 'Washington', '54': 'West Virginia', '55': 'Wisconsin', '56': 'Wyoming'
   };
 
-  // Fetch county names when data is available
+  // Use county names from API response if available, otherwise fetch them
   React.useEffect(() => {
-    if (geography === 'zip') {
-      return;
-    }
-
     if (data && !countyNames.loaded) {
-      // Get the specific counties that are actually in the market data
+      // First, check if county names are included in the API response
+      if (data.county_names && Object.keys(data.county_names).length > 0) {
+        console.log('✅ Using county names from API response');
+        setCountyNames(prev => ({ ...prev, ...data.county_names, loaded: true }));
+        return;
+      }
+      
+      // Fallback: fetch county names via API if not in response
       const countiesInMarket = getAvailableCounties();
       console.log('Fetching county names for counties in market:', countiesInMarket);
+      
+      if (countiesInMarket.length === 0) {
+        setCountyNames(prev => ({ ...prev, loaded: true }));
+        return;
+      }
       
       // Group counties by state and fetch only the ones we need
       const countiesByState = {};
@@ -102,7 +110,7 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
       });
       setCountyNames(prev => ({ ...prev, loaded: true }));
     }
-  }, [data, countyNames, geography]);
+  }, [data, countyNames]);
 
 
 
@@ -248,10 +256,6 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
         National
       </option>
     );
-
-    if (geography === 'zip') {
-      return options;
-    }
     
     // Group counties by state
     const countiesByState = {};
@@ -389,8 +393,30 @@ const CensusDataPanel = React.memo(({ provider, radiusInMiles, censusData: propC
 
   // Helper function to get county name from state and county FIPS codes
   function getCountyName(stateFips, countyFips) {
-    const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
-    return countyNames[stateFips]?.[fullCountyFips] || `County ${countyFips}`;
+    if (!stateFips || !countyFips) return `County ${countyFips || 'Unknown'}`;
+    
+    // Normalize county FIPS to 3 digits
+    const normalizedCountyFips = String(countyFips).padStart(3, '0');
+    const fullCountyFips = `${String(stateFips).padStart(2, '0')}${normalizedCountyFips}`;
+    
+    // Try to get county name from cache
+    const countyName = countyNames[stateFips]?.[fullCountyFips];
+    if (countyName) {
+      return countyName;
+    }
+    
+    // Fallback: try without leading zeros in case format differs
+    const countyFipsNum = parseInt(countyFips, 10);
+    if (!isNaN(countyFipsNum)) {
+      const altFullCountyFips = `${String(stateFips).padStart(2, '0')}${String(countyFipsNum).padStart(3, '0')}`;
+      const altCountyName = countyNames[stateFips]?.[altFullCountyFips];
+      if (altCountyName) {
+        return altCountyName;
+      }
+    }
+    
+    // Last resort: return formatted county code
+    return `County ${normalizedCountyFips}`;
   }
 
   const currentBenchmark = getCurrentBenchmark();

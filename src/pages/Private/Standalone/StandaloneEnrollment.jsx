@@ -143,16 +143,58 @@ export default function StandaloneEnrollment() {
   }, [selectedMarket]);
 
   const hasCoordinates = Boolean(baseProvider?.latitude && baseProvider?.longitude && effectiveRadius);
+  
+  // For payer deep dive, always use nationwide data (ignore county filtering)
+  const useNationwideForPayer = activeView === 'payer';
 
   const { data: cmsData, loading: cmsLoading, error: cmsError, latestMonth } = useCMSEnrollmentData(baseProvider, effectiveRadius);
-  const { data: maData, loading: maLoading, error: maError } = useMAEnrollmentData(baseProvider, effectiveRadius, publishDate, planType);
+  const { data: maData, loading: maLoading, error: maError } = useMAEnrollmentData(
+    useNationwideForPayer ? null : baseProvider, 
+    useNationwideForPayer ? null : effectiveRadius, 
+    publishDate, 
+    planType
+  );
   const { data: trendData, loading: trendLoading, error: trendError } = useMAEnrollmentTrendData(
-    baseProvider,
-    effectiveRadius,
+    useNationwideForPayer ? null : baseProvider,
+    useNationwideForPayer ? null : effectiveRadius,
     trendRange.startDate,
     trendRange.endDate,
     planType
   );
+
+  const [allOrganizations, setAllOrganizations] = useState([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [errorOrgs, setErrorOrgs] = useState(null);
+
+  // Fetch all organizations nationwide for payer deep dive
+  useEffect(() => {
+    if (activeView !== 'payer' || !publishDate) {
+      setAllOrganizations([]);
+      return;
+    }
+
+    setLoadingOrgs(true);
+    setErrorOrgs(null);
+
+    fetch(apiUrl('/api/ma-enrollment-organizations'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publishDate, type: planType })
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          setAllOrganizations(result.data || []);
+        } else {
+          throw new Error(result.error || 'Failed to fetch organizations');
+        }
+      })
+      .catch(err => {
+        setErrorOrgs(err.message);
+        setAllOrganizations([]);
+      })
+      .finally(() => setLoadingOrgs(false));
+  }, [activeView, publishDate, planType]);
 
   const { data: nationwideMaData, loading: nationwideMaLoading, error: nationwideMaError } = useNationwideMAEnrollmentData(
     selectedParentOrg,
@@ -167,6 +209,19 @@ export default function StandaloneEnrollment() {
   );
 
   const parentOrgSummary = useMemo(() => {
+    // For payer view, use all organizations nationwide; for listing view, use county data if available
+    if (useNationwideForPayer) {
+      if (!Array.isArray(allOrganizations) || !allOrganizations.length) return [];
+      return allOrganizations.map(org => ({
+        parentOrg: org.parent_org,
+        totalEnrollment: Number(org.total_enrollment) || 0,
+        planCount: Number(org.plan_count) || 0,
+        counties: new Set(), // Not available from aggregated query
+        states: new Set(), // Not available from aggregated query
+        plans: [] // Not available from aggregated query
+      }));
+    }
+    
     const dataToUse = hasCoordinates ? maData : nationwideMaData;
     if (!Array.isArray(dataToUse) || !dataToUse.length) return [];
     const summaryMap = new Map();
@@ -215,7 +270,7 @@ export default function StandaloneEnrollment() {
         plans: Array.from(entry.plans.values()).sort((a, b) => b.enrollment - a.enrollment),
       }))
       .sort((a, b) => b.totalEnrollment - a.totalEnrollment);
-  }, [maData, nationwideMaData, hasCoordinates]);
+  }, [maData, nationwideMaData, hasCoordinates, useNationwideForPayer, allOrganizations]);
 
   useEffect(() => {
     if (!parentOrgSummary.length) {
@@ -229,11 +284,50 @@ export default function StandaloneEnrollment() {
 
   const selectedParentEntry = useMemo(() => {
     if (!selectedParentOrg) return null;
-    return parentOrgSummary.find((entry) => entry.parentOrg === selectedParentOrg) || null;
-  }, [parentOrgSummary, selectedParentOrg]);
+    const entry = parentOrgSummary.find((entry) => entry.parentOrg === selectedParentOrg);
+    if (!entry) return null;
+    
+    // For payer view, enrich with detailed data from nationwideMaData
+    if (useNationwideForPayer && Array.isArray(nationwideMaData) && nationwideMaData.length > 0) {
+      const orgData = allOrganizations.find(org => org.parent_org === selectedParentOrg);
+      const plansMap = new Map();
+      const countiesSet = new Set();
+      const statesSet = new Set();
+      
+      nationwideMaData.forEach((row) => {
+        if (row.fips) {
+          countiesSet.add(row.fips);
+          statesSet.add(row.fips.slice(0, 2));
+        }
+        
+        const planKey = row.plan_id || `${row.plan_name || 'Unknown'}-${row.contract_name || ''}`;
+        if (!plansMap.has(planKey)) {
+          plansMap.set(planKey, {
+            plan_id: row.plan_id,
+            plan_name: row.plan_name || 'Unnamed Plan',
+            contract_name: row.contract_name || 'Unspecified Contract',
+            snp_type: row.snp_type,
+            enrollment: 0,
+          });
+        }
+        plansMap.get(planKey).enrollment += row.enrollment || 0;
+      });
+      
+      return {
+        ...entry,
+        counties: countiesSet,
+        states: statesSet,
+        planCount: plansMap.size,
+        plans: Array.from(plansMap.values()).sort((a, b) => b.enrollment - a.enrollment)
+      };
+    }
+    
+    return entry;
+  }, [parentOrgSummary, selectedParentOrg, useNationwideForPayer, allOrganizations, nationwideMaData]);
 
   const parentOrgTrend = useMemo(() => {
-    const trendToUse = hasCoordinates ? trendData : nationwideTrendData;
+    // For payer view, always use nationwide data; for listing view, use county data if available
+    const trendToUse = (useNationwideForPayer || !hasCoordinates) ? nationwideTrendData : trendData;
     if (!Array.isArray(trendToUse) || !selectedParentOrg) return [];
     return trendToUse
       .filter((row) => (row.parent_org || 'Other / Unknown') === selectedParentOrg)
@@ -248,7 +342,7 @@ export default function StandaloneEnrollment() {
         };
       })
       .sort((a, b) => (a.publishDate > b.publishDate ? 1 : -1));
-  }, [trendData, nationwideTrendData, selectedParentOrg, hasCoordinates]);
+  }, [trendData, nationwideTrendData, selectedParentOrg, hasCoordinates, useNationwideForPayer]);
 
   const growthMetrics = useMemo(() => {
     if (!parentOrgTrend.length) return null;
@@ -305,17 +399,17 @@ export default function StandaloneEnrollment() {
           </div>
         ) : activeView === 'listing' ? (
           <div className={styles.panelWrapper}>
-            {loadingDates || maLoading ? (
+            {loadingDates || (hasCoordinates ? maLoading : nationwideMaLoading) ? (
               <Spinner message="Loading payer listing..." />
             ) : errorDates ? (
               <div className={styles.errorPanel}>
                 <h3>Publish dates unavailable</h3>
                 <p>{errorDates}</p>
               </div>
-            ) : maError ? (
+            ) : (hasCoordinates ? maError : nationwideMaError) ? (
               <div className={styles.errorPanel}>
                 <h3>Payer data unavailable</h3>
-                <p>{maError}</p>
+                <p>{hasCoordinates ? maError : nationwideMaError}</p>
               </div>
             ) : parentOrgSummary.length === 0 ? (
               <div className={styles.emptyState}>
@@ -368,22 +462,27 @@ export default function StandaloneEnrollment() {
           </div>
         ) : (
           <div className={styles.panelWrapper}>
-            {loadingDates || (hasCoordinates ? maLoading : nationwideMaLoading) || (hasCoordinates ? trendLoading : nationwideTrendLoading) ? (
+            {loadingDates || loadingOrgs || nationwideMaLoading || nationwideTrendLoading ? (
               <Spinner message="Loading payer deep dive..." />
-            ) : (hasCoordinates ? maError : nationwideMaError) ? (
+            ) : errorOrgs ? (
+              <div className={styles.errorPanel}>
+                <h3>Organizations unavailable</h3>
+                <p>{errorOrgs}</p>
+              </div>
+            ) : nationwideMaError ? (
               <div className={styles.errorPanel}>
                 <h3>Payer data unavailable</h3>
-                <p>{hasCoordinates ? maError : nationwideMaError}</p>
+                <p>{nationwideMaError}</p>
               </div>
-            ) : (hasCoordinates ? trendError : nationwideTrendError) ? (
+            ) : nationwideTrendError ? (
               <div className={styles.errorPanel}>
                 <h3>Trend data unavailable</h3>
-                <p>{hasCoordinates ? trendError : nationwideTrendError}</p>
+                <p>{nationwideTrendError}</p>
               </div>
             ) : parentOrgSummary.length === 0 ? (
               <div className={styles.emptyState}>
                 <h2>No payer data available</h2>
-                <p>{hasCoordinates ? 'Select a different market to view payer details.' : 'No data available for this payer.'}</p>
+                <p>No data available for this payer.</p>
               </div>
             ) : !selectedParentEntry ? (
               <div className={styles.emptyState}>
@@ -395,7 +494,7 @@ export default function StandaloneEnrollment() {
                 <div className={styles.deepDiveHeader}>
                   <div>
                     <h3>{selectedParentEntry.parentOrg}</h3>
-                    <p>{hasCoordinates ? 'Enrollment footprint and trend within the selected market radius.' : 'Nationwide enrollment footprint and trend.'}</p>
+                    <p>Nationwide enrollment footprint and trend.</p>
                   </div>
                   <div className={styles.deepDiveSelector}>
                     <label htmlFor="parent-org-select">Parent organization</label>

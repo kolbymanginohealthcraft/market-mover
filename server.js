@@ -6,6 +6,9 @@ import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import cors from "cors";
 
+// Load environment variables FIRST before importing any modules that use them
+dotenv.config();
+
 import qualityMeasures from "./server/routes/qualityMeasures.js";
 import searchProviders from "./server/routes/searchProviders.js";
 import getCcns from "./server/routes/getCcns.js";
@@ -43,9 +46,6 @@ import affiliationsProvider from "./server/routes/affiliationsProvider.js";
 
 // import admin from "./server/routes/admin.js";
 // import policyManagement from "./server/routes/policyManagement.js";
-
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -221,6 +221,73 @@ router.post("/ma-enrollment-by-org", async (req, res) => {
 });
 
 /**
+ * POST /api/ma-enrollment-organizations
+ * Body: { publishDate: "2024-12-01", type: "MA" | "PDP" | "ALL" }
+ * Returns: List of all parent organizations nationwide with enrollment totals
+ */
+router.post("/ma-enrollment-organizations", async (req, res) => {
+  const { publishDate, type = "ALL" } = req.body;
+  if (!publishDate) {
+    return res.status(400).json({ success: false, error: "publishDate (YYYY-MM-DD) is required" });
+  }
+
+  const cacheKey = `ma_enrollment_orgs_${publishDate}_${type}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
+  try {
+    console.log(`🔍 Fetching all ${type} parent organizations nationwide, date: ${publishDate}`);
+
+    let typeFilter = "";
+    if (type === "MA") {
+      typeFilter = "AND c.type = 'MA'";
+    } else if (type === "PDP") {
+      typeFilter = "AND c.type = 'PDP'";
+    }
+
+    const query = `
+      SELECT 
+        c.parent_org,
+        SUM(e.enrollment) as total_enrollment,
+        COUNT(DISTINCT e.plan_id) as plan_count,
+        COUNT(DISTINCT e.fips) as county_count
+      FROM \`market-mover-464517.payers.ma_enrollment\` e
+      LEFT JOIN \`market-mover-464517.payers.ma_plan\` pl 
+        ON e.plan_id = pl.plan_id
+      LEFT JOIN \`market-mover-464517.payers.ma_contract\` c 
+        ON pl.contract_id = c.contract_id
+      WHERE e.publish_date = @publishDate
+        AND c.parent_org IS NOT NULL
+        ${typeFilter}
+      GROUP BY c.parent_org
+      ORDER BY total_enrollment DESC
+    `;
+
+    const [rows] = await myBigQuery.query({
+      query: query,
+      location: "US",
+      params: { publishDate }
+    });
+
+    console.log(`✅ Found ${rows.length} parent organizations nationwide`);
+
+    cache.set(cacheKey, rows, 3600);
+
+    res.json({ success: true, data: rows });
+
+  } catch (error) {
+    console.error(`❌ Parent organizations query error:`, error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: `Failed to fetch parent organizations`,
+      details: error.message 
+    });
+  }
+});
+
+/**
  * POST /api/ma-enrollment-trend-by-org
  * Body: { parentOrg: "UnitedHealth Group", startDate: "2023-01-01", endDate: "2024-12-01", type: "MA" | "PDP" | "ALL" }
  * Returns: Nationwide historical enrollment trends for a specific parent organization

@@ -6,6 +6,46 @@ import * as turf from '@turf/turf';
 
 const router = express.Router();
 
+// Get API key at runtime (not module load time) to ensure dotenv has loaded
+function getCensusApiKey() {
+  return process.env.CENSUS_API_KEY || null;
+}
+
+// Log API key status when first used
+let apiKeyLogged = false;
+function logApiKeyStatus() {
+  if (!apiKeyLogged) {
+    const key = getCensusApiKey();
+    if (key) {
+      console.log('✅ Census API key configured:', key.substring(0, 10) + '...');
+    } else {
+      console.warn('⚠️ No Census API key found - requests may be rate limited');
+    }
+    apiKeyLogged = true;
+  }
+}
+
+// Convert state abbreviation to FIPS code
+const STATE_ABBR_TO_FIPS = {
+  'AL': '01', 'AK': '02', 'AZ': '04', 'AR': '05', 'CA': '06', 'CO': '08', 'CT': '09', 'DE': '10', 'DC': '11',
+  'FL': '12', 'GA': '13', 'HI': '15', 'ID': '16', 'IL': '17', 'IN': '18', 'IA': '19', 'KS': '20', 'KY': '21',
+  'LA': '22', 'ME': '23', 'MD': '24', 'MA': '25', 'MI': '26', 'MN': '27', 'MS': '28', 'MO': '29', 'MT': '30',
+  'NE': '31', 'NV': '32', 'NH': '33', 'NJ': '34', 'NM': '35', 'NY': '36', 'NC': '37', 'ND': '38', 'OH': '39',
+  'OK': '40', 'OR': '41', 'PA': '42', 'RI': '44', 'SC': '45', 'SD': '46', 'TN': '47', 'TX': '48', 'UT': '49',
+  'VT': '50', 'VA': '51', 'WA': '53', 'WV': '54', 'WI': '55', 'WY': '56'
+};
+
+function normalizeStateFips(stateCode) {
+  if (!stateCode) return null;
+  const stateStr = String(stateCode).trim().toUpperCase();
+  // If it's already a 2-digit FIPS code, return it
+  if (/^\d{2}$/.test(stateStr)) {
+    return stateStr.padStart(2, '0');
+  }
+  // If it's an abbreviation, convert it
+  return STATE_ABBR_TO_FIPS[stateStr] || null;
+}
+
 const DEFAULT_AVAILABLE_ACS_YEARS = [
   '2023',
   '2022',
@@ -182,8 +222,10 @@ async function getNationalAverages(year) {
       'B25064_001E', 'B25077_001E' // housing
     ].join(',');
 
-    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${NATIONAL_VARS}&for=us:*`;
-    const response = await fetchWithRetry(url);
+    logApiKeyStatus();
+    const apiKey = getCensusApiKey();
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${NATIONAL_VARS}&for=us:*${apiKey ? `&key=${apiKey}` : ''}`;
+    const response = await fetch(url);
     
     if (!response.ok) {
       console.warn(`⚠️ Census API error for national data: ${response.status}`);
@@ -203,19 +245,8 @@ async function getNationalAverages(year) {
       console.warn(`⚠️ Census API returned invalid JSON for national data, year ${year}:`, parseError.message);
       return null;
     }
-    
-    if (!Array.isArray(data) || data.length < 2) {
-      console.warn(`⚠️ Census API returned unexpected data format for national data, year ${year}`);
-      return null;
-    }
-    
     const header = data[0];
     const row = data[1];
-    if (!header || !row) {
-      console.warn(`⚠️ Census API returned incomplete data for national data, year ${year}`);
-      return null;
-    }
-    
     const obj = {};
     header.forEach((h, idx) => { obj[h] = row[idx]; });
     
@@ -258,8 +289,10 @@ async function getStateAverages(stateFips, year) {
       'B25064_001E', 'B25077_001E' // housing
     ].join(',');
 
-    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${STATE_VARS}&for=state:${stateFips}`;
-    const response = await fetchWithRetry(url);
+    logApiKeyStatus();
+    const apiKey = getCensusApiKey();
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${STATE_VARS}&for=state:${stateFips}${apiKey ? `&key=${apiKey}` : ''}`;
+    const response = await fetch(url);
     
     if (!response.ok) {
       console.warn(`⚠️ Census API error for state data: ${response.status}`);
@@ -334,8 +367,11 @@ async function getCountyAverages(stateFips, countyFips, year) {
       'B25064_001E', 'B25077_001E' // housing
     ].join(',');
 
-    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${COUNTY_VARS}&for=county:${countyFips}&in=state:${stateFips}`;
-    const response = await fetchWithRetry(url);
+    logApiKeyStatus();
+    const apiKey = getCensusApiKey();
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=${COUNTY_VARS}&for=county:${countyFips}&in=state:${stateFips}${apiKey ? `&key=${apiKey}` : ''}`;
+    console.log(`🔍 Fetching county averages: ${stateFips}-${countyFips} (${year}) - URL: ${url.substring(0, 100)}...`);
+    const response = await fetch(url);
     
     if (!response.ok) {
       console.warn(`⚠️ Census API error for county data: ${response.status}`);
@@ -353,11 +389,19 @@ async function getCountyAverages(stateFips, countyFips, year) {
       data = JSON.parse(text);
     } catch (parseError) {
       console.warn(`⚠️ Census API returned invalid JSON for county ${stateFips}-${countyFips}, year ${year}:`, parseError.message);
+      console.warn(`   Response text: ${text.substring(0, 200)}`);
       return null;
     }
     
-    if (!Array.isArray(data) || data.length < 2) {
-      console.warn(`⚠️ Census API returned unexpected data format for county ${stateFips}-${countyFips}, year ${year}`);
+    // Check if response is an error object
+    if (!Array.isArray(data)) {
+      console.warn(`⚠️ Census API returned error for county ${stateFips}-${countyFips}, year ${year}:`, JSON.stringify(data));
+      console.warn(`   Response text: ${text.substring(0, 500)}`);
+      return null;
+    }
+    
+    if (data.length < 2) {
+      console.warn(`⚠️ Census API returned insufficient data for county ${stateFips}-${countyFips}, year ${year}:`, data.length, 'rows');
       return null;
     }
     
@@ -410,20 +454,25 @@ async function getZipCodesWithinRadius(lat, lon, radiusMiles) {
 
   const zipQuery = `
     SELECT
-      zip_code,
-      state_code,
-      ST_AREA(zip_code_geom) AS area_land_meters,
-      ST_Y(ST_CENTROID(zip_code_geom)) AS centroid_lat,
-      ST_X(ST_CENTROID(zip_code_geom)) AS centroid_lon,
+      z.zip_code,
+      z.state_code,
+      c.state_fips_code,
+      c.county_fips_code,
+      ST_AREA(z.zip_code_geom) AS area_land_meters,
+      ST_Y(ST_CENTROID(z.zip_code_geom)) AS centroid_lat,
+      ST_X(ST_CENTROID(z.zip_code_geom)) AS centroid_lon,
       ST_DISTANCE(
-        ST_GEOGPOINT(CAST(ST_X(ST_CENTROID(zip_code_geom)) AS FLOAT64), CAST(ST_Y(ST_CENTROID(zip_code_geom)) AS FLOAT64)),
+        ST_GEOGPOINT(CAST(ST_X(ST_CENTROID(z.zip_code_geom)) AS FLOAT64), CAST(ST_Y(ST_CENTROID(z.zip_code_geom)) AS FLOAT64)),
         ST_GEOGPOINT(@centerLon, @centerLat)
       ) AS distance_to_center_meters
-    FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\`
+    FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\` z
+    LEFT JOIN \`bigquery-public-data.geo_us_boundaries.counties\` c
+      ON ST_INTERSECTS(z.zip_code_geom, c.county_geom)
     WHERE ST_INTERSECTS(
-      zip_code_geom,
+      z.zip_code_geom,
       ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
     )
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY z.zip_code ORDER BY ST_AREA(ST_INTERSECTION(z.zip_code_geom, c.county_geom)) DESC) = 1
     ORDER BY distance_to_center_meters ASC
   `;
 
@@ -441,45 +490,32 @@ async function getZipCodesWithinRadius(lat, lon, radiusMiles) {
   return rows;
 }
 
-// Helper function to delay execution
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Helper function to retry with exponential backoff
-async function fetchWithRetry(url, maxRetries = 3, initialDelay = 1000) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const response = await fetch(url);
-      
-      if (response.status === 429) {
-        // Rate limited - wait with exponential backoff
-        const waitTime = initialDelay * Math.pow(2, attempt);
-        console.warn(`⚠️ Rate limited (429), waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
-        await delay(waitTime);
-        continue;
-      }
-      
-      return response;
-    } catch (error) {
-      if (attempt === maxRetries - 1) throw error;
-      const waitTime = initialDelay * Math.pow(2, attempt);
-      await delay(waitTime);
-    }
-  }
-  throw new Error('Max retries exceeded');
-}
-
 async function fetchZipAcsData(zipRow, year) {
+  logApiKeyStatus();
+  const apiKey = getCensusApiKey();
   const zip = String(zipRow.zip_code).padStart(5, '0');
-  const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=zip%20code%20tabulation%20area:${zip}`;
+  const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=zip%20code%20tabulation%20area:${zip}${apiKey ? `&key=${apiKey}` : ''}`;
 
   try {
-    const response = await fetchWithRetry(url);
+    const response = await fetch(url);
     if (!response.ok) {
       console.warn(`⚠️ Census API error for ZIP ${zip}: ${response.status}`);
       return null;
     }
 
-    const data = await response.json();
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      console.warn(`⚠️ Census API returned empty response for ZIP ${zip}`);
+      return null;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.warn(`⚠️ Census API returned invalid JSON for ZIP ${zip}:`, parseError.message);
+      return null;
+    }
     if (!Array.isArray(data) || data.length < 2) {
       console.warn(`⚠️ Census API returned no data for ZIP ${zip}`);
       return null;
@@ -538,7 +574,9 @@ async function fetchZipAcsData(zipRow, year) {
       longitude: Number(zipRow.centroid_lon) || 0,
       zip_code: zip,
       state: obj['state'] || zipRow.state_code || null,
-      county: obj['county'] || null,
+      county: obj['county'] || (zipRow.county_fips_code ? String(zipRow.county_fips_code).replace(zipRow.state_fips_code || '', '') : null),
+      state_fips: zipRow.state_fips_code || null,
+      county_fips: zipRow.county_fips_code || null,
       geo_id: geoIdRaw ? `8600000US${String(geoIdRaw).padStart(5, '0')}` : null,
       distance_to_center_meters: Number(zipRow.distance_to_center_meters) || 0,
       geography_type: 'zip'
@@ -574,23 +612,11 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
   const allZipData = [];
   const missingZips = [];
   const matchedZips = [];
-  const chunkSize = 5; // Reduced chunk size to avoid rate limits
-  const delayBetweenChunks = 200; // Delay between chunks in ms
+  const chunkSize = 8;
 
   for (let i = 0; i < zipRows.length; i += chunkSize) {
     const chunk = zipRows.slice(i, i + chunkSize);
-    
-    // Process chunk sequentially with small delays between requests
-    const chunkResults = [];
-    for (const row of chunk) {
-      const result = await fetchZipAcsData(row, year);
-      chunkResults.push(result);
-      // Small delay between requests within a chunk
-      if (chunkResults.length < chunk.length) {
-        await delay(100);
-      }
-    }
-    
+    const chunkResults = await Promise.all(chunk.map(row => fetchZipAcsData(row, year)));
     chunkResults.forEach((result, idx) => {
       const zipCode = String(chunk[idx].zip_code).padStart(5, '0');
       if (result) {
@@ -600,10 +626,9 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
         missingZips.push(zipCode);
       }
     });
-    
-    // Delay between chunks to avoid rate limiting
+
     if (i + chunkSize < zipRows.length) {
-      await delay(delayBetweenChunks);
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
@@ -652,27 +677,150 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
 
   const nationalAverages = await getNationalAverages(year);
 
-  const stateSet = new Set(allZipData.map(z => z.state).filter(Boolean));
+  // Build state set directly from BigQuery zipRows (more reliable than Census API responses)
+  const stateSet = new Set();
+  zipRows.forEach(zipRow => {
+    if (zipRow.state_fips_code) {
+      const stateFips = String(zipRow.state_fips_code).padStart(2, '0');
+      stateSet.add(stateFips);
+    }
+  });
+  
+  if (stateSet.size === 0) {
+    console.warn(`⚠️ No states found in zipRows. Sample zipRow:`, zipRows[0]);
+  }
+  
   const stateAverages = {};
-  const stateArray = Array.from(stateSet);
-  for (let i = 0; i < stateArray.length; i++) {
-    const stateFips = stateArray[i];
+  const statePromises = Array.from(stateSet).map(async (stateFips) => {
     const average = await getStateAverages(stateFips, year);
     if (average) {
-      stateAverages[stateFips] = {
-        median_income: average.median_income,
-        per_capita_income: average.per_capita_income,
-        poverty_rate: average.poverty_universe ? average.below_poverty / average.poverty_universe : null,
-        uninsured_rate: average.insurance_universe ? average.uninsured / average.insurance_universe : null,
-        disability_rate: average.disability_universe ? (average.male_disability + average.female_disability) / average.disability_universe : null,
-        bachelors_plus_rate: average.education_universe ? average.bachelors_plus / average.education_universe : null,
-        median_rent: average.median_rent,
-        median_home_value: average.median_home_value
+      return {
+        stateFips,
+        data: {
+          median_income: average.median_income,
+          per_capita_income: average.per_capita_income,
+          poverty_rate: average.poverty_universe ? average.below_poverty / average.poverty_universe : null,
+          uninsured_rate: average.insurance_universe ? average.uninsured / average.insurance_universe : null,
+          disability_rate: average.disability_universe ? (average.male_disability + average.female_disability) / average.disability_universe : null,
+          bachelors_plus_rate: average.education_universe ? average.bachelors_plus / average.education_universe : null,
+          median_rent: average.median_rent,
+          median_home_value: average.median_home_value
+        }
       };
     }
-    // Delay between state requests to avoid rate limiting
-    if (i < stateArray.length - 1) {
-      await delay(200);
+    return null;
+  });
+  
+  const stateResults = await Promise.all(statePromises);
+  stateResults.forEach(result => {
+    if (result) {
+      stateAverages[result.stateFips] = result.data;
+    }
+  });
+
+  // Fetch county averages for counties in the ZIP codes
+  // Build county set directly from BigQuery zipRows (more reliable than Census API responses)
+  const countySet = new Set();
+  zipRows.forEach(zipRow => {
+    if (zipRow.state_fips_code && zipRow.county_fips_code) {
+      const stateFips = String(zipRow.state_fips_code).padStart(2, '0');
+      // county_fips_code from BigQuery counties table could be full 5-digit or just 3-digit
+      // Handle both cases
+      const countyFipsStr = String(zipRow.county_fips_code);
+      let countyFips;
+      if (countyFipsStr.length >= 5) {
+        // Full 5-digit code, extract last 3 digits
+        countyFips = countyFipsStr.substring(countyFipsStr.length - 3);
+      } else {
+        // Already 3-digit, pad if needed
+        countyFips = countyFipsStr.padStart(3, '0');
+      }
+      countySet.add(`${stateFips}-${countyFips}`);
+    }
+  });
+  
+  if (countySet.size > 0) {
+    console.log(`🔍 Found ${countySet.size} unique counties to fetch averages for:`, Array.from(countySet).slice(0, 5));
+    // Debug: show sample zipRow structure
+    if (zipRows.length > 0) {
+      console.log(`   Sample zipRow county_fips_code: "${zipRows[0].county_fips_code}" (type: ${typeof zipRows[0].county_fips_code}, length: ${String(zipRows[0].county_fips_code).length})`);
+    }
+  } else {
+    console.warn(`⚠️ No counties found in zipRows. Sample zipRow:`, zipRows[0]);
+  }
+  
+  const countyAverages = {};
+  const countyPromises = Array.from(countySet).map(async (countyKey) => {
+    const [stateFips, countyFips] = countyKey.split('-');
+    const average = await getCountyAverages(stateFips, countyFips, year);
+    if (average) {
+      return {
+        countyKey,
+        data: {
+          median_income: average.median_income,
+          per_capita_income: average.per_capita_income,
+          poverty_rate: average.poverty_universe ? average.below_poverty / average.poverty_universe : null,
+          uninsured_rate: average.insurance_universe ? average.uninsured / average.insurance_universe : null,
+          disability_rate: average.disability_universe ? (average.male_disability + average.female_disability) / average.disability_universe : null,
+          bachelors_plus_rate: average.education_universe ? average.bachelors_plus / average.education_universe : null,
+          median_rent: average.median_rent,
+          median_home_value: average.median_home_value
+        }
+      };
+    }
+    return null;
+  });
+  
+  const countyResults = await Promise.all(countyPromises);
+  countyResults.forEach(result => {
+    if (result) {
+      countyAverages[result.countyKey] = result.data;
+    }
+  });
+
+  // Fetch county names from BigQuery for all counties in the ZIP codes
+  const countyNamesMap = {};
+  if (countySet.size > 0) {
+    try {
+      const countyArray = Array.from(countySet);
+      const countyConditions = countyArray.map((countyKey, index) => {
+        const [stateFips, countyFips] = countyKey.split('-');
+        const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
+        return `county_fips_code = @county${index}`;
+      }).join(' OR ');
+      
+      const countyNamesQuery = `
+        SELECT 
+          county_fips_code,
+          county_name
+        FROM \`bigquery-public-data.geo_us_boundaries.counties\`
+        WHERE (${countyConditions})
+      `;
+      
+      const countyNamesParams = {};
+      countyArray.forEach((countyKey, index) => {
+        const [stateFips, countyFips] = countyKey.split('-');
+        const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
+        countyNamesParams[`county${index}`] = fullCountyFips;
+      });
+      
+      const [countyNameRows] = await myBigQuery.query({
+        query: countyNamesQuery,
+        location: 'US',
+        params: countyNamesParams
+      });
+      
+      // Group county names by state for easier lookup
+      countyNameRows.forEach(row => {
+        const fullFips = String(row.county_fips_code);
+        const stateFips = fullFips.substring(0, 2);
+        if (!countyNamesMap[stateFips]) {
+          countyNamesMap[stateFips] = {};
+        }
+        countyNamesMap[stateFips][fullFips] = row.county_name;
+      });
+    } catch (err) {
+      console.warn('⚠️ Error fetching county names from BigQuery:', err.message);
     }
   }
 
@@ -703,7 +851,7 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
     total_land_area_meters: totals.total_land_area_meters
   };
 
-  return {
+  const result = {
     geography: 'zip',
     market_totals: marketTotals,
     national_averages: nationalAverages ? {
@@ -717,7 +865,8 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
       median_home_value: nationalAverages.median_home_value
     } : null,
     state_averages: stateAverages,
-    county_averages: {},
+    county_averages: countyAverages,
+    county_names: countyNamesMap,
     geographic_units: allZipData,
     metadata: {
       geography: 'zip',
@@ -726,6 +875,17 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
       missing_zips: missingZips
     }
   };
+  
+  console.log('📊 Benchmark data summary:', {
+    hasNational: !!result.national_averages,
+    stateCount: Object.keys(result.state_averages).length,
+    countyCount: Object.keys(result.county_averages).length,
+    stateKeys: Object.keys(result.state_averages).slice(0, 3),
+    countyKeys: Object.keys(result.county_averages).slice(0, 3),
+    sampleCountyData: result.county_averages[Object.keys(result.county_averages)[0]]
+  });
+  
+  return result;
 }
 
 router.get('/census-acs-api', async (req, res) => {
@@ -735,11 +895,18 @@ router.get('/census-acs-api', async (req, res) => {
     return res.status(400).json({ success: false, error: 'lat, lon, and radius are required' });
   }
 
+  console.log(`🌍 Census API request: geography=${geography}, lat=${lat}, lon=${lon}, radius=${radius}, year=${year}`);
+
   // Check cache first
   const cacheParams = { lat, lon, radius, year, geography };
   const cachedData = cache.get('census_acs', cacheParams);
   if (cachedData) {
-    console.log('📦 Serving census ACS data from cache');
+    console.log('📦 Serving census ACS data from cache:', {
+      geography: cachedData.geography,
+      hasNational: !!cachedData.national_averages,
+      stateCount: cachedData.state_averages ? Object.keys(cachedData.state_averages).length : 0,
+      countyCount: cachedData.county_averages ? Object.keys(cachedData.county_averages).length : 0
+    });
     return res.status(200).json({ success: true, data: cachedData });
   }
 
@@ -750,6 +917,13 @@ router.get('/census-acs-api', async (req, res) => {
         lon: Number(lon),
         radiusMiles: parseFloat(radius),
         year
+      });
+
+      console.log('📤 Returning ZIP census data:', {
+        hasNational: !!result.national_averages,
+        stateCount: result.state_averages ? Object.keys(result.state_averages).length : 0,
+        countyCount: result.county_averages ? Object.keys(result.county_averages).length : 0,
+        countyKeys: result.county_averages ? Object.keys(result.county_averages).slice(0, 5) : []
       });
 
       cache.set('census_acs', cacheParams, result, 60 * 60 * 1000);
@@ -842,8 +1016,10 @@ router.get('/census-acs-api', async (req, res) => {
     for (let i = 0; i < countyKeys.length; i += batchSize) {
       const batch = countyKeys.slice(i, i + batchSize);
       const batchPromises = batch.map(async (key) => {
+        logApiKeyStatus();
+        const apiKey = getCensusApiKey();
         const { state, county, tracts } = tractsByCounty[key];
-        const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=tract:*&in=state:${state}+county:${county}`;
+        const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=tract:*&in=state:${state}+county:${county}${apiKey ? `&key=${apiKey}` : ''}`;
         
         try {
           const resp = await fetch(url);
@@ -981,54 +1157,111 @@ router.get('/census-acs-api', async (req, res) => {
     const statesInMarket = [...new Set(allTractData.map(t => t.state))];
     const countiesInMarket = [...new Set(allTractData.map(t => `${t.state}-${t.county}`))];
     
-    // Fetch state and county averages
+    // Fetch county names from BigQuery for all counties in the market
+    const countyNamesMap = {};
+    if (countiesInMarket.length > 0) {
+      try {
+        const countyConditions = countiesInMarket.map((countyKey, index) => {
+          const [stateFips, countyFips] = countyKey.split('-');
+          const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
+          return `county_fips_code = @county${index}`;
+        }).join(' OR ');
+        
+        const countyNamesQuery = `
+          SELECT 
+            county_fips_code,
+            county_name
+          FROM \`bigquery-public-data.geo_us_boundaries.counties\`
+          WHERE (${countyConditions})
+        `;
+        
+        const countyNamesParams = {};
+        countiesInMarket.forEach((countyKey, index) => {
+          const [stateFips, countyFips] = countyKey.split('-');
+          const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
+          countyNamesParams[`county${index}`] = fullCountyFips;
+        });
+        
+        const [countyNameRows] = await myBigQuery.query({
+          query: countyNamesQuery,
+          location: 'US',
+          params: countyNamesParams
+        });
+        
+        // Group county names by state for easier lookup
+        countyNameRows.forEach(row => {
+          const fullFips = String(row.county_fips_code);
+          const stateFips = fullFips.substring(0, 2);
+          if (!countyNamesMap[stateFips]) {
+            countyNamesMap[stateFips] = {};
+          }
+          countyNamesMap[stateFips][fullFips] = row.county_name;
+        });
+      } catch (err) {
+        console.warn('⚠️ Error fetching county names from BigQuery:', err.message);
+      }
+    }
+    
+    // Fetch state and county averages in parallel for better performance
     const stateAverages = {};
     const countyAverages = {};
     
-    // Fetch state averages for all states in the market
-    for (let i = 0; i < statesInMarket.length; i++) {
-      const stateFips = statesInMarket[i];
+    // Fetch state averages for all states in parallel
+    const statePromises = statesInMarket.map(async (stateFips) => {
       const stateData = await getStateAverages(stateFips, year);
       if (stateData) {
-        stateAverages[stateFips] = {
-          median_income: stateData.median_income,
-          per_capita_income: stateData.per_capita_income,
-          poverty_rate: stateData.poverty_universe ? stateData.below_poverty / stateData.poverty_universe : null,
-          uninsured_rate: stateData.insurance_universe ? stateData.uninsured / stateData.insurance_universe : null,
-          disability_rate: stateData.disability_universe ? (stateData.male_disability + stateData.female_disability) / stateData.disability_universe : null,
-          bachelors_plus_rate: stateData.education_universe ? stateData.bachelors_plus / stateData.education_universe : null,
-          median_rent: stateData.median_rent,
-          median_home_value: stateData.median_home_value
+        return {
+          stateFips,
+          data: {
+            median_income: stateData.median_income,
+            per_capita_income: stateData.per_capita_income,
+            poverty_rate: stateData.poverty_universe ? stateData.below_poverty / stateData.poverty_universe : null,
+            uninsured_rate: stateData.insurance_universe ? stateData.uninsured / stateData.insurance_universe : null,
+            disability_rate: stateData.disability_universe ? (stateData.male_disability + stateData.female_disability) / stateData.disability_universe : null,
+            bachelors_plus_rate: stateData.education_universe ? stateData.bachelors_plus / stateData.education_universe : null,
+            median_rent: stateData.median_rent,
+            median_home_value: stateData.median_home_value
+          }
         };
       }
-      // Delay between state requests to avoid rate limiting
-      if (i < statesInMarket.length - 1) {
-        await delay(200);
-      }
-    }
+      return null;
+    });
     
-    // Fetch county averages for all counties in the market
-    for (let i = 0; i < countiesInMarket.length; i++) {
-      const countyKey = countiesInMarket[i];
+    const stateResults = await Promise.all(statePromises);
+    stateResults.forEach(result => {
+      if (result) {
+        stateAverages[result.stateFips] = result.data;
+      }
+    });
+    
+    // Fetch county averages for all counties in parallel
+    const countyPromises = countiesInMarket.map(async (countyKey) => {
       const [stateFips, countyFips] = countyKey.split('-');
       const countyData = await getCountyAverages(stateFips, countyFips, year);
       if (countyData) {
-        countyAverages[countyKey] = {
-          median_income: countyData.median_income,
-          per_capita_income: countyData.per_capita_income,
-          poverty_rate: countyData.poverty_universe ? countyData.below_poverty / countyData.poverty_universe : null,
-          uninsured_rate: countyData.insurance_universe ? countyData.uninsured / countyData.insurance_universe : null,
-          disability_rate: countyData.disability_universe ? (countyData.male_disability + countyData.female_disability) / countyData.disability_universe : null,
-          bachelors_plus_rate: countyData.education_universe ? countyData.bachelors_plus / countyData.education_universe : null,
-          median_rent: countyData.median_rent,
-          median_home_value: countyData.median_home_value
+        return {
+          countyKey,
+          data: {
+            median_income: countyData.median_income,
+            per_capita_income: countyData.per_capita_income,
+            poverty_rate: countyData.poverty_universe ? countyData.below_poverty / countyData.poverty_universe : null,
+            uninsured_rate: countyData.insurance_universe ? countyData.uninsured / countyData.insurance_universe : null,
+            disability_rate: countyData.disability_universe ? (countyData.male_disability + countyData.female_disability) / countyData.disability_universe : null,
+            bachelors_plus_rate: countyData.education_universe ? countyData.bachelors_plus / countyData.education_universe : null,
+            median_rent: countyData.median_rent,
+            median_home_value: countyData.median_home_value
+          }
         };
       }
-      // Delay between county requests to avoid rate limiting
-      if (i < countiesInMarket.length - 1) {
-        await delay(200);
+      return null;
+    });
+    
+    const countyResults = await Promise.all(countyPromises);
+    countyResults.forEach(result => {
+      if (result) {
+        countyAverages[result.countyKey] = result.data;
       }
-    }
+    });
     
     const result = {
       geography: 'tract',
@@ -1068,6 +1301,7 @@ router.get('/census-acs-api', async (req, res) => {
       } : null,
       state_averages: stateAverages,
       county_averages: countyAverages,
+      county_names: countyNamesMap,
       geographic_units: allTractData
     };
 

@@ -510,48 +510,6 @@ export default function StandalonePopulation() {
               Map
             </Link>
           </div>
-          {activeTab === 'trend' && (
-            <div className={styles.tabNavRight}>
-              <Dropdown
-                trigger={
-                  <button type="button" className="sectionHeaderButton">
-                    <CalendarDays size={14} />
-                    {`ACS ${effectiveYear}`}
-                    <ChevronDown size={14} />
-                  </button>
-                }
-                isOpen={yearDropdownOpen}
-                onToggle={setYearDropdownOpen}
-                className={styles.dropdownMenu}
-              >
-                {yearsLoading ? (
-                  <div className={styles.dropdownStatus}>Loading years…</div>
-                ) : yearsError ? (
-                  <div className={styles.dropdownStatus}>Unable to load years.</div>
-                ) : (
-                  (availableYears || [])
-                    .map((year) => String(year))
-                    .filter(Boolean)
-                    .sort((a, b) => Number(b) - Number(a))
-                    .map((year) => (
-                      <button
-                        key={year}
-                        type="button"
-                        className={`${styles.dropdownItem} ${
-                          selectedYear === year ? styles.dropdownItemActive : ''
-                        }`}
-                        onClick={() => {
-                          handleYearChange(year);
-                          setYearDropdownOpen(false);
-                        }}
-                      >
-                        {year}
-                      </button>
-                    ))
-                )}
-              </Dropdown>
-            </div>
-          )}
         </div>
       )}
 
