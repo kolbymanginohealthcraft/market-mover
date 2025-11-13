@@ -5,12 +5,12 @@ import { useDropdownClose } from '../../../hooks/useDropdownClose';
 import styles from './AdvancedSearch.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
-import ControlsRow from '../../../components/Layouts/ControlsRow';
 import { MapPin, ChevronDown, X, Search, Database, Layers, Navigation, Bookmark } from 'lucide-react';
 import { geocodeAddress, reverseGeocode } from '../Markets/services/geocodingService';
 
 export default function DensitySearch() {
   const { hasTeam } = useUserTeam();
+  const searchInputRef = useRef(null);
   
   // My Taxonomies
   const [taxonomyTags, setTaxonomyTags] = useState([]);
@@ -34,6 +34,11 @@ export default function DensitySearch() {
 
   useEffect(() => {
     fetchTaxonomyTags();
+  }, []);
+
+  // Focus search input on page load
+  useEffect(() => {
+    searchInputRef.current?.focus();
   }, []);
 
   // Re-fetch density when filters change (if coordinates exist and we have results)
@@ -246,6 +251,60 @@ export default function DensitySearch() {
     <div className={styles.container}>
         {/* Top Controls Bar */}
         <div className={styles.controlsBar}>
+          {/* Location Input */}
+          <div className="searchBarContainer" style={{ width: '300px' }}>
+            <div className="searchIcon">
+              <Search size={16} />
+            </div>
+            <input
+              type="text"
+              value={densityLocationInput}
+              onChange={(e) => setDensityLocationInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleDensityLocationSearch();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  if (densityLocationInput) {
+                    setDensityLocationInput('');
+                    setDensityCoordinates({ lat: null, lng: null });
+                    setDensityLocationInfo({ city: null, state: null });
+                  } else {
+                    e.currentTarget.blur();
+                  }
+                }
+              }}
+              placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
+              className="searchInput"
+              style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
+              data-search-enhanced="true"
+              disabled={densityLoading}
+              ref={searchInputRef}
+            />
+            {densityLocationInput && (
+              <button
+                onClick={() => {
+                  setDensityLocationInput('');
+                  setDensityCoordinates({ lat: null, lng: null });
+                  setDensityLocationInfo({ city: null, state: null });
+                }}
+                className="clearButton"
+                style={{ right: '8px' }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleDensityLocationSearch}
+            className="sectionHeaderButton primary"
+            disabled={densityLoading || !densityLocationInput.trim()}
+            title={densityLoading ? 'Analyzing...' : 'Analyze'}
+          >
+            <Navigation size={14} />
+            {densityLoading ? 'Analyzing...' : 'Analyze'}
+          </button>
+
           {/* My Taxonomies Dropdown */}
           {hasTeam && taxonomyTags.length > 0 && (
             <Dropdown
@@ -410,6 +469,23 @@ export default function DensitySearch() {
             </Dropdown>
           )}
 
+          {densityCoordinates.lat && (
+            <div className={styles.densityLocation}>
+              <MapPin size={14} />
+              {densityLocationInfo.city && densityLocationInfo.state ? (
+                <>
+                  {densityLocationInfo.city}, {densityLocationInfo.state}
+                  <span style={{ margin: '0 4px', color: 'var(--gray-400)' }}>•</span>
+                  {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                </>
+              ) : (
+                <>
+                  Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                </>
+              )}
+            </div>
+          )}
+
           <div className={styles.spacer}></div>
         </div>
 
@@ -465,83 +541,6 @@ export default function DensitySearch() {
 
           {/* Density Panel */}
           <div className={styles.densityPanel}>
-          {/* Location Input */}
-          <ControlsRow
-            leftContent={
-              <>
-                <div className="searchBarContainer" style={{ width: '300px' }}>
-                  <div className="searchIcon">
-                    <Search size={16} />
-                  </div>
-                  <input
-                    type="text"
-                    value={densityLocationInput}
-                    onChange={(e) => setDensityLocationInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleDensityLocationSearch();
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        if (densityLocationInput) {
-                          setDensityLocationInput('');
-                          setDensityCoordinates({ lat: null, lng: null });
-                          setDensityLocationInfo({ city: null, state: null });
-                        } else {
-                          e.currentTarget.blur();
-                        }
-                      }
-                    }}
-                    placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
-                    className="searchInput"
-                    style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
-                    data-search-enhanced="true"
-                    disabled={densityLoading}
-                  />
-                  {densityLocationInput && (
-                    <button
-                      onClick={() => {
-                        setDensityLocationInput('');
-                        setDensityCoordinates({ lat: null, lng: null });
-                        setDensityLocationInfo({ city: null, state: null });
-                      }}
-                      className="clearButton"
-                      style={{ right: '8px' }}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={handleDensityLocationSearch}
-                  className="sectionHeaderButton primary"
-                  disabled={densityLoading || !densityLocationInput.trim()}
-                  title={densityLoading ? 'Analyzing...' : 'Analyze'}
-                >
-                  <Navigation size={14} />
-                  {densityLoading ? 'Analyzing...' : 'Analyze'}
-                </button>
-              </>
-            }
-            rightContent={
-              densityCoordinates.lat && (
-                <div className={styles.densityLocation}>
-                  <MapPin size={14} />
-                  {densityLocationInfo.city && densityLocationInfo.state ? (
-                    <>
-                      {densityLocationInfo.city}, {densityLocationInfo.state}
-                      <span style={{ margin: '0 4px', color: 'var(--gray-400)' }}>•</span>
-                      {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
-                    </>
-                  ) : (
-                    <>
-                      Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
-                    </>
-                  )}
-                </div>
-              )
-            }
-          />
-
           {densityError && (
             <div className={styles.densityError}>
               {densityError}

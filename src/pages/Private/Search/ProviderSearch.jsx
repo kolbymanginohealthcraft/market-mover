@@ -16,7 +16,6 @@ import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
 import { getTagColor, getTagLabel } from '../../../utils/tagColors';
 import { ProviderTagBadge } from '../../../components/Tagging/ProviderTagBadge';
-import { geocodeAddress, reverseGeocode } from '../Markets/services/geocodingService';
 import {
   Search,
   MapPin,
@@ -34,9 +33,7 @@ import {
   Play,
   List,
   BarChart3,
-  Layers,
   Database,
-  Navigation,
   Download,
   Bookmark
 } from 'lucide-react';
@@ -60,7 +57,7 @@ export default function ProviderSearch() {
   const [hasSearched, setHasSearched] = useState(false);
   
   // Active tab
-  const [activeTab, setActiveTab] = useState('overview'); // overview, listing, density
+  const [activeTab, setActiveTab] = useState('overview'); // overview, listing
   
   // Markets
   const [savedMarkets, setSavedMarkets] = useState([]);
@@ -74,13 +71,6 @@ export default function ProviderSearch() {
   const [taxonomyTagDetails, setTaxonomyTagDetails] = useState({}); // Map of taxonomy_code -> details
   const [selectedTaxonomyCodes, setSelectedTaxonomyCodes] = useState([]);
   
-  // Density tab state
-  const [densityLocationInput, setDensityLocationInput] = useState('');
-  const [densityCoordinates, setDensityCoordinates] = useState({ lat: null, lng: null });
-  const [densityLocationInfo, setDensityLocationInfo] = useState({ city: null, state: null });
-  const [densityLoading, setDensityLoading] = useState(false);
-  const [densityError, setDensityError] = useState(null);
-  const [densityResults, setDensityResults] = useState(null);
 
   // Filter states
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -1058,194 +1048,6 @@ export default function ProviderSearch() {
     return parseInt(num).toLocaleString();
   };
 
-  // Handle density location input and geocoding
-  const handleDensityLocationSearch = async () => {
-    if (!densityLocationInput.trim()) {
-      setDensityError('Please enter a location');
-      return;
-    }
-
-    setDensityLoading(true);
-    setDensityError(null);
-
-    try {
-      let coords = null;
-      const input = densityLocationInput.trim();
-
-      // Auto-detect if input looks like coordinates (two numbers separated by comma)
-      const coordinatePattern = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/;
-      if (coordinatePattern.test(input)) {
-        // Parse coordinates (e.g., "40.7128, -74.0060" or "40.7128,-74.0060")
-        const parts = input.split(/[,\s]+/).filter(p => p);
-        if (parts.length === 2) {
-          const lat = parseFloat(parts[0]);
-          const lng = parseFloat(parts[1]);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-              coords = { lat, lng };
-            }
-          }
-        }
-        if (!coords) {
-          throw new Error('Invalid coordinates format. Use: latitude, longitude');
-        }
-      } else {
-        // Geocode address or zip code
-        coords = await geocodeAddress(input);
-      }
-
-      if (!coords) {
-        throw new Error('Could not determine location coordinates');
-      }
-
-      setDensityCoordinates(coords);
-      
-      // Reverse geocode to get city and state
-      try {
-        const locationInfo = await reverseGeocode(coords.lat, coords.lng);
-        setDensityLocationInfo(locationInfo);
-      } catch (err) {
-        console.error('Reverse geocoding error:', err);
-        setDensityLocationInfo({ city: null, state: null });
-      }
-      
-      await fetchOrgDensity(coords);
-    } catch (err) {
-      console.error('Error processing location:', err);
-      setDensityError(err.message || 'Failed to process location');
-      setDensityLoading(false);
-    }
-  };
-
-  // Fetch organization density data
-  const fetchOrgDensity = async (coords) => {
-    setDensityLoading(true);
-    setDensityError(null);
-    
-    try {
-      // Build filter parameters
-      const params = new URLSearchParams({
-        lat: coords.lat.toString(),
-        lon: coords.lng.toString()
-      });
-      
-      // Add search term filter
-      if (submittedSearchTerm.trim()) {
-        params.append('search', submittedSearchTerm.trim());
-      }
-      
-      // Add type filters
-      if (selectedTypes.length > 0) {
-        selectedTypes.forEach(type => params.append('types', type));
-      }
-      
-      // Add network filters
-      if (selectedNetworks.length > 0) {
-        selectedNetworks.forEach(network => params.append('networks', network));
-      }
-      
-      // Add city filters
-      if (selectedCities.length > 0) {
-        selectedCities.forEach(city => params.append('cities', city));
-      }
-      
-      // Add state filters
-      if (selectedStates.length > 0) {
-        selectedStates.forEach(state => params.append('states', state));
-      }
-      
-      // Add market/tag NPI filters
-      const npiList = [];
-      if (selectedMarket && marketNPIs && marketNPIs.length > 0) {
-        npiList.push(...marketNPIs);
-      }
-      if (selectedTag && tagNPIs && tagNPIs.length > 0) {
-        npiList.push(...tagNPIs);
-      }
-      if (npiList.length > 0) {
-        params.append('npiList', npiList.join(','));
-      }
-      
-      // Fetch density for 10, 20, and 30 mile radius bands
-      const [result10, result20, result30] = await Promise.all([
-        fetch(apiUrl(`/api/hco-density?${params.toString()}&radius=10`)),
-        fetch(apiUrl(`/api/hco-density?${params.toString()}&radius=20`)),
-        fetch(apiUrl(`/api/hco-density?${params.toString()}&radius=30`))
-      ]);
-
-      const data10 = await result10.json();
-      const data20 = await result20.json();
-      const data30 = await result30.json();
-
-      if (!data10.success || !data20.success || !data30.success) {
-        throw new Error(data30.error || 'Failed to fetch density data');
-      }
-
-      // Organize data by classification/specialization
-      const densityData30 = data30.data || [];
-      const densityData20 = data20.data || [];
-      const densityData10 = data10.data || [];
-
-      // Create a map to track results by classification and specialization
-      const densityMap = {};
-
-      // Process 30mi data (contains all orgs)
-      densityData30.forEach(org => {
-        const classification = org.classification_level || org.group_level || 'Unknown';
-        const specialization = org.specialization_level || 'General';
-        const key = `${classification}|${specialization}`;
-        
-        if (!densityMap[key]) {
-          densityMap[key] = {
-            classification,
-            specialization,
-            count_10mi: 0,
-            count_10_20mi: 0,
-            count_20_30mi: 0,
-            count_30mi_total: 0
-          };
-        }
-        densityMap[key].count_30mi_total += parseInt(org.org_count || 0);
-      });
-
-      // Process 20mi data
-      const countMap20 = {};
-      densityData20.forEach(org => {
-        const classification = org.classification_level || org.group_level || 'Unknown';
-        const specialization = org.specialization_level || 'General';
-        const key = `${classification}|${specialization}`;
-        countMap20[key] = (countMap20[key] || 0) + parseInt(org.org_count || 0);
-      });
-
-      // Process 10mi data
-      const countMap10 = {};
-      densityData10.forEach(org => {
-        const classification = org.classification_level || org.group_level || 'Unknown';
-        const specialization = org.specialization_level || 'General';
-        const key = `${classification}|${specialization}`;
-        countMap10[key] = (countMap10[key] || 0) + parseInt(org.org_count || 0);
-      });
-
-      // Calculate bands: 10mi, 10-20mi, 20-30mi
-      Object.keys(densityMap).forEach(key => {
-        const count10 = countMap10[key] || 0;
-        const count20 = countMap20[key] || 0;
-        const count30 = densityMap[key].count_30mi_total;
-
-        densityMap[key].count_10mi = count10;
-        densityMap[key].count_10_20mi = count20 - count10;
-        densityMap[key].count_20_30mi = count30 - count20;
-      });
-
-      const results = Object.values(densityMap).sort((a, b) => b.count_30mi_total - a.count_30mi_total);
-      setDensityResults(results);
-      setDensityLoading(false);
-    } catch (err) {
-      console.error('Error fetching density data:', err);
-      setDensityError(err.message || 'Failed to fetch density data');
-      setDensityLoading(false);
-    }
-  };
 
   try {
     return (
@@ -1586,13 +1388,6 @@ export default function ProviderSearch() {
             >
               <List size={16} />
               Listing
-            </button>
-            <button 
-              className={`${styles.tab} ${activeTab === 'density' ? styles.active : ''}`}
-              onClick={() => setActiveTab('density')}
-            >
-              <Layers size={16} />
-              Density
             </button>
           </div>
 
@@ -2375,154 +2170,6 @@ export default function ProviderSearch() {
                 </div>
               )}
               
-              {/* Density Tab */}
-              {activeTab === 'density' && (
-                <div className={styles.densityPanel}>
-                  {loading && (
-                    <div className={styles.loadingOverlay}>
-                      <Spinner />
-                    </div>
-                  )}
-
-                  {/* Location Input */}
-                  <ControlsRow
-                    leftContent={
-                      <>
-                        <div className="searchBarContainer" style={{ width: '300px' }}>
-                          <div className="searchIcon">
-                            <Search size={16} />
-                          </div>
-                          <input
-                            type="text"
-                            value={densityLocationInput}
-                            onChange={(e) => setDensityLocationInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleDensityLocationSearch();
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                if (densityLocationInput) {
-                                  setDensityLocationInput('');
-                                  setDensityCoordinates({ lat: null, lng: null });
-                                  setDensityLocationInfo({ city: null, state: null });
-                                } else {
-                                  e.currentTarget.blur();
-                                }
-                              }
-                            }}
-                            placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
-                            className="searchInput"
-                            style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
-                            data-search-enhanced="true"
-                            disabled={densityLoading}
-                          />
-                          {densityLocationInput && (
-                            <button
-                              onClick={() => {
-                                setDensityLocationInput('');
-                                setDensityCoordinates({ lat: null, lng: null });
-                                setDensityLocationInfo({ city: null, state: null });
-                              }}
-                              className="clearButton"
-                              style={{ right: '8px' }}
-                            >
-                              <X size={14} />
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          onClick={handleDensityLocationSearch}
-                          className="sectionHeaderButton primary"
-                          disabled={densityLoading || !densityLocationInput.trim()}
-                          title={densityLoading ? 'Analyzing...' : 'Analyze'}
-                        >
-                          <Navigation size={14} />
-                          {densityLoading ? 'Analyzing...' : 'Analyze'}
-                        </button>
-                      </>
-                    }
-                    rightContent={
-                      densityCoordinates.lat && (
-                        <div className={styles.densityLocation}>
-                          <MapPin size={14} />
-                          {densityLocationInfo.city && densityLocationInfo.state ? (
-                            <>
-                              {densityLocationInfo.city}, {densityLocationInfo.state}
-                              <span style={{ margin: '0 4px', color: 'var(--gray-400)' }}>•</span>
-                              {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
-                            </>
-                          ) : (
-                            <>
-                              Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
-                            </>
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-
-                  {densityError && (
-                    <div className={styles.densityError}>
-                      {densityError}
-                    </div>
-                  )}
-
-                  {/* Density Results */}
-                  {densityLoading && (
-                    <div className={styles.densityLoading}>
-                      <Spinner />
-                      <p>Analyzing organization density...</p>
-                    </div>
-                  )}
-
-                  {!densityLoading && densityResults && densityResults.length > 0 && (
-                    <div className={styles.densityResults}>
-                      <div className={styles.densityTableWrapper}>
-                        <table className={styles.densityTable}>
-                          <thead>
-                            <tr>
-                              <th>Classification</th>
-                              <th>Specialization</th>
-                              <th>0-10 mi</th>
-                              <th>10-20 mi</th>
-                              <th>20-30 mi</th>
-                              <th>Total (30 mi)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {densityResults.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>{row.classification}</td>
-                                <td>{row.specialization}</td>
-                                <td className={styles.countCell}>{formatNumber(row.count_10mi)}</td>
-                                <td className={styles.countCell}>{formatNumber(row.count_10_20mi)}</td>
-                                <td className={styles.countCell}>{formatNumber(row.count_20_30mi)}</td>
-                                <td className={styles.totalCell}>{formatNumber(row.count_30mi_total)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {!densityLoading && densityResults && densityResults.length === 0 && (
-                    <div className={styles.densityEmpty}>
-                      <Database size={48} />
-                      <h2>No Results Found</h2>
-                      <p>No organizations found in this area</p>
-                    </div>
-                  )}
-
-                  {!densityLoading && !densityResults && (
-                    <div className={styles.densityEmpty}>
-                      <Layers size={48} />
-                      <h2>Enter Location to Analyze</h2>
-                      <p>Use the input above to specify a location and view organization density</p>
-                    </div>
-                  )}
-                </div>
-              )}
               </>
             </div>
           </div>
