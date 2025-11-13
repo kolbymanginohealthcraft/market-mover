@@ -456,8 +456,6 @@ async function getZipCodesWithinRadius(lat, lon, radiusMiles) {
     SELECT
       z.zip_code,
       z.state_code,
-      c.state_fips_code,
-      c.county_fips_code,
       ST_AREA(z.zip_code_geom) AS area_land_meters,
       ST_Y(ST_CENTROID(z.zip_code_geom)) AS centroid_lat,
       ST_X(ST_CENTROID(z.zip_code_geom)) AS centroid_lon,
@@ -466,13 +464,10 @@ async function getZipCodesWithinRadius(lat, lon, radiusMiles) {
         ST_GEOGPOINT(@centerLon, @centerLat)
       ) AS distance_to_center_meters
     FROM \`bigquery-public-data.geo_us_boundaries.zip_codes\` z
-    LEFT JOIN \`bigquery-public-data.geo_us_boundaries.counties\` c
-      ON ST_INTERSECTS(z.zip_code_geom, c.county_geom)
     WHERE ST_INTERSECTS(
       z.zip_code_geom,
       ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
     )
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY z.zip_code ORDER BY ST_AREA(ST_INTERSECTION(z.zip_code_geom, c.county_geom)) DESC) = 1
     ORDER BY distance_to_center_meters ASC
   `;
 
@@ -574,9 +569,9 @@ async function fetchZipAcsData(zipRow, year) {
       longitude: Number(zipRow.centroid_lon) || 0,
       zip_code: zip,
       state: obj['state'] || zipRow.state_code || null,
-      county: obj['county'] || (zipRow.county_fips_code ? String(zipRow.county_fips_code).replace(zipRow.state_fips_code || '', '') : null),
-      state_fips: zipRow.state_fips_code || null,
-      county_fips: zipRow.county_fips_code || null,
+      county: obj['county'] || null,
+      state_fips: obj['state'] || normalizeStateFips(zipRow.state_code) || null,
+      county_fips: obj['county'] || null,
       geo_id: geoIdRaw ? `8600000US${String(geoIdRaw).padStart(5, '0')}` : null,
       distance_to_center_meters: Number(zipRow.distance_to_center_meters) || 0,
       geography_type: 'zip'
@@ -607,6 +602,91 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
       county_averages: {},
       geographic_units: []
     };
+  }
+
+  // Separate BigQuery queries for counties and states in the radius
+  const radiusMeters = parseFloat(radiusMiles) * 1609.34;
+  const centerLat = parseFloat(lat);
+  const centerLon = parseFloat(lon);
+
+  // Query 1: Get counties within radius
+  const countiesSet = new Set();
+  const countyNamesMap = {};
+  try {
+    const countiesQuery = `
+      SELECT DISTINCT
+        state_fips_code,
+        county_fips_code,
+        county_name
+      FROM \`bigquery-public-data.geo_us_boundaries.counties\`
+      WHERE ST_INTERSECTS(
+        county_geom,
+        ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
+      )
+    `;
+    
+    const [countyRows] = await myBigQuery.query({
+      query: countiesQuery,
+      location: 'US',
+      params: {
+        centerLat: Number(centerLat),
+        centerLon: Number(centerLon),
+        radiusMeters: Number(radiusMeters)
+      }
+    });
+    
+    countyRows.forEach(row => {
+      const stateFips = String(row.state_fips_code).padStart(2, '0');
+      const countyFips = String(row.county_fips_code).length >= 5 
+        ? String(row.county_fips_code).substring(2) 
+        : String(row.county_fips_code).padStart(3, '0');
+      const countyKey = `${stateFips}-${countyFips}`;
+      countiesSet.add(countyKey);
+      
+      // Store county name for later use
+      if (!countyNamesMap[stateFips]) {
+        countyNamesMap[stateFips] = {};
+      }
+      const fullCountyFips = String(row.county_fips_code).length >= 5 
+        ? String(row.county_fips_code)
+        : `${stateFips}${countyFips.padStart(3, '0')}`;
+      countyNamesMap[stateFips][fullCountyFips] = row.county_name;
+    });
+    console.log(`✅ Found ${countiesSet.size} counties in radius`);
+  } catch (err) {
+    console.warn('⚠️ Error fetching counties:', err.message);
+  }
+
+  // Query 2: Get states within radius
+  const statesSet = new Set();
+  try {
+    const statesQuery = `
+      SELECT DISTINCT
+        state_fips_code
+      FROM \`bigquery-public-data.geo_us_boundaries.states\`
+      WHERE ST_INTERSECTS(
+        state_geom,
+        ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
+      )
+    `;
+    
+    const [stateRows] = await myBigQuery.query({
+      query: statesQuery,
+      location: 'US',
+      params: {
+        centerLat: Number(centerLat),
+        centerLon: Number(centerLon),
+        radiusMeters: Number(radiusMeters)
+      }
+    });
+    
+    stateRows.forEach(row => {
+      const stateFips = String(row.state_fips_code).padStart(2, '0');
+      statesSet.add(stateFips);
+    });
+    console.log(`✅ Found ${statesSet.size} states in radius`);
+  } catch (err) {
+    console.warn('⚠️ Error fetching states:', err.message);
   }
 
   const allZipData = [];
@@ -677,18 +757,8 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
 
   const nationalAverages = await getNationalAverages(year);
 
-  // Build state set directly from BigQuery zipRows (more reliable than Census API responses)
-  const stateSet = new Set();
-  zipRows.forEach(zipRow => {
-    if (zipRow.state_fips_code) {
-      const stateFips = String(zipRow.state_fips_code).padStart(2, '0');
-      stateSet.add(stateFips);
-    }
-  });
-  
-  if (stateSet.size === 0) {
-    console.warn(`⚠️ No states found in zipRows. Sample zipRow:`, zipRows[0]);
-  }
+  // Use states from BigQuery query (already fetched above)
+  const stateSet = statesSet;
   
   const stateAverages = {};
   const statePromises = Array.from(stateSet).map(async (stateFips) => {
@@ -718,36 +788,8 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
     }
   });
 
-  // Fetch county averages for counties in the ZIP codes
-  // Build county set directly from BigQuery zipRows (more reliable than Census API responses)
-  const countySet = new Set();
-  zipRows.forEach(zipRow => {
-    if (zipRow.state_fips_code && zipRow.county_fips_code) {
-      const stateFips = String(zipRow.state_fips_code).padStart(2, '0');
-      // county_fips_code from BigQuery counties table could be full 5-digit or just 3-digit
-      // Handle both cases
-      const countyFipsStr = String(zipRow.county_fips_code);
-      let countyFips;
-      if (countyFipsStr.length >= 5) {
-        // Full 5-digit code, extract last 3 digits
-        countyFips = countyFipsStr.substring(countyFipsStr.length - 3);
-      } else {
-        // Already 3-digit, pad if needed
-        countyFips = countyFipsStr.padStart(3, '0');
-      }
-      countySet.add(`${stateFips}-${countyFips}`);
-    }
-  });
-  
-  if (countySet.size > 0) {
-    console.log(`🔍 Found ${countySet.size} unique counties to fetch averages for:`, Array.from(countySet).slice(0, 5));
-    // Debug: show sample zipRow structure
-    if (zipRows.length > 0) {
-      console.log(`   Sample zipRow county_fips_code: "${zipRows[0].county_fips_code}" (type: ${typeof zipRows[0].county_fips_code}, length: ${String(zipRows[0].county_fips_code).length})`);
-    }
-  } else {
-    console.warn(`⚠️ No counties found in zipRows. Sample zipRow:`, zipRows[0]);
-  }
+  // Use counties from BigQuery query (already fetched above)
+  const countySet = countiesSet;
   
   const countyAverages = {};
   const countyPromises = Array.from(countySet).map(async (countyKey) => {
@@ -778,51 +820,7 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
     }
   });
 
-  // Fetch county names from BigQuery for all counties in the ZIP codes
-  const countyNamesMap = {};
-  if (countySet.size > 0) {
-    try {
-      const countyArray = Array.from(countySet);
-      const countyConditions = countyArray.map((countyKey, index) => {
-        const [stateFips, countyFips] = countyKey.split('-');
-        const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
-        return `county_fips_code = @county${index}`;
-      }).join(' OR ');
-      
-      const countyNamesQuery = `
-        SELECT 
-          county_fips_code,
-          county_name
-        FROM \`bigquery-public-data.geo_us_boundaries.counties\`
-        WHERE (${countyConditions})
-      `;
-      
-      const countyNamesParams = {};
-      countyArray.forEach((countyKey, index) => {
-        const [stateFips, countyFips] = countyKey.split('-');
-        const fullCountyFips = `${stateFips}${countyFips.padStart(3, '0')}`;
-        countyNamesParams[`county${index}`] = fullCountyFips;
-      });
-      
-      const [countyNameRows] = await myBigQuery.query({
-        query: countyNamesQuery,
-        location: 'US',
-        params: countyNamesParams
-      });
-      
-      // Group county names by state for easier lookup
-      countyNameRows.forEach(row => {
-        const fullFips = String(row.county_fips_code);
-        const stateFips = fullFips.substring(0, 2);
-        if (!countyNamesMap[stateFips]) {
-          countyNamesMap[stateFips] = {};
-        }
-        countyNamesMap[stateFips][fullFips] = row.county_name;
-      });
-    } catch (err) {
-      console.warn('⚠️ Error fetching county names from BigQuery:', err.message);
-    }
-  }
+  // County names already fetched in the separate counties query above (countyNamesMap)
 
   const marketTotals = {
     total_population: totals.total_population,
@@ -890,7 +888,7 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
 
 router.get('/census-acs-api', async (req, res) => {
   const { lat, lon, radius, year = '2023' } = req.query;
-  const geography = (req.query.geography || 'tract').toLowerCase();
+  const geography = (req.query.geography || 'zip').toLowerCase();
   if (!lat || !lon || !radius) {
     return res.status(400).json({ success: false, error: 'lat, lon, and radius are required' });
   }
@@ -934,21 +932,26 @@ router.get('/census-acs-api', async (req, res) => {
     const centerLat = parseFloat(lat);
     const centerLon = parseFloat(lon);
 
-    // 1. Get tracts within radius using BigQuery spatial functions (much faster)
+    // 1. Get tracts within radius using BigQuery spatial functions (optimized with ST_INTERSECTS)
+    // Also join with counties table to get county names in one query
     const bqQuery = `
       SELECT 
-        geo_id, 
-        state_fips_code, 
-        county_fips_code, 
-        tract_ce, 
-        internal_point_lat AS lat, 
-        internal_point_lon AS lon, 
-        area_land_meters
-      FROM \`bigquery-public-data.geo_census_tracts.us_census_tracts_national\`
-      WHERE ST_DISTANCE(
-        ST_GEOGPOINT(CAST(internal_point_lon AS FLOAT64), CAST(internal_point_lat AS FLOAT64)),
-        ST_GEOGPOINT(@centerLon, @centerLat)
-      ) <= @radiusMeters
+        t.geo_id, 
+        t.state_fips_code, 
+        t.county_fips_code, 
+        t.tract_ce, 
+        t.internal_point_lat AS lat, 
+        t.internal_point_lon AS lon, 
+        t.area_land_meters,
+        c.county_name
+      FROM \`bigquery-public-data.geo_census_tracts.us_census_tracts_national\` t
+      LEFT JOIN \`bigquery-public-data.geo_us_boundaries.counties\` c
+        ON t.state_fips_code = c.state_fips_code 
+        AND t.county_fips_code = c.county_fips_code
+      WHERE ST_INTERSECTS(
+        t.tract_geom,
+        ST_BUFFER(ST_GEOGPOINT(@centerLon, @centerLat), @radiusMeters)
+      )
     `;
     
     const [tractRows] = await myBigQuery.query({ 

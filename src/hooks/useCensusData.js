@@ -12,7 +12,7 @@ import { apiUrl } from '../utils/api';
  * @param {string} year - ACS year (defaults to '2023')
  * @returns {object} { data, loading, error, refetch }
  */
-export default function useCensusData(provider, radiusInMiles, year = '2023', geography = 'tract') {
+export default function useCensusData(provider, radiusInMiles, year = '2023', geography = 'zip') {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
