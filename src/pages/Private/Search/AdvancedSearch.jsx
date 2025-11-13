@@ -3,6 +3,7 @@ import { supabase } from '../../../app/supabaseClient';
 import styles from './AdvancedSearch.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
+import ControlsRow from '../../../components/Layouts/ControlsRow';
 import { Users, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List, Bookmark, Layers, Navigation } from 'lucide-react';
 import { geocodeAddress } from '../Markets/services/geocodingService';
 
@@ -590,6 +591,16 @@ export default function AdvancedSearch() {
     <div className={styles.container}>
       {/* Top Controls Bar */}
       <div className={styles.controlsBar}>
+        {/* Filters Button */}
+        <button
+          onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+          className="sectionHeaderButton"
+          title="Toggle filters"
+          style={{ flexShrink: 0 }}
+        >
+          <FilterIcon size={14} />
+        </button>
+
         {/* Search Bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
           <div className="searchBarContainer" style={{ width: '300px' }}>
@@ -871,22 +882,6 @@ export default function AdvancedSearch() {
           </div>
         )}
         
-        <div className={styles.controlsBarButtons}>
-            <button
-              onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-              className="sectionHeaderButton"
-              title="Toggle filters"
-            >
-              <FilterIcon size={14} />
-              Filters
-            </button>
-          {hasActiveFilters() && (
-            <button onClick={clearAll} className="sectionHeaderButton">
-              <X size={14} />
-              Clear All
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -920,8 +915,22 @@ export default function AdvancedSearch() {
         {showFiltersSidebar && (
           <div className={styles.sidebar}>
             <div className={styles.sidebarHeader}>
-              <h3>Filters</h3>
-              <p>Narrow results</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                <div>
+                  <h3>Filters</h3>
+                  <p>Narrow results</p>
+                </div>
+                {hasActiveFilters() && (
+                  <button 
+                    onClick={clearAll} 
+                    className="sectionHeaderButton"
+                    style={{ marginTop: '4px' }}
+                  >
+                    <X size={14} />
+                    Clear All
+                  </button>
+                )}
+              </div>
             </div>
 
 
@@ -1385,13 +1394,14 @@ export default function AdvancedSearch() {
               </div>
             )}
             
-            <div className={styles.resultsHeader}>
-              <h3>
-                {results ? 'Practitioners List' : 'Practitioners'}
-              </h3>
-              
-              <div className={styles.resultsActions}>
-                {results && results.count > 0 && (
+            <ControlsRow
+              leftContent={
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)' }}>
+                  {results ? 'Practitioners List' : 'Practitioners'}
+                </h3>
+              }
+              rightContent={
+                results && results.count > 0 && (
                   <>
                     <span className={styles.pageInfo}>
                       Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, results.practitioners.length)} of {formatNumber(results && results.totalCount ? results.totalCount : (results?.practitioners?.length || 0))}{results && results.totalCount && results.totalCount >= 500 ? ' (table limited to first 500)' : ''}
@@ -1419,9 +1429,9 @@ export default function AdvancedSearch() {
                       Export CSV
                     </button>
                   </>
-                )}
-              </div>
-            </div>
+                )
+              }
+            />
 
             {!results && !loading && (
               <div className={styles.emptyState}>
@@ -1517,68 +1527,71 @@ export default function AdvancedSearch() {
           {activeTab === 'density' && (
             <div className={styles.densityPanel}>
               {/* Location Input */}
-              <div className={styles.densityControls}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
-                  <div className="searchBarContainer" style={{ width: '300px' }}>
-                    <div className="searchIcon">
-                      <Search size={16} />
-                    </div>
-                    <input
-                      type="text"
-                      value={densityLocationInput}
-                      onChange={(e) => setDensityLocationInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleDensityLocationSearch();
-                        } else if (e.key === 'Escape') {
-                          e.preventDefault();
-                          if (densityLocationInput) {
-                            setDensityLocationInput('');
-                          } else {
-                            e.currentTarget.blur();
+              <ControlsRow
+                leftContent={
+                  <>
+                    <div className="searchBarContainer" style={{ width: '300px' }}>
+                      <div className="searchIcon">
+                        <Search size={16} />
+                      </div>
+                      <input
+                        type="text"
+                        value={densityLocationInput}
+                        onChange={(e) => setDensityLocationInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleDensityLocationSearch();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            if (densityLocationInput) {
+                              setDensityLocationInput('');
+                            } else {
+                              e.currentTarget.blur();
+                            }
                           }
-                        }
-                      }}
-                      placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
-                      className="searchInput"
-                      style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
-                      data-search-enhanced="true"
-                      disabled={densityLoading}
-                    />
-                    {densityLocationInput && (
-                      <button
-                        onClick={() => setDensityLocationInput('')}
-                        className="clearButton"
-                        style={{ right: '8px' }}
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleDensityLocationSearch}
-                    className="sectionHeaderButton primary"
-                    disabled={densityLoading || !densityLocationInput.trim()}
-                    title={densityLoading ? 'Analyzing...' : 'Analyze'}
-                  >
-                    <Navigation size={14} />
-                    {densityLoading ? 'Analyzing...' : 'Analyze'}
-                  </button>
+                        }}
+                        placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
+                        className="searchInput"
+                        style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
+                        data-search-enhanced="true"
+                        disabled={densityLoading}
+                      />
+                      {densityLocationInput && (
+                        <button
+                          onClick={() => setDensityLocationInput('')}
+                          className="clearButton"
+                          style={{ right: '8px' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleDensityLocationSearch}
+                      className="sectionHeaderButton primary"
+                      disabled={densityLoading || !densityLocationInput.trim()}
+                      title={densityLoading ? 'Analyzing...' : 'Analyze'}
+                    >
+                      <Navigation size={14} />
+                      {densityLoading ? 'Analyzing...' : 'Analyze'}
+                    </button>
+                  </>
+                }
+                rightContent={
+                  densityCoordinates.lat && (
+                    <div className={styles.densityLocation}>
+                      <MapPin size={14} />
+                      Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                    </div>
+                  )
+                }
+              />
+
+              {densityError && (
+                <div className={styles.densityError}>
+                  {densityError}
                 </div>
-
-                {densityCoordinates.lat && (
-                  <div className={styles.densityLocation}>
-                    <MapPin size={14} />
-                    Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
-                  </div>
-                )}
-
-                {densityError && (
-                  <div className={styles.densityError}>
-                    {densityError}
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Density Results */}
               {densityLoading && (

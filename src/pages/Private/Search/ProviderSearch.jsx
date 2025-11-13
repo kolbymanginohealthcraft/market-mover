@@ -7,6 +7,7 @@ import styles from "./ProviderSearch.module.css";
 import PageLayout from "../../../components/Layouts/PageLayout";
 import Spinner from "../../../components/Buttons/Spinner";
 import Dropdown from "../../../components/Buttons/Dropdown";
+import ControlsRow from "../../../components/Layouts/ControlsRow";
 import { apiUrl } from '../../../utils/api';
 import { trackProviderSearch } from '../../../utils/activityTracker';
 import { supabase } from '../../../app/supabaseClient';
@@ -1241,6 +1242,16 @@ export default function ProviderSearch() {
         <div className={styles.container}>
           {/* Top Controls Bar */}
           <div className={styles.controlsBar}>
+            {/* Filters Button */}
+            <button
+              onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
+              className="sectionHeaderButton"
+              title="Toggle filters"
+              style={{ flexShrink: 0 }}
+            >
+              <Filter size={14} />
+            </button>
+
             {/* Search Bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
               <div className="searchBarContainer" style={{ width: '300px' }}>
@@ -1547,25 +1558,6 @@ export default function ProviderSearch() {
             </div>
             )}
             
-            <div className={styles.controlsBarButtons}>
-              <button
-                onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-                className="sectionHeaderButton"
-                title="Toggle filters"
-              >
-                <Filter size={14} />
-                Filters
-              </button>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="sectionHeaderButton"
-                >
-                  <X size={14} />
-                  Clear All
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -1599,8 +1591,22 @@ export default function ProviderSearch() {
             {showFiltersSidebar && (
               <div className={styles.sidebar}>
                 <div className={styles.sidebarHeader}>
-                  <h3>Filters</h3>
-                  <p>Narrow results</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                    <div>
+                      <h3>Filters</h3>
+                      <p>Narrow results</p>
+                    </div>
+                    {hasActiveFilters && (
+                      <button 
+                        onClick={clearAllFilters} 
+                        className="sectionHeaderButton"
+                        style={{ marginTop: '4px' }}
+                      >
+                        <X size={14} />
+                        Clear All
+                      </button>
+                    )}
+                  </div>
                 </div>
 
               {/* Provider Type Filter */}
@@ -2172,89 +2178,95 @@ export default function ProviderSearch() {
                   )}
 
                   {!loading && paginatedResults.length > 0 && (
-                    <div className={styles.resultsHeader}>
-                      <h3>Organizations List</h3>
-                      <div className={styles.resultsActions}>
-                        {showBulkActions && hasTeam && (
-                          <div className={styles.bulkActions}>
-                            <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
-                              <button
-                                ref={bulkButtonRef}
-                                className={styles.glassmorphismButton}
-                                onClick={handleBulkButtonClick}
-                              >
-                                Tag
-                              </button>
-                              {taggingProviderId === 'bulk' && (
-                                <div className={styles.dropdown}>
-                                  <button
-                                    className={styles.glassmorphismButton}
-                                    onClick={() => handleBulkTag('me')}
-                                    disabled={bulkActionLoading}
-                                  >
-                                    {bulkActionLoading ? 'Tagging...' : 'Me'}
-                                  </button>
-                                  <button
-                                    className={styles.glassmorphismButton}
-                                    onClick={() => handleBulkTag('partner')}
-                                    disabled={bulkActionLoading}
-                                  >
-                                    {bulkActionLoading ? 'Tagging...' : 'Partner'}
-                                  </button>
-                                  <button
-                                    className={styles.glassmorphismButton}
-                                    onClick={() => handleBulkTag('competitor')}
-                                    disabled={bulkActionLoading}
-                                  >
-                                    {bulkActionLoading ? 'Tagging...' : 'Competitor'}
-                                  </button>
-                                  <button
-                                    className={styles.glassmorphismButton}
-                                    onClick={() => handleBulkTag('target')}
-                                    disabled={bulkActionLoading}
-                                  >
-                                    {bulkActionLoading ? 'Tagging...' : 'Target'}
-                                  </button>
-                                </div>
-                              )}
+                    <ControlsRow
+                      leftContent={
+                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--gray-900)' }}>
+                          Organizations List
+                        </h3>
+                      }
+                      rightContent={
+                        <>
+                          {showBulkActions && hasTeam && (
+                            <div className={styles.bulkActions}>
+                              <div className={styles.dropdownContainer} ref={bulkDropdownRef}>
+                                <button
+                                  ref={bulkButtonRef}
+                                  className={styles.glassmorphismButton}
+                                  onClick={handleBulkButtonClick}
+                                >
+                                  Tag
+                                </button>
+                                {taggingProviderId === 'bulk' && (
+                                  <div className={styles.dropdown}>
+                                    <button
+                                      className={styles.glassmorphismButton}
+                                      onClick={() => handleBulkTag('me')}
+                                      disabled={bulkActionLoading}
+                                    >
+                                      {bulkActionLoading ? 'Tagging...' : 'Me'}
+                                    </button>
+                                    <button
+                                      className={styles.glassmorphismButton}
+                                      onClick={() => handleBulkTag('partner')}
+                                      disabled={bulkActionLoading}
+                                    >
+                                      {bulkActionLoading ? 'Tagging...' : 'Partner'}
+                                    </button>
+                                    <button
+                                      className={styles.glassmorphismButton}
+                                      onClick={() => handleBulkTag('competitor')}
+                                      disabled={bulkActionLoading}
+                                    >
+                                      {bulkActionLoading ? 'Tagging...' : 'Competitor'}
+                                    </button>
+                                    <button
+                                      className={styles.glassmorphismButton}
+                                      onClick={() => handleBulkTag('target')}
+                                      disabled={bulkActionLoading}
+                                    >
+                                      {bulkActionLoading ? 'Tagging...' : 'Target'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        <span className={styles.pageInfo}>
-                          {(() => {
-                            const total = hasActiveFilters || submittedSearchTerm.trim() ? filteredResults.length : (nationalOverview?.overall?.total_providers || 0);
-                            return `Showing ${startIndex + 1}-${Math.min(endIndex, listingResults.length)} of ${formatNumber(total)}${total >= 500 ? ' (table limited to first 500)' : ''}`;
-                          })()}
-                        </span>
-                        {totalPages > 1 && (
-                          <div className={styles.paginationInline}>
-                            <button 
-                              className="sectionHeaderButton"
-                              onClick={() => goToPage(Math.max(1, currentPage - 1))}
-                              disabled={currentPage === 1}
-                            >
-                              Previous
-                            </button>
-                            <button 
-                              className="sectionHeaderButton"
-                              onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
-                              disabled={currentPage === totalPages}
-                            >
-                              Next
-                            </button>
-                          </div>
-                        )}
-                        <button
-                          onClick={exportToCSV}
-                          className="sectionHeaderButton"
-                          disabled={filteredResults.length === 0}
-                          title="Export to CSV"
-                        >
-                          <Download size={14} />
-                          Export CSV
-                        </button>
-                      </div>
-                    </div>
+                          )}
+                          <span className={styles.pageInfo}>
+                            {(() => {
+                              const total = hasActiveFilters || submittedSearchTerm.trim() ? filteredResults.length : (nationalOverview?.overall?.total_providers || 0);
+                              return `Showing ${startIndex + 1}-${Math.min(endIndex, listingResults.length)} of ${formatNumber(total)}${total >= 500 ? ' (table limited to first 500)' : ''}`;
+                            })()}
+                          </span>
+                          {totalPages > 1 && (
+                            <div className={styles.paginationInline}>
+                              <button 
+                                className="sectionHeaderButton"
+                                onClick={() => goToPage(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                              >
+                                Previous
+                              </button>
+                              <button 
+                                className="sectionHeaderButton"
+                                onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                              >
+                                Next
+                              </button>
+                            </div>
+                          )}
+                          <button
+                            onClick={exportToCSV}
+                            className="sectionHeaderButton"
+                            disabled={filteredResults.length === 0}
+                            title="Export to CSV"
+                          >
+                            <Download size={14} />
+                            Export CSV
+                          </button>
+                        </>
+                      }
+                    />
                   )}
 
                 {paginatedResults.length > 0 && (
@@ -2362,68 +2374,71 @@ export default function ProviderSearch() {
                   )}
 
                   {/* Location Input */}
-                  <div className={styles.densityControls}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
-                      <div className="searchBarContainer" style={{ width: '300px' }}>
-                        <div className="searchIcon">
-                          <Search size={16} />
-                        </div>
-                        <input
-                          type="text"
-                          value={densityLocationInput}
-                          onChange={(e) => setDensityLocationInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleDensityLocationSearch();
-                            } else if (e.key === 'Escape') {
-                              e.preventDefault();
-                              if (densityLocationInput) {
-                                setDensityLocationInput('');
-                              } else {
-                                e.currentTarget.blur();
+                  <ControlsRow
+                    leftContent={
+                      <>
+                        <div className="searchBarContainer" style={{ width: '300px' }}>
+                          <div className="searchIcon">
+                            <Search size={16} />
+                          </div>
+                          <input
+                            type="text"
+                            value={densityLocationInput}
+                            onChange={(e) => setDensityLocationInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleDensityLocationSearch();
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                if (densityLocationInput) {
+                                  setDensityLocationInput('');
+                                } else {
+                                  e.currentTarget.blur();
+                                }
                               }
-                            }
-                          }}
-                          placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
-                          className="searchInput"
-                          style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
-                          data-search-enhanced="true"
-                          disabled={densityLoading}
-                        />
-                        {densityLocationInput && (
-                          <button
-                            onClick={() => setDensityLocationInput('')}
-                            className="clearButton"
-                            style={{ right: '8px' }}
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleDensityLocationSearch}
-                        className="sectionHeaderButton primary"
-                        disabled={densityLoading || !densityLocationInput.trim()}
-                        title={densityLoading ? 'Analyzing...' : 'Analyze'}
-                      >
-                        <Navigation size={14} />
-                        {densityLoading ? 'Analyzing...' : 'Analyze'}
-                      </button>
+                            }}
+                            placeholder="e.g., New York, NY or 10001 or 40.7128, -74.0060"
+                            className="searchInput"
+                            style={{ width: '100%', paddingRight: densityLocationInput ? '70px' : '12px' }}
+                            data-search-enhanced="true"
+                            disabled={densityLoading}
+                          />
+                          {densityLocationInput && (
+                            <button
+                              onClick={() => setDensityLocationInput('')}
+                              className="clearButton"
+                              style={{ right: '8px' }}
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={handleDensityLocationSearch}
+                          className="sectionHeaderButton primary"
+                          disabled={densityLoading || !densityLocationInput.trim()}
+                          title={densityLoading ? 'Analyzing...' : 'Analyze'}
+                        >
+                          <Navigation size={14} />
+                          {densityLoading ? 'Analyzing...' : 'Analyze'}
+                        </button>
+                      </>
+                    }
+                    rightContent={
+                      densityCoordinates.lat && (
+                        <div className={styles.densityLocation}>
+                          <MapPin size={14} />
+                          Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                        </div>
+                      )
+                    }
+                  />
+
+                  {densityError && (
+                    <div className={styles.densityError}>
+                      {densityError}
                     </div>
-
-                    {densityCoordinates.lat && (
-                      <div className={styles.densityLocation}>
-                        <MapPin size={14} />
-                        Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
-                      </div>
-                    )}
-
-                    {densityError && (
-                      <div className={styles.densityError}>
-                        {densityError}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   {/* Density Results */}
                   {densityLoading && (
