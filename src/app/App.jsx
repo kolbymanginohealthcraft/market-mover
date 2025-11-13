@@ -61,6 +61,7 @@ import Dashboard from "../pages/Private/Dashboard/Dashboard";
 import Explore from "../pages/Private/Markets/Explore";
 import ProviderSearch from "../pages/Private/Search/ProviderSearch";
 import AdvancedSearch from "../pages/Private/Search/AdvancedSearch";
+import DensitySearch from "../pages/Private/Search/DensitySearch";
 import ProviderProfile from "../pages/Private/Results/ProviderProfile";
 import ProviderMarketAnalysis from "../pages/Private/Results/ProviderMarketAnalysis";
 import MarketDetail from "../pages/Private/Results/MarketDetail";
@@ -133,6 +134,7 @@ function AppContent({ location }) {
             <Route path="search/advanced" element={<Navigate to="/app/search/ind" replace />} />
             <Route path="search/orgs" element={<ProviderSearch />} />
             <Route path="search/ind" element={<AdvancedSearch />} />
+            <Route path="search/density" element={<DensitySearch />} />
             <Route path="explore" element={<Explore />} />
             <Route path="feedback" element={<Feedback />} />
             <Route path="enrollment/*" element={<StandaloneEnrollment />} />

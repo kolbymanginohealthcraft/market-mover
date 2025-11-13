@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Users, Plus, Edit, Trash2, Search, Building2, UserCheck, CreditCard, Calendar, DollarSign, X, User } from 'lucide-react';
 import { supabase } from '../../../../app/supabaseClient';
 import Button from '../../../../components/Buttons/Button';
@@ -13,6 +13,7 @@ export default function ManageTeams() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchEscapeCount, setSearchEscapeCount] = useState(0);
+  const [teamNameEscapeCount, setTeamNameEscapeCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -25,6 +26,7 @@ export default function ManageTeams() {
   const [trialEndDate, setTrialEndDate] = useState('');
   const [trialDays, setTrialDays] = useState(14);
   const [switchingTeam, setSwitchingTeam] = useState(false);
+  const teamNameInputRef = useRef(null);
 
   // Calculate trial end date based on days
   const calculateTrialEndDate = (startDate, days) => {
@@ -50,6 +52,73 @@ export default function ManageTeams() {
   useEffect(() => {
     fetchTeams();
   }, []);
+
+  const resetForm = () => {
+    setFormData({
+      name: ''
+    });
+  };
+
+  const handleCloseModal = useCallback(() => {
+    setShowCreateModal(false);
+    setEditingTeam(null);
+    resetForm();
+    setTeamNameEscapeCount(0);
+  }, []);
+
+  useEffect(() => {
+    if (showCreateModal && teamNameInputRef.current) {
+      teamNameInputRef.current.focus();
+      setTeamNameEscapeCount(0);
+    }
+  }, [showCreateModal]);
+
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape' && (showCreateModal || editingTeam)) {
+        const activeElement = document.activeElement;
+        if (activeElement === teamNameInputRef.current) {
+          return;
+        }
+        handleCloseModal();
+      }
+    };
+
+    if (showCreateModal || editingTeam) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [showCreateModal, editingTeam, handleCloseModal]);
+
+  const handleTeamNameKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      if (formData.name && teamNameEscapeCount === 0) {
+        setFormData({ ...formData, name: '' });
+        setTeamNameEscapeCount(1);
+        setTimeout(() => setTeamNameEscapeCount(0), 100);
+      } else {
+        handleCloseModal();
+        setTeamNameEscapeCount(0);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (formData.name.trim() && !processing) {
+        if (editingTeam) {
+          handleUpdateTeam();
+        } else {
+          handleCreateTeam();
+        }
+      }
+    }
+  };
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      handleCloseModal();
+    }
+  };
 
 
   // Handle search bar escape key behavior
@@ -316,12 +385,7 @@ export default function ManageTeams() {
     setFormData({
       name: team.name
     });
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: ''
-    });
+    setTeamNameEscapeCount(0);
   };
 
   const toggleExpanded = (teamId) => {
@@ -712,17 +776,16 @@ export default function ManageTeams() {
 
       {/* Create/Edit Modal */}
       {(showCreateModal || editingTeam) && (
-        <div className={styles.modalOverlay}>
+        <div 
+          className={styles.modalOverlay}
+          onClick={handleOverlayClick}
+        >
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
               <h3>{editingTeam ? 'Edit Team' : 'Create New Team'}</h3>
               <button
                 className={styles.closeButton}
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setEditingTeam(null);
-                  resetForm();
-                }}
+                onClick={handleCloseModal}
               >
                 ×
               </button>
@@ -732,10 +795,15 @@ export default function ManageTeams() {
               <div className={styles.formGroup}>
                 <label htmlFor="teamName">Team Name *</label>
                 <input
+                  ref={teamNameInputRef}
                   id="teamName"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value });
+                    setTeamNameEscapeCount(0);
+                  }}
+                  onKeyDown={handleTeamNameKeyDown}
                   placeholder="Enter team name"
                   required
                 />
@@ -747,11 +815,7 @@ export default function ManageTeams() {
               <Button
                 variant="gray"
                 size="md"
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setEditingTeam(null);
-                  resetForm();
-                }}
+                onClick={handleCloseModal}
                 disabled={processing}
               >
                 Cancel

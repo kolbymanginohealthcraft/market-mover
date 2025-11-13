@@ -29,7 +29,8 @@ import {
   UserCheck,
   Construction,
   Database,
-  ChevronDown
+  ChevronDown,
+  Layers
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { useUser } from '../Context/UserContext';
@@ -1473,7 +1474,12 @@ const SubNavigation = () => {
 
   // Handle search page
   if (location.pathname.includes('/search')) {
-    const searchTab = location.pathname.includes('/ind') ? 'individuals' : 'orgs';
+    let searchTab = 'orgs';
+    if (location.pathname.includes('/ind')) {
+      searchTab = 'individuals';
+    } else if (location.pathname.includes('/density')) {
+      searchTab = 'density';
+    }
     
     const searchOrgIconComponent =
       getNavigationIcon('searchOrganizations') || Building2;
@@ -1493,6 +1499,12 @@ const SubNavigation = () => {
         icon: User, 
         path: "/app/search/ind",
         requiresTeam: true
+      },
+      {
+        id: "density",
+        label: "Density",
+        icon: Layers,
+        path: "/app/search/density"
       }
     ];
 

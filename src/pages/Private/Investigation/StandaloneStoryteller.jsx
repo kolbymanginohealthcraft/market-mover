@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useLocation } from "react-router-dom";
-import { Search, X, Plus, Building2, MapPin, Filter as FilterIcon, ChevronDown } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { X, Plus, MapPin, Filter as FilterIcon, ChevronDown } from "lucide-react";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
 import Dropdown from '../../../components/Buttons/Dropdown';
@@ -9,18 +8,9 @@ import Storyteller from '../Results/Storyteller/Storyteller';
 import styles from './StandaloneStoryteller.module.css';
 
 export default function StandaloneStoryteller() {
-  const location = useLocation();
-  const searchContainerRef = useRef(null);
+  const ccnInputRef = useRef(null);
   const [selectedCcns, setSelectedCcns] = useState([]);
   const [ccnInput, setCcnInput] = useState('');
-  const [providerSearch, setProviderSearch] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState(null);
-  const [radiusInMiles, setRadiusInMiles] = useState(10);
-  const [nearbyProviders, setNearbyProviders] = useState([]);
-  const [nearbyDhcCcns, setNearbyDhcCcns] = useState([]);
-  const [focusedProviderCcns, setFocusedProviderCcns] = useState([]);
   const [manualProviderDetails, setManualProviderDetails] = useState({});
   const [providerLabelMap, setProviderLabelMap] = useState({});
   const [marketProviders, setMarketProviders] = useState([]);
@@ -35,41 +25,12 @@ export default function StandaloneStoryteller() {
   const [tagDhcCcns, setTagDhcCcns] = useState([]);
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
-  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [highlightTagTypes, setHighlightTagTypes] = useState([]);
   const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false);
   const [myKpiCodes, setMyKpiCodes] = useState([]);
   const [kpiTagsLoading, setKpiTagsLoading] = useState(false);
   const [showMyKpisOnly, setShowMyKpisOnly] = useState(false);
 
-  // Search for providers by name or NPI
-  const searchProviders = async (query) => {
-    if (!query || query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      const response = await fetch(apiUrl(`/api/search/providers?q=${encodeURIComponent(query)}&limit=10`));
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResults(data.providers || []);
-      }
-    } catch (error) {
-      console.error('Error searching providers:', error);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      searchProviders(providerSearch);
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [providerSearch]);
 
   // Fetch saved markets and provider tags on mount
   useEffect(() => {
@@ -197,92 +158,6 @@ export default function StandaloneStoryteller() {
     }
   }, [kpiTagsLoading, myKpiCodes, showMyKpisOnly]);
 
-  // Handle provider selection from search
-  const handleProviderSelect = async (provider) => {
-    const providerKey = provider?.dhc ? String(provider.dhc) : null;
-    const providerDisplayName = provider?.name || provider?.facility_name || (providerKey ? providerLabelMap[providerKey] : '') || (provider?.city && provider?.state ? `${provider.city}, ${provider.state}` : 'Selected Provider');
-
-    const normalizedProvider = {
-      ...provider,
-      name: providerDisplayName,
-      facility_name: provider?.facility_name || providerDisplayName
-    };
-
-    if (providerKey) {
-      setProviderLabelMap(prev => ({
-        ...prev,
-        [providerKey]: providerDisplayName
-      }));
-    }
-
-    setSelectedProvider(normalizedProvider);
-    setProviderSearch('');
-    setSearchResults([]);
-    setSearchDropdownOpen(false);
-    
-    // Clear market and tag selections when provider is selected
-    setSelectedMarket(null);
-    setMarketDhcCcns([]);
-    setSelectedTag(null);
-    setTagDhcCcns([]);
-    setMarketProviders([]);
-    setTagProviders([]);
-    
-    // Fetch CCNs for the selected provider
-    if (provider.dhc) {
-      const uniqueIds = Array.from(new Set([String(provider.dhc)]));
-      try {
-        const response = await fetch(apiUrl('/api/related-ccns'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dhc_ids: uniqueIds })
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            const ccns = result.data.map(row => row.ccn);
-            setFocusedProviderCcns(ccns);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching provider CCNs:', err);
-      }
-    }
-    
-    // Fetch nearby providers if provider has coordinates
-    if (provider.latitude && provider.longitude) {
-      try {
-        const response = await fetch(apiUrl(`/api/nearby-providers?lat=${provider.latitude}&lon=${provider.longitude}&radius=${radiusInMiles}`));
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            const filtered = result.data.filter(p => p.dhc !== provider.dhc);
-            setNearbyProviders(filtered);
-            
-            // Fetch CCNs for nearby providers
-            const dhcIds = Array.from(new Set(filtered.map(p => p.dhc).filter(Boolean).map(String)));
-            if (dhcIds.length > 0) {
-              const ccnResponse = await fetch(apiUrl('/api/related-ccns'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dhc_ids: dhcIds })
-              });
-              if (ccnResponse.ok) {
-                const ccnResult = await ccnResponse.json();
-                if (ccnResult.success) {
-                  setNearbyDhcCcns(ccnResult.data || []);
-                }
-              }
-            } else {
-              setNearbyDhcCcns([]);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching nearby providers:', err);
-      }
-    }
-  };
 
   // Handle market selection
   const handleMarketSelect = async (marketId) => {
@@ -297,10 +172,6 @@ export default function StandaloneStoryteller() {
     if (!market) return;
     
     setSelectedMarket(market);
-    setSelectedProvider(null); // Clear provider selection
-    setFocusedProviderCcns([]);
-    setNearbyProviders([]);
-    setNearbyDhcCcns([]);
     
     try {
       // Fetch providers in the market area
@@ -353,10 +224,6 @@ export default function StandaloneStoryteller() {
     }
     
     setSelectedTag(tagType);
-    setSelectedProvider(null); // Clear provider selection
-    setFocusedProviderCcns([]);
-    setNearbyProviders([]);
-    setNearbyDhcCcns([]);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -525,7 +392,6 @@ export default function StandaloneStoryteller() {
 
   const combinedNearbyProviders = useMemo(() => {
     const baseProviders = [
-      ...(Array.isArray(nearbyProviders) ? nearbyProviders : []),
       ...(Array.isArray(marketProviders) ? marketProviders : []),
       ...(Array.isArray(tagProviders) ? tagProviders : [])
     ];
@@ -558,7 +424,7 @@ export default function StandaloneStoryteller() {
       const matchesTag = !selectedTag || isManual || tagDhcKeySet.has(dhcKey);
       return matchesMarket && matchesTag;
     });
-  }, [nearbyProviders, marketProviders, tagProviders, manualProviders, providerLabelMap, selectedMarket, selectedTag, marketDhcKeySet, tagDhcKeySet]);
+  }, [marketProviders, tagProviders, manualProviders, providerLabelMap, selectedMarket, selectedTag, marketDhcKeySet, tagDhcKeySet]);
 
   const activeDhcKeySet = useMemo(() => new Set(
     combinedNearbyProviders
@@ -567,18 +433,14 @@ export default function StandaloneStoryteller() {
   ), [combinedNearbyProviders]);
 
   const allDhcCcns = useMemo(() => {
-    const filteredNearby = (nearbyDhcCcns || []).filter(item => activeDhcKeySet.has(String(item.dhc)));
     const filteredMarket = (marketDhcCcns || []).filter(item => activeDhcKeySet.has(String(item.dhc)));
     const filteredTag = (tagDhcCcns || []).filter(item => activeDhcKeySet.has(String(item.dhc)));
-    return [...filteredNearby, ...filteredMarket, ...filteredTag, ...manualDhcCcns];
-  }, [nearbyDhcCcns, marketDhcCcns, tagDhcCcns, manualDhcCcns, activeDhcKeySet]);
+    return [...filteredMarket, ...filteredTag, ...manualDhcCcns];
+  }, [marketDhcCcns, tagDhcCcns, manualDhcCcns, activeDhcKeySet]);
 
   const storytellerFocusedCcns = useMemo(() => (
-    [...new Set([
-      ...focusedProviderCcns.map(ccn => String(ccn)),
-      ...allDhcCcns.map(c => String(c.ccn))
-    ])]
-  ), [focusedProviderCcns, allDhcCcns]);
+    [...new Set(allDhcCcns.map(c => String(c.ccn)))]
+  ), [allDhcCcns]);
 
   const hasParameters = useMemo(() => {
     const tagHasProviders = Boolean(
@@ -588,12 +450,11 @@ export default function StandaloneStoryteller() {
       )
     );
     return Boolean(
-      selectedProvider ||
       selectedMarket ||
       tagHasProviders ||
       (selectedCcns && selectedCcns.length > 0)
     );
-  }, [selectedProvider, selectedMarket, selectedTag, selectedCcns.length, tagDhcCcns, tagProviders]);
+  }, [selectedMarket, selectedTag, selectedCcns.length, tagDhcCcns, tagProviders]);
 
   const highlightCounts = useMemo(() => ({
     me: providerTags?.me?.length || 0,
@@ -645,40 +506,22 @@ export default function StandaloneStoryteller() {
   const highlightedDhcKeys = useMemo(() => Array.from(highlightedDhcByType.keys()), [highlightedDhcByType]);
 
   const storyTellerProvider = useMemo(() => {
-    if (selectedProvider) {
-      const dhcKey = selectedProvider?.dhc ? String(selectedProvider.dhc) : null;
-      const mappedName = dhcKey ? providerLabelMap[dhcKey] : null;
-      const fallbackName = selectedProvider?.name || selectedProvider?.facility_name || (selectedProvider?.manualCcn ? providerLabelMap[`ccn:${selectedProvider.manualCcn}`] : null) || (selectedProvider?.city && selectedProvider?.state ? `${selectedProvider.city}, ${selectedProvider.state}` : null) || 'Selected Provider';
-      const finalName = mappedName || fallbackName;
-      return {
-        ...selectedProvider,
-        name: finalName,
-        facility_name: selectedProvider?.facility_name || finalName
-      };
-    }
     if (manualProviders.length > 0) {
       return manualProviders[0];
     }
     return null;
-  }, [selectedProvider, manualProviders, providerLabelMap]);
+  }, [manualProviders]);
 
   // Clear all selections
   const handleClearAll = () => {
-    setSelectedProvider(null);
     setSelectedCcns([]);
-    setNearbyProviders([]);
-    setNearbyDhcCcns([]);
-    setFocusedProviderCcns([]);
     setSelectedMarket(null);
     setMarketDhcCcns([]);
     setSelectedTag(null);
     setTagDhcCcns([]);
     setMarketProviders([]);
     setTagProviders([]);
-    setProviderSearch('');
-    setSearchResults([]);
     setCcnInput('');
-    setSearchDropdownOpen(false);
     setManualProviderDetails({});
     setShowMyKpisOnly(false);
     setHighlightTagTypes([]);
@@ -763,96 +606,59 @@ export default function StandaloneStoryteller() {
     };
   }, [selectedCcns, manualProviderDetails, fetchManualProviderDetails]);
 
-  // Close search dropdown when clicking outside
+  // Remove any clear buttons added by global script when input is empty
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchDropdownOpen && searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
-        setSearchDropdownOpen(false);
+    if (ccnInputRef.current) {
+      const clearBtn = ccnInputRef.current.parentNode?.querySelector('.clearButton');
+      if (!ccnInput || !ccnInput.trim()) {
+        // Remove clear button if input is empty (only if it's not our React-managed one)
+        if (clearBtn && clearBtn.parentNode && !clearBtn.hasAttribute('data-react-clear')) {
+          clearBtn.remove();
+        }
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [searchDropdownOpen]);
+    }
+  }, [ccnInput]);
 
   return (
     <div className={styles.container}>
       {/* Filter Controls Bar */}
       <div className={styles.controlsBar}>
         <div className={styles.controlsPrimary}>
-          {/* Provider Search */}
-          <div className={styles.searchContainer} ref={searchContainerRef}>
+          {/* CCN Input */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="searchBarContainer">
-              <div className="searchIcon">
-                <Search />
-              </div>
               <input
+                ref={ccnInputRef}
                 type="text"
-                placeholder="Search providers..."
-                value={providerSearch}
-                onChange={(e) => setProviderSearch(e.target.value)}
-                onFocus={() => setSearchDropdownOpen(true)}
+                placeholder="Enter CCN..."
+                value={ccnInput}
+                onChange={(e) => setCcnInput(e.target.value)}
+                onKeyPress={handleCcnKeyPress}
                 className="searchInput"
-                style={{ paddingRight: (selectedProvider || providerSearch) ? '60px' : undefined }}
+                data-search-enhanced="true"
+                style={{ paddingLeft: '12px', paddingRight: (ccnInput && ccnInput.trim().length > 0) ? '40px' : '12px' }}
               />
-              {(selectedProvider || providerSearch) && (
+              {ccnInput && ccnInput.trim().length > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedProvider(null);
-                    setFocusedProviderCcns([]);
-                    setNearbyProviders([]);
-                    setNearbyDhcCcns([]);
-                    setProviderSearch('');
-                    setSearchResults([]);
-                    setSearchDropdownOpen(false);
-                  }}
+                  onClick={() => setCcnInput('')}
                   className="clearButton"
+                  data-react-clear="true"
+                  title="Clear"
                 >
-                  <X size={12} />
+                  <X size={16} />
                 </button>
               )}
             </div>
-            {searchDropdownOpen && (providerSearch || searchResults.length > 0) && (
-              <div className={styles.searchDropdown}>
-                {searchLoading ? (
-                  <div className={styles.dropdownItem}>Loading...</div>
-                ) : searchResults.length === 0 && providerSearch.length >= 2 ? (
-                  <div className={styles.dropdownItem}>No providers found</div>
-                ) : (
-                  searchResults.map((provider) => (
-                    <button
-                      key={provider.dhc}
-                      className={styles.dropdownItem}
-                      onClick={() => handleProviderSelect(provider)}
-                    >
-                      <Building2 size={14} />
-                      <div>
-                        <div>{provider.name || provider.facility_name}</div>
-                        {provider.city && provider.state && (
-                          <div className={styles.providerLocation}>
-                            {provider.city}, {provider.state}
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* CCN Input */}
-          <div className={styles.ccnInputContainer}>
-            <input
-              type="text"
-              placeholder="Enter CCN..."
-              value={ccnInput}
-              onChange={(e) => setCcnInput(e.target.value)}
-              onKeyPress={handleCcnKeyPress}
-              className={styles.ccnInput}
-            />
-            <button type="button" onClick={handleCcnAdd} className={styles.addButton}>
+            <button
+              type="button"
+              onClick={handleCcnAdd}
+              className="sectionHeaderButton"
+              disabled={!ccnInput || !ccnInput.trim()}
+              title="Add CCN"
+            >
               <Plus size={14} />
+              <span>Add</span>
             </button>
           </div>
 
@@ -1093,13 +899,6 @@ export default function StandaloneStoryteller() {
 
         {/* Selected Items Display */}
         <div className={styles.selectedItems}>
-          {selectedProvider && (
-            <div className={styles.selectedTag}>
-              <Building2 size={12} />
-              <span>{selectedProvider.name || selectedProvider.facility_name}</span>
-              <span className={styles.count}>{focusedProviderCcns.length} CCNs</span>
-            </div>
-          )}
           {selectedMarket && (
             <div className={styles.selectedTag}>
               <MapPin size={12} />
@@ -1177,7 +976,7 @@ export default function StandaloneStoryteller() {
         ) : (
           <Storyteller
             provider={storyTellerProvider}
-            radiusInMiles={radiusInMiles}
+            radiusInMiles={selectedMarket?.radius_miles || 10}
             nearbyProviders={combinedNearbyProviders}
             nearbyDhcCcns={allDhcCcns}
             mainProviderCcns={storytellerFocusedCcns}
