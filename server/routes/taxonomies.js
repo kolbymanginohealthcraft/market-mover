@@ -1,5 +1,5 @@
 import express from "express";
-import vendorBigQueryClient from "../utils/vendorBigQueryClient.js";
+import vendorBigQuery from "../utils/vendorBigQueryClient.js";
 import cache from "../utils/cache.js";
 
 const router = express.Router();
@@ -31,7 +31,7 @@ router.get("/taxonomies-reference", async (req, res) => {
         ORDER BY code
       `;
       
-      const [rows] = await vendorBigQueryClient.query({ query });
+      const [rows] = await vendorBigQuery.query({ query });
       allTaxonomies = rows;
       
       // Cache for 1 hour (taxonomies don't change frequently)
@@ -143,7 +143,7 @@ router.get("/taxonomies-hierarchy", async (req, res) => {
         ORDER BY code
       `;
       
-      const [queryRows] = await vendorBigQueryClient.query({ query });
+      const [queryRows] = await vendorBigQuery.query({ query });
       allTaxonomies = queryRows;
       cache.set(baseCacheKey, allTaxonomies, 3600000);
     }
@@ -219,7 +219,7 @@ router.post("/taxonomies-details", async (req, res) => {
       ORDER BY code
     `;
     
-    const [rows] = await vendorBigQueryClient.query({ 
+    const [rows] = await vendorBigQuery.query({ 
       query,
       params: { codes }
     });
@@ -247,6 +247,185 @@ router.post("/taxonomies-details", async (req, res) => {
   }
 });
 
+// Analyze taxonomy codes to determine predominant NPI type (HCO vs HCP)
+router.get("/taxonomies-npi-type-analysis", async (req, res) => {
+  try {
+    const { 
+      minCount = 1, 
+      minConfidence = 0.0,
+      sortBy = 'code',
+      limit = 10000 
+    } = req.query;
+
+    console.log("🔍 Analyzing taxonomy codes for NPI type classification...", {
+      minCount: parseInt(minCount),
+      minConfidence: parseFloat(minConfidence),
+      sortBy,
+      limit: parseInt(limit)
+    });
+
+    const cacheKey = `taxonomy-npi-analysis-${minCount}-${minConfidence}-${sortBy}-${limit}`;
+    const cached = cache.get(cacheKey);
+    
+    if (cached) {
+      console.log("✅ Returning cached taxonomy NPI type analysis");
+      return res.json({
+        success: true,
+        ...cached,
+        cached: true
+      });
+    }
+
+    const hcoQuery = `
+      SELECT
+        primary_taxonomy_code as taxonomy_code,
+        COUNT(*) as hco_count
+      FROM \`aegis_access.hco_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND primary_taxonomy_code IS NOT NULL
+      GROUP BY primary_taxonomy_code
+    `;
+
+    const hcpQuery = `
+      SELECT
+        primary_taxonomy_code as taxonomy_code,
+        COUNT(*) as hcp_count
+      FROM \`aegis_access.hcp_flat\`
+      WHERE npi_deactivation_date IS NULL
+        AND primary_taxonomy_code IS NOT NULL
+      GROUP BY primary_taxonomy_code
+    `;
+
+    console.log('📊 Executing separate HCO and HCP queries...');
+    
+    const [hcoResults, hcpResults] = await Promise.all([
+      vendorBigQuery.query({ query: hcoQuery }),
+      vendorBigQuery.query({ query: hcpQuery })
+    ]);
+
+    const hcoMap = new Map();
+    hcoResults[0].forEach(row => {
+      hcoMap.set(row.taxonomy_code, row.hco_count);
+    });
+
+    const hcpMap = new Map();
+    hcpResults[0].forEach(row => {
+      hcpMap.set(row.taxonomy_code, row.hcp_count);
+    });
+
+    const allTaxonomyCodes = new Set([...hcoMap.keys(), ...hcpMap.keys()]);
+    
+    const combinedResults = Array.from(allTaxonomyCodes).map(code => {
+      const hcoCount = hcoMap.get(code) || 0;
+      const hcpCount = hcpMap.get(code) || 0;
+      const totalCount = hcoCount + hcpCount;
+      
+      let predominantType = 'TIE';
+      if (hcoCount > hcpCount) {
+        predominantType = 'HCO';
+      } else if (hcpCount > hcoCount) {
+        predominantType = 'HCP';
+      }
+      
+      const confidence = totalCount > 0 
+        ? Math.max(hcoCount, hcpCount) / totalCount 
+        : 0;
+      
+      const hcoPercentage = totalCount > 0 ? hcoCount / totalCount : 0;
+      const hcpPercentage = totalCount > 0 ? hcpCount / totalCount : 0;
+      
+      const absoluteMargin = Math.abs(hcoCount - hcpCount);
+      const percentageMargin = totalCount > 0 ? Math.abs(hcoPercentage - hcpPercentage) : 0;
+      
+      return {
+        taxonomy_code: code,
+        hco_count: hcoCount,
+        hcp_count: hcpCount,
+        total_count: totalCount,
+        predominant_type: predominantType,
+        confidence: Math.round(confidence * 10000) / 10000,
+        hco_percentage: Math.round(hcoPercentage * 10000) / 10000,
+        hcp_percentage: Math.round(hcpPercentage * 10000) / 10000,
+        landslide_margin: {
+          absolute: absoluteMargin,
+          percentage: Math.round(percentageMargin * 10000) / 10000,
+          description: percentageMargin >= 0.9 ? 'Landslide' : 
+                       percentageMargin >= 0.7 ? 'Strong' : 
+                       percentageMargin >= 0.5 ? 'Moderate' : 
+                       percentageMargin >= 0.3 ? 'Weak' : 'Very Weak'
+        }
+      };
+    });
+
+    let filteredResults = combinedResults.filter(r => 
+      r.total_count >= parseInt(minCount) && 
+      r.confidence >= parseFloat(minConfidence)
+    );
+
+    if (sortBy === 'confidence') {
+      filteredResults.sort((a, b) => {
+        if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+        return b.total_count - a.total_count;
+      });
+    } else if (sortBy === 'count') {
+      filteredResults.sort((a, b) => {
+        if (b.total_count !== a.total_count) return b.total_count - a.total_count;
+        return b.confidence - a.confidence;
+      });
+    } else if (sortBy === 'code') {
+      filteredResults.sort((a, b) => a.taxonomy_code.localeCompare(b.taxonomy_code));
+    }
+
+    const results = filteredResults.slice(0, parseInt(limit));
+
+    const summary = {
+      total_taxonomy_codes: combinedResults.length,
+      total_analyzed: results.length,
+      hco_predominant: combinedResults.filter(r => r.predominant_type === 'HCO').length,
+      hcp_predominant: combinedResults.filter(r => r.predominant_type === 'HCP').length,
+      ties: combinedResults.filter(r => r.predominant_type === 'TIE').length,
+      landslide_margin: combinedResults.filter(r => r.landslide_margin.percentage >= 0.9).length,
+      strong_margin: combinedResults.filter(r => r.landslide_margin.percentage >= 0.7 && r.landslide_margin.percentage < 0.9).length,
+      moderate_margin: combinedResults.filter(r => r.landslide_margin.percentage >= 0.5 && r.landslide_margin.percentage < 0.7).length,
+      weak_margin: combinedResults.filter(r => r.landslide_margin.percentage < 0.5).length
+    };
+
+    console.log(`✅ Analysis complete: ${results.length} taxonomy codes analyzed`);
+    console.log(`   HCO predominant: ${summary.hco_predominant}, HCP predominant: ${summary.hcp_predominant}, Ties: ${summary.ties}`);
+
+    const response = {
+      success: true,
+      summary,
+      data: results,
+      filters: {
+        minCount: parseInt(minCount),
+        minConfidence: parseFloat(minConfidence),
+        sortBy,
+        limit: parseInt(limit)
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    cache.set(cacheKey, response, 3600000);
+
+    res.json(response);
+    
+  } catch (error) {
+    console.error("❌ Error analyzing taxonomy NPI types:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to analyze taxonomy NPI types",
+      error: error.message,
+      details: {
+        code: error.code,
+        status: error.status,
+        errors: error.errors
+      }
+    });
+  }
+});
+
 // Debug endpoint to check table schema and sample data
 router.get("/taxonomies-debug", async (req, res) => {
   try {
@@ -261,7 +440,7 @@ router.get("/taxonomies-debug", async (req, res) => {
     
     let sampleResult;
     try {
-      const [sampleRows] = await vendorBigQueryClient.query({ query: sampleQuery });
+      const [sampleRows] = await vendorBigQuery.query({ query: sampleQuery });
       if (sampleRows && sampleRows.length > 0) {
         sampleResult = {
           success: true,
@@ -295,7 +474,7 @@ router.get("/taxonomies-debug", async (req, res) => {
         ORDER BY ordinal_position
       `;
       
-      const [schemaRows] = await vendorBigQueryClient.query({ query: schemaQuery });
+      const [schemaRows] = await vendorBigQuery.query({ query: schemaQuery });
       schemaResult = { success: true, columns: schemaRows };
       console.log("✅ Schema query successful");
     } catch (schemaError) {

@@ -46,19 +46,33 @@ class QueryCache {
   }
 
   // Get cached result with access tracking
-  get(endpoint, params) {
-    const key = this.generateKey(endpoint, params);
+  // Supports both: get(key) and get(endpoint, params)
+  get(endpointOrKey, paramsOrTtl) {
+    let key;
+    let ttl;
+    
+    if (paramsOrTtl === undefined) {
+      // Simple string key usage: get(key)
+      key = endpointOrKey;
+      ttl = this.defaultTtl; // Use default TTL
+    } else if (typeof paramsOrTtl === 'object' && paramsOrTtl !== null) {
+      // Endpoint/params usage: get(endpoint, params)
+      key = this.generateKey(endpointOrKey, paramsOrTtl);
+      ttl = this.getTtl(endpointOrKey);
+    } else {
+      // Invalid usage
+      return null;
+    }
+    
     const cached = this.cache.get(key);
     
-    if (cached && Date.now() - cached.timestamp < this.getTtl(endpoint)) {
+    if (cached && Date.now() - cached.timestamp < (cached.ttl || ttl)) {
       // Update access order for LRU eviction
       this.accessOrder.set(key, Date.now());
-      console.log(`📦 Cache hit for ${endpoint}`);
       return cached.data;
     }
     
     if (cached) {
-      console.log(`🗑️ Cache expired for ${endpoint}`);
       this.cache.delete(key);
       this.accessOrder.delete(key);
     }
@@ -67,8 +81,23 @@ class QueryCache {
   }
 
   // Set cached result with size management
-  set(endpoint, params, data) {
-    const key = this.generateKey(endpoint, params);
+  // Supports both: set(key, data, ttl) and set(endpoint, params, data)
+  set(endpointOrKey, paramsOrData, dataOrTtl, ttl) {
+    let key;
+    let data;
+    let cacheTtl;
+    
+    if (typeof paramsOrData !== 'object' || paramsOrData === null || Array.isArray(paramsOrData)) {
+      // Simple string key usage: set(key, data, ttl)
+      key = endpointOrKey;
+      data = paramsOrData;
+      cacheTtl = dataOrTtl || this.defaultTtl;
+    } else {
+      // Endpoint/params usage: set(endpoint, params, data)
+      key = this.generateKey(endpointOrKey, paramsOrData);
+      data = dataOrTtl;
+      cacheTtl = this.getTtl(endpointOrKey);
+    }
     
     // Check if we need to evict entries
     if (this.cache.size >= this.maxSize) {
@@ -78,11 +107,11 @@ class QueryCache {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
+      ttl: cacheTtl,
       size: this.estimateSize(data)
     });
     
     this.accessOrder.set(key, Date.now());
-    console.log(`💾 Cached result for ${endpoint}`);
   }
 
   // Estimate data size in bytes

@@ -2,6 +2,7 @@
 import express from "express";
 import vendorBigQuery from "../utils/vendorBigQueryClient.js";
 import cache from "../utils/cache.js";
+import { getTaxonomyPreferences, shouldIncludeFromTable } from "../utils/taxonomyPreferences.js";
 
 const router = express.Router();
 
@@ -891,7 +892,11 @@ router.post("/taxonomy-density", async (req, res) => {
       });
     }
 
-    console.log('📊 HCP Taxonomy Density:', {
+    // Calculate radius in meters (default to 30 miles for density search)
+    const radiusMiles = 30;
+    const radiusMeters = radiusMiles * 1609.34;
+
+    console.log('📊 Taxonomy Density (HCP + HCO with filtering):', {
       location: `${lat}, ${lng}`,
       taxonomyCodes: taxonomyCodes.length > 0 ? taxonomyCodes.length : 'all'
     });
@@ -972,34 +977,176 @@ router.post("/taxonomy-density", async (req, res) => {
 
     const whereClause = whereClauses.join(' AND ');
 
-    // Query to get counts by taxonomy code for each radius band
-    const query = `
-      WITH hcp_with_distance AS (
-        SELECT 
-          primary_taxonomy_code,
-          ${distanceFormula} as distance_miles
-        FROM \`aegis_access.hcp_flat\`
-        WHERE ${whereClause}
-      )
-      SELECT 
-        primary_taxonomy_code as taxonomy_code,
-        COUNTIF(distance_miles <= 10) as count_10mi,
-        COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_10_20mi,
-        COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_20_30mi,
-        COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_20mi_total,
-        COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) + COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_30mi_total
-      FROM hcp_with_distance
-      GROUP BY primary_taxonomy_code
-      HAVING COUNT(*) > 0
-      ORDER BY count_30mi_total DESC
-    `;
+    // Get taxonomy preferences to filter out bogus records
+    const taxonomyPreferences = await getTaxonomyPreferences();
+    
+    // Determine which taxonomy codes should be included from each table
+    const taxonomyCodesToInclude = taxonomyCodes && taxonomyCodes.length > 0 ? taxonomyCodes : null;
+    const hcoTaxonomyCodes = [];
+    const hcpTaxonomyCodes = [];
+    
+    if (taxonomyCodesToInclude) {
+      // Filter specific taxonomy codes by their preferred table
+      for (const code of taxonomyCodesToInclude) {
+        const shouldIncludeHCO = await shouldIncludeFromTable(code, 'HCO', 0.5);
+        const shouldIncludeHCP = await shouldIncludeFromTable(code, 'HCP', 0.5);
+        
+        if (shouldIncludeHCO) hcoTaxonomyCodes.push(code);
+        if (shouldIncludeHCP) hcpTaxonomyCodes.push(code);
+      }
+    } else {
+      // No specific codes filtered - get all codes that should be included from each table
+      // This filters out bogus records (e.g., HCPs with HCO-predominant codes)
+      for (const [code, preference] of taxonomyPreferences.entries()) {
+        if (preference.predominant_type === 'HCO' || preference.predominant_type === 'TIE' || preference.confidence < 0.5) {
+          hcoTaxonomyCodes.push(code);
+        }
+        if (preference.predominant_type === 'HCP' || preference.predominant_type === 'TIE' || preference.confidence < 0.5) {
+          hcpTaxonomyCodes.push(code);
+        }
+      }
+    }
 
-    const [rows] = await vendorBigQuery.query({
-      query,
-      params
+    // Build queries for both tables
+    const queries = [];
+    
+    // HCP query (only if we have codes that should be included from HCP table)
+    if (hcpTaxonomyCodes.length > 0) {
+      const hcpWhereClauses = [...whereClauses];
+      const hcpParams = { ...params };
+      
+      if (hcpTaxonomyCodes.length > 0) {
+        hcpWhereClauses.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+        hcpParams.taxonomyCodes = hcpTaxonomyCodes;
+      }
+      
+      const hcpWhereClause = hcpWhereClauses.join(' AND ');
+      
+      queries.push({
+        table: 'hcp',
+        query: `
+          WITH providers_with_distance AS (
+            SELECT 
+              primary_taxonomy_code,
+              ${distanceFormula} as distance_miles
+            FROM \`aegis_access.hcp_flat\`
+            WHERE ${hcpWhereClause}
+          )
+          SELECT 
+            primary_taxonomy_code as taxonomy_code,
+            COUNTIF(distance_miles <= 10) as count_10mi,
+            COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_10_20mi,
+            COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_20_30mi,
+            COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_20mi_total,
+            COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) + COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_30mi_total
+          FROM providers_with_distance
+          GROUP BY primary_taxonomy_code
+          HAVING COUNT(*) > 0
+        `,
+        params: hcpParams
+      });
+    }
+    
+    // HCO query (only if we have codes that should be included from HCO table)
+    if (hcoTaxonomyCodes.length > 0) {
+      // Build HCO-specific WHERE clauses (different field names)
+      // Only count rows with atlas_definitive_id and where atlas_definitive_id_primary_npi is true
+      // This matches the logic used in the search organizations page
+      const hcoWhereClauses = [
+        'npi_deactivation_date IS NULL',
+        'atlas_definitive_id IS NOT NULL',
+        'atlas_definitive_id_primary_npi = TRUE',
+        'primary_address_lat IS NOT NULL',
+        'primary_address_long IS NOT NULL',
+        'primary_taxonomy_code IS NOT NULL'
+      ];
+      const hcoParams = { lat, lon: lng, radiusMeters };
+      
+      if (hcoTaxonomyCodes.length > 0) {
+        hcoWhereClauses.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+        hcoParams.taxonomyCodes = hcoTaxonomyCodes;
+      }
+      
+      // Add search filter for HCO
+      if (search && search.trim()) {
+        hcoWhereClauses.push('(LOWER(healthcare_organization_name) LIKE @searchTerm OR CAST(npi AS STRING) LIKE @searchTerm)');
+        hcoParams.searchTerm = `%${search.trim().toLowerCase()}%`;
+      }
+      
+      // Add state filter for HCO
+      if (states && Array.isArray(states) && states.length > 0) {
+        hcoWhereClauses.push('primary_address_state_or_province IN UNNEST(@states)');
+        hcoParams.states = states;
+      }
+      
+      const hcoWhereClause = hcoWhereClauses.join(' AND ');
+      
+      queries.push({
+        table: 'hco',
+        query: `
+          WITH providers_with_distance AS (
+            SELECT 
+              primary_taxonomy_code,
+              ST_DISTANCE(
+                ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+                ST_GEOGPOINT(@lon, @lat)
+              ) / 1609.34 as distance_miles
+            FROM \`aegis_access.hco_flat\`
+            WHERE ${hcoWhereClause}
+              AND ST_DISTANCE(
+                ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+                ST_GEOGPOINT(@lon, @lat)
+              ) <= @radiusMeters
+          )
+          SELECT 
+            primary_taxonomy_code as taxonomy_code,
+            COUNTIF(distance_miles <= 10) as count_10mi,
+            COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_10_20mi,
+            COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_20_30mi,
+            COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) as count_20mi_total,
+            COUNTIF(distance_miles <= 10) + COUNTIF(distance_miles <= 20 AND distance_miles > 10) + COUNTIF(distance_miles <= 30 AND distance_miles > 20) as count_30mi_total
+          FROM providers_with_distance
+          GROUP BY primary_taxonomy_code
+          HAVING COUNT(*) > 0
+        `,
+        params: hcoParams
+      });
+    }
+
+    // Execute queries in parallel
+    const queryResults = await Promise.all(
+      queries.map(q => vendorBigQuery.query({ query: q.query, params: q.params }))
+    );
+
+    // Combine results by taxonomy code
+    const combinedResults = new Map();
+    
+    queryResults.forEach(([rows], index) => {
+      rows.forEach(row => {
+        const code = row.taxonomy_code;
+        const existing = combinedResults.get(code) || {
+          taxonomy_code: code,
+          count_10mi: 0,
+          count_10_20mi: 0,
+          count_20_30mi: 0,
+          count_20mi_total: 0,
+          count_30mi_total: 0
+        };
+        
+        combinedResults.set(code, {
+          taxonomy_code: code,
+          count_10mi: existing.count_10mi + parseInt(row.count_10mi || 0),
+          count_10_20mi: existing.count_10_20mi + parseInt(row.count_10_20mi || 0),
+          count_20_30mi: existing.count_20_30mi + parseInt(row.count_20_30mi || 0),
+          count_20mi_total: existing.count_20mi_total + parseInt(row.count_20mi_total || 0),
+          count_30mi_total: existing.count_30mi_total + parseInt(row.count_30mi_total || 0)
+        });
+      });
     });
 
-    console.log(`✅ Found ${rows.length} taxonomy codes with HCPs in the area`);
+    const rows = Array.from(combinedResults.values()).sort((a, b) => b.count_30mi_total - a.count_30mi_total);
+
+    console.log(`✅ Found ${rows.length} taxonomy codes in the area (from ${queries.length} table${queries.length > 1 ? 's' : ''})`);
 
     res.json({
       success: true,
