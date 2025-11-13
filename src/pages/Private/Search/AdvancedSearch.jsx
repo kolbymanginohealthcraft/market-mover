@@ -5,7 +5,7 @@ import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import { Users, MapPin, ChevronDown, X, Search, Filter as FilterIcon, Download, Database, Play, BarChart3, List, Bookmark, Layers, Navigation } from 'lucide-react';
-import { geocodeAddress } from '../Markets/services/geocodingService';
+import { geocodeAddress, reverseGeocode } from '../Markets/services/geocodingService';
 
 export default function AdvancedSearch() {
   // Markets
@@ -68,6 +68,7 @@ export default function AdvancedSearch() {
   // Density tab state
   const [densityLocationInput, setDensityLocationInput] = useState('');
   const [densityCoordinates, setDensityCoordinates] = useState({ lat: null, lng: null });
+  const [densityLocationInfo, setDensityLocationInfo] = useState({ city: null, state: null });
   const [densityLoading, setDensityLoading] = useState(false);
   const [densityError, setDensityError] = useState(null);
   const [densityResults, setDensityResults] = useState(null);
@@ -426,6 +427,16 @@ export default function AdvancedSearch() {
       }
 
       setDensityCoordinates(coords);
+      
+      // Reverse geocode to get city and state
+      try {
+        const locationInfo = await reverseGeocode(coords.lat, coords.lng);
+        setDensityLocationInfo(locationInfo);
+      } catch (err) {
+        console.error('Reverse geocoding error:', err);
+        setDensityLocationInfo({ city: null, state: null });
+      }
+      
       await fetchTaxonomyDensity(coords);
     } catch (err) {
       console.error('Error processing location:', err);
@@ -1545,6 +1556,8 @@ export default function AdvancedSearch() {
                             e.preventDefault();
                             if (densityLocationInput) {
                               setDensityLocationInput('');
+                              setDensityCoordinates({ lat: null, lng: null });
+                              setDensityLocationInfo({ city: null, state: null });
                             } else {
                               e.currentTarget.blur();
                             }
@@ -1558,7 +1571,11 @@ export default function AdvancedSearch() {
                       />
                       {densityLocationInput && (
                         <button
-                          onClick={() => setDensityLocationInput('')}
+                          onClick={() => {
+                            setDensityLocationInput('');
+                            setDensityCoordinates({ lat: null, lng: null });
+                            setDensityLocationInfo({ city: null, state: null });
+                          }}
                           className="clearButton"
                           style={{ right: '8px' }}
                         >
@@ -1581,7 +1598,17 @@ export default function AdvancedSearch() {
                   densityCoordinates.lat && (
                     <div className={styles.densityLocation}>
                       <MapPin size={14} />
-                      Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                      {densityLocationInfo.city && densityLocationInfo.state ? (
+                        <>
+                          {densityLocationInfo.city}, {densityLocationInfo.state}
+                          <span style={{ margin: '0 4px', color: 'var(--gray-400)' }}>•</span>
+                          {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                        </>
+                      ) : (
+                        <>
+                          Location: {densityCoordinates.lat.toFixed(6)}, {densityCoordinates.lng.toFixed(6)}
+                        </>
+                      )}
                     </div>
                   )
                 }
