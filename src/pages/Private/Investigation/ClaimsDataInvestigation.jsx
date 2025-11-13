@@ -5,6 +5,7 @@ import Dropdown from "../../../components/Buttons/Dropdown";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
 import { Database, Play, Download, X, Plus, Filter as FilterIcon, Columns3, Search, MapPin, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Bookmark, Check, XCircle, Tag } from "lucide-react";
+import { getSegmentationIcon, getSegmentationIconProps } from '../../../utils/segmentationIcons';
 
 /**
  * Claims Data Investigation Tool
@@ -1282,17 +1283,19 @@ export default function ClaimsDataInvestigation() {
           </span>
         )}
         
-        {providerTags && (
-          <Dropdown
-            trigger={
-              <button className="sectionHeaderButton">
-                <FilterIcon size={14} />
-                {selectedTag ? 
-                  `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} (${tagNPIs?.length || 0})` : 
-                  'Network Tag'}
-                <ChevronDown size={14} />
-              </button>
-            }
+        {providerTags && (() => {
+          const NetworkIcon = getSegmentationIcon('network');
+          return (
+            <Dropdown
+              trigger={
+                <button className="sectionHeaderButton">
+                  {NetworkIcon && <NetworkIcon {...getSegmentationIconProps({ size: 14 })} />}
+                  {selectedTag ? 
+                    `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} (${tagNPIs?.length || 0})` : 
+                    'My Network'}
+                  <ChevronDown size={14} />
+                </button>
+              }
             isOpen={tagDropdownOpen}
             onToggle={setTagDropdownOpen}
             className={styles.dropdownMenu}
@@ -1351,7 +1354,8 @@ export default function ClaimsDataInvestigation() {
               </button>
             )}
           </Dropdown>
-        )}
+          );
+        })()}
         
         {savedMarkets.length > 0 && (
           <Dropdown
@@ -1360,7 +1364,7 @@ export default function ClaimsDataInvestigation() {
                 <MapPin size={14} />
                 {selectedMarket ? 
                   `${selectedMarket.name} (${marketNPIs?.length || 0})` : 
-                  'Saved Market'}
+                  'My Markets'}
                 <ChevronDown size={14} />
               </button>
             }
@@ -1386,8 +1390,8 @@ export default function ClaimsDataInvestigation() {
                   setMarketDropdownOpen(false);
                 }}
                 style={{
-                  fontWeight: selectedMarket === market.id ? '600' : '500',
-                  background: selectedMarket === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                  fontWeight: selectedMarket?.id === market.id ? '600' : '500',
+                  background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
                 }}
               >
                 <div>{market.name}</div>
@@ -1457,19 +1461,21 @@ export default function ClaimsDataInvestigation() {
           </Dropdown>
         )}
         
-        {taxonomyTags.length > 0 && (
-          <Dropdown
-            trigger={
-              <button className="sectionHeaderButton">
-                <Tag size={14} />
-                {selectedTaxonomyTag ? 
-                  (selectedTaxonomyTag.id === 'all_tagged' 
-                    ? `All Tagged (${taxonomyTags.length})` 
-                    : selectedTaxonomyTag.taxonomy_code) : 
-                  'My Taxonomies'}
-                <ChevronDown size={14} />
-              </button>
-            }
+        {taxonomyTags.length > 0 && (() => {
+          const TaxonomyIcon = getSegmentationIcon('taxonomies');
+          return (
+            <Dropdown
+              trigger={
+                <button className="sectionHeaderButton">
+                  {TaxonomyIcon && <TaxonomyIcon {...getSegmentationIconProps({ size: 14 })} />}
+                  {selectedTaxonomyTag ? 
+                    (selectedTaxonomyTag.id === 'all_tagged' 
+                      ? `All Tagged (${taxonomyTags.length})` 
+                      : selectedTaxonomyTag.taxonomy_code) : 
+                    'My Taxonomies'}
+                  <ChevronDown size={14} />
+                </button>
+              }
             isOpen={taxonomyDropdownOpen}
             onToggle={setTaxonomyDropdownOpen}
             className={styles.dropdownMenu}
@@ -1539,7 +1545,8 @@ export default function ClaimsDataInvestigation() {
               </>
             )}
           </Dropdown>
-        )}
+          );
+        })()}
         
         <div className={styles.spacer}></div>
         

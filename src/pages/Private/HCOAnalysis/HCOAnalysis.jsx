@@ -105,6 +105,27 @@ export default function HCOAnalysis() {
     searchOrganizations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keyboard shortcut to toggle Filters pane (] key)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Only trigger if ']' key is pressed without modifiers
+      if (
+        event.key === ']' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        setFilterPaneOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
   
   // Load detail view if NPI is in URL
   useEffect(() => {
@@ -512,7 +533,7 @@ export default function HCOAnalysis() {
               <button 
                 onClick={() => setFilterPaneOpen(false)}
                 className={styles.closeFilterButton}
-                title="Close filters"
+                title="Close filters (])"
               >
                 <X size={16} />
               </button>
@@ -761,7 +782,7 @@ export default function HCOAnalysis() {
           <button 
             onClick={() => setFilterPaneOpen(true)}
             className={styles.filterToggleButton}
-            title="Open filters"
+            title="Open filters (])"
           >
             <FilterIcon size={16} />
             Filters

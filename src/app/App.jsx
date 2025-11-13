@@ -138,7 +138,7 @@ function AppContent({ location }) {
             <Route path="explore" element={<Explore />} />
             <Route path="feedback" element={<Feedback />} />
             <Route path="enrollment/*" element={<StandaloneEnrollment />} />
-            <Route path="population" element={<StandalonePopulation />} />
+            <Route path="population/*" element={<StandalonePopulation />} />
             
             {/* Provider market analysis view - must come before the simpler provider route */}
             <Route path=":dhc/market/*" element={<ProviderMarketAnalysis />} />

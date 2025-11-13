@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { supabase } from '../../../app/supabaseClient';
 import useCMSEnrollmentData from '../../../hooks/useCMSEnrollmentData';
-import useMAEnrollmentData, { useMAEnrollmentTrendData } from '../../../hooks/useMAEnrollmentData';
+import useMAEnrollmentData, { useMAEnrollmentTrendData, useNationwideMAEnrollmentData, useNationwideMAEnrollmentTrendData } from '../../../hooks/useMAEnrollmentData';
 import { apiUrl } from '../../../utils/api';
 import Spinner from '../../../components/Buttons/Spinner';
 import CMSEnrollmentPanel from '../Results/Enrollment/CMSEnrollmentPanel';
@@ -154,11 +154,24 @@ export default function StandaloneEnrollment() {
     planType
   );
 
+  const { data: nationwideMaData, loading: nationwideMaLoading, error: nationwideMaError } = useNationwideMAEnrollmentData(
+    selectedParentOrg,
+    publishDate,
+    planType
+  );
+  const { data: nationwideTrendData, loading: nationwideTrendLoading, error: nationwideTrendError } = useNationwideMAEnrollmentTrendData(
+    selectedParentOrg,
+    trendRange.startDate,
+    trendRange.endDate,
+    planType
+  );
+
   const parentOrgSummary = useMemo(() => {
-    if (!Array.isArray(maData) || !maData.length) return [];
+    const dataToUse = hasCoordinates ? maData : nationwideMaData;
+    if (!Array.isArray(dataToUse) || !dataToUse.length) return [];
     const summaryMap = new Map();
 
-    maData.forEach((row) => {
+    dataToUse.forEach((row) => {
       const parentOrg = row.parent_org || 'Other / Unknown';
       if (!summaryMap.has(parentOrg)) {
         summaryMap.set(parentOrg, {
@@ -202,7 +215,7 @@ export default function StandaloneEnrollment() {
         plans: Array.from(entry.plans.values()).sort((a, b) => b.enrollment - a.enrollment),
       }))
       .sort((a, b) => b.totalEnrollment - a.totalEnrollment);
-  }, [maData]);
+  }, [maData, nationwideMaData, hasCoordinates]);
 
   useEffect(() => {
     if (!parentOrgSummary.length) {
@@ -220,8 +233,9 @@ export default function StandaloneEnrollment() {
   }, [parentOrgSummary, selectedParentOrg]);
 
   const parentOrgTrend = useMemo(() => {
-    if (!Array.isArray(trendData) || !selectedParentOrg) return [];
-    return trendData
+    const trendToUse = hasCoordinates ? trendData : nationwideTrendData;
+    if (!Array.isArray(trendToUse) || !selectedParentOrg) return [];
+    return trendToUse
       .filter((row) => (row.parent_org || 'Other / Unknown') === selectedParentOrg)
       .map((row) => {
         const publishDateValue = row.publish_date?.value || row.publish_date || row.publishDate || row.date;
@@ -234,7 +248,7 @@ export default function StandaloneEnrollment() {
         };
       })
       .sort((a, b) => (a.publishDate > b.publishDate ? 1 : -1));
-  }, [trendData, selectedParentOrg]);
+  }, [trendData, nationwideTrendData, selectedParentOrg, hasCoordinates]);
 
   const growthMetrics = useMemo(() => {
     if (!parentOrgTrend.length) return null;
@@ -251,21 +265,22 @@ export default function StandaloneEnrollment() {
   }, [parentOrgTrend]);
 
   const hasMarkets = savedMarkets.length > 0;
+  const canShowPayerView = activeView === 'payer' && selectedParentOrg;
 
   return (
     <div className={styles.container}>
       <div className={styles.viewContainer}>
-        {!hasMarkets ? (
+        {!hasMarkets && activeView !== 'payer' ? (
           <div className={styles.emptyState}>
             <h2>No saved markets yet</h2>
             <p>Create a market to explore enrollment insights.</p>
           </div>
-        ) : !selectedMarket ? (
+        ) : !selectedMarket && !canShowPayerView ? (
           <div className={styles.emptyState}>
             <h2>Select a saved market</h2>
             <p>Choose a market from the controls above to load enrollment data.</p>
           </div>
-        ) : !hasCoordinates ? (
+        ) : !hasCoordinates && activeView !== 'payer' ? (
           <div className={styles.emptyState}>
             <h2>Market location unavailable</h2>
             <p>The selected market is missing location details. Update the market to continue.</p>
@@ -353,22 +368,22 @@ export default function StandaloneEnrollment() {
           </div>
         ) : (
           <div className={styles.panelWrapper}>
-            {loadingDates || maLoading || trendLoading ? (
+            {loadingDates || (hasCoordinates ? maLoading : nationwideMaLoading) || (hasCoordinates ? trendLoading : nationwideTrendLoading) ? (
               <Spinner message="Loading payer deep dive..." />
-            ) : maError ? (
+            ) : (hasCoordinates ? maError : nationwideMaError) ? (
               <div className={styles.errorPanel}>
                 <h3>Payer data unavailable</h3>
-                <p>{maError}</p>
+                <p>{hasCoordinates ? maError : nationwideMaError}</p>
               </div>
-            ) : trendError ? (
+            ) : (hasCoordinates ? trendError : nationwideTrendError) ? (
               <div className={styles.errorPanel}>
                 <h3>Trend data unavailable</h3>
-                <p>{trendError}</p>
+                <p>{hasCoordinates ? trendError : nationwideTrendError}</p>
               </div>
             ) : parentOrgSummary.length === 0 ? (
               <div className={styles.emptyState}>
                 <h2>No payer data available</h2>
-                <p>Select a different market to view payer details.</p>
+                <p>{hasCoordinates ? 'Select a different market to view payer details.' : 'No data available for this payer.'}</p>
               </div>
             ) : !selectedParentEntry ? (
               <div className={styles.emptyState}>
@@ -380,7 +395,7 @@ export default function StandaloneEnrollment() {
                 <div className={styles.deepDiveHeader}>
                   <div>
                     <h3>{selectedParentEntry.parentOrg}</h3>
-                    <p>Enrollment footprint and trend within the selected market radius.</p>
+                    <p>{hasCoordinates ? 'Enrollment footprint and trend within the selected market radius.' : 'Nationwide enrollment footprint and trend.'}</p>
                   </div>
                   <div className={styles.deepDiveSelector}>
                     <label htmlFor="parent-org-select">Parent organization</label>
@@ -441,21 +456,38 @@ export default function StandaloneEnrollment() {
 
                   <div className={styles.deepDiveCard}>
                     <div className={styles.cardTitle}>Top plans</div>
-                    <div className={styles.planList}>
-                      {selectedParentEntry.plans.slice(0, 8).map((plan) => (
-                        <div key={plan.plan_id || plan.plan_name} className={styles.planRow}>
-                          <div>
-                            <div className={styles.planName}>{plan.plan_name}</div>
-                            <div className={styles.planMeta}>{plan.contract_name}</div>
-                            {plan.snp_type && <div className={styles.planTag}>{plan.snp_type}</div>}
-                          </div>
-                          <div className={styles.planEnrollment}>{formatNumber(plan.enrollment)}</div>
-                        </div>
-                      ))}
-                      {selectedParentEntry.plans.length === 0 && (
-                        <div className={styles.emptyInline}>No plan detail available.</div>
-                      )}
-                    </div>
+                    {selectedParentEntry.plans.length === 0 ? (
+                      <div className={styles.emptyInline}>No plan detail available.</div>
+                    ) : (
+                      <div className={styles.planTableWrapper}>
+                        <table className={styles.planTable}>
+                          <thead>
+                            <tr>
+                              <th>Plan name</th>
+                              <th>Contract</th>
+                              <th>Type</th>
+                              <th className={styles.enrollmentColumn}>Enrollment</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedParentEntry.plans.slice(0, 10).map((plan) => (
+                              <tr key={plan.plan_id || plan.plan_name}>
+                                <td className={styles.planNameCell}>{plan.plan_name || 'Unnamed Plan'}</td>
+                                <td className={styles.planContractCell}>{plan.contract_name || 'Unspecified'}</td>
+                                <td className={styles.planTypeCell}>
+                                  {plan.snp_type ? (
+                                    <span className={styles.planTag}>{plan.snp_type}</span>
+                                  ) : (
+                                    <span className={styles.planTypeEmpty}>—</span>
+                                  )}
+                                </td>
+                                <td className={styles.planEnrollmentCell}>{formatNumber(plan.enrollment)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
 
                   <div className={styles.deepDiveCardFull}>
@@ -464,17 +496,45 @@ export default function StandaloneEnrollment() {
                       <div className={styles.emptyInline}>No trend data available for this payer and timeframe.</div>
                     ) : (
                       <div className={styles.trendChart}>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={parentOrgTrend} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                        <ResponsiveContainer width="100%" height={400}>
+                          <AreaChart data={parentOrgTrend} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                            <defs>
+                              <linearGradient id="enrollmentGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#0f766e" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#0f766e" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis dataKey="publishDate" tickFormatter={(value) => value.slice(0, 7)} />
-                            <YAxis tickFormatter={(value) => formatNumber(value)} width={100} />
+                            <XAxis 
+                              dataKey="publishDate" 
+                              tickFormatter={(value) => value.slice(0, 7)}
+                              tick={{ fill: '#6b7280', fontSize: 12 }}
+                            />
+                            <YAxis 
+                              tickFormatter={(value) => formatNumber(value)} 
+                              width={100}
+                              tick={{ fill: '#6b7280', fontSize: 12 }}
+                            />
                             <Tooltip
                               formatter={(value) => formatNumber(value)}
-                              labelFormatter={(label) => `Publish date: ${label}`}
+                              labelFormatter={(label) => `Date: ${label}`}
+                              contentStyle={{
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                                padding: '12px'
+                              }}
                             />
-                            <Line type="monotone" dataKey="enrollment" stroke="#0f766e" strokeWidth={2} dot={false} />
-                          </LineChart>
+                            <Area 
+                              type="monotone" 
+                              dataKey="enrollment" 
+                              stroke="#0f766e" 
+                              strokeWidth={3}
+                              fill="url(#enrollmentGradient)"
+                              dot={{ fill: '#0f766e', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </AreaChart>
                         </ResponsiveContainer>
                       </div>
                     )}

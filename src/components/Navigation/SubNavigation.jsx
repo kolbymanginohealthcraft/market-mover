@@ -290,7 +290,7 @@ const SubNavigation = () => {
               >
                 <MapPin size={14} />
                 {hasEnrollmentMarkets
-                  ? (selectedEnrollmentMarket ? selectedEnrollmentMarket.name : 'Select a saved market')
+                  ? (selectedEnrollmentMarket ? selectedEnrollmentMarket.name : 'My Markets')
                   : 'No saved markets yet'}
                 <ChevronDown size={14} />
               </button>
@@ -299,28 +299,33 @@ const SubNavigation = () => {
             onToggle={toggleEnrollmentDropdown}
             className={styles.enrollmentDropdownMenu}
           >
-            <div className={styles.enrollmentDropdownList}>
-              <button
-                type="button"
-                className={styles.enrollmentDropdownItem}
-                onClick={() => handleEnrollmentMarketSelect(null)}
-              >
-                <span className={styles.enrollmentDropdownTitle}>No market selected</span>
-              </button>
-              {enrollmentMarkets.map((market) => (
+            <button
+              type="button"
+              className={styles.enrollmentDropdownItem}
+              onClick={() => handleEnrollmentMarketSelect(null)}
+            >
+              No Market
+            </button>
+            {enrollmentMarkets.map((market) => {
+              const isActive = selectedEnrollmentMarket && String(selectedEnrollmentMarket.id) === String(market.id);
+              return (
                 <button
                   key={market.id}
                   type="button"
                   className={styles.enrollmentDropdownItem}
                   onClick={() => handleEnrollmentMarketSelect(String(market.id))}
+                  style={{
+                    fontWeight: isActive ? '600' : '500',
+                    background: isActive ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                  }}
                 >
-                  <span className={styles.enrollmentDropdownTitle}>{market.name || 'Unnamed market'}</span>
-                  <span className={styles.enrollmentDropdownSubtitle}>
-                    {[market.city, market.state].filter(Boolean).join(', ')} · {market.radius_miles || 10} mi
-                  </span>
+                  <div>{market.name || 'Unnamed market'}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                    {[market.city, market.state].filter(Boolean).join(', ')} • {market.radius_miles || 10} mi
+                  </div>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </Dropdown>
 
           {enrollmentMeta && (
@@ -575,11 +580,11 @@ const SubNavigation = () => {
       { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview${search}`, locked: false },
       { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing${search}`, locked: false },
       { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population Demographics", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
       { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims${search}`, locked: teamLoading ? false : !hasTeam },
       { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
+      { id: "enrollment", label: "CMS Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Quality Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels
@@ -842,11 +847,11 @@ const SubNavigation = () => {
       { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview${search}`, locked: false },
       { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing${search}`, locked: false },
       { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population Demographics", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
       { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims${search}`, locked: teamLoading ? false : !hasTeam },
       { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
+      { id: "enrollment", label: "CMS Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Quality Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels
@@ -1065,11 +1070,11 @@ const SubNavigation = () => {
       { id: "overview", label: "Overview", icon: BarChart3, path: `${basePath}/overview${search}`, locked: false },
       { id: "provider-listing", label: "Provider Listing", icon: Users, path: `${basePath}/provider-listing${search}`, locked: false },
       { id: "provider-density", label: "Provider Density", icon: MapPin, path: `${basePath}/provider-density${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "population", label: "Population", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "population", label: "Population Demographics", icon: Users, path: `${basePath}/population${search}`, locked: teamLoading ? false : !hasTeam },
       { id: "claims", label: "Claims", icon: FileText, path: `${basePath}/claims${search}`, locked: teamLoading ? false : !hasTeam },
       { id: "catchment", label: "Catchment", icon: Target, path: `${basePath}/catchment${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "enrollment", label: "Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
-      { id: "storyteller", label: "Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
+      { id: "enrollment", label: "CMS Enrollment", icon: Activity, path: `${basePath}/cms-enrollment${search}`, locked: teamLoading ? false : !hasTeam },
+      { id: "storyteller", label: "Quality Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
     ];
 
     // If we're on a storyteller sub-page, render both navigation levels

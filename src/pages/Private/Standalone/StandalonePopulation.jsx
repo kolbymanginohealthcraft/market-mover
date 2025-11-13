@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { MapPin, CalendarDays, ChevronDown } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { MapPin, CalendarDays, ChevronDown, BarChart3, TrendingUp, Map } from 'lucide-react';
 import { supabase } from '../../../app/supabaseClient';
 import { apiUrl } from '../../../utils/api';
 import useCensusData, { useAvailableCensusYears } from '../../../hooks/useCensusData';
@@ -8,6 +8,8 @@ import useCensusZipTrend from '../../../hooks/useCensusZipTrend';
 import Spinner from '../../../components/Buttons/Spinner';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import CensusDataPanel from '../Results/Population/CensusDataPanel';
+import GeographyMap from '../GeographyAnalysis/GeographyMap';
+import PageLayout from '../../../components/Layouts/PageLayout';
 import styles from './StandalonePopulation.module.css';
 
 export default function StandalonePopulation() {
@@ -34,10 +36,30 @@ export default function StandalonePopulation() {
   const marketIdParam = searchParams.get('marketId');
   const [radiusInMiles, setRadiusInMiles] = useState(initialRadius);
 
-  const [selectedYear, setSelectedYear] = useState(searchParams.get('year') || '2023');
-  const [geoLevel, setGeoLevel] = useState('tract');
+  const [geoLevel, setGeoLevel] = useState('zip');
 
   const { years: availableYears, loading: yearsLoading, error: yearsError } = useAvailableCensusYears();
+
+  const latestYear = useMemo(() => {
+    if (!availableYears || availableYears.length === 0) return '2023';
+    const sortedYears = [...availableYears]
+      .map((year) => String(year))
+      .filter(Boolean)
+      .sort((a, b) => Number(b) - Number(a));
+    return sortedYears[0] || '2023';
+  }, [availableYears]);
+
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const urlYear = searchParams.get('year');
+    return urlYear || null;
+  });
+
+  const effectiveYear = useMemo(() => {
+    if (selectedYear && availableYears && availableYears.length > 0 && availableYears.includes(Number(selectedYear))) {
+      return selectedYear;
+    }
+    return latestYear;
+  }, [selectedYear, latestYear, availableYears]);
 
   const updateSearchParams = useCallback(
     (changes) => {
@@ -54,15 +76,29 @@ export default function StandalonePopulation() {
     [searchParams, setSearchParams]
   );
 
+  const validTabs = useMemo(() => new Set(['overview', 'trend', 'map']), []);
+
   useEffect(() => {
-    if (location.pathname === '/app/population') {
-      return;
+    const normalizedPath = location.pathname.replace(/\/+/g, '/').replace(/\/$/, '');
+    if (normalizedPath === '/app/population') {
+      navigate('/app/population/overview', { replace: true });
+    } else {
+      const segments = normalizedPath.split('/');
+      const lastSegment = segments[segments.length - 1] || '';
+      if (lastSegment && lastSegment !== 'population' && !validTabs.has(lastSegment)) {
+        navigate('/app/population/overview', { replace: true });
+      }
     }
-    // Ensure navigation stays within standalone population routes
-    if (!location.pathname.startsWith('/app/population')) {
-      navigate('/app/population', { replace: true });
+  }, [location.pathname, navigate, validTabs]);
+
+  const activeTab = useMemo(() => {
+    const segments = location.pathname.split('/').filter(Boolean);
+    const lastSegment = segments[segments.length - 1];
+    if (validTabs.has(lastSegment)) {
+      return lastSegment;
     }
-  }, [location.pathname, navigate]);
+    return 'overview';
+  }, [location.pathname, validTabs]);
 
   useEffect(() => {
     setMarketsLoading(true);
@@ -186,21 +222,12 @@ export default function StandalonePopulation() {
   }, [selectedProvider, searchParams]);
 
   useEffect(() => {
-    const sortedYears = [...availableYears]
-      .map((year) => String(year))
-      .filter(Boolean)
-      .sort((a, b) => Number(b) - Number(a));
-
-    if (!sortedYears.length) {
-      return;
+    if (latestYear && !selectedYear) {
+      setSelectedYear(latestYear);
+    } else if (latestYear && selectedYear && !availableYears?.includes(Number(selectedYear))) {
+      setSelectedYear(latestYear);
     }
-
-    if (!sortedYears.includes(selectedYear)) {
-      const fallbackYear = sortedYears[0];
-      setSelectedYear(fallbackYear);
-      updateSearchParams({ year: fallbackYear });
-    }
-  }, [availableYears, selectedYear, updateSearchParams]);
+  }, [latestYear, selectedYear, availableYears]);
 
   const handleMarketSelect = (market) => {
     if (!market) {
@@ -214,7 +241,6 @@ export default function StandalonePopulation() {
       marketId: market.id,
       dhc: null,
       radius: null,
-      year: selectedYear,
     });
   };
 
@@ -222,6 +248,7 @@ export default function StandalonePopulation() {
     setSelectedYear(year);
     updateSearchParams({ year });
   };
+
 
   const effectiveProvider = useMemo(() => {
     if (selectedProvider) {
@@ -262,10 +289,18 @@ export default function StandalonePopulation() {
     return null;
   }, [selectedProvider, selectedMarket, radiusInMiles]);
 
+  const mapCenter = useMemo(() => {
+    if (!effectiveProvider) return null;
+    return {
+      lat: effectiveProvider.latitude,
+      lng: effectiveProvider.longitude
+    };
+  }, [effectiveProvider?.latitude, effectiveProvider?.longitude]);
+
   const { data: censusData, loading: censusLoading, error: censusError } = useCensusData(
     effectiveProvider,
     effectiveRadius,
-    selectedYear,
+    effectiveYear,
     geoLevel
   );
 
@@ -276,7 +311,7 @@ export default function StandalonePopulation() {
 
   const zipTrendYears = useMemo(() => {
     if (!availableYears || availableYears.length === 0) {
-      return { start: selectedYear, end: selectedYear };
+      return { start: effectiveYear, end: effectiveYear };
     }
     const filtered = availableYears
       .map((year) => Number(year))
@@ -284,7 +319,7 @@ export default function StandalonePopulation() {
       .sort((a, b) => a - b);
 
     if (filtered.length === 0) {
-      const latest = Number(selectedYear) >= 2020 ? Number(selectedYear) : 2020;
+      const latest = Number(effectiveYear) >= 2020 ? Number(effectiveYear) : 2020;
       return { start: String(latest), end: String(latest) };
     }
 
@@ -292,7 +327,7 @@ export default function StandalonePopulation() {
       start: String(filtered[0]),
       end: String(filtered[filtered.length - 1]),
     };
-  }, [availableYears, selectedYear]);
+  }, [availableYears, effectiveYear]);
 
   const {
     data: zipTrendData,
@@ -313,9 +348,9 @@ export default function StandalonePopulation() {
     : (marketTotals.total_tracts ?? 0);
   const selectedTrendEntry = useMemo(() => {
     if (geoLevel !== 'zip' || !zipTrendData?.trend) return null;
-    const targetYear = String(selectedYear);
+    const targetYear = String(effectiveYear);
     return zipTrendData.trend.find((entry) => entry.year === targetYear) || null;
-  }, [geoLevel, zipTrendData, selectedYear]);
+  }, [geoLevel, zipTrendData, effectiveYear]);
   const zipTrendRows = useMemo(() => {
     if (geoLevel !== 'zip' || !zipTrendData?.trend) return [];
     return [...zipTrendData.trend].sort((a, b) => Number(b.year) - Number(a.year));
@@ -338,15 +373,16 @@ export default function StandalonePopulation() {
   );
 
   return (
-    <div className={styles.container}>
-      <div className={styles.controlsBar}>
+    <PageLayout fullWidth>
+      <div className={styles.container}>
+        <div className={styles.controlsBar}>
         <div className={styles.controlsGroup}>
           {savedMarkets.length > 0 ? (
             <Dropdown
               trigger={
                 <button type="button" className="sectionHeaderButton">
                   <MapPin size={14} />
-                  {selectedMarket ? selectedMarket.name : 'Saved Market'}
+                  {selectedMarket ? selectedMarket.name : 'My Markets'}
                   <ChevronDown size={14} />
                 </button>
               }
@@ -370,8 +406,6 @@ export default function StandalonePopulation() {
                   >
                     No Market
                   </button>
-                  <div className={styles.dropdownDivider} />
-                  <div className={styles.dropdownList}>
                     {savedMarkets.map((market) => {
                       const isActive =
                         selectedMarket && String(selectedMarket.id) === String(market.id);
@@ -379,20 +413,23 @@ export default function StandalonePopulation() {
                         <button
                           key={market.id}
                           type="button"
-                          className={`${styles.dropdownItem} ${isActive ? styles.dropdownItemActive : ''}`}
+                        className={styles.dropdownItem}
                           onClick={() => {
                             handleMarketSelect(market);
                             setMarketDropdownOpen(false);
                           }}
+                        style={{
+                          fontWeight: isActive ? '600' : '500',
+                          background: isActive ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                        }}
                         >
-                          <span className={styles.dropdownTitle}>{market.name || 'Unnamed market'}</span>
-                          <span className={styles.dropdownSubtitle}>
+                        <div>{market.name || 'Unnamed market'}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
                             {market.city}, {market.state} • {market.radius_miles} mi
-                          </span>
+                        </div>
                         </button>
                       );
                     })}
-                  </div>
                 </>
               )}
             </Dropdown>
@@ -401,64 +438,6 @@ export default function StandalonePopulation() {
               {marketsLoading ? 'Loading saved markets…' : 'No saved markets yet'}
             </div>
           )}
-
-          <Dropdown
-            trigger={
-              <button type="button" className="sectionHeaderButton">
-                <CalendarDays size={14} />
-                {`ACS ${selectedYear}`}
-                <ChevronDown size={14} />
-              </button>
-            }
-            isOpen={yearDropdownOpen}
-            onToggle={setYearDropdownOpen}
-            className={styles.dropdownMenu}
-          >
-            {yearsLoading ? (
-              <div className={styles.dropdownStatus}>Loading years…</div>
-            ) : yearsError ? (
-              <div className={styles.dropdownStatus}>Unable to load years.</div>
-            ) : (
-              (availableYears || [])
-                .map((year) => String(year))
-                .filter(Boolean)
-                .sort((a, b) => Number(b) - Number(a))
-                .map((year) => (
-                  <button
-                    key={year}
-                    type="button"
-                    className={`${styles.dropdownItem} ${
-                      selectedYear === year ? styles.dropdownItemActive : ''
-                    }`}
-                    onClick={() => {
-                      handleYearChange(year);
-                      setYearDropdownOpen(false);
-                    }}
-                  >
-                    {year}
-                  </button>
-                ))
-            )}
-          </Dropdown>
-        </div>
-
-        <div className={styles.geoToggle} role="group" aria-label="Geography level">
-          <button
-            type="button"
-            className={`sectionHeaderButton ${styles.geoButton} ${geoLevel === 'tract' ? styles.geoButtonActive : ''}`}
-            onClick={() => setGeoLevel('tract')}
-            aria-pressed={geoLevel === 'tract'}
-          >
-            Census tracts
-          </button>
-          <button
-            type="button"
-            className={`sectionHeaderButton ${styles.geoButton} ${geoLevel === 'zip' ? styles.geoButtonActive : ''}`}
-            onClick={() => setGeoLevel('zip')}
-            aria-pressed={geoLevel === 'zip'}
-          >
-            ZIP codes
-          </button>
         </div>
 
         <div className={styles.spacer} />
@@ -506,10 +485,79 @@ export default function StandalonePopulation() {
           )}
         </div>
       </div>
+{hasSelection && (
+        <div className={styles.tabNav}>
+          <div className={styles.tabNavLeft}>
+            <Link
+              to={`/app/population/overview${location.search}`}
+              className={`${styles.tab} ${activeTab === 'overview' ? styles.active : ''}`}
+            >
+              <BarChart3 size={16} />
+              Overview
+            </Link>
+            <Link
+              to={`/app/population/trend${location.search}`}
+              className={`${styles.tab} ${activeTab === 'trend' ? styles.active : ''}`}
+            >
+              <TrendingUp size={16} />
+              Trend
+            </Link>
+            <Link
+              to={`/app/population/map${location.search}`}
+              className={`${styles.tab} ${activeTab === 'map' ? styles.active : ''}`}
+            >
+              <Map size={16} />
+              Map
+            </Link>
+          </div>
+          {activeTab === 'trend' && (
+            <div className={styles.tabNavRight}>
+              <Dropdown
+                trigger={
+                  <button type="button" className="sectionHeaderButton">
+                    <CalendarDays size={14} />
+                    {`ACS ${effectiveYear}`}
+                    <ChevronDown size={14} />
+                  </button>
+                }
+                isOpen={yearDropdownOpen}
+                onToggle={setYearDropdownOpen}
+                className={styles.dropdownMenu}
+              >
+                {yearsLoading ? (
+                  <div className={styles.dropdownStatus}>Loading years…</div>
+                ) : yearsError ? (
+                  <div className={styles.dropdownStatus}>Unable to load years.</div>
+                ) : (
+                  (availableYears || [])
+                    .map((year) => String(year))
+                    .filter(Boolean)
+                    .sort((a, b) => Number(b) - Number(a))
+                    .map((year) => (
+                      <button
+                        key={year}
+                        type="button"
+                        className={`${styles.dropdownItem} ${
+                          selectedYear === year ? styles.dropdownItemActive : ''
+                        }`}
+                        onClick={() => {
+                          handleYearChange(year);
+                          setYearDropdownOpen(false);
+                        }}
+                      >
+                        {year}
+                      </button>
+                    ))
+                )}
+              </Dropdown>
+            </div>
+          )}
+        </div>
+      )}
 
-      {geoLevel === 'zip' && hasSelection && selectedTrendEntry && missingZipCount ? (
+      {geoLevel === 'zip' && hasSelection && selectedTrendEntry && missingZipCount && activeTab !== 'trend' ? (
         <div className={styles.missingNotice}>
-          Some ZIP codes in this circle are not available for ACS {selectedYear}:{" "}
+          Some ZIP codes in this circle are not available for ACS {effectiveYear}:{" "}
           {missingZipList.slice(0, 6).join(', ')}
           {missingZipCount > 6 ? ` (+${missingZipCount - 6} more)` : ''}
         </div>
@@ -532,7 +580,24 @@ export default function StandalonePopulation() {
           </div>
         ) : (
           <>
-            {geoLevel === 'zip' && (
+            {activeTab === 'overview' && (
+              <div className={styles.overviewContent}>
+                {geoLevel === 'zip' && selectedTrendEntry && missingZipCount ? (
+                  <div className={styles.missingNotice}>
+                    Some ZIP codes in this circle are not available for ACS {effectiveYear}:{" "}
+                    {missingZipList.slice(0, 6).join(', ')}
+                    {missingZipCount > 6 ? ` (+${missingZipCount - 6} more)` : ''}
+                  </div>
+                ) : null}
+                <CensusDataPanel
+                  provider={effectiveProvider}
+                  radiusInMiles={effectiveRadius}
+                  censusData={censusData}
+                />
+              </div>
+            )}
+
+            {activeTab === 'trend' && (
               <div className={styles.trendSection}>
                 <div className={styles.trendCard}>
                   <div className={styles.trendHeader}>
@@ -552,31 +617,40 @@ export default function StandalonePopulation() {
                       Unable to load ZIP trend data: {zipTrendError}
                     </div>
                   ) : zipTrendRows?.length ? (
-                    <table className={styles.trendTable}>
-                      <thead>
-                        <tr>
-                          <th>Year</th>
-                          <th>Total population</th>
-                          <th>ZIPs matched</th>
-                          <th>Missing ZIPs</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {zipTrendRows.map((entry) => (
-                          <tr
-                            key={entry.year}
-                            className={entry.year === String(selectedYear) ? styles.trendRowActive : undefined}
-                          >
-                            <td>{entry.year}</td>
-                            <td>{formatNumber(entry.totalPopulation)}</td>
-                            <td>{entry.matchedZipCount}</td>
-                            <td className={entry.missingZipCount ? styles.missingCell : undefined}>
-                              {entry.missingZipCount}
-                            </td>
+                    <>
+                      {missingZipCount ? (
+                        <div className={styles.missingNotice}>
+                          Some ZIP codes in this circle are not available for ACS {effectiveYear}:{" "}
+                          {missingZipList.slice(0, 6).join(', ')}
+                          {missingZipCount > 6 ? ` (+${missingZipCount - 6} more)` : ''}
+                        </div>
+                      ) : null}
+                      <table className={styles.trendTable}>
+                        <thead>
+                          <tr>
+                            <th>Year</th>
+                            <th>Total population</th>
+                            <th>ZIPs matched</th>
+                            <th>Missing ZIPs</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {zipTrendRows.map((entry) => (
+                            <tr
+                              key={entry.year}
+                              className={entry.year === String(effectiveYear) ? styles.trendRowActive : undefined}
+                            >
+                              <td>{entry.year}</td>
+                              <td>{formatNumber(entry.totalPopulation)}</td>
+                              <td>{entry.matchedZipCount}</td>
+                              <td className={entry.missingZipCount ? styles.missingCell : undefined}>
+                                {entry.missingZipCount}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
                   ) : (
                     <div className={styles.trendEmpty}>
                       No ZIP trend data available for this location.
@@ -585,15 +659,25 @@ export default function StandalonePopulation() {
                 </div>
               </div>
             )}
-            <CensusDataPanel
-              provider={effectiveProvider}
-              radiusInMiles={effectiveRadius}
-              censusData={censusData}
-            />
+
+            {activeTab === 'map' && mapCenter && effectiveRadius && (
+              <div className={styles.mapView}>
+                <div className={styles.mapContainer}>
+                  <GeographyMap
+                    center={mapCenter}
+                    radius={effectiveRadius}
+                    boundaryType={geoLevel === 'zip' ? 'zips' : 'tracts'}
+                    useDemographics={false}
+                    showColors={false}
+                  />
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
-    </div>
+      </div>
+    </PageLayout>
   );
 }
 

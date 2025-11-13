@@ -76,11 +76,11 @@ const Sidebar = ({
   const segmentationNavItems = [
     {
       key: 'savedMarkets',
-      label: 'Saved Markets',
+      label: 'My Markets',
       path: '/app/markets',
-      tooltip: 'Saved Markets',
+      tooltip: 'My Markets',
       lockedTooltip:
-        'Saved Markets - Join or create a team to access markets and network features'
+        'My Markets - Join or create a team to access markets and network features'
     },
     {
       key: 'network',
@@ -248,12 +248,12 @@ const Sidebar = ({
         <Link 
             to="/app/claims/storyteller" 
             className={`${styles.navItem} ${isActive('/claims/storyteller') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Storyteller')}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Quality Storyteller')}
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}
           >
             <LineChart size={14} />
-            {!isCollapsed && 'Storyteller'}
+            {!isCollapsed && 'Quality Storyteller'}
           </Link>
 
         <Link 
@@ -264,18 +264,18 @@ const Sidebar = ({
           {...mobileLinkHandlers}
           >
             <Users size={14} />
-            {!isCollapsed && 'Population'}
+            {!isCollapsed && 'Population Demographics'}
           </Link>
 
         <Link 
             to="/app/enrollment" 
             className={`${styles.navItem} ${isActive('/enrollment') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Enrollment Insights')}
+            onMouseEnter={(e) => handleMouseEnter(e, 'CMS Enrollment')}
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}
           >
             {EnrollmentIcon && <EnrollmentIcon {...navigationIconProps} />}
-            {!isCollapsed && 'Enrollment'}
+            {!isCollapsed && 'CMS Enrollment'}
           </Link>
           
           {/* Section divider */}

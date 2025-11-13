@@ -56,7 +56,7 @@ export default function SubNavbar({ providerId: providerDhc }) {
           return `${styles.tab} ${(isActive || isOnStorytellerRoute) ? styles.activeTab : ""}`;
         }}
       >
-        Storyteller
+        Quality Storyteller
       </NavLink>
       <NavLink
         to={`${prefix}/cms-enrollment/overview${search}`}
@@ -65,7 +65,7 @@ export default function SubNavbar({ providerId: providerDhc }) {
           return `${styles.tab} ${(isActive || isOnEnrollmentRoute) ? styles.activeTab : ""}`;
         }}
       >
-        Enrollment
+        CMS Enrollment
       </NavLink>
     </nav>
   );

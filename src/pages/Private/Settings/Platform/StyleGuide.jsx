@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, ChevronDown, Code, Trash2, X, Plus, Edit, ExternalLink, Search } from 'lucide-react';
+import { Palette, ChevronDown, Code, Trash2, X, Plus, Edit, ExternalLink, Search, MapPin } from 'lucide-react';
 
 import Dropdown from '../../../../components/Buttons/Dropdown';
 import SectionHeader from '../../../../components/Layouts/SectionHeader';
@@ -102,6 +102,16 @@ export default function StyleGuide() {
   // Toggle states for testing components
   const [showBottomPopout, setShowBottomPopout] = useState(false);
   const [showRightDrawer, setShowRightDrawer] = useState(false);
+
+  // Saved Market Selection states
+  const [savedMarkets] = useState([
+    { id: 1, name: 'Downtown Chicago', city: 'Chicago', state: 'IL', radius_miles: 25 },
+    { id: 2, name: 'Metro Atlanta', city: 'Atlanta', state: 'GA', radius_miles: 30 },
+    { id: 3, name: 'Greater Boston Area', city: 'Boston', state: 'MA', radius_miles: 20 },
+    { id: 4, name: 'Phoenix Metro', city: 'Phoenix', state: 'AZ', radius_miles: 35 }
+  ]);
+  const [selectedMarket, setSelectedMarket] = useState(null);
+  const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
 
   return (
     <>
@@ -817,6 +827,111 @@ export default function StyleGuide() {
             </div>
           </>
         )}
+
+        {/* Saved Market Selection Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Code size={16} />
+            Saved Market Selection
+          </h2>
+          <p className={styles.sectionDescription}>
+            Standardized component for selecting a saved market from the user's saved markets. Used across Search the Industry, Claims Data Explorer, Quality Storyteller, and other pages that require market-based filtering.
+          </p>
+
+          <div className={styles.subsection}>
+            <div className={styles.formControlExample} style={{ overflow: 'visible', position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+                {savedMarkets.length > 0 && (
+                  <Dropdown
+                    trigger={
+                      <button className="sectionHeaderButton">
+                        <MapPin size={14} />
+                        {selectedMarket ? 
+                          `${selectedMarket.name}` : 
+                          'Saved Market'}
+                        <ChevronDown size={14} />
+                      </button>
+                    }
+                    isOpen={marketDropdownOpen}
+                    onToggle={setMarketDropdownOpen}
+                    className={styles.dropdownMenu}
+                  >
+                    <button 
+                      className={styles.dropdownItem}
+                      onClick={() => {
+                        setSelectedMarket(null);
+                        setMarketDropdownOpen(false);
+                      }}
+                    >
+                      No Market
+                    </button>
+                    {savedMarkets.map(market => (
+                      <button 
+                        key={market.id}
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setSelectedMarket(market);
+                          setMarketDropdownOpen(false);
+                        }}
+                        style={{
+                          fontWeight: selectedMarket?.id === market.id ? '600' : '500',
+                          background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                        }}
+                      >
+                        <div>{market.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                          {market.city}, {market.state} • {market.radius_miles} mi
+                        </div>
+                      </button>
+                    ))}
+                  </Dropdown>
+                )}
+              </div>
+              
+              {selectedMarket && (
+                <div style={{ marginTop: '12px', padding: '12px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Selected Market:</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{selectedMarket.name}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                    {selectedMarket.city}, {selectedMarket.state} • {selectedMarket.radius_miles} mi radius
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.subsection} style={{ marginTop: '32px' }}>
+            <h3>Implementation Guidelines</h3>
+            <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>Required Elements:</h4>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#374151', fontSize: '14px', lineHeight: '1.8' }}>
+                <li>MapPin icon (size 14) from lucide-react</li>
+                <li>Button text shows market name when selected, "Saved Market" when not</li>
+                <li>ChevronDown icon (size 14) to indicate dropdown</li>
+                <li>"No Market" option as first item in dropdown to clear selection</li>
+                <li>Each market item displays: name (primary), city/state/radius (secondary, smaller text)</li>
+                <li>Selected market highlighted with bold font (600) and teal background (rgba(0, 192, 139, 0.1))</li>
+              </ul>
+              
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginTop: '20px', marginBottom: '12px' }}>State Management:</h4>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#374151', fontSize: '14px', lineHeight: '1.8' }}>
+                <li>Use <code className={styles.code}>selectedMarket?.id === market.id</code> for comparison (not <code className={styles.code}>selectedMarket === market.id</code>)</li>
+                <li>Store full market object in state, not just the ID</li>
+                <li>Close dropdown after selection</li>
+                <li>Handle null/empty selection to clear market filter</li>
+              </ul>
+
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginTop: '20px', marginBottom: '12px' }}>Styling:</h4>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#374151', fontSize: '14px', lineHeight: '1.8' }}>
+                <li>Use <code className={styles.code}>sectionHeaderButton</code> class for the trigger button</li>
+                <li>Use <code className={styles.code}>styles.dropdownMenu</code> for the dropdown container</li>
+                <li>Use <code className={styles.code}>styles.dropdownItem</code> for each market option</li>
+                <li>Secondary text (city, state, radius) uses <code className={styles.code}>fontSize: '11px', color: 'var(--gray-500)'</code></li>
+                <li>Selected state uses <code className={styles.code}>fontWeight: '600'</code> and <code className={styles.code}>background: 'rgba(0, 192, 139, 0.1)'</code></li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
         {/* Color Tokens Section */}
         <section className={styles.section}>

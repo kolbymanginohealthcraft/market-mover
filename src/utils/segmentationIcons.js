@@ -4,7 +4,8 @@ import {
   Network,
   Pill,
   Stethoscope,
-  Syringe
+  Syringe,
+  Users
 } from 'lucide-react';
 
 export const SEGMENTATION_WORKBENCH_ICON_MAP = Object.freeze({
@@ -13,7 +14,8 @@ export const SEGMENTATION_WORKBENCH_ICON_MAP = Object.freeze({
   procedures: Syringe,
   diagnoses: Stethoscope,
   taxonomies: Pill,
-  metrics: Activity
+  metrics: Activity,
+  population: Users
 });
 
 export const SEGMENTATION_ICON_DEFAULT_PROPS = Object.freeze({

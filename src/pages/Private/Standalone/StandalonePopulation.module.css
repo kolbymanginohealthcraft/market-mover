@@ -1,19 +1,22 @@
 .container {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-height: 100%;
   background: var(--gray-50);
+  overflow: hidden;
 }
 
 .controlsBar {
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
 }
 
 .controlsGroup {
@@ -62,12 +65,12 @@
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.18);
-  min-width: 260px;
-  max-height: 360px;
-  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   padding: 8px 0;
+  min-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .dropdownStatus {
@@ -77,52 +80,30 @@
 }
 
 .dropdownItem {
+  display: block;
   width: 100%;
   padding: 10px 16px;
   border: none;
   background: none;
   text-align: left;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--gray-700);
+  font-size: 12px;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
+  color: var(--gray-700);
+  font-weight: 500;
+  line-height: 1.3;
+  font-family: inherit;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dropdownItem:hover {
-  background: rgba(0, 192, 139, 0.08);
+  background: rgba(0, 192, 139, 0.1) !important;
   color: var(--primary-teal-dark);
 }
 
-.dropdownItemActive {
-  background: rgba(0, 192, 139, 0.12);
-  color: var(--primary-teal-dark);
-  font-weight: 600;
-}
-
-.dropdownDivider {
-  height: 1px;
-  background: rgba(148, 163, 184, 0.25);
-  margin: 4px 0;
-}
-
-.dropdownList {
-  display: flex;
-  flex-direction: column;
-}
-
-.dropdownTitle {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-800);
-}
-
-.dropdownSubtitle {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--gray-500);
+.dropdownItem:last-child {
+  border-bottom: none;
 }
 
 .spacer {
@@ -260,6 +241,65 @@
 .content {
   flex: 1;
   padding: 24px;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.overviewContent {
+  width: 100%;
+}
+
+.tabNav {
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0 20px 0 0;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tabNavLeft {
+  display: flex;
+  gap: 4px;
+}
+
+.tabNavRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  padding-right: 20px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: var(--gray-900);
+  background: var(--gray-50);
+  text-decoration: none;
+}
+
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: #3599b8;
+  background: none;
+  text-decoration: none;
 }
 
 .emptyState {
@@ -313,6 +353,34 @@
   font-size: 0.95rem;
 }
 
+
+.mapView {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mapContainer {
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--gray-200);
+  position: relative;
+  width: 100%;
+}
+
+.mapContainer > * {
+  width: 100%;
+  height: 100%;
+}
+
 @media (max-width: 960px) {
   .controlsBar {
     flex-direction: column;
@@ -329,4 +397,5 @@
     justify-content: flex-start;
   }
 }
+
 

@@ -38,6 +38,7 @@ import {
   Bookmark
 } from 'lucide-react';
 import { sanitizeProviderName } from "../../../utils/providerName";
+import { getSegmentationIcon, getSegmentationIconProps } from '../../../utils/segmentationIcons';
 
 export default function ProviderSearch() {
   const navigate = useNavigate();
@@ -155,6 +156,27 @@ export default function ProviderSearch() {
   // Focus search input on page load
   useEffect(() => {
     searchInputRef.current?.focus();
+  }, []);
+
+  // Keyboard shortcut to toggle Filters pane (] key)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Only trigger if ']' key is pressed without modifiers
+      if (
+        event.key === ']' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        setShowFiltersSidebar((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   // Load national overview, filter options, and first 500 results on mount
@@ -1059,7 +1081,7 @@ export default function ProviderSearch() {
             <button
               onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
               className="sectionHeaderButton"
-              title="Toggle filters"
+              title="Toggle filters (])"
               style={{ flexShrink: 0 }}
             >
               <Filter size={14} />
@@ -1132,9 +1154,9 @@ export default function ProviderSearch() {
                     {selectedMarket ? 
                       (() => {
                         const market = savedMarkets.find(m => m.id === selectedMarket);
-                        return market ? market.name : 'Saved Market';
+                        return market ? market.name : 'My Markets';
                       })() : 
-                      'Saved Market'}
+                      'My Markets'}
                     <ChevronDown size={14} />
                   </button>
                 }
@@ -1173,19 +1195,21 @@ export default function ProviderSearch() {
               </Dropdown>
             )}
 
-            {taxonomyTags.length > 0 && (
-              <Dropdown
-                trigger={
-                  <button className="sectionHeaderButton">
-                    <Bookmark size={14} />
-                    {selectedTaxonomyCodes.length > 0 ? 
-                      `${selectedTaxonomyCodes.length} selected` : 
-                      selectedTaxonomyTag ? 
-                      `${selectedTaxonomyTag.taxonomy_code}` : 
-                      'My Taxonomies'}
-                    <ChevronDown size={14} />
-                  </button>
-                }
+            {taxonomyTags.length > 0 && (() => {
+              const TaxonomyIcon = getSegmentationIcon('taxonomies');
+              return (
+                <Dropdown
+                  trigger={
+                    <button className="sectionHeaderButton">
+                      {TaxonomyIcon && <TaxonomyIcon {...getSegmentationIconProps({ size: 14 })} />}
+                      {selectedTaxonomyCodes.length > 0 ? 
+                        `${selectedTaxonomyCodes.length} selected` : 
+                        selectedTaxonomyTag ? 
+                        `${selectedTaxonomyTag.taxonomy_code}` : 
+                        'My Taxonomies'}
+                      <ChevronDown size={14} />
+                    </button>
+                  }
                 isOpen={taxonomyDropdownOpen}
                 onToggle={setTaxonomyDropdownOpen}
                 className={styles.dropdownMenu}
@@ -1336,7 +1360,8 @@ export default function ProviderSearch() {
                   });
                 })()}
               </Dropdown>
-            )}
+              );
+            })()}
 
             <div className={styles.spacer}></div>
             

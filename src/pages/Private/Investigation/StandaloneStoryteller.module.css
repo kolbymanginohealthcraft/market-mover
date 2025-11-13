@@ -12,8 +12,9 @@
   border-bottom: 1px solid var(--gray-200);
   padding: 12px 20px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
+  flex-shrink: 0;
   position: relative;
   z-index: 30;
 }
@@ -23,6 +24,10 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
 }
 
 .activeFilterButton {
@@ -68,7 +73,7 @@
 }
 
 .dropdownItem:hover {
-  background: rgba(0, 192, 139, 0.1);
+  background: rgba(0, 192, 139, 0.1) !important;
   color: var(--primary-teal-dark);
 }
 
@@ -76,12 +81,57 @@
   border-bottom: none;
 }
 
-/* Selected Items Display */
-.selectedItems {
+/* Active Filter Chips Bar */
+.activeFiltersBar {
+  padding: 4px 16px;
+  background: #fef3c7;
+  border-bottom: 1px solid #fbbf24;
+  flex-shrink: 0;
+}
+
+.activeFilters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
+}
+
+.filtersLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-right: 4px;
+}
+
+.filterChip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--secondary-blue);
+  border: 1px solid var(--secondary-blue);
+  border-radius: 12px;
+  font-size: 10px;
+}
+
+.filterChip span {
+  color: white;
+  font-weight: 500;
+}
+
+.filterChip button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filterChip button:hover {
+  opacity: 0.8;
 }
 
 .selectedTag {

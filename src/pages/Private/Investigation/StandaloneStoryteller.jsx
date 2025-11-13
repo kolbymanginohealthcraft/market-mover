@@ -6,6 +6,7 @@ import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
 import Storyteller from '../Results/Storyteller/Storyteller';
 import styles from './StandaloneStoryteller.module.css';
+import { getSegmentationIcon, getSegmentationIconProps } from '../../../utils/segmentationIcons';
 
 export default function StandaloneStoryteller() {
   const ccnInputRef = useRef(null);
@@ -623,343 +624,335 @@ export default function StandaloneStoryteller() {
     <div className={styles.container}>
       {/* Filter Controls Bar */}
       <div className={styles.controlsBar}>
-        <div className={styles.controlsPrimary}>
-          {/* CCN Input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="searchBarContainer">
-              <input
-                ref={ccnInputRef}
-                type="text"
-                placeholder="Enter CCN..."
-                value={ccnInput}
-                onChange={(e) => setCcnInput(e.target.value)}
-                onKeyPress={handleCcnKeyPress}
-                className="searchInput"
-                data-search-enhanced="true"
-                style={{ paddingLeft: '12px', paddingRight: (ccnInput && ccnInput.trim().length > 0) ? '40px' : '12px' }}
-              />
-              {ccnInput && ccnInput.trim().length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setCcnInput('')}
-                  className="clearButton"
-                  data-react-clear="true"
-                  title="Clear"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={handleCcnAdd}
-              className="sectionHeaderButton"
-              disabled={!ccnInput || !ccnInput.trim()}
-              title="Add CCN"
-            >
-              <Plus size={14} />
-              <span>Add</span>
-            </button>
+        {/* CCN Input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
+          <div className="searchBarContainer" style={{ width: '300px' }}>
+            <input
+              ref={ccnInputRef}
+              type="text"
+              placeholder="Enter CCN..."
+              value={ccnInput}
+              onChange={(e) => setCcnInput(e.target.value)}
+              onKeyPress={handleCcnKeyPress}
+              className="searchInput"
+              data-search-enhanced="true"
+              style={{ width: '100%', paddingLeft: '12px', paddingRight: (ccnInput && ccnInput.trim().length > 0) ? '40px' : '12px' }}
+            />
+            {ccnInput && ccnInput.trim().length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCcnInput('')}
+                className="clearButton"
+                data-react-clear="true"
+                title="Clear"
+                style={{ right: '8px' }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
+          <button
+            type="button"
+            onClick={handleCcnAdd}
+            className="sectionHeaderButton"
+            disabled={!ccnInput || !ccnInput.trim()}
+            title="Add CCN"
+          >
+            <Plus size={14} />
+            <span>Add</span>
+          </button>
+        </div>
 
-          {/* Network Tags */}
-          {providerTags && (
+        {/* My Network */}
+        {providerTags && (() => {
+          const NetworkIcon = getSegmentationIcon('network');
+          return (
             <Dropdown
               trigger={
                 <button type="button" className="sectionHeaderButton">
-                  <FilterIcon />
+                  {NetworkIcon && <NetworkIcon {...getSegmentationIconProps({ size: 14 })} />}
                   {selectedTag ? 
                     `${selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)} (${tagDhcCcns.length})` : 
-                    'Network Tag'}
-                  <ChevronDown />
+                    'My Network'}
+                  <ChevronDown size={14} />
                 </button>
               }
-              isOpen={tagDropdownOpen}
-              onToggle={setTagDropdownOpen}
-              className={styles.dropdownMenu}
+            isOpen={tagDropdownOpen}
+            onToggle={setTagDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleTagSelect('');
+                setTagDropdownOpen(false);
+              }}
             >
+              All Providers
+            </button>
+            {providerTags.me?.length > 0 && (
               <button 
                 className={styles.dropdownItem}
                 onClick={() => {
-                  handleTagSelect('');
+                  handleTagSelect('me');
                   setTagDropdownOpen(false);
                 }}
               >
-                All Providers
+                My Providers ({providerTags.me.length})
               </button>
-              {providerTags.me?.length > 0 && (
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    handleTagSelect('me');
-                    setTagDropdownOpen(false);
-                  }}
-                >
-                  My Providers ({providerTags.me.length})
-                </button>
-              )}
-              {providerTags.partner?.length > 0 && (
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    handleTagSelect('partner');
-                    setTagDropdownOpen(false);
-                  }}
-                >
-                  Partners ({providerTags.partner.length})
-                </button>
-              )}
-              {providerTags.competitor?.length > 0 && (
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    handleTagSelect('competitor');
-                    setTagDropdownOpen(false);
-                  }}
-                >
-                  Competitors ({providerTags.competitor.length})
-                </button>
-              )}
-              {providerTags.target?.length > 0 && (
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    handleTagSelect('target');
-                    setTagDropdownOpen(false);
-                  }}
-                >
-                  Targets ({providerTags.target.length})
-                </button>
-              )}
-            </Dropdown>
-          )}
-
-          {/* Highlight Providers */}
-          {hasHighlightOptions && (
-            <Dropdown
-              trigger={
-                <button
-                  type="button"
-                  className={`sectionHeaderButton ${highlightTagTypes.length > 0 ? styles.activeFilterButton : ''}`}
-                >
-                  <FilterIcon />
-                  {highlightTriggerLabel}
-                  <ChevronDown />
-                </button>
-              }
-              isOpen={highlightDropdownOpen}
-              onToggle={setHighlightDropdownOpen}
-              className={styles.dropdownMenu}
-            >
-              <button
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setHighlightTagTypes([]);
-                  setHighlightDropdownOpen(false);
-                }}
-                style={{
-                  fontWeight: highlightTagTypes.length === 0 ? '600' : '500',
-                  background: highlightTagTypes.length === 0 ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                }}
-              >
-                No Highlight
-              </button>
-              {highlightCounts.me > 0 && (
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setHighlightTagTypes(prev => (
-                      prev.includes('me') ? prev.filter(type => type !== 'me') : [...prev, 'me']
-                    ));
-                  }}
-                  style={{
-                    fontWeight: highlightSelectionSet.has('me') ? '600' : '500',
-                    background: highlightSelectionSet.has('me') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                  }}
-                >
-                  Highlight My Providers ({highlightCounts.me})
-                </button>
-              )}
-              {highlightCounts.partner > 0 && (
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setHighlightTagTypes(prev => (
-                      prev.includes('partner') ? prev.filter(type => type !== 'partner') : [...prev, 'partner']
-                    ));
-                  }}
-                  style={{
-                    fontWeight: highlightSelectionSet.has('partner') ? '600' : '500',
-                    background: highlightSelectionSet.has('partner') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                  }}
-                >
-                  Highlight Partners ({highlightCounts.partner})
-                </button>
-              )}
-              {highlightCounts.competitor > 0 && (
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setHighlightTagTypes(prev => (
-                      prev.includes('competitor') ? prev.filter(type => type !== 'competitor') : [...prev, 'competitor']
-                    ));
-                  }}
-                  style={{
-                    fontWeight: highlightSelectionSet.has('competitor') ? '600' : '500',
-                    background: highlightSelectionSet.has('competitor') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                  }}
-                >
-                  Highlight Competitors ({highlightCounts.competitor})
-                </button>
-              )}
-              {highlightCounts.target > 0 && (
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setHighlightTagTypes(prev => (
-                      prev.includes('target') ? prev.filter(type => type !== 'target') : [...prev, 'target']
-                    ));
-                  }}
-                  style={{
-                    fontWeight: highlightSelectionSet.has('target') ? '600' : '500',
-                    background: highlightSelectionSet.has('target') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                  }}
-                >
-                  Highlight Targets ({highlightCounts.target})
-                </button>
-              )}
-            </Dropdown>
-          )}
-
-          {/* Saved Markets */}
-          {savedMarkets.length > 0 && (
-            <Dropdown
-              trigger={
-                <button type="button" className="sectionHeaderButton">
-                  <MapPin />
-                  {selectedMarket ? 
-                    `${selectedMarket.name} (${marketDhcCcns.length})` : 
-                    'Saved Market'}
-                  <ChevronDown />
-                </button>
-              }
-              isOpen={marketDropdownOpen}
-              onToggle={setMarketDropdownOpen}
-              className={styles.dropdownMenu}
-            >
+            )}
+            {providerTags.partner?.length > 0 && (
               <button 
                 className={styles.dropdownItem}
                 onClick={() => {
-                  handleMarketSelect('');
-                  setMarketDropdownOpen(false);
+                  handleTagSelect('partner');
+                  setTagDropdownOpen(false);
                 }}
               >
-                No Market
+                Partners ({providerTags.partner.length})
               </button>
-              {savedMarkets.map(market => (
-                <button 
-                  key={market.id}
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    handleMarketSelect(market.id);
-                    setMarketDropdownOpen(false);
-                  }}
-                  style={{
-                    fontWeight: selectedMarket?.id === market.id ? '600' : '500',
-                    background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
-                  }}
-                >
-                  <div>{market.name}</div>
-                  <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
-                    {market.city}, {market.state} • {market.radius_miles} mi
-                  </div>
+            )}
+            {providerTags.competitor?.length > 0 && (
+              <button 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('competitor');
+                  setTagDropdownOpen(false);
+                }}
+              >
+                Competitors ({providerTags.competitor.length})
+              </button>
+            )}
+            {providerTags.target?.length > 0 && (
+              <button 
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleTagSelect('target');
+                  setTagDropdownOpen(false);
+                }}
+              >
+                Targets ({providerTags.target.length})
+              </button>
+            )}
+          </Dropdown>
+          );
+        })()}
+
+        {/* My Markets */}
+        {savedMarkets.length > 0 && (() => {
+          const MarketsIcon = getSegmentationIcon('savedMarkets');
+          return (
+            <Dropdown
+              trigger={
+                <button type="button" className="sectionHeaderButton">
+                  {MarketsIcon && <MarketsIcon {...getSegmentationIconProps({ size: 14 })} />}
+                  {selectedMarket ? 
+                    `${selectedMarket.name} (${marketDhcCcns.length})` : 
+                    'My Markets'}
+                  <ChevronDown size={14} />
                 </button>
-              ))}
-            </Dropdown>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setShowMyKpisOnly(prev => !prev)}
-            className={`sectionHeaderButton ${showMyKpisOnly ? styles.activeFilterButton : ''} ${(!kpiTagsLoading && myKpiCodes.length === 0) ? styles.disabledFilterButton : ''}`}
-            disabled={(!kpiTagsLoading && myKpiCodes.length === 0)}
-            title={(!kpiTagsLoading && myKpiCodes.length === 0) ? 'Tag metrics to enable this filter' : undefined}
+              }
+            isOpen={marketDropdownOpen}
+            onToggle={setMarketDropdownOpen}
+            className={styles.dropdownMenu}
           >
-            {showMyKpisOnly ? 'Using My Metrics' : 'Use My Metrics'}
-          </button>
-
-          {/* Clear All Button */}
-          {hasParameters && (
-            <button type="button" onClick={handleClearAll} className="sectionHeaderButton">
-              <X />
-              Clear All
+            <button 
+              className={styles.dropdownItem}
+              onClick={() => {
+                handleMarketSelect('');
+                setMarketDropdownOpen(false);
+              }}
+            >
+              No Market
             </button>
-          )}
-        </div>
+            {savedMarkets.map(market => (
+              <button 
+                key={market.id}
+                className={styles.dropdownItem}
+                onClick={() => {
+                  handleMarketSelect(market.id);
+                  setMarketDropdownOpen(false);
+                }}
+                style={{
+                  fontWeight: selectedMarket?.id === market.id ? '600' : '500',
+                  background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                }}
+              >
+                <div>{market.name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                  {market.city}, {market.state} • {market.radius_miles} mi
+                </div>
+              </button>
+            ))}
+          </Dropdown>
+          );
+        })()}
 
-        {/* Selected Items Display */}
-        <div className={styles.selectedItems}>
-          {selectedMarket && (
-            <div className={styles.selectedTag}>
-              <MapPin size={12} />
-              <span>{selectedMarket.name}</span>
-              <span className={styles.count}>{marketDhcCcns.length} CCNs</span>
+        {/* Vertical Separator */}
+        <div style={{ width: '1px', height: '24px', background: 'var(--gray-300)', margin: '0 8px' }}></div>
+
+        {/* Highlight Providers */}
+        {hasHighlightOptions && (
+          <Dropdown
+            trigger={
               <button
                 type="button"
-                onClick={() => handleMarketSelect('')}
-                className={styles.removeTagButton}
-                aria-label="Remove market filter"
+                className={`sectionHeaderButton ${highlightTagTypes.length > 0 ? styles.activeFilterButton : ''}`}
               >
-                <X size={12} />
+                <FilterIcon size={14} />
+                {highlightTriggerLabel}
+                <ChevronDown size={14} />
               </button>
-            </div>
-          )}
-          {selectedTag && (
-            <div className={styles.selectedTag}>
-              <FilterIcon size={12} />
-              <span>{selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}</span>
-              <span className={styles.count}>{tagDhcCcns.length} CCNs</span>
+            }
+            isOpen={highlightDropdownOpen}
+            onToggle={setHighlightDropdownOpen}
+            className={styles.dropdownMenu}
+          >
+            <button
+              className={styles.dropdownItem}
+              onClick={() => {
+                setHighlightTagTypes([]);
+                setHighlightDropdownOpen(false);
+              }}
+              style={{
+                fontWeight: highlightTagTypes.length === 0 ? '600' : '500',
+                background: highlightTagTypes.length === 0 ? 'rgba(38, 89, 71, 0.08)' : 'none'
+              }}
+            >
+              No Highlight
+            </button>
+            {highlightCounts.me > 0 && (
               <button
-                type="button"
-                onClick={() => handleTagSelect('')}
-                className={styles.removeTagButton}
-                aria-label="Remove network tag filter"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setHighlightTagTypes(prev => (
+                    prev.includes('me') ? prev.filter(type => type !== 'me') : [...prev, 'me']
+                  ));
+                }}
+                style={{
+                  fontWeight: highlightSelectionSet.has('me') ? '600' : '500',
+                  background: highlightSelectionSet.has('me') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                }}
               >
-                <X size={12} />
+                Highlight My Providers ({highlightCounts.me})
               </button>
-            </div>
-          )}
-          {showMyKpisOnly && (
-            <div className={`${styles.selectedTag} ${styles.kpiFilterTag}`}>
-              <span>My Metrics</span>
-              <span className={styles.count}>{myKpiCodes.length}</span>
+            )}
+            {highlightCounts.partner > 0 && (
               <button
-                type="button"
-                onClick={() => setShowMyKpisOnly(false)}
-                className={styles.removeTagButton}
-                aria-label="Remove My Metrics filter"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setHighlightTagTypes(prev => (
+                    prev.includes('partner') ? prev.filter(type => type !== 'partner') : [...prev, 'partner']
+                  ));
+                }}
+                style={{
+                  fontWeight: highlightSelectionSet.has('partner') ? '600' : '500',
+                  background: highlightSelectionSet.has('partner') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                }}
               >
-                <X size={12} />
+                Highlight Partners ({highlightCounts.partner})
               </button>
-            </div>
-          )}
-          {selectedCcns.map((ccn) => (
-            <div key={ccn} className={styles.selectedTag}>
-              <span>
-                {manualProviderDetails[ccn]?.FAC_NAME || `CCN ${ccn}`}
-                {manualProviderDetails[ccn]?.FAC_NAME ? ` • CCN ${ccn}` : ''}
-              </span>
+            )}
+            {highlightCounts.competitor > 0 && (
               <button
-                type="button"
-                onClick={() => handleCcnRemove(ccn)}
-                className={styles.removeTagButton}
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setHighlightTagTypes(prev => (
+                    prev.includes('competitor') ? prev.filter(type => type !== 'competitor') : [...prev, 'competitor']
+                  ));
+                }}
+                style={{
+                  fontWeight: highlightSelectionSet.has('competitor') ? '600' : '500',
+                  background: highlightSelectionSet.has('competitor') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                }}
               >
-                <X size={12} />
+                Highlight Competitors ({highlightCounts.competitor})
               </button>
-            </div>
-          ))}
-        </div>
+            )}
+            {highlightCounts.target > 0 && (
+              <button
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setHighlightTagTypes(prev => (
+                    prev.includes('target') ? prev.filter(type => type !== 'target') : [...prev, 'target']
+                  ));
+                }}
+                style={{
+                  fontWeight: highlightSelectionSet.has('target') ? '600' : '500',
+                  background: highlightSelectionSet.has('target') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                }}
+              >
+                Highlight Targets ({highlightCounts.target})
+              </button>
+            )}
+          </Dropdown>
+        )}
+
+        {/* Use My Metrics */}
+        <button
+          type="button"
+          onClick={() => setShowMyKpisOnly(prev => !prev)}
+          className={`sectionHeaderButton ${showMyKpisOnly ? styles.activeFilterButton : ''} ${(!kpiTagsLoading && myKpiCodes.length === 0) ? styles.disabledFilterButton : ''}`}
+          disabled={(!kpiTagsLoading && myKpiCodes.length === 0)}
+          title={(!kpiTagsLoading && myKpiCodes.length === 0) ? 'Tag metrics to enable this filter' : undefined}
+        >
+          {showMyKpisOnly ? 'Using My Metrics' : 'Use My Metrics'}
+        </button>
+
+        {/* Clear All Button */}
+        {hasParameters && (
+          <button type="button" onClick={handleClearAll} className="sectionHeaderButton" style={{ flexShrink: 0 }}>
+            <X size={14} />
+            Clear All
+          </button>
+        )}
+
+        <div className={styles.spacer}></div>
       </div>
+
+      {/* Active Filter Chips Bar */}
+      {hasParameters && (
+        <div className={styles.activeFiltersBar}>
+          <div className={styles.activeFilters}>
+            <span className={styles.filtersLabel}>Filters:</span>
+            {selectedMarket && (
+              <div className={styles.filterChip}>
+                <span>{selectedMarket.name}</span>
+                <button onClick={() => handleMarketSelect('')}>
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {selectedTag && (
+              <div className={styles.filterChip}>
+                <span>{selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}</span>
+                <button onClick={() => handleTagSelect('')}>
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {showMyKpisOnly && (
+              <div className={styles.filterChip}>
+                <span>My Metrics ({myKpiCodes.length})</span>
+                <button onClick={() => setShowMyKpisOnly(false)}>
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {selectedCcns.map((ccn) => (
+              <div key={ccn} className={styles.filterChip}>
+                <span>
+                  {manualProviderDetails[ccn]?.FAC_NAME || `CCN ${ccn}`}
+                  {manualProviderDetails[ccn]?.FAC_NAME ? ` • CCN ${ccn}` : ''}
+                </span>
+                <button onClick={() => handleCcnRemove(ccn)}>
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Content Area */}
       <div className={styles.content}>

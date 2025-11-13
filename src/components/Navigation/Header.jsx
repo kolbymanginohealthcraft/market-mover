@@ -152,7 +152,7 @@ const Header = ({
     } else if (location.pathname.includes('/search')) {
       return 'Search the Industry';
     } else if (location.pathname.includes('/markets')) {
-      return 'Saved Markets';
+      return 'My Markets';
     } else if (location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+\/market\//)) {
       return 'Provider Analysis';
     } else if (location.pathname.match(/^\/app\/\d+\/(?!market\/).+/)) {
@@ -162,7 +162,9 @@ const Header = ({
     } else if (location.pathname.includes('/market/')) {
       return 'Market Analysis';
     } else if (location.pathname.includes('/enrollment')) {
-      return 'Enrollment Intelligence';
+      return 'CMS Enrollment';
+    } else if (location.pathname.includes('/population')) {
+      return 'Population Demographics';
     } else if (location.pathname.includes('/network')) {
       return 'My Network';
     } else if (location.pathname.includes('/procedures')) {
@@ -174,7 +176,7 @@ const Header = ({
     } else if (location.pathname.includes('/taxonomies')) {
       return 'My Taxonomies';
     } else if (location.pathname.includes('/claims/storyteller')) {
-      return 'Storyteller';
+      return 'Quality Storyteller';
     } else if (location.pathname.includes('/claims')) {
       return 'Claims Data Explorer';
     } else if (location.pathname.includes('/referral-pathways')) {
@@ -275,6 +277,10 @@ const Header = ({
       return [
         { text: 'Medicare Advantage enrollment metrics for your saved markets', type: 'description' }
       ];
+    } else if (currentPath.includes('/population')) {
+      return [
+        { text: 'Census demographics and population data for your markets', type: 'description' }
+      ];
     } else if (currentPath.includes('/network')) {
       return [
         { text: 'Manage your provider network and relationships', type: 'description' }
@@ -366,6 +372,10 @@ const Header = ({
 
     if (location.pathname.includes('/taxonomies')) {
       return 'taxonomies';
+    }
+
+    if (location.pathname.includes('/population')) {
+      return 'population';
     }
 
     return null;

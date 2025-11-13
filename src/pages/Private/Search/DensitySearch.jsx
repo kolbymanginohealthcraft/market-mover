@@ -7,6 +7,7 @@ import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
 import { MapPin, ChevronDown, X, Search, Database, Layers, Navigation, Bookmark } from 'lucide-react';
 import { geocodeAddress, reverseGeocode } from '../Markets/services/geocodingService';
+import { getSegmentationIcon, getSegmentationIconProps } from '../../../utils/segmentationIcons';
 
 export default function DensitySearch() {
   const { hasTeam } = useUserTeam();
@@ -306,17 +307,19 @@ export default function DensitySearch() {
           </button>
 
           {/* My Taxonomies Dropdown */}
-          {hasTeam && taxonomyTags.length > 0 && (
-            <Dropdown
-              trigger={
-                <button className="sectionHeaderButton">
-                  <Bookmark size={14} />
-                  {selectedTaxonomyTag ? 
-                    selectedTaxonomyTag.taxonomy_code : 
-                    'My Taxonomies'}
-                  <ChevronDown size={14} />
-                </button>
-              }
+          {hasTeam && taxonomyTags.length > 0 && (() => {
+            const TaxonomyIcon = getSegmentationIcon('taxonomies');
+            return (
+              <Dropdown
+                trigger={
+                  <button className="sectionHeaderButton">
+                    {TaxonomyIcon && <TaxonomyIcon {...getSegmentationIconProps({ size: 14 })} />}
+                    {selectedTaxonomyTag ? 
+                      selectedTaxonomyTag.taxonomy_code : 
+                      'My Taxonomies'}
+                    <ChevronDown size={14} />
+                  </button>
+                }
             isOpen={taxonomyDropdownOpen}
             onToggle={setTaxonomyDropdownOpen}
             className={styles.dropdownMenu}
@@ -467,7 +470,8 @@ export default function DensitySearch() {
                 });
               })()}
             </Dropdown>
-          )}
+            );
+          })()}
 
           {densityCoordinates.lat && (
             <div className={styles.densityLocation}>

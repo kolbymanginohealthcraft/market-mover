@@ -78,7 +78,7 @@ export default function GeographyMap({
     return () => {
       // Cleanup is handled when component unmounts completely
     };
-  }, [center, radius, boundaryType, demographicMetric, useDemographics, showColors]);
+  }, [center?.lat, center?.lng, radius, boundaryType, demographicMetric, useDemographics, showColors]);
 
   // Handle hover highlighting from list
   useEffect(() => {

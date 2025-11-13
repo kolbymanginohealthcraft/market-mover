@@ -183,16 +183,39 @@ async function getNationalAverages(year) {
     ].join(',');
 
     const url = `https://api.census.gov/data/${year}/acs/acs5?get=${NATIONAL_VARS}&for=us:*`;
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       console.warn(`⚠️ Census API error for national data: ${response.status}`);
       return null;
     }
     
-    const data = await response.json();
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      console.warn(`⚠️ Census API returned empty response for national data, year ${year}`);
+      return null;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.warn(`⚠️ Census API returned invalid JSON for national data, year ${year}:`, parseError.message);
+      return null;
+    }
+    
+    if (!Array.isArray(data) || data.length < 2) {
+      console.warn(`⚠️ Census API returned unexpected data format for national data, year ${year}`);
+      return null;
+    }
+    
     const header = data[0];
     const row = data[1];
+    if (!header || !row) {
+      console.warn(`⚠️ Census API returned incomplete data for national data, year ${year}`);
+      return null;
+    }
+    
     const obj = {};
     header.forEach((h, idx) => { obj[h] = row[idx]; });
     
@@ -236,16 +259,39 @@ async function getStateAverages(stateFips, year) {
     ].join(',');
 
     const url = `https://api.census.gov/data/${year}/acs/acs5?get=${STATE_VARS}&for=state:${stateFips}`;
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       console.warn(`⚠️ Census API error for state data: ${response.status}`);
       return null;
     }
     
-    const data = await response.json();
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      console.warn(`⚠️ Census API returned empty response for state ${stateFips}, year ${year}`);
+      return null;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.warn(`⚠️ Census API returned invalid JSON for state ${stateFips}, year ${year}:`, parseError.message);
+      return null;
+    }
+    
+    if (!Array.isArray(data) || data.length < 2) {
+      console.warn(`⚠️ Census API returned unexpected data format for state ${stateFips}, year ${year}`);
+      return null;
+    }
+    
     const header = data[0];
     const row = data[1];
+    if (!header || !row) {
+      console.warn(`⚠️ Census API returned incomplete data for state ${stateFips}, year ${year}`);
+      return null;
+    }
+    
     const obj = {};
     header.forEach((h, idx) => { obj[h] = row[idx]; });
     
@@ -289,16 +335,39 @@ async function getCountyAverages(stateFips, countyFips, year) {
     ].join(',');
 
     const url = `https://api.census.gov/data/${year}/acs/acs5?get=${COUNTY_VARS}&for=county:${countyFips}&in=state:${stateFips}`;
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       console.warn(`⚠️ Census API error for county data: ${response.status}`);
       return null;
     }
     
-    const data = await response.json();
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      console.warn(`⚠️ Census API returned empty response for county ${stateFips}-${countyFips}, year ${year}`);
+      return null;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.warn(`⚠️ Census API returned invalid JSON for county ${stateFips}-${countyFips}, year ${year}:`, parseError.message);
+      return null;
+    }
+    
+    if (!Array.isArray(data) || data.length < 2) {
+      console.warn(`⚠️ Census API returned unexpected data format for county ${stateFips}-${countyFips}, year ${year}`);
+      return null;
+    }
+    
     const header = data[0];
     const row = data[1];
+    if (!header || !row) {
+      console.warn(`⚠️ Census API returned incomplete data for county ${stateFips}-${countyFips}, year ${year}`);
+      return null;
+    }
+    
     const obj = {};
     header.forEach((h, idx) => { obj[h] = row[idx]; });
     
@@ -372,12 +441,39 @@ async function getZipCodesWithinRadius(lat, lon, radiusMiles) {
   return rows;
 }
 
+// Helper function to delay execution
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to retry with exponential backoff
+async function fetchWithRetry(url, maxRetries = 3, initialDelay = 1000) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url);
+      
+      if (response.status === 429) {
+        // Rate limited - wait with exponential backoff
+        const waitTime = initialDelay * Math.pow(2, attempt);
+        console.warn(`⚠️ Rate limited (429), waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+        await delay(waitTime);
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error;
+      const waitTime = initialDelay * Math.pow(2, attempt);
+      await delay(waitTime);
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 async function fetchZipAcsData(zipRow, year) {
   const zip = String(zipRow.zip_code).padStart(5, '0');
   const url = `https://api.census.gov/data/${year}/acs/acs5?get=${ACS_VARS}&for=zip%20code%20tabulation%20area:${zip}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     if (!response.ok) {
       console.warn(`⚠️ Census API error for ZIP ${zip}: ${response.status}`);
       return null;
@@ -478,11 +574,23 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
   const allZipData = [];
   const missingZips = [];
   const matchedZips = [];
-  const chunkSize = 8;
+  const chunkSize = 5; // Reduced chunk size to avoid rate limits
+  const delayBetweenChunks = 200; // Delay between chunks in ms
 
   for (let i = 0; i < zipRows.length; i += chunkSize) {
     const chunk = zipRows.slice(i, i + chunkSize);
-    const chunkResults = await Promise.all(chunk.map(row => fetchZipAcsData(row, year)));
+    
+    // Process chunk sequentially with small delays between requests
+    const chunkResults = [];
+    for (const row of chunk) {
+      const result = await fetchZipAcsData(row, year);
+      chunkResults.push(result);
+      // Small delay between requests within a chunk
+      if (chunkResults.length < chunk.length) {
+        await delay(100);
+      }
+    }
+    
     chunkResults.forEach((result, idx) => {
       const zipCode = String(chunk[idx].zip_code).padStart(5, '0');
       if (result) {
@@ -492,9 +600,10 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
         missingZips.push(zipCode);
       }
     });
-
+    
+    // Delay between chunks to avoid rate limiting
     if (i + chunkSize < zipRows.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await delay(delayBetweenChunks);
     }
   }
 
@@ -545,7 +654,9 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
 
   const stateSet = new Set(allZipData.map(z => z.state).filter(Boolean));
   const stateAverages = {};
-  for (const stateFips of stateSet) {
+  const stateArray = Array.from(stateSet);
+  for (let i = 0; i < stateArray.length; i++) {
+    const stateFips = stateArray[i];
     const average = await getStateAverages(stateFips, year);
     if (average) {
       stateAverages[stateFips] = {
@@ -558,6 +669,10 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
         median_rent: average.median_rent,
         median_home_value: average.median_home_value
       };
+    }
+    // Delay between state requests to avoid rate limiting
+    if (i < stateArray.length - 1) {
+      await delay(200);
     }
   }
 
@@ -871,7 +986,8 @@ router.get('/census-acs-api', async (req, res) => {
     const countyAverages = {};
     
     // Fetch state averages for all states in the market
-    for (const stateFips of statesInMarket) {
+    for (let i = 0; i < statesInMarket.length; i++) {
+      const stateFips = statesInMarket[i];
       const stateData = await getStateAverages(stateFips, year);
       if (stateData) {
         stateAverages[stateFips] = {
@@ -885,10 +1001,15 @@ router.get('/census-acs-api', async (req, res) => {
           median_home_value: stateData.median_home_value
         };
       }
+      // Delay between state requests to avoid rate limiting
+      if (i < statesInMarket.length - 1) {
+        await delay(200);
+      }
     }
     
     // Fetch county averages for all counties in the market
-    for (const countyKey of countiesInMarket) {
+    for (let i = 0; i < countiesInMarket.length; i++) {
+      const countyKey = countiesInMarket[i];
       const [stateFips, countyFips] = countyKey.split('-');
       const countyData = await getCountyAverages(stateFips, countyFips, year);
       if (countyData) {
@@ -902,6 +1023,10 @@ router.get('/census-acs-api', async (req, res) => {
           median_rent: countyData.median_rent,
           median_home_value: countyData.median_home_value
         };
+      }
+      // Delay between county requests to avoid rate limiting
+      if (i < countiesInMarket.length - 1) {
+        await delay(200);
       }
     }
     

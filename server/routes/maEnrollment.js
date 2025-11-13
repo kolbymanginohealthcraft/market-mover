@@ -151,6 +151,143 @@ router.post("/ma-enrollment-trend", async (req, res) => {
 });
 
 /**
+ * POST /api/ma-enrollment-by-org
+ * Body: { parentOrg: "UnitedHealth Group", publishDate: "2024-12-01", type: "MA" | "PDP" | "ALL" }
+ * Returns: Nationwide enrollment data for a specific parent organization
+ */
+router.post("/ma-enrollment-by-org", async (req, res) => {
+  const { parentOrg, publishDate, type = "ALL" } = req.body;
+  if (!parentOrg || !publishDate) {
+    return res.status(400).json({ success: false, error: "parentOrg and publishDate (YYYY-MM-DD) are required" });
+  }
+
+  const cacheKey = `ma_enrollment_by_org_${parentOrg}_${publishDate}_${type}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
+  try {
+    console.log(`🔍 Fetching nationwide ${type} enrollment data for ${parentOrg}, date: ${publishDate}`);
+
+    let typeFilter = "";
+    if (type === "MA") {
+      typeFilter = "AND c.type = 'MA'";
+    } else if (type === "PDP") {
+      typeFilter = "AND c.type = 'PDP'";
+    }
+
+    const query = `
+      SELECT 
+        e.fips,
+        e.plan_id,
+        e.enrollment,
+        pl.name as plan_name,
+        pl.snp_type,
+        c.name as contract_name,
+        c.parent_org,
+        c.type as contract_type
+      FROM \`market-mover-464517.payers.ma_enrollment\` e
+      LEFT JOIN \`market-mover-464517.payers.ma_plan\` pl 
+        ON e.plan_id = pl.plan_id
+      LEFT JOIN \`market-mover-464517.payers.ma_contract\` c 
+        ON pl.contract_id = c.contract_id
+      WHERE c.parent_org = @parentOrg
+        AND e.publish_date = @publishDate
+        ${typeFilter}
+      ORDER BY e.fips, e.enrollment DESC
+    `;
+
+    const [rows] = await myBigQuery.query({
+      query: query,
+      location: "US",
+      params: { parentOrg, publishDate }
+    });
+
+    console.log(`✅ Found ${rows.length} nationwide ${type} enrollment records for ${parentOrg}`);
+
+    cache.set(cacheKey, rows, 3600);
+
+    res.json({ success: true, data: rows });
+
+  } catch (error) {
+    console.error(`❌ Nationwide ${type} enrollment query error:`, error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: `Failed to fetch nationwide ${type} enrollment data`,
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * POST /api/ma-enrollment-trend-by-org
+ * Body: { parentOrg: "UnitedHealth Group", startDate: "2023-01-01", endDate: "2024-12-01", type: "MA" | "PDP" | "ALL" }
+ * Returns: Nationwide historical enrollment trends for a specific parent organization
+ */
+router.post("/ma-enrollment-trend-by-org", async (req, res) => {
+  const { parentOrg, startDate, endDate, type = "ALL" } = req.body;
+  if (!parentOrg || !startDate || !endDate) {
+    return res.status(400).json({ success: false, error: "parentOrg, startDate, and endDate are required" });
+  }
+
+  const cacheKey = `ma_enrollment_trend_by_org_${parentOrg}_${startDate}_${endDate}_${type}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
+  try {
+    console.log(`🔍 Fetching nationwide ${type} enrollment trend data for ${parentOrg}, period: ${startDate} to ${endDate}`);
+
+    let typeFilter = "";
+    if (type === "MA") {
+      typeFilter = "AND c.type = 'MA'";
+    } else if (type === "PDP") {
+      typeFilter = "AND c.type = 'PDP'";
+    }
+
+    const query = `
+      SELECT 
+        e.publish_date,
+        c.parent_org,
+        c.type as contract_type,
+        SUM(e.enrollment) as org_enrollment
+      FROM \`market-mover-464517.payers.ma_enrollment\` e
+      LEFT JOIN \`market-mover-464517.payers.ma_plan\` pl 
+        ON e.plan_id = pl.plan_id
+      LEFT JOIN \`market-mover-464517.payers.ma_contract\` c 
+        ON pl.contract_id = c.contract_id
+      WHERE c.parent_org = @parentOrg
+        AND e.publish_date BETWEEN @startDate AND @endDate
+        ${typeFilter}
+      GROUP BY e.publish_date, c.parent_org, c.type
+      ORDER BY e.publish_date, c.parent_org
+    `;
+
+    const [rows] = await myBigQuery.query({
+      query: query,
+      location: "US",
+      params: { parentOrg, startDate, endDate }
+    });
+
+    console.log(`✅ Found ${rows.length} nationwide ${type} enrollment trend records for ${parentOrg}`);
+
+    cache.set(cacheKey, rows, 3600);
+
+    res.json({ success: true, data: rows });
+
+  } catch (error) {
+    console.error(`❌ Nationwide ${type} enrollment trend query error:`, error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: `Failed to fetch nationwide ${type} enrollment trend data`,
+      details: error.message 
+    });
+  }
+});
+
+/**
  * GET /api/ma-enrollment-dates
  * Returns: All available publish dates in the ma_enrollment table
  */

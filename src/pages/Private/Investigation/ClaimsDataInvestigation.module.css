@@ -53,7 +53,7 @@
 }
 
 .dropdownItem:hover {
-  background: rgba(0, 192, 139, 0.1);
+  background: rgba(0, 192, 139, 0.1) !important;
   color: var(--primary-teal-dark);
 }
 
