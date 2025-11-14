@@ -273,15 +273,22 @@ export default function StandaloneCatchment() {
     return labels[letter] || '';
   };
 
-  // Helper function to convert specialty CCN to main CCN
-  const getMainCcn = (ccn) => {
-    if (!ccn || ccn.length < 3) return null;
+  // Helper function to find main CCN pattern from specialty CCN
+  // For specialty CCNs like 14S054, we want to find the main CCN that matches
+  // the pattern: first 2 digits + any digit + last 3 digits (e.g., 140054)
+  // This function returns a pattern we can use to search for the main CCN
+  const getMainCcnPattern = (ccn) => {
+    if (!ccn || ccn.length < 6) return null;
     const thirdChar = ccn[2];
     // Check if 3rd character is a letter (specialty unit indicator)
     if (/[A-Z]/.test(thirdChar)) {
-      // Replace letter with corresponding number (usually 0)
-      // For most cases, the pattern is: replace letter with 0
-      return ccn.substring(0, 2) + '0' + ccn.substring(3);
+      // Return pattern: first 2 digits + last 3 digits
+      // We'll search for CCNs matching this pattern (e.g., 14X054 where X is 0-9)
+      return {
+        prefix: ccn.substring(0, 2), // "14"
+        suffix: ccn.substring(3),    // "054"
+        fullPattern: ccn.substring(0, 2) + '\\d' + ccn.substring(3) // "14\\d054" for regex
+      };
     }
     return null;
   };
@@ -334,120 +341,85 @@ export default function StandaloneCatchment() {
           }
         }
 
-        // Step 2: Find CCNs that still don't have names
+        // Step 2: For remaining missing CCNs, try specialty unit fallback
         const missingCcns = uniqueCcns.filter(ccn => !nameMap.has(String(ccn)));
-
         if (missingCcns.length > 0) {
-          console.log(`🔍 ${missingCcns.length} CCNs missing names, trying Hospital Enrollments...`);
-          
-          // Step 3: Fallback to hospital-enrollments for missing CCNs
-          const heResponse = await fetch(apiUrl('/api/hospital-enrollments'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ccns: missingCcns,
-            }),
-          });
-
-          if (heResponse.ok) {
-            const heResult = await heResponse.json();
-            if (heResult.success && Array.isArray(heResult.data)) {
-              let heCount = 0;
-              heResult.data.forEach((record) => {
-                const ccn = record?.CCN || record?.ccn;
-                const orgName = record?.ORGANIZATION_NAME || record?.organization_name;
-                if (ccn && orgName && !nameMap.has(String(ccn))) {
-                  nameMap.set(String(ccn), String(orgName));
-                  heCount++;
-                }
-              });
-              console.log(`✅ Hospital Enrollments: Added ${heCount} additional names from ${heResult.data.length} records`);
-            }
-          }
-        }
-
-        // Step 4: For remaining missing CCNs, try specialty unit fallback
-        const stillMissingCcns = uniqueCcns.filter(ccn => !nameMap.has(String(ccn)));
-        if (stillMissingCcns.length > 0) {
-          console.log(`🔍 ${stillMissingCcns.length} CCNs still missing, trying specialty unit fallback...`);
+          console.log(`🔍 ${missingCcns.length} CCNs missing names, trying specialty unit fallback...`);
           
           // Find specialty CCNs (those with letters in 3rd position)
-          const specialtyCcns = stillMissingCcns.filter(ccn => {
-            return ccn && ccn.length >= 3 && /[A-Z]/.test(ccn[2]);
+          const specialtyCcns = missingCcns.filter(ccn => {
+            return ccn && ccn.length >= 6 && /[A-Z]/.test(ccn[2]);
           });
 
           if (specialtyCcns.length > 0) {
-            // Get main CCNs for these specialty units
-            const mainCcnsToLookup = Array.from(
-              new Set(
-                specialtyCcns
-                  .map(ccn => getMainCcn(ccn))
-                  .filter(ccn => ccn !== null)
-              )
-            );
+            // Get patterns for main CCNs (first 2 + last 3 digits)
+            const specialtyPatterns = specialtyCcns
+              .map(ccn => getMainCcnPattern(ccn))
+              .filter(pattern => pattern !== null);
 
-            if (mainCcnsToLookup.length > 0) {
-              // Try to get names for main CCNs from provider-of-services
-              const mainPosResponse = await fetch(apiUrl('/api/provider-of-services'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  filters: { PRVDR_NUM: mainCcnsToLookup },
-                  limit: mainCcnsToLookup.length,
-                }),
+            if (specialtyPatterns.length > 0) {
+              // Generate all possible main CCNs (try digits 0-9 in the 3rd position)
+              const possibleMainCcns = new Set();
+              specialtyPatterns.forEach(pattern => {
+                for (let digit = 0; digit <= 9; digit++) {
+                  const possibleCcn = pattern.prefix + digit + pattern.suffix;
+                  possibleMainCcns.add(possibleCcn);
+                }
               });
 
-              if (mainPosResponse.ok) {
-                const mainPosResult = await mainPosResponse.json();
-                if (mainPosResult.success && Array.isArray(mainPosResult.data)) {
-                  const mainNameMap = new Map();
-                  mainPosResult.data.forEach((record) => {
-                    const ccn = record?.PRVDR_NUM;
-                    const facName = record?.FAC_NAME;
-                    if (ccn && facName) {
-                      mainNameMap.set(String(ccn), String(facName));
-                    }
-                  });
+              const mainCcnsToLookup = Array.from(possibleMainCcns);
 
-                  // If provider-of-services didn't have them, try hospital-enrollments
-                  const missingMainCcns = mainCcnsToLookup.filter(ccn => !mainNameMap.has(String(ccn)));
-                  if (missingMainCcns.length > 0) {
-                    const mainHeResponse = await fetch(apiUrl('/api/hospital-enrollments'), {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        ccns: missingMainCcns,
-                      }),
+              if (mainCcnsToLookup.length > 0) {
+                // Try to get names for possible main CCNs from provider-of-services
+                const mainPosResponse = await fetch(apiUrl('/api/provider-of-services'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    filters: { PRVDR_NUM: mainCcnsToLookup },
+                    limit: mainCcnsToLookup.length,
+                  }),
+                });
+
+                if (mainPosResponse.ok) {
+                  const mainPosResult = await mainPosResponse.json();
+                  if (mainPosResult.success && Array.isArray(mainPosResult.data)) {
+                    const mainNameMap = new Map();
+                    mainPosResult.data.forEach((record) => {
+                      const ccn = record?.PRVDR_NUM;
+                      const facName = record?.FAC_NAME;
+                      if (ccn && facName) {
+                        mainNameMap.set(String(ccn), String(facName));
+                      }
                     });
 
-                    if (mainHeResponse.ok) {
-                      const mainHeResult = await mainHeResponse.json();
-                      if (mainHeResult.success && Array.isArray(mainHeResult.data)) {
-                        mainHeResult.data.forEach((record) => {
-                          const ccn = record?.CCN || record?.ccn;
-                          const orgName = record?.ORGANIZATION_NAME || record?.organization_name;
-                          if (ccn && orgName) {
-                            mainNameMap.set(String(ccn), String(orgName));
+                    // Now create names for specialty units by matching patterns
+                    let specialtyCount = 0;
+                    specialtyCcns.forEach(specialtyCcn => {
+                      const pattern = getMainCcnPattern(specialtyCcn);
+                      if (pattern) {
+                        // Find matching main CCN (try digits 0-9)
+                        let foundMainCcn = null;
+                        let foundMainName = null;
+                        for (let digit = 0; digit <= 9; digit++) {
+                          const testCcn = pattern.prefix + digit + pattern.suffix;
+                          if (mainNameMap.has(testCcn)) {
+                            foundMainCcn = testCcn;
+                            foundMainName = mainNameMap.get(testCcn);
+                            break;
                           }
-                        });
-                      }
-                    }
-                  }
+                        }
 
-                  // Now create names for specialty units
-                  let specialtyCount = 0;
-                  specialtyCcns.forEach(specialtyCcn => {
-                    const mainCcn = getMainCcn(specialtyCcn);
-                    if (mainCcn && mainNameMap.has(mainCcn)) {
-                      const mainName = mainNameMap.get(mainCcn);
-                      const specialtyLetter = specialtyCcn[2];
-                      const specialtyLabel = getSpecialtyLabel(specialtyLetter);
-                      const fullName = mainName + specialtyLabel;
-                      nameMap.set(String(specialtyCcn), fullName);
-                      specialtyCount++;
-                    }
-                  });
-                  console.log(`✅ Specialty Unit Fallback: Added ${specialtyCount} names from main hospital CCNs`);
+                        if (foundMainName) {
+                          const specialtyLetter = specialtyCcn[2];
+                          const specialtyLabel = getSpecialtyLabel(specialtyLetter);
+                          const fullName = foundMainName + specialtyLabel;
+                          nameMap.set(String(specialtyCcn), fullName);
+                          specialtyCount++;
+                        }
+                      }
+                    });
+                    console.log(`✅ Specialty Unit Fallback: Added ${specialtyCount} names from main hospital CCNs`);
+                  }
                 }
               }
             }
@@ -588,6 +560,13 @@ export default function StandaloneCatchment() {
                 ZIP Codes → Hospitals
               </button>
               <button
+                className={`${styles.toggleButton} ${analysisType === 'zip_codes_grouped' ? styles.active : ''}`}
+                onClick={() => setAnalysisType('zip_codes_grouped')}
+              >
+                <MapPin size={16} />
+                ZIP Codes Grouped
+              </button>
+              <button
                 className={`${styles.toggleButton} ${analysisType === 'hospitals_grouped' ? styles.active : ''}`}
                 onClick={() => setAnalysisType('hospitals_grouped')}
               >
@@ -598,6 +577,8 @@ export default function StandaloneCatchment() {
             <p className={styles.toggleDescription}>
               {analysisType === 'zip_to_hospitals'
                 ? 'Analyze which hospitals patients visit from ZIP codes in your geographic area'
+                : analysisType === 'zip_codes_grouped'
+                ? 'Group ZIP codes and aggregate their total patient volume and charges'
                 : 'Group hospitals and aggregate their total patient volume and charges'}
             </p>
           </div>
@@ -667,7 +648,7 @@ export default function StandaloneCatchment() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>ZIP Code</th>
+                        <th>Resident ZIP Code</th>
                         <th>Hospital</th>
                         <th>CCN</th>
                         <th>Total Cases</th>
@@ -703,6 +684,71 @@ export default function StandaloneCatchment() {
                             </tr>
                           );
                         })}
+                    </tbody>
+                  </table>
+                ) : analysisType === 'zip_codes_grouped' ? (
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Resident ZIP Code</th>
+                        <th>Total Cases</th>
+                        <th>Total Charges</th>
+                        <th>Avg Days</th>
+                        <th>Avg Charge</th>
+                        <th>Hospitals</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const groupedData = {};
+                        catchmentData.hospitalData?.forEach((row) => {
+                          const zipCode = row.ZIP_CD_OF_RESIDENCE;
+                          if (!groupedData[zipCode]) {
+                            groupedData[zipCode] = {
+                              ZIP_CD_OF_RESIDENCE: zipCode,
+                              TOTAL_CASES: 0,
+                              TOTAL_DAYS_OF_CARE: 0,
+                              TOTAL_CHARGES: 0,
+                              HOSPITAL_COUNT: new Set(),
+                            };
+                          }
+                          groupedData[zipCode].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
+                          groupedData[zipCode].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+                          groupedData[zipCode].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
+                          if (row.MEDICARE_PROV_NUM && row.MEDICARE_PROV_NUM !== '*') {
+                            groupedData[zipCode].HOSPITAL_COUNT.add(row.MEDICARE_PROV_NUM);
+                          }
+                        });
+
+                        return Object.values(groupedData)
+                          .map(row => ({
+                            ...row,
+                            HOSPITAL_COUNT: row.HOSPITAL_COUNT.size
+                          }))
+                          .sort((a, b) => {
+                            const casesA = parseInt(a.TOTAL_CASES) || 0;
+                            const casesB = parseInt(b.TOTAL_CASES) || 0;
+                            return casesB - casesA;
+                          })
+                          .map((row, index) => {
+                            const cases = parseInt(row.TOTAL_CASES) || 0;
+                            const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+                            const charges = parseInt(row.TOTAL_CHARGES) || 0;
+                            const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
+                            const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
+
+                            return (
+                              <tr key={index}>
+                                <td>{row.ZIP_CD_OF_RESIDENCE}</td>
+                                <td>{cases.toLocaleString()}</td>
+                                <td>${charges.toLocaleString()}</td>
+                                <td>{avgDays}</td>
+                                <td>${parseInt(avgCharges).toLocaleString()}</td>
+                                <td>{row.HOSPITAL_COUNT}</td>
+                              </tr>
+                            );
+                          });
+                      })()}
                     </tbody>
                   </table>
                 ) : (
