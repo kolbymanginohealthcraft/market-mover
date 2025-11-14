@@ -79,6 +79,11 @@ export default function TaxonomiesBrowseView() {
   async function fetchHierarchyData() {
     try {
       const response = await fetch('/api/taxonomies-hierarchy');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch hierarchy: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
@@ -171,6 +176,11 @@ export default function TaxonomiesBrowseView() {
       });
       
       const response = await fetch(`/api/taxonomies-reference?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch taxonomy codes: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
       
       if (!result.success) {
