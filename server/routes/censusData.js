@@ -892,6 +892,9 @@ router.get('/census-acs-api', async (req, res) => {
     return res.status(400).json({ success: false, error: 'lat, lon, and radius are required' });
   }
 
+  // Log API key status on every request (will only log once due to flag)
+  logApiKeyStatus();
+
   console.log(`🌍 Census API request: geography=${geography}, lat=${lat}, lon=${lon}, radius=${radius}, year=${year}`);
 
   // Check cache first

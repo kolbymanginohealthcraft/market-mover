@@ -6,6 +6,7 @@ import Spinner from '../../../components/Buttons/Spinner';
 import UserDetailModal from './UserDetailModal';
 import ManageTeams from '../../../pages/Private/Settings/Platform/ManageTeams';
 import Dropdown from '../../../components/Buttons/Dropdown';
+import { apiUrl } from '../../../utils/api';
 import styles from './UserList.module.css';
 
 export default function UserList() {
@@ -138,7 +139,7 @@ export default function UserList() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return {};
 
-      const response = await fetch('/api/users/login-history', {
+      const response = await fetch(apiUrl('/api/users/login-history'), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +163,7 @@ export default function UserList() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return {};
 
-      const response = await fetch('/api/users/activity-counts', {
+      const response = await fetch(apiUrl('/api/users/activity-counts'), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
