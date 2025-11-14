@@ -801,15 +801,21 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Express API server running at http://0.0.0.0:${PORT}`);
-}).on('error', (err) => {
-  console.error('❌ Server error:', err);
-});
+// Only start the server if not in Vercel's serverless environment
+if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Express API server running at http://0.0.0.0:${PORT}`);
+  }).on('error', (err) => {
+    console.error('❌ Server error:', err);
+  });
 
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection:', reason);
-});
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+  });
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection:', reason);
+  });
+}
+
+// Export for Vercel serverless functions
+export default app;
