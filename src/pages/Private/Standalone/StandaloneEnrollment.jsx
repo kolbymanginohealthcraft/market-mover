@@ -112,6 +112,7 @@ export default function StandaloneEnrollment() {
   const publishDate = publishDates[publishDates.length - 1] || null;
 
   const marketIdParam = searchParams.get('marketId');
+  const payerParam = searchParams.get('payer');
 
   const selectedMarket = useMemo(() => {
     if (!savedMarkets.length) return null;
@@ -157,6 +158,15 @@ export default function StandaloneEnrollment() {
   const { data: trendData, loading: trendLoading, error: trendError } = useMAEnrollmentTrendData(
     useNationwideForPayer ? null : baseProvider,
     useNationwideForPayer ? null : effectiveRadius,
+    trendRange.startDate,
+    trendRange.endDate,
+    planType
+  );
+
+  // Always fetch market-specific trend data when we have a market, even in payer view
+  const { data: marketTrendData, loading: marketTrendLoading, error: marketTrendError } = useMAEnrollmentTrendData(
+    hasCoordinates && selectedMarket ? baseProvider : null,
+    hasCoordinates && selectedMarket ? effectiveRadius : null,
     trendRange.startDate,
     trendRange.endDate,
     planType
@@ -277,10 +287,18 @@ export default function StandaloneEnrollment() {
       setSelectedParentOrg('');
       return;
     }
+    
+    // If payer query parameter exists and matches a payer in the list, use it
+    if (payerParam && parentOrgSummary.some((item) => item.parentOrg === payerParam)) {
+      setSelectedParentOrg(payerParam);
+      return;
+    }
+    
+    // Otherwise, default to first payer if current selection is invalid
     if (!selectedParentOrg || !parentOrgSummary.some((item) => item.parentOrg === selectedParentOrg)) {
       setSelectedParentOrg(parentOrgSummary[0].parentOrg);
     }
-  }, [parentOrgSummary, selectedParentOrg]);
+  }, [parentOrgSummary, selectedParentOrg, payerParam]);
 
   const selectedParentEntry = useMemo(() => {
     if (!selectedParentOrg) return null;
@@ -344,6 +362,24 @@ export default function StandaloneEnrollment() {
       .sort((a, b) => (a.publishDate > b.publishDate ? 1 : -1));
   }, [trendData, nationwideTrendData, selectedParentOrg, hasCoordinates, useNationwideForPayer]);
 
+  const marketTrend = useMemo(() => {
+    // Market-specific trend (only when market is selected and we're in payer view)
+    if (!hasCoordinates || !useNationwideForPayer || !selectedParentOrg || !Array.isArray(marketTrendData) || !marketTrendData.length) return [];
+    return marketTrendData
+      .filter((row) => (row.parent_org || 'Other / Unknown') === selectedParentOrg)
+      .map((row) => {
+        const publishDateValue = row.publish_date?.value || row.publish_date || row.publishDate || row.date;
+        const formattedDate = typeof publishDateValue === 'string'
+          ? publishDateValue.slice(0, 10)
+          : String(publishDateValue).slice(0, 10);
+        return {
+          publishDate: formattedDate,
+          enrollment: row.org_enrollment || 0,
+        };
+      })
+      .sort((a, b) => (a.publishDate > b.publishDate ? 1 : -1));
+  }, [marketTrendData, selectedParentOrg, hasCoordinates, useNationwideForPayer]);
+
   const growthMetrics = useMemo(() => {
     if (!parentOrgTrend.length) return null;
     const first = parentOrgTrend[0];
@@ -357,6 +393,20 @@ export default function StandaloneEnrollment() {
       percentage,
     };
   }, [parentOrgTrend]);
+
+  const marketGrowthMetrics = useMemo(() => {
+    if (!marketTrend.length) return null;
+    const first = marketTrend[0];
+    const last = marketTrend[marketTrend.length - 1];
+    const absolute = (last.enrollment || 0) - (first.enrollment || 0);
+    const percentage = first.enrollment ? (absolute / first.enrollment) * 100 : null;
+    return {
+      start: first,
+      end: last,
+      absolute,
+      percentage,
+    };
+  }, [marketTrend]);
 
   const hasMarkets = savedMarkets.length > 0;
   const canShowPayerView = activeView === 'payer' && selectedParentOrg;
@@ -441,8 +491,9 @@ export default function StandaloneEnrollment() {
                               type="button"
                               className={styles.linkButton}
                               onClick={() => {
-                                setSelectedParentOrg(entry.parentOrg);
-                                navigate('/app/enrollment/payer');
+                                const newSearchParams = new URLSearchParams(searchParams);
+                                newSearchParams.set('payer', entry.parentOrg);
+                                navigate(`/app/enrollment/payer?${newSearchParams.toString()}`);
                               }}
                             >
                               {entry.parentOrg}
@@ -462,7 +513,7 @@ export default function StandaloneEnrollment() {
           </div>
         ) : (
           <div className={styles.panelWrapper}>
-            {loadingDates || loadingOrgs || nationwideMaLoading || nationwideTrendLoading ? (
+            {loadingDates || loadingOrgs || nationwideMaLoading || nationwideTrendLoading || (hasCoordinates && marketTrendLoading) ? (
               <Spinner message="Loading payer deep dive..." />
             ) : errorOrgs ? (
               <div className={styles.errorPanel}>
@@ -501,7 +552,11 @@ export default function StandaloneEnrollment() {
                     <select
                       id="parent-org-select"
                       value={selectedParentOrg}
-                      onChange={(e) => setSelectedParentOrg(e.target.value)}
+                      onChange={(e) => {
+                        const newSearchParams = new URLSearchParams(searchParams);
+                        newSearchParams.set('payer', e.target.value);
+                        navigate(`/app/enrollment/payer?${newSearchParams.toString()}`);
+                      }}
                     >
                       {parentOrgSummary.map((entry) => (
                         <option key={entry.parentOrg} value={entry.parentOrg}>
@@ -535,7 +590,7 @@ export default function StandaloneEnrollment() {
                       {growthMetrics && (
                         <div className={styles.metricCardWide}>
                           <div className={styles.metricRow}>
-                            <span className={styles.metricLabel}>Growth</span>
+                            <span className={styles.metricLabel}>National Growth</span>
                             <span className={styles.metricValue}>
                               {formatNumber(growthMetrics.absolute)}
                               {typeof growthMetrics.percentage === 'number' && (
@@ -547,6 +602,24 @@ export default function StandaloneEnrollment() {
                           </div>
                           <div className={styles.metricSubline}>
                             {growthMetrics.start.publishDate} → {growthMetrics.end.publishDate}
+                          </div>
+                        </div>
+                      )}
+                      {marketGrowthMetrics && selectedMarket && (
+                        <div className={styles.metricCardWide}>
+                          <div className={styles.metricRow}>
+                            <span className={styles.metricLabel}>Growth in {selectedMarket.name}</span>
+                            <span className={styles.metricValue}>
+                              {formatNumber(marketGrowthMetrics.absolute)}
+                              {typeof marketGrowthMetrics.percentage === 'number' && (
+                                <span className={styles.metricDelta}>
+                                  {marketGrowthMetrics.percentage >= 0 ? '+' : ''}{marketGrowthMetrics.percentage.toFixed(1)}%
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className={styles.metricSubline}>
+                            {marketGrowthMetrics.start.publishDate} → {marketGrowthMetrics.end.publishDate}
                           </div>
                         </div>
                       )}

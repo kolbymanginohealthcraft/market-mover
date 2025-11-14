@@ -12,7 +12,8 @@ import {
   Radius,
   Check,
   X,
-  LineChart
+  LineChart,
+  Target
 } from 'lucide-react';
 import { useUserTeam } from '../../hooks/useUserTeam';
 import { useUser } from '../Context/UserContext';
@@ -276,6 +277,17 @@ const Sidebar = ({
           >
             {EnrollmentIcon && <EnrollmentIcon {...navigationIconProps} />}
             {!isCollapsed && 'CMS Enrollment'}
+          </Link>
+
+        <Link 
+            to="/app/catchment" 
+            className={`${styles.navItem} ${isActive('/catchment') ? styles.active : ''}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Catchment')}
+          onMouseLeave={handleMouseLeave}
+          {...mobileLinkHandlers}
+          >
+            <Target size={14} />
+            {!isCollapsed && 'Catchment'}
           </Link>
           
           {/* Section divider */}

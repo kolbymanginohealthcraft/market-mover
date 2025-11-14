@@ -145,7 +145,7 @@
 .kpiTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   contain: layout style;
 }
 
@@ -155,8 +155,8 @@
 
 .kpiTable th {
   text-align: left;
-  padding: 12px 16px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 600;
   color: #374151;
   border-bottom: 1px solid #e5e7eb;
@@ -180,8 +180,8 @@
 }
 
 .kpiTable td {
-  padding: 12px 16px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
   color: #374151;
   vertical-align: top;
 }

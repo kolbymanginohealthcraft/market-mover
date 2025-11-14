@@ -474,7 +474,6 @@ export default function NetworkListView() {
               <p>Try adjusting your search or filters to find providers in your network.</p>
             </div>
           ) : (
-                         <div className={styles.tablePanel}>
                <div className={styles.tableScroll}>
                 <table className={styles.providersTable}>
                 <thead>
@@ -566,7 +565,6 @@ export default function NetworkListView() {
                 </tbody>
                 </table>
               </div>
-            </div>
           )}
         </div>
 

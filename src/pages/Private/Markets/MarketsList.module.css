@@ -33,19 +33,19 @@
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 8px 12px;
   background: var(--gray-50);
   border-bottom: 1px solid var(--gray-200);
   font-weight: 600;
   color: var(--gray-600);
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 .tableRow {
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--gray-100);
   align-items: center;
   transition: background-color 0.2s ease;
@@ -60,7 +60,7 @@
 }
 
 .tableCell {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--gray-600);
 }
 

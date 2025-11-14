@@ -81,6 +81,7 @@ import TestProviderOfServices from "../pages/TestProviderOfServices";
 import TestProviderOfServicesEnriched from "../pages/TestProviderOfServicesEnriched";
 import StandaloneEnrollment from "../pages/Private/Standalone/StandaloneEnrollment";
 import StandalonePopulation from "../pages/Private/Standalone/StandalonePopulation";
+import StandaloneCatchment from "../pages/Private/Standalone/StandaloneCatchment";
 
 // Inner App component that has access to UserContext
 function AppContent({ location }) {
@@ -140,6 +141,7 @@ function AppContent({ location }) {
             <Route path="feedback" element={<Feedback />} />
             <Route path="enrollment/*" element={<StandaloneEnrollment />} />
             <Route path="population/*" element={<StandalonePopulation />} />
+            <Route path="catchment/*" element={<StandaloneCatchment />} />
             <Route path="storyteller/*" element={<StandaloneStoryteller />} />
             
             {/* Provider market analysis view - must come before the simpler provider route */}

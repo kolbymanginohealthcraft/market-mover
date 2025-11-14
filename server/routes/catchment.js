@@ -288,7 +288,18 @@ router.post("/catchment-zip-analysis", async (req, res) => {
       row.TOTAL_CHARGES !== "*"
     );
 
+    // Count unique hospitals by unique CCNs
+    // Note: For hospitals_grouped, the frontend groups by CCN, but counting unique CCNs
+    // here is still efficient and works for both analysis types
+    const uniqueCcns = new Set(
+      filteredHospitalData
+        .map(row => row.MEDICARE_PROV_NUM)
+        .filter(ccn => ccn && ccn !== '*')
+    );
+    const totalUniqueHospitals = uniqueCcns.size;
+
     console.log(`✅ Returning ${filteredHospitalData.length} filtered hospital records for ${zipCodes.length} zip codes`);
+    console.log(`📊 Found ${totalUniqueHospitals} unique hospitals (by CCN)`);
 
     res.json({
       success: true,
@@ -298,6 +309,7 @@ router.post("/catchment-zip-analysis", async (req, res) => {
         summary: {
           totalZipCodes: zipCodes.length,
           totalHospitalRecords: filteredHospitalData.length,
+          totalUniqueHospitals: totalUniqueHospitals,
           totalCases: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_CASES) || 0), 0),
           totalDays: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_DAYS_OF_CARE) || 0), 0),
           totalCharges: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_CHARGES) || 0), 0)
