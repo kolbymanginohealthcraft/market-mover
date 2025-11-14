@@ -3,6 +3,7 @@ import { supabase } from '../../../app/supabaseClient';
 import { Trash2, Bookmark, ChevronDown } from 'lucide-react';
 import TaxonomyTooltip from '../../../components/UI/TaxonomyTooltip';
 import Dropdown from '../../../components/Buttons/Dropdown';
+import { apiUrl } from '../../../utils/api';
 import styles from './Taxonomies.module.css';
 import { ensureSingleTeamTaxonomyTag } from '../../../utils/taxonomyTagUtils';
 
@@ -84,7 +85,7 @@ export default function TaxonomiesTagsView() {
     try {
       const codes = tags.map(tag => tag.taxonomy_code);
       
-      const detailsResponse = await fetch('/api/taxonomies-details', {
+      const detailsResponse = await fetch(apiUrl('/api/taxonomies-details'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codes })

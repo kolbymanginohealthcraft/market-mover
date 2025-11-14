@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import { Trash2, Bookmark } from 'lucide-react';
+import { apiUrl } from '../../../utils/api';
 import styles from './Metrics.module.css';
 
 export default function MetricsTagsView() {
@@ -63,7 +64,7 @@ export default function MetricsTagsView() {
     try {
       const codes = tags.map(tag => tag.kpi_code);
       
-      const response = await fetch('/api/kpis-details', {
+      const response = await fetch(apiUrl('/api/kpis-details'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codes })

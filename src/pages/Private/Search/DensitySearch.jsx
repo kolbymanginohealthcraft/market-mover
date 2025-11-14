@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
+import { apiUrl } from '../../../utils/api';
 import styles from './AdvancedSearch.module.css';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import Spinner from '../../../components/Buttons/Spinner';
@@ -85,7 +86,7 @@ export default function DensitySearch() {
       if (data && data.length > 0) {
         const codes = [...new Set(data.map(tag => tag.taxonomy_code))];
         try {
-          const detailsResponse = await fetch('/api/taxonomies-details', {
+          const detailsResponse = await fetch(apiUrl('/api/taxonomies-details'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ codes })
@@ -204,7 +205,7 @@ export default function DensitySearch() {
         requestBody.taxonomyCodes = [...new Set(taxonomyCodesToFilter)];
       }
 
-      const response = await fetch('/api/hcp-data/taxonomy-density', {
+      const response = await fetch(apiUrl('/api/hcp-data/taxonomy-density'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -222,7 +223,7 @@ export default function DensitySearch() {
       if (result.data && result.data.length > 0) {
         const codes = result.data.map(r => r.taxonomy_code);
         try {
-          const detailsResponse = await fetch('/api/taxonomies-details', {
+          const detailsResponse = await fetch(apiUrl('/api/taxonomies-details'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ codes })

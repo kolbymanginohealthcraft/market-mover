@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
 import { Trash2, Bookmark } from 'lucide-react';
 import ProcedureTooltip from '../../../components/UI/ProcedureTooltip';
+import { apiUrl } from '../../../utils/api';
 import styles from './Procedures.module.css';
 
 export default function ProceduresTagsView() {
@@ -66,12 +67,12 @@ export default function ProceduresTagsView() {
       
       // Fetch both details and volume in parallel
       const [detailsResponse, volumeResponse] = await Promise.all([
-        fetch('/api/procedures-details', {
+        fetch(apiUrl('/api/procedures-details'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codes })
         }),
-        fetch('/api/procedures-volume-by-code', {
+        fetch(apiUrl('/api/procedures-volume-by-code'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codes })
