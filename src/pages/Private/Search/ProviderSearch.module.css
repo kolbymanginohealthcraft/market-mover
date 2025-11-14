@@ -621,6 +621,7 @@
   margin: 0;
   border-radius: 0;
   border: none;
+  min-height: 0;
 }
 
 .loadingOverlay {
@@ -1310,5 +1311,138 @@
   text-align: right;
   font-weight: 600;
   color: var(--purple-700);
+}
+
+/* Split View Layout for Map + Table */
+.splitView {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.tablePanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.tableScroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Map Panel */
+.mapPanel {
+  flex: 0 0 32%;
+  min-width: 300px;
+  height: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mapPanel :global(.maplibregl-container) {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Map Legend */
+.mapLegend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  font-size: 0.75rem;
+  color: #666;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.legendDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.legendMe {
+  background-color: #265947;
+}
+
+.legendPartner {
+  background-color: #3599b8;
+}
+
+.legendCompetitor {
+  background-color: #d64550;
+}
+
+.legendTarget {
+  background-color: #f1b62c;
+}
+
+.legendUntagged {
+  background-color: #5f6b6d;
+}
+
+/* Ensure popup has proper styling */
+:global(.maplibregl-popup) {
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:global(.maplibregl-popup-content) {
+  border-radius: 6px !important;
+  padding: 0 !important;
+  background: white !important;
+}
+
+:global(.maplibregl-popup-tip) {
+  border-top-color: white !important;
+  border-width: 6px !important;
+}
+
+:global(.maplibregl-popup-close-button) {
+  font-size: 16px !important;
+  color: #6b7280 !important;
+  padding: 4px !important;
+  right: 2px !important;
+  top: 2px !important;
+  transition: color 0.2s ease !important;
+  width: 20px !important;
+  height: 20px !important;
+  line-height: 20px !important;
+}
+
+:global(.maplibregl-popup-close-button:hover) {
+  color: #111827 !important;
 }
 

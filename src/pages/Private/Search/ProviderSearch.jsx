@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -14,7 +14,7 @@ import { supabase } from '../../../app/supabaseClient';
 import useTeamProviderTags from '../../../hooks/useTeamProviderTags';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import { useDropdownClose } from '../../../hooks/useDropdownClose';
-import { getTagColor, getTagLabel } from '../../../utils/tagColors';
+import { getTagColor, getTagLabel, getMapboxTagColors } from '../../../utils/tagColors';
 import { ProviderTagBadge } from '../../../components/Tagging/ProviderTagBadge';
 import {
   Search,
@@ -52,8 +52,6 @@ export default function ProviderSearch() {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(100);
-  const [map, setMap] = useState(null);
-  const [mapReady, setMapReady] = useState(false);
   const [componentError, setComponentError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
   
@@ -109,11 +107,20 @@ export default function ProviderSearch() {
 
   const searchInputRef = useRef(null);
   const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const mapContainerElementRef = useRef(null);
   const lastTrackedSearch = useRef("");
   const bulkDropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const escapeTimeoutRef = useRef(null);
   const [escapeCount, setEscapeCount] = useState(0);
+  
+  // Map state
+  const [mapReady, setMapReady] = useState(false);
+  const [layersReady, setLayersReady] = useState(false);
+  const [layersAdded, setLayersAdded] = useState(false);
+  const [hoveredMarker, setHoveredMarker] = useState(null);
+  const [popup, setPopup] = useState(null);
 
   // Selection and bulk actions
   const [selectedProviders, setSelectedProviders] = useState(new Set());
@@ -517,7 +524,13 @@ export default function ProviderSearch() {
     setSelectedMarket(null);
     setMarketNPIs(null);
     
-    if (!marketId) {
+    // Clean up map when market is cleared
+    if (!marketId && mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+      setMapReady(false);
+      setLayersReady(false);
+      setLayersAdded(false);
       return;
     }
     
@@ -1069,6 +1082,425 @@ export default function ProviderSearch() {
     if (num === null || num === undefined) return '0';
     return parseInt(num).toLocaleString();
   };
+
+  // Calculate map bounds to include the full circle radius
+  const calculateMapBounds = (lat, lng, radiusInMiles) => {
+    if (!lat || !lng) {
+      return {
+        center: { lng: -98.5795, lat: 39.8283 },
+        bounds: [
+          [-98.5795 - 10, 39.8283 - 10],
+          [-98.5795 + 10, 39.8283 + 10]
+        ]
+      };
+    }
+
+    const radiusDegrees = radiusInMiles / 69;
+    const minLat = lat - radiusDegrees;
+    const maxLat = lat + radiusDegrees;
+    const minLng = lng - radiusDegrees;
+    const maxLng = lng + radiusDegrees;
+    
+    const center = {
+      lat: (minLat + maxLat) / 2,
+      lng: (minLng + maxLng) / 2
+    };
+    
+    const bounds = [
+      [minLng, minLat],
+      [maxLng, maxLat]
+    ];
+    
+    return { center, bounds };
+  };
+
+  // Callback ref to track container element changes
+  const setMapContainerRef = useCallback((element) => {
+    mapContainerRef.current = element;
+    
+    // If container changed and map exists, we need to recreate it
+    if (element && element !== mapContainerElementRef.current && mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+      setMapReady(false);
+      setLayersReady(false);
+      setLayersAdded(false);
+    }
+    
+    mapContainerElementRef.current = element;
+  }, []);
+
+  // Initialize map when market is selected
+  useEffect(() => {
+    if (!selectedMarket) {
+      // Clean up map if market is cleared
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        mapContainerElementRef.current = null;
+        setMapReady(false);
+        setLayersReady(false);
+        setLayersAdded(false);
+      }
+      return;
+    }
+
+    // If map already exists and container hasn't changed, don't recreate it
+    if (mapRef.current && mapContainerRef.current === mapContainerElementRef.current) {
+      return;
+    }
+
+    if (!mapContainerRef.current) {
+      return;
+    }
+
+    const market = savedMarkets.find(m => m.id === selectedMarket);
+    if (!market || !market.latitude || !market.longitude) {
+      return;
+    }
+
+    const initTimeout = setTimeout(() => {
+      try {
+        const bounds = calculateMapBounds(
+          parseFloat(market.latitude),
+          parseFloat(market.longitude),
+          market.radius_miles
+        );
+
+        mapRef.current = new maplibregl.Map({
+          container: mapContainerRef.current,
+          style: {
+            version: 8,
+            sources: {
+              'osm': {
+                type: 'raster',
+                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                tileSize: 256,
+                attribution: '© OpenStreetMap contributors'
+              }
+            },
+            layers: [
+              {
+                id: 'osm-tiles',
+                type: 'raster',
+                source: 'osm',
+                minzoom: 0,
+                maxzoom: 22
+              }
+            ]
+          },
+          center: [bounds.center.lng, bounds.center.lat],
+          zoom: 10,
+          maxZoom: 18,
+          minZoom: 3,
+          maxPitch: 0,
+          preserveDrawingBuffer: false,
+          antialias: false
+        });
+
+        mapRef.current.addControl(new maplibregl.NavigationControl(), 'top-left');
+        mapRef.current.addControl(new maplibregl.FullscreenControl(), 'top-right');
+
+        mapRef.current.on('load', () => {
+          setMapReady(true);
+          if (mapRef.current.isStyleLoaded()) {
+            setLayersReady(true);
+          } else {
+            mapRef.current.on('style.load', () => {
+              setLayersReady(true);
+            });
+          }
+        });
+
+        mapRef.current.on('error', (e) => {
+          console.error("Map error:", e);
+        });
+      } catch (error) {
+        console.error("Error creating map:", error);
+        setMapReady(false);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(initTimeout);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        setMapReady(false);
+        setLayersReady(false);
+        setLayersAdded(false);
+      }
+    };
+  }, [selectedMarket, savedMarkets, activeTab]);
+
+  // Create map layers initially (only when layers don't exist yet)
+  useEffect(() => {
+    if (!mapRef.current || !layersReady || !selectedMarket || !mapRef.current.isStyleLoaded() || layersAdded) {
+      return;
+    }
+
+    const market = savedMarkets.find(m => m.id === selectedMarket);
+    if (!market) return;
+
+    try {
+      // Create radius circle
+      const radiusInMeters = market.radius_miles * 1609.34;
+      const createCircle = (center, radius) => {
+        const points = [];
+        for (let i = 0; i <= 64; i++) {
+          const angle = (i / 64) * 2 * Math.PI;
+          const lat = center[1] + (radius / 111320) * Math.cos(angle);
+          const lng = center[0] + (radius / (111320 * Math.cos(center[1] * Math.PI / 180))) * Math.sin(angle);
+          points.push([lng, lat]);
+        }
+        return points;
+      };
+
+      const marketLat = parseFloat(market.latitude);
+      const marketLng = parseFloat(market.longitude);
+
+      const radiusCircleGeoJSON = {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [createCircle([marketLng, marketLat], radiusInMeters)]
+        },
+        properties: {}
+      };
+
+      // Add radius circle
+      mapRef.current.addSource('radius-circle', {
+        type: 'geojson',
+        data: radiusCircleGeoJSON
+      });
+
+      mapRef.current.addLayer({
+        id: 'radius-circle-fill',
+        type: 'fill',
+        source: 'radius-circle',
+        paint: {
+          'fill-color': 'rgba(0, 123, 255, 0.1)',
+          'fill-opacity': 0.3
+        }
+      });
+
+      mapRef.current.addLayer({
+        id: 'radius-circle-stroke',
+        type: 'line',
+        source: 'radius-circle',
+        paint: {
+          'line-color': 'rgba(0, 123, 255, 0.3)',
+          'line-width': 2
+        }
+      });
+
+      // Add empty provider source and layer initially
+      mapRef.current.addSource('providers', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      mapRef.current.addLayer({
+        id: 'providers',
+        type: 'circle',
+        source: 'providers',
+        paint: {
+          'circle-radius': [
+            'case',
+            ['==', ['get', 'id'], null], 0,
+            ['==', ['get', 'tag'], 'me'], 10,
+            ['==', ['get', 'tag'], 'partner'], 10,
+            ['==', ['get', 'tag'], 'competitor'], 10,
+            ['==', ['get', 'tag'], 'target'], 10,
+            6
+          ],
+          'circle-color': getMapboxTagColors(),
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1,
+          'circle-opacity': 0.8
+        }
+      });
+
+      // Add click handler for provider markers (only once)
+      mapRef.current.on('click', 'providers', (e) => {
+        if (e.features.length > 0) {
+          const feature = e.features[0];
+          const [longitude, latitude] = feature.geometry.coordinates;
+          
+          if (popup) popup.remove();
+          
+          const tagColor = getTagColor(feature.properties.tag);
+          const tagLabel = feature.properties.tag ? 
+            feature.properties.tag.charAt(0).toUpperCase() + feature.properties.tag.slice(1) : 
+            'Untagged';
+          const tagDisplay = feature.properties.tag ? 
+            `<span style="display: inline-flex; align-items: center; background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; text-transform: capitalize;">${tagLabel}</span>` : 
+            '<span style="display: inline-flex; align-items: center; background-color: #6b7280; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Untagged</span>';
+          
+          const newPopup = new maplibregl.Popup({ 
+            offset: 20,
+            maxWidth: '200px',
+            closeButton: true,
+            closeOnClick: false,
+            className: 'custom-map-popup'
+          })
+            .setLngLat([longitude, latitude])
+            .setHTML(`
+              <div style="padding: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+                <div style="margin-bottom: 8px;">
+                  <div style="font-size: 13px; font-weight: 600; color: #111827; line-height: 1.3; margin-bottom: 2px;">
+                    ${feature.properties.name}
+                  </div>
+                  <div style="font-size: 11px; color: #6b7280;">
+                    ${feature.properties.type}
+                  </div>
+                </div>
+                ${feature.properties.network ? `
+                  <div style="margin-bottom: 6px; padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                    <div style="font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; font-weight: 600;">
+                      Network
+                    </div>
+                    <div style="font-size: 11px; color: #374151;">
+                      ${feature.properties.network}
+                    </div>
+                  </div>
+                ` : ''}
+                <div style="padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                  <div style="font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; font-weight: 600;">
+                    Tag
+                  </div>
+                  <div>
+                    ${tagDisplay}
+                  </div>
+                </div>
+              </div>
+            `);
+          
+          newPopup.addTo(mapRef.current);
+          setPopup(newPopup);
+        }
+      });
+
+      mapRef.current.on('mouseenter', 'providers', () => {
+        mapRef.current.getCanvas().style.cursor = 'pointer';
+      });
+
+      mapRef.current.on('mouseleave', 'providers', () => {
+        mapRef.current.getCanvas().style.cursor = '';
+      });
+
+      setLayersAdded(true);
+
+      // Fit the map to show the full circle radius
+      setTimeout(() => {
+        const bounds = calculateMapBounds(marketLat, marketLng, market.radius_miles);
+        mapRef.current.fitBounds(bounds.bounds, {
+          padding: 20,
+          maxZoom: 15,
+          duration: 300
+        });
+      }, 100);
+    } catch (error) {
+      console.error("Error adding custom layers:", error);
+      setLayersAdded(false);
+    }
+  }, [layersReady, selectedMarket, savedMarkets, layersAdded]);
+
+  // Helper function to update provider data
+  const updateProviderData = useCallback(() => {
+    if (!mapRef.current || !mapRef.current.getSource('providers')) {
+      return false;
+    }
+
+    const providersWithCoords = filteredResults.filter(p => p.latitude && p.longitude);
+    const providerFeatures = providersWithCoords.map(p => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [p.longitude, p.latitude]
+      },
+      properties: {
+        id: p.dhc,
+        name: sanitizeProviderName(p.name) || p.name || 'Provider',
+        type: p.type || 'Unknown',
+        network: sanitizeProviderName(p.network) || p.network,
+        tag: getProviderTags(p.dhc)[0] || null
+      }
+    }));
+
+    try {
+      mapRef.current.getSource('providers').setData({
+        type: 'FeatureCollection',
+        features: providerFeatures
+      });
+      return true;
+    } catch (error) {
+      console.error("Error updating provider data:", error);
+      return false;
+    }
+  }, [filteredResults, getProviderTags]);
+
+  // Update provider data when filteredResults changes
+  useEffect(() => {
+    if (!mapRef.current || !layersAdded || !selectedMarket) {
+      return;
+    }
+
+    // Try to update immediately, retry once if source isn't ready yet
+    if (!updateProviderData()) {
+      const timeoutId = setTimeout(() => {
+        updateProviderData();
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [filteredResults, layersAdded, selectedMarket, updateProviderData]);
+
+
+  // Cleanup popup on unmount or market change
+  useEffect(() => {
+    return () => {
+      if (popup) {
+        popup.remove();
+        setPopup(null);
+      }
+    };
+  }, [popup]);
+
+  // Update hover state on map - only update paint properties, don't recreate layers
+  useEffect(() => {
+    if (!mapRef.current || !layersAdded || !mapRef.current.getLayer('providers')) {
+      return;
+    }
+
+    // Update paint properties for hover state - this is lightweight and doesn't recreate markers
+    mapRef.current.setPaintProperty('providers', 'circle-radius', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], 14,
+      ['==', ['get', 'tag'], 'me'], 10,
+      ['==', ['get', 'tag'], 'partner'], 10,
+      ['==', ['get', 'tag'], 'competitor'], 10,
+      ['==', ['get', 'tag'], 'target'], 10,
+      6
+    ]);
+
+    mapRef.current.setPaintProperty('providers', 'circle-stroke-color', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], '#265947',
+      '#ffffff'
+    ]);
+
+    mapRef.current.setPaintProperty('providers', 'circle-stroke-width', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], 3,
+      1
+    ]);
+
+    mapRef.current.setPaintProperty('providers', 'circle-opacity', [
+      'case',
+      ['==', ['get', 'id'], hoveredMarker], 1,
+      0.8
+    ]);
+  }, [hoveredMarker, layersAdded]);
 
 
   try {
@@ -1809,6 +2241,24 @@ export default function ProviderSearch() {
               
               {/* Tab Content */}
               <>
+              {/* Hidden map container for overview tab - allows map initialization */}
+              {selectedMarket && activeTab === 'overview' && (
+                <div 
+                  ref={setMapContainerRef} 
+                  style={{ 
+                    position: 'absolute',
+                    width: '1px',
+                    height: '1px',
+                    overflow: 'hidden',
+                    visibility: 'hidden',
+                    pointerEvents: 'none',
+                    top: 0,
+                    left: 0,
+                    zIndex: -1
+                  }} 
+                />
+              )}
+
               {/* Overview Tab */}
               {activeTab === 'overview' && (
                 <div className={styles.overviewContent}>
@@ -2098,93 +2548,127 @@ export default function ProviderSearch() {
 
                 {paginatedResults.length > 0 && (
                     <>
-                      <div className={styles.tableWrapper}>
-                        {loading && (
-                          <div className={styles.loadingOverlay}>
-                            <Spinner />
+                      <div className={selectedMarket ? styles.splitView : styles.tableWrapper}>
+                        <div className={selectedMarket ? styles.tablePanel : ''}>
+                          <div className={selectedMarket ? styles.tableScroll : ''}>
+                            {loading && (
+                              <div className={styles.loadingOverlay}>
+                                <Spinner />
+                              </div>
+                            )}
+                            <table className={styles.resultsTable}>
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '40px' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
+                                      onChange={hasTeam ? handleSelectAll : undefined}
+                                      disabled={!hasTeam}
+                                      className={styles.providerCheckbox}
+                                      title={!hasTeam ? "Join or create a team to select providers" : ""}
+                                    />
+                                  </th>
+                                  <th>Provider</th>
+                                  <th>Type</th>
+                                  <th>Network</th>
+                                  <th>Tag</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                        {paginatedResults.map((provider) => {
+                          const displayName = sanitizeProviderName(provider.name) || provider.name || 'Provider';
+                          const displayNetwork = sanitizeProviderName(provider.network) || provider.network;
+                          return (
+                            <tr 
+                              key={provider.dhc}
+                              onMouseEnter={() => setHoveredMarker(provider.dhc)}
+                              onMouseLeave={() => setHoveredMarker(null)}
+                            >
+                                    <td>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedProviders.has(provider.dhc)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      if (hasTeam) {
+                                        handleCheckboxChange(provider.dhc, e.target.checked);
+                                      }
+                                    }}
+                                    className={`${styles.providerCheckbox} ${!hasTeam ? styles.disabled : ''}`}
+                                    disabled={!hasTeam}
+                                    title={!hasTeam ? "Join or create a team to select providers" : ""}
+                                        onClick={(e) => e.stopPropagation()}
+                                  />
+                                    </td>
+                                    <td>
+                                      <div className={styles.providerCell}>
+                                  <div
+                                          className={styles.providerNameLink}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/app/${provider.dhc}`);
+                                    }}
+                                  >
+                                    {displayName}
+                                  </div>
+                                  <div className={styles.providerAddress}>
+                                    {[provider.street, provider.city, provider.state, provider.zip].filter(Boolean).join(', ')}
+                                    {provider.phone && ` • ${provider.phone}`}
+                                  </div>
+                                  </div>
+                                    </td>
+                                    <td>{provider.type || "Unknown"}</td>
+                                    <td>{displayNetwork || "-"}</td>
+                                    <td className={styles.tagCell} onClick={(e) => e.stopPropagation()}>
+                                  <ProviderTagBadge
+                                    providerId={provider.dhc}
+                                    hasTeam={hasTeam}
+                                    teamLoading={false}
+                                    primaryTag={getProviderTags(provider.dhc)[0] || null}
+                                    isSaving={false}
+                                    onAddTag={addTeamProviderTag}
+                                    onRemoveTag={removeTeamProviderTag}
+                                    size="medium"
+                                    variant="default"
+                                    showRemoveOption={true}
+                                  />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {selectedMarket && (
+                          <div className={styles.mapPanel}>
+                            <div className={styles.mapLegend}>
+                              <div className={styles.legendItem}>
+                                <div className={`${styles.legendDot} ${styles.legendMe}`}></div>
+                                <span>Me</span>
+                              </div>
+                              <div className={styles.legendItem}>
+                                <div className={`${styles.legendDot} ${styles.legendPartner}`}></div>
+                                <span>Partner</span>
+                              </div>
+                              <div className={styles.legendItem}>
+                                <div className={`${styles.legendDot} ${styles.legendCompetitor}`}></div>
+                                <span>Competitor</span>
+                              </div>
+                              <div className={styles.legendItem}>
+                                <div className={`${styles.legendDot} ${styles.legendTarget}`}></div>
+                                <span>Target</span>
+                              </div>
+                              <div className={styles.legendItem}>
+                                <div className={`${styles.legendDot} ${styles.legendUntagged}`}></div>
+                                <span>Untagged</span>
+                              </div>
+                            </div>
+                            <div ref={setMapContainerRef} style={{ width: '100%', height: 'calc(100% - 60px)' }} />
                           </div>
                         )}
-                        <table className={styles.resultsTable}>
-                          <thead>
-                            <tr>
-                              <th style={{ width: '40px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedProviders.size === paginatedResults.length && paginatedResults.length > 0}
-                                  onChange={hasTeam ? handleSelectAll : undefined}
-                                  disabled={!hasTeam}
-                                  className={styles.providerCheckbox}
-                                  title={!hasTeam ? "Join or create a team to select providers" : ""}
-                                />
-                              </th>
-                              <th>Provider</th>
-                              <th>Type</th>
-                              <th>Network</th>
-                              <th>Tag</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                    {paginatedResults.map((provider) => {
-                      const displayName = sanitizeProviderName(provider.name) || provider.name || 'Provider';
-                      const displayNetwork = sanitizeProviderName(provider.network) || provider.network;
-                      return (
-                        <tr 
-                          key={provider.dhc}
-                        >
-                                <td>
-                              <input
-                                type="checkbox"
-                                checked={selectedProviders.has(provider.dhc)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  if (hasTeam) {
-                                    handleCheckboxChange(provider.dhc, e.target.checked);
-                                  }
-                                }}
-                                className={`${styles.providerCheckbox} ${!hasTeam ? styles.disabled : ''}`}
-                                disabled={!hasTeam}
-                                title={!hasTeam ? "Join or create a team to select providers" : ""}
-                                    onClick={(e) => e.stopPropagation()}
-                              />
-                                </td>
-                                <td>
-                                  <div className={styles.providerCell}>
-                              <div
-                                      className={styles.providerNameLink}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/app/${provider.dhc}`);
-                                }}
-                              >
-                                {displayName}
-                              </div>
-                              <div className={styles.providerAddress}>
-                                {[provider.street, provider.city, provider.state, provider.zip].filter(Boolean).join(', ')}
-                                {provider.phone && ` • ${provider.phone}`}
-                              </div>
-                              </div>
-                                </td>
-                                <td>{provider.type || "Unknown"}</td>
-                                <td>{displayNetwork || "-"}</td>
-                                <td className={styles.tagCell} onClick={(e) => e.stopPropagation()}>
-                              <ProviderTagBadge
-                                providerId={provider.dhc}
-                                hasTeam={hasTeam}
-                                teamLoading={false}
-                                primaryTag={getProviderTags(provider.dhc)[0] || null}
-                                isSaving={false}
-                                onAddTag={addTeamProviderTag}
-                                onRemoveTag={removeTeamProviderTag}
-                                size="medium"
-                                variant="default"
-                                showRemoveOption={true}
-                              />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          </tbody>
-                        </table>
                       </div>
                     </>
                   )}
