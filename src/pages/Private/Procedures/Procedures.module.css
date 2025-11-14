@@ -8,7 +8,7 @@
   overflow: hidden;
 }
 
-/* Loading State */
+/* Loading States */
 .loading {
   display: flex;
   align-items: center;
