@@ -8,7 +8,7 @@ export const TAG_COLORS = {
   partner: '#3599b8',   // Blue from palette
   competitor: '#d64550', // Red from palette
   target: '#f1b62c',    // Gold from palette
-  default: '#5f6b6d'    // Gray from palette (untagged/default)
+  default: '#00c08b'    // Primary teal (untagged/default) - matches header icon color
 };
 
 // Standard tag labels

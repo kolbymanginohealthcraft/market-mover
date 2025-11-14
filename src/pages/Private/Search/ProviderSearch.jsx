@@ -1375,7 +1375,7 @@ export default function ProviderSearch() {
             'Untagged';
           const tagDisplay = feature.properties.tag ? 
             `<span style="display: inline-flex; align-items: center; background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; text-transform: capitalize;">${tagLabel}</span>` : 
-            '<span style="display: inline-flex; align-items: center; background-color: #6b7280; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Untagged</span>';
+            `<span style="display: inline-flex; align-items: center; background-color: ${getTagColor(null)}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Untagged</span>`;
           
           const sortButtonId = `sort-distance-${Date.now()}`;
           
@@ -1383,7 +1383,7 @@ export default function ProviderSearch() {
             offset: 20,
             maxWidth: '200px',
             closeButton: true,
-            closeOnClick: false,
+            closeOnClick: true,
             className: 'custom-map-popup'
           })
             .setLngLat([longitude, latitude])
@@ -1416,7 +1416,7 @@ export default function ProviderSearch() {
                   </div>
                 </div>
                 <div style="padding-top: 6px; border-top: 1px solid #e5e7eb;">
-                  <button id="${sortButtonId}" style="width: 100%; padding: 6px 8px; background-color: #00c08b; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#00a877'" onmouseout="this.style.backgroundColor='#00c08b'">
+                  <button id="${sortButtonId}" style="width: 100%; padding: 6px 8px; background-color: #3599b8; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#2d7a94'" onmouseout="this.style.backgroundColor='#3599b8'">
                     Sort by distance from here
                   </button>
                 </div>
@@ -1515,6 +1515,23 @@ export default function ProviderSearch() {
     }
   }, [filteredResults, layersAdded, selectedMarket, updateProviderData]);
 
+
+  // Handle Escape key to close popup
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && popup) {
+        popup.remove();
+        setPopup(null);
+      }
+    };
+
+    if (popup) {
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [popup]);
 
   // Cleanup popup on unmount or market change
   useEffect(() => {
@@ -1855,32 +1872,14 @@ export default function ProviderSearch() {
             
             {((results && results.length > 0) || nationalOverview) && (
             <div className={styles.contextInfo}>
-              {selectedMarket ? (
-                (() => {
-                  const market = savedMarkets.find(m => m.id === selectedMarket);
-                  return market ? (
-                    <span>{market.city}, {market.state_code} • {market.radius_miles}mi radius</span>
-                  ) : (
-                    <span>
-                      {loading
-                        ? 'Loading...'
-                        : hasActiveFilters || submittedSearchTerm.trim()
-                          ? `${formatNumber(filteredResults.length)} organizations`
-                          : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
-                      }
-                    </span>
-                  );
-                })()
-              ) : (
-                <span>
-                  {loading
-                    ? 'Loading...'
-                    : hasActiveFilters || submittedSearchTerm.trim()
-                      ? `${formatNumber(filteredResults.length)} organizations`
-                      : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
-                  }
-                </span>
-              )}
+              <span>
+                {loading
+                  ? 'Loading...'
+                  : hasActiveFilters || submittedSearchTerm.trim()
+                    ? `${formatNumber(filteredResults.length)} organizations`
+                    : `${formatNumber(nationalOverview?.overall?.total_providers || 0)} organizations nationwide`
+                }
+              </span>
             </div>
             )}
             
@@ -2582,7 +2581,7 @@ export default function ProviderSearch() {
                           <span className={styles.pageInfo}>
                             {(() => {
                               const total = hasActiveFilters || submittedSearchTerm.trim() ? sortedResults.length : (nationalOverview?.overall?.total_providers || 0);
-                              return `Showing ${startIndex + 1}-${Math.min(endIndex, listingResults.length)} of ${formatNumber(total)}${total >= 500 ? ' (table limited to first 500)' : ''}`;
+                              return `Showing ${startIndex + 1}-${Math.min(endIndex, listingResults.length)}${total >= 500 ? ' (table limited to first 500)' : ''}`;
                             })()}
                           </span>
                           {totalPages > 1 && (

@@ -666,7 +666,7 @@ export default function ProviderListingTab({
                
               const tagDisplay = feature.properties.tag ? 
                 `<span style="background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: capitalize;">${feature.properties.tag}</span>` : 
-                '<span style="background-color: #5f6b6d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Untagged</span>';
+                `<span style="background-color: ${getTagColor(null)}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Untagged</span>`;
                
               const newPopup = new maplibregl.Popup({ offset: 25 })
                 .setLngLat([longitude, latitude])

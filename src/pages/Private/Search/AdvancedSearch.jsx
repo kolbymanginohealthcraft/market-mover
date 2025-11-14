@@ -729,21 +729,13 @@ export default function AdvancedSearch() {
         
         {(((results && results.totalCount) || selectedMarket) || loading) && (
           <div className={styles.contextInfo}>
-            {selectedMarket ? (
-              <span>
-                {loading
-                  ? 'Loading...'
-                  : `${selectedMarket.city}, ${selectedMarket.state_code} • ${selectedMarket.radius_miles}mi radius`}
-              </span>
-            ) : (
-              <span>
-                {loading
-                  ? 'Loading...'
-                  : results && results.totalCount
-                  ? `${formatNumber(results.totalCount)} practitioners nationwide`
-                  : 'Loading...'}
-              </span>
-            )}
+            <span>
+              {loading
+                ? 'Loading...'
+                : results && results.totalCount
+                ? `${formatNumber(results.totalCount)} practitioners${selectedMarket ? '' : ' nationwide'}`
+                : 'Loading...'}
+            </span>
           </div>
         )}
         
@@ -1262,7 +1254,7 @@ export default function AdvancedSearch() {
                 results && results.count > 0 && (
                   <>
                     <span className={styles.pageInfo}>
-                      Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, results.practitioners.length)} of {formatNumber(results && results.totalCount ? results.totalCount : (results?.practitioners?.length || 0))}{results && results.totalCount && results.totalCount >= 500 ? ' (table limited to first 500)' : ''}
+                      Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, results.practitioners.length)}{results && results.totalCount && results.totalCount >= 500 ? ' (table limited to first 500)' : ''}
                     </span>
                     {totalPages > 1 && (
                       <div className={styles.paginationInline}>
