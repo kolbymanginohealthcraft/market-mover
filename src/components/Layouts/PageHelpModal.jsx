@@ -110,13 +110,6 @@ const getPageHelp = (pathname) => {
     };
   }
   
-  if (pathname.includes('/market/') && !pathname.includes('/markets')) {
-    return {
-      title: 'Market Analysis',
-      description: 'Comprehensive analysis of a specific geographic market. View provider listings, density maps, population demographics, enrollment data, claims patterns, and catchment analysis for your defined market area.'
-    };
-  }
-  
   if (pathname.match(/^\/app\/\d+/)) {
     return {
       title: 'Provider Profile',

@@ -24,13 +24,13 @@ export const RadiusProvider = ({ children }) => {
     setRadiusInMiles(10);
   };
 
-  // Reset radius when navigating away from provider/market analysis pages
+  // Reset radius when navigating away from legacy provider pages
   useEffect(() => {
-    // Only market analysis pages need radius (not simple provider profile)
-    const isProviderPage = location.pathname.includes('/provider/') || location.pathname.match(/^\/app\/\d+\/market\//);
-    console.log('🔍 RadiusContext: Location changed to:', location.pathname, 'isProviderPage:', isProviderPage);
+    // Only legacy provider pages need radius (not simple provider profile)
+    const isLegacyProviderPage = location.pathname.includes('/provider/');
+    console.log('🔍 RadiusContext: Location changed to:', location.pathname, 'isLegacyProviderPage:', isLegacyProviderPage);
     
-    if (!isProviderPage) {
+    if (!isLegacyProviderPage) {
       console.log('🔄 RadiusContext: Resetting radius and clearing URL parameter');
       resetRadius();
       

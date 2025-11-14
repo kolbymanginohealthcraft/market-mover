@@ -58,8 +58,8 @@ const Header = ({
   // Fetch market data when on a market page
   useEffect(() => {
     const fetchMarketData = async () => {
-      if (location.pathname.includes('/market/')) {
-        const marketMatch = location.pathname.match(/\/market\/([^\/]+)/);
+      if (location.pathname.includes('/markets/') && !location.pathname.includes('/markets/list') && !location.pathname.includes('/markets/map') && !location.pathname.includes('/markets/create')) {
+        const marketMatch = location.pathname.match(/\/markets\/([^\/]+)/);
         const marketId = marketMatch ? marketMatch[1] : null;
         
         if (marketId) {
@@ -160,8 +160,6 @@ const Header = ({
       return 'Provider Analysis';
     } else if (location.pathname.match(/^\/app\/\d+$/)) {
       return 'Provider Profile';
-    } else if (location.pathname.includes('/market/')) {
-      return 'Market Analysis';
     } else if (location.pathname.includes('/enrollment')) {
       return 'CMS Enrollment';
     } else if (location.pathname.includes('/population')) {
@@ -239,26 +237,6 @@ const Header = ({
         { text: `${currentProvider.street}, ${currentProvider.city}, ${currentProvider.state} ${currentProvider.zip}`, type: 'location' },
         { text: currentProvider.type, type: 'category' }
       ];
-    }
-    
-    // Market Analysis Mode
-    if (location.pathname.includes('/market/')) {
-      // Extract market ID from URL
-      const marketMatch = location.pathname.match(/\/market\/([^\/]+)/);
-      const marketId = marketMatch ? marketMatch[1] : null;
-      
-      if (marketId && currentMarket) {
-        return [
-          { text: currentMarket.name, type: 'market' },
-          { text: `${currentMarket.radius_miles}-mile radius`, type: 'radius' }
-        ];
-      } else if (marketId) {
-        // Fallback while loading or if market data not found
-        return [
-          { text: `Market ${marketId}`, type: 'market' },
-          { text: '25-mile radius', type: 'radius' }
-        ];
-      }
     }
     
     // Default Mode (Dashboard, Search, Settings, etc.)
@@ -357,10 +335,6 @@ const Header = ({
       return 'savedMarkets';
     }
 
-    if (location.pathname.includes('/market/')) {
-      return 'savedMarkets';
-    }
-
     if (location.pathname.includes('/network')) {
       return 'network';
     }
@@ -393,11 +367,7 @@ const Header = ({
       return true;
     }
 
-    if (location.pathname.match(/^\/app\/\d+\/market\//)) {
-      return true;
-    }
-
-    if (location.pathname.match(/^\/app\/\d+\/(?!market\/).+/)) {
+    if (location.pathname.match(/^\/app\/\d+\/.+/)) {
       return true;
     }
 
@@ -471,8 +441,6 @@ const Header = ({
       return <LayoutDashboard size={18} />;
     } else if (location.pathname.includes('/search')) {
       return <Search size={18} />;
-    } else if (location.pathname.includes('/market/')) {
-      return <MapPin size={18} />;
     } else if (location.pathname.includes('/storyteller')) {
       return <LineChart size={18} />;
     } else if (location.pathname.includes('/referral-pathways')) {

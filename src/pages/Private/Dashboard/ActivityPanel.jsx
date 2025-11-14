@@ -45,7 +45,7 @@ export default function ActivityPanel({
       'search_providers': `/app/search?search=${encodeURIComponent(activity.target_name)}`,
       'view_provider': `/app/${activity.target_id}?fromActivity=true`,
       'save_market': '#',
-      'view_market': `/app/market/${activity.target_id}?fromActivity=true`
+      'view_market': `/app/markets/${activity.target_id}?fromActivity=true`
     };
     
     return links[activity.activity_type] || '#';

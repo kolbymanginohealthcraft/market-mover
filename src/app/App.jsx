@@ -63,8 +63,6 @@ import ProviderSearch from "../pages/Private/Search/ProviderSearch";
 import AdvancedSearch from "../pages/Private/Search/AdvancedSearch";
 import DensitySearch from "../pages/Private/Search/DensitySearch";
 import ProviderProfile from "../pages/Private/Results/ProviderProfile";
-import ProviderMarketAnalysis from "../pages/Private/Results/ProviderMarketAnalysis";
-import MarketDetail from "../pages/Private/Results/MarketDetail";
 import MarketsList from "../pages/Private/Markets/MarketsList";
 
 import InteractiveMarketCreation from "../pages/Private/Markets/InteractiveMarketCreation";
@@ -152,11 +150,7 @@ function AppContent({ location }) {
             <Route path="markets/map" element={<MarketsList />} />
             <Route path="markets/create" element={<MarketsList />} />
             <Route path="markets/:marketId" element={<GeographyAnalysis />} />
-            <Route path="market/:marketId/*" element={<MarketDetail />} />
             <Route path="market/create" element={<InteractiveMarketCreation />} />
-            
-            {/* Provider market analysis view - must come before the simpler provider route */}
-            <Route path=":dhc/market/*" element={<ProviderMarketAnalysis />} />
             
             {/* New simplified provider view with tabs */}
             <Route path=":dhc/*" element={<ProviderProfile />} />
