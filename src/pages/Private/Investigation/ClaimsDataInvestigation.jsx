@@ -403,6 +403,11 @@ export default function ClaimsDataInvestigation() {
               body: JSON.stringify({ codes })
             });
 
+            if (!detailsResponse.ok) {
+              console.error(`Error fetching taxonomy details: ${detailsResponse.status} ${detailsResponse.statusText}`);
+              return;
+            }
+
             const detailsResult = await detailsResponse.json();
             if (detailsResult.success) {
               const detailsMap = {};

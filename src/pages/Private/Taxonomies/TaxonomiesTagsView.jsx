@@ -90,6 +90,10 @@ export default function TaxonomiesTagsView() {
         body: JSON.stringify({ codes })
       });
 
+      if (!detailsResponse.ok) {
+        throw new Error(`Failed to fetch taxonomy details: ${detailsResponse.status} ${detailsResponse.statusText}`);
+      }
+
       const detailsResult = await detailsResponse.json();
 
       if (!detailsResult.success) {

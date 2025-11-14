@@ -84,19 +84,28 @@ export default function DensitySearch() {
       // Fetch taxonomy details for all tags
       if (data && data.length > 0) {
         const codes = [...new Set(data.map(tag => tag.taxonomy_code))];
-        const detailsResponse = await fetch('/api/taxonomies-details', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ codes })
-        });
-
-        const detailsResult = await detailsResponse.json();
-        if (detailsResult.success) {
-          const detailsMap = {};
-          detailsResult.data.forEach(detail => {
-            detailsMap[detail.code] = detail;
+        try {
+          const detailsResponse = await fetch('/api/taxonomies-details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codes })
           });
-          setTaxonomyTagDetails(detailsMap);
+
+          if (!detailsResponse.ok) {
+            console.error(`Error fetching taxonomy details: ${detailsResponse.status} ${detailsResponse.statusText}`);
+            return;
+          }
+
+          const detailsResult = await detailsResponse.json();
+          if (detailsResult.success) {
+            const detailsMap = {};
+            detailsResult.data.forEach(detail => {
+              detailsMap[detail.code] = detail;
+            });
+            setTaxonomyTagDetails(detailsMap);
+          }
+        } catch (detailsErr) {
+          console.error('Error fetching taxonomy details:', detailsErr);
         }
       }
     } catch (err) {
@@ -212,19 +221,28 @@ export default function DensitySearch() {
       // Fetch taxonomy details for display
       if (result.data && result.data.length > 0) {
         const codes = result.data.map(r => r.taxonomy_code);
-        const detailsResponse = await fetch('/api/taxonomies-details', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ codes })
-        });
-
-        const detailsResult = await detailsResponse.json();
-        if (detailsResult.success) {
-          const detailsMap = {};
-          detailsResult.data.forEach(detail => {
-            detailsMap[detail.code] = detail;
+        try {
+          const detailsResponse = await fetch('/api/taxonomies-details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codes })
           });
-          setTaxonomyDetails(detailsMap);
+
+          if (!detailsResponse.ok) {
+            console.error(`Error fetching taxonomy details: ${detailsResponse.status} ${detailsResponse.statusText}`);
+            return;
+          }
+
+          const detailsResult = await detailsResponse.json();
+          if (detailsResult.success) {
+            const detailsMap = {};
+            detailsResult.data.forEach(detail => {
+              detailsMap[detail.code] = detail;
+            });
+            setTaxonomyDetails(detailsMap);
+          }
+        } catch (detailsErr) {
+          console.error('Error fetching taxonomy details:', detailsErr);
         }
       }
 
