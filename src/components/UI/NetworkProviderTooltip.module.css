@@ -1,0 +1,90 @@
+/* Trigger Wrapper - positioned container like Dropdown */
+.triggerWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Trigger - the actual hoverable text */
+.trigger {
+  cursor: help;
+  border-bottom: 1px dotted #9ca3af;
+  padding-bottom: 1px;
+  display: inline-block;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.trigger:hover {
+  border-bottom-color: #2563eb;
+  color: #2563eb;
+}
+
+/* Tooltip Container - fixed positioned, rendered via portal */
+.tooltip {
+  position: fixed;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  width: 300px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  pointer-events: auto;
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Header with tag label and ZIP code */
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.tooltipZipCode {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Providers list */
+.tooltipProviders {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tooltipProvider {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.4;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tooltip {
+    width: 280px;
+    padding: 12px;
+  }
+  
+  .tooltipProvider {
+    font-size: 12px;
+  }
+}
+

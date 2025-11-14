@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, MapPin, Users, TrendingUp, Calendar, Building2, Navigation, ChevronDown } from 'lucide-react';
+import { Target, MapPin, Users, TrendingUp, Calendar, Building2, Navigation, ChevronDown, Network } from 'lucide-react';
 import { supabase } from '../../../app/supabaseClient';
 import { apiUrl } from '../../../utils/api';
 import Spinner from '../../../components/Buttons/Spinner';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import PageLayout from '../../../components/Layouts/PageLayout';
+import useTaggedProviders from '../../../hooks/useTaggedProviders';
+import { getTagColor, getTagLabel } from '../../../utils/tagColors';
+import NetworkProviderTooltip from '../../../components/UI/NetworkProviderTooltip';
 import styles from './StandaloneCatchment.module.css';
 
 export default function StandaloneCatchment() {
@@ -18,6 +21,7 @@ export default function StandaloneCatchment() {
   const [marketsError, setMarketsError] = useState(null);
 
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+  const [networkTagDropdownOpen, setNetworkTagDropdownOpen] = useState(false);
 
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedMarketId, setSelectedMarketId] = useState(searchParams.get('marketId') || null);
@@ -31,12 +35,22 @@ export default function StandaloneCatchment() {
   const marketIdParam = searchParams.get('marketId');
   const [radiusInMiles, setRadiusInMiles] = useState(initialRadius);
 
-  const [analysisType, setAnalysisType] = useState('zip_to_hospitals');
+  // Get analysisType from URL, default to 'ByHospital'
+  const analysisType = useMemo(() => {
+    return searchParams.get('view') || 'ByHospital';
+  }, [searchParams]);
   const [catchmentData, setCatchmentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [facilityNames, setFacilityNames] = useState(new Map());
   const [loadingFacilityNames, setLoadingFacilityNames] = useState(false);
+  const [selectedNetworkTag, setSelectedNetworkTag] = useState(null);
+  const [zipCodeToTagMap, setZipCodeToTagMap] = useState(new Map()); // ZIP code -> tag types mapping
+  const [zipCodeToProvidersMap, setZipCodeToProvidersMap] = useState(new Map()); // ZIP code -> array of provider names mapping
+  const [loadingNetworkTags, setLoadingNetworkTags] = useState(false);
+
+  // Fetch tagged providers
+  const { taggedProviders } = useTaggedProviders();
 
   const updateSearchParams = useCallback(
     (changes) => {
@@ -230,6 +244,13 @@ export default function StandaloneCatchment() {
       setError(null);
 
       try {
+        // Map frontend analysisType to backend expected values
+        const backendAnalysisType = analysisType === 'ByHospital' 
+          ? 'hospitals_grouped' 
+          : analysisType === 'ByZipCode' 
+          ? 'zip_codes_grouped' 
+          : analysisType;
+
         const response = await fetch(apiUrl('/api/catchment-zip-analysis'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -237,7 +258,7 @@ export default function StandaloneCatchment() {
             centerLat: effectiveProvider.latitude,
             centerLon: effectiveProvider.longitude,
             radiusInMiles: effectiveRadius,
-            analysisType: analysisType,
+            analysisType: backendAnalysisType,
           }),
         });
 
@@ -258,6 +279,105 @@ export default function StandaloneCatchment() {
 
     fetchCatchmentData();
   }, [effectiveProvider, effectiveRadius, analysisType, hasSelection]);
+
+  // Fetch ZIP codes for tagged providers and create ZIP code -> tag mapping
+  useEffect(() => {
+    async function buildZipCodeToTagMap() {
+      if (!taggedProviders || taggedProviders.length === 0) {
+        setZipCodeToTagMap(new Map());
+        return;
+      }
+
+      setLoadingNetworkTags(true);
+      try {
+        // Get all unique DHCs from tagged providers
+        const taggedDhcs = Array.from(
+          new Set(
+            taggedProviders
+              .map(p => p.provider_dhc)
+              .filter(dhc => dhc && !isNaN(parseInt(dhc)))
+          )
+        );
+
+        if (taggedDhcs.length === 0) {
+          setZipCodeToTagMap(new Map());
+          return;
+        }
+
+        // Create a map of DHC -> tag types
+        const dhcToTagsMap = new Map();
+        taggedProviders.forEach(provider => {
+          if (provider.tags && provider.tags.length > 0) {
+            dhcToTagsMap.set(String(provider.provider_dhc), provider.tags);
+          }
+        });
+
+        // Fetch provider details (including ZIP codes) for all tagged provider DHCs
+        const response = await fetch(apiUrl('/api/getProvidersByDhc'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dhc_ids: taggedDhcs }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && Array.isArray(result.providers)) {
+            // Create ZIP code -> tag mapping
+            // A ZIP code can have multiple tags, so we'll store an array of tags
+            const zipTagMap = new Map();
+            // Create ZIP code -> providers mapping for tooltips
+            const zipProvidersMap = new Map();
+            
+            result.providers.forEach(provider => {
+              const dhc = String(provider.dhc);
+              const zip = provider.zip ? String(provider.zip).trim() : null;
+              const tags = dhcToTagsMap.get(dhc);
+              const providerName = provider.name || `Provider ${dhc}`;
+              
+              if (zip && tags && tags.length > 0) {
+                // If ZIP already has tags, merge them
+                const existingTags = zipTagMap.get(zip) || [];
+                const newTags = tags.filter(tag => !existingTags.includes(tag));
+                if (newTags.length > 0) {
+                  zipTagMap.set(zip, [...existingTags, ...newTags]);
+                } else {
+                  zipTagMap.set(zip, existingTags);
+                }
+                
+                // Add provider to ZIP code -> providers map
+                if (!zipProvidersMap.has(zip)) {
+                  zipProvidersMap.set(zip, []);
+                }
+                zipProvidersMap.get(zip).push({
+                  name: providerName,
+                  tags: tags
+                });
+              }
+            });
+
+            setZipCodeToTagMap(zipTagMap);
+            setZipCodeToProvidersMap(zipProvidersMap);
+            console.log(`✅ Built ZIP code to tag mapping: ${zipTagMap.size} ZIP codes mapped to network tags`);
+          }
+        }
+      } catch (err) {
+        console.error('Error building ZIP code to tag map:', err);
+      } finally {
+        setLoadingNetworkTags(false);
+      }
+    }
+
+    buildZipCodeToTagMap();
+  }, [taggedProviders]);
+
+  // Helper function to check if a ZIP code contains providers from selected network tag
+  const zipCodeHasNetworkProvider = useCallback((zipCode) => {
+    if (!selectedNetworkTag || !zipCode) return false;
+    
+    const zipStr = String(zipCode).trim();
+    const tags = zipCodeToTagMap.get(zipStr);
+    return tags && tags.includes(selectedNetworkTag);
+  }, [selectedNetworkTag, zipCodeToTagMap]);
 
   // Helper function to get specialty label from CCN letter
   const getSpecialtyLabel = (letter) => {
@@ -341,13 +461,45 @@ export default function StandaloneCatchment() {
           }
         }
 
-        // Step 2: For remaining missing CCNs, try specialty unit fallback
+        // Step 2: Find CCNs that still don't have names
         const missingCcns = uniqueCcns.filter(ccn => !nameMap.has(String(ccn)));
+
         if (missingCcns.length > 0) {
-          console.log(`🔍 ${missingCcns.length} CCNs missing names, trying specialty unit fallback...`);
+          console.log(`🔍 ${missingCcns.length} CCNs missing names, trying Hospital Enrollments...`);
+          
+          // Step 3: Fallback to hospital-enrollments for missing CCNs
+          const heResponse = await fetch(apiUrl('/api/hospital-enrollments'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ccns: missingCcns,
+            }),
+          });
+
+          if (heResponse.ok) {
+            const heResult = await heResponse.json();
+            if (heResult.success && Array.isArray(heResult.data)) {
+              let heCount = 0;
+              heResult.data.forEach((record) => {
+                const ccn = record?.CCN || record?.ccn;
+                const orgName = record?.ORGANIZATION_NAME || record?.organization_name;
+                if (ccn && orgName && !nameMap.has(String(ccn))) {
+                  nameMap.set(String(ccn), String(orgName));
+                  heCount++;
+                }
+              });
+              console.log(`✅ Hospital Enrollments: Added ${heCount} additional names from ${heResult.data.length} records`);
+            }
+          }
+        }
+
+        // Step 4: For remaining missing CCNs, try specialty unit fallback
+        const stillMissingCcns = uniqueCcns.filter(ccn => !nameMap.has(String(ccn)));
+        if (stillMissingCcns.length > 0) {
+          console.log(`🔍 ${stillMissingCcns.length} CCNs still missing, trying specialty unit fallback...`);
           
           // Find specialty CCNs (those with letters in 3rd position)
-          const specialtyCcns = missingCcns.filter(ccn => {
+          const specialtyCcns = stillMissingCcns.filter(ccn => {
             return ccn && ccn.length >= 6 && /[A-Z]/.test(ccn[2]);
           });
 
@@ -519,6 +671,75 @@ export default function StandaloneCatchment() {
                 {marketsLoading ? 'Loading saved markets…' : 'No saved markets yet'}
               </div>
             )}
+
+            <Dropdown
+              trigger={
+                <button type="button" className="sectionHeaderButton">
+                  <Network size={14} />
+                  {selectedNetworkTag ? getTagLabel(selectedNetworkTag) : 'Network Tag'}
+                  <ChevronDown size={14} />
+                </button>
+              }
+              isOpen={networkTagDropdownOpen}
+              onToggle={setNetworkTagDropdownOpen}
+              className={styles.dropdownMenu}
+            >
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setSelectedNetworkTag(null);
+                  setNetworkTagDropdownOpen(false);
+                }}
+              >
+                All Tags
+              </button>
+              <div className={styles.dropdownDivider}></div>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setSelectedNetworkTag('me');
+                  setNetworkTagDropdownOpen(false);
+                }}
+                style={{ color: getTagColor('me') }}
+              >
+                Me
+              </button>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setSelectedNetworkTag('partner');
+                  setNetworkTagDropdownOpen(false);
+                }}
+                style={{ color: getTagColor('partner') }}
+              >
+                Partner
+              </button>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setSelectedNetworkTag('competitor');
+                  setNetworkTagDropdownOpen(false);
+                }}
+                style={{ color: getTagColor('competitor') }}
+              >
+                Competitor
+              </button>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => {
+                  setSelectedNetworkTag('target');
+                  setNetworkTagDropdownOpen(false);
+                }}
+                style={{ color: getTagColor('target') }}
+              >
+                Target
+              </button>
+            </Dropdown>
           </div>
 
           <div className={styles.spacer} />
@@ -549,40 +770,6 @@ export default function StandaloneCatchment() {
           </div>
         </div>
 
-        {hasSelection && (
-          <div className={styles.analysisToggle}>
-            <div className={styles.toggleContainer}>
-              <button
-                className={`${styles.toggleButton} ${analysisType === 'zip_to_hospitals' ? styles.active : ''}`}
-                onClick={() => setAnalysisType('zip_to_hospitals')}
-              >
-                <Navigation size={16} />
-                ZIP Codes → Hospitals
-              </button>
-              <button
-                className={`${styles.toggleButton} ${analysisType === 'zip_codes_grouped' ? styles.active : ''}`}
-                onClick={() => setAnalysisType('zip_codes_grouped')}
-              >
-                <MapPin size={16} />
-                ZIP Codes Grouped
-              </button>
-              <button
-                className={`${styles.toggleButton} ${analysisType === 'hospitals_grouped' ? styles.active : ''}`}
-                onClick={() => setAnalysisType('hospitals_grouped')}
-              >
-                <Users size={16} />
-                Hospitals Grouped
-              </button>
-            </div>
-            <p className={styles.toggleDescription}>
-              {analysisType === 'zip_to_hospitals'
-                ? 'Analyze which hospitals patients visit from ZIP codes in your geographic area'
-                : analysisType === 'zip_codes_grouped'
-                ? 'Group ZIP codes and aggregate their total patient volume and charges'
-                : 'Group hospitals and aggregate their total patient volume and charges'}
-            </p>
-          </div>
-        )}
 
         <div className={styles.content}>
           {!hasSelection ? (
@@ -644,11 +831,10 @@ export default function StandaloneCatchment() {
               </div>
 
               <div className={styles.tableContainer}>
-                {analysisType === 'zip_to_hospitals' ? (
+                {analysisType === 'ByHospital' ? (
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Resident ZIP Code</th>
                         <th>Hospital</th>
                         <th>CCN</th>
                         <th>Total Cases</th>
@@ -658,35 +844,53 @@ export default function StandaloneCatchment() {
                       </tr>
                     </thead>
                     <tbody>
-                      {catchmentData.hospitalData
-                        ?.sort((a, b) => {
-                          const casesA = parseInt(a.TOTAL_CASES) || 0;
-                          const casesB = parseInt(b.TOTAL_CASES) || 0;
-                          return casesB - casesA;
-                        })
-                        ?.map((row, index) => {
-                          const cases = parseInt(row.TOTAL_CASES) || 0;
-                          const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                          const charges = parseInt(row.TOTAL_CHARGES) || 0;
-                          const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
-                          const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
-                          const facilityName = facilityNames.get(row.MEDICARE_PROV_NUM);
+                      {(() => {
+                        const groupedData = {};
+                        catchmentData.hospitalData?.forEach((row) => {
+                          const ccn = row.MEDICARE_PROV_NUM;
+                          if (!groupedData[ccn]) {
+                            groupedData[ccn] = {
+                              MEDICARE_PROV_NUM: ccn,
+                              TOTAL_CASES: 0,
+                              TOTAL_DAYS_OF_CARE: 0,
+                              TOTAL_CHARGES: 0,
+                            };
+                          }
+                          groupedData[ccn].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
+                          groupedData[ccn].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+                          groupedData[ccn].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
+                        });
 
-                          return (
-                            <tr key={index}>
-                              <td>{row.ZIP_CD_OF_RESIDENCE}</td>
-                              <td>{facilityName || '—'}</td>
-                              <td className={styles.ccnCell}>{row.MEDICARE_PROV_NUM}</td>
-                              <td>{cases.toLocaleString()}</td>
-                              <td>${charges.toLocaleString()}</td>
-                              <td>{avgDays}</td>
-                              <td>${parseInt(avgCharges).toLocaleString()}</td>
-                            </tr>
-                          );
-                        })}
+                        return Object.values(groupedData)
+                          .sort((a, b) => {
+                            const casesA = parseInt(a.TOTAL_CASES) || 0;
+                            const casesB = parseInt(b.TOTAL_CASES) || 0;
+                            return casesB - casesA;
+                          })
+                          .map((row, index) => {
+                            const cases = parseInt(row.TOTAL_CASES) || 0;
+                            const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+                            const charges = parseInt(row.TOTAL_CHARGES) || 0;
+                            const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
+                            const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
+
+                            const facilityName = facilityNames.get(row.MEDICARE_PROV_NUM);
+
+                            return (
+                              <tr key={index}>
+                                <td>{facilityName || '—'}</td>
+                                <td className={styles.ccnCell}>{row.MEDICARE_PROV_NUM}</td>
+                                <td>{cases.toLocaleString()}</td>
+                                <td>${charges.toLocaleString()}</td>
+                                <td>{avgDays}</td>
+                                <td>${parseInt(avgCharges).toLocaleString()}</td>
+                              </tr>
+                            );
+                          });
+                      })()}
                     </tbody>
                   </table>
-                ) : analysisType === 'zip_codes_grouped' ? (
+                ) : analysisType === 'ByZipCode' ? (
                   <table className={styles.table}>
                     <thead>
                       <tr>
@@ -737,9 +941,35 @@ export default function StandaloneCatchment() {
                             const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
                             const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
 
+                            const zipHasNetworkProvider = zipCodeHasNetworkProvider(row.ZIP_CD_OF_RESIDENCE);
+                            const zipCode = String(row.ZIP_CD_OF_RESIDENCE).trim();
+                            const matchingProviders = zipHasNetworkProvider && zipCodeToProvidersMap.get(zipCode) 
+                              ? zipCodeToProvidersMap.get(zipCode).filter(p => p.tags.includes(selectedNetworkTag))
+                              : [];
+
                             return (
-                              <tr key={index}>
-                                <td>{row.ZIP_CD_OF_RESIDENCE}</td>
+                              <tr 
+                                key={index}
+                                className={zipHasNetworkProvider ? styles.highlightedRow : ''}
+                                style={zipHasNetworkProvider ? { 
+                                  backgroundColor: `${getTagColor(selectedNetworkTag)}15`,
+                                  borderLeft: `3px solid ${getTagColor(selectedNetworkTag)}`
+                                } : {}}
+                              >
+                                <td>
+                                  {zipHasNetworkProvider && matchingProviders.length > 0 ? (
+                                    <NetworkProviderTooltip
+                                      zipCode={zipCode}
+                                      tagLabel={getTagLabel(selectedNetworkTag)}
+                                      tagColor={getTagColor(selectedNetworkTag)}
+                                      providers={matchingProviders}
+                                    >
+                                      {row.ZIP_CD_OF_RESIDENCE}
+                                    </NetworkProviderTooltip>
+                                  ) : (
+                                    row.ZIP_CD_OF_RESIDENCE
+                                  )}
+                                </td>
                                 <td>{cases.toLocaleString()}</td>
                                 <td>${charges.toLocaleString()}</td>
                                 <td>{avgDays}</td>
@@ -751,65 +981,7 @@ export default function StandaloneCatchment() {
                       })()}
                     </tbody>
                   </table>
-                ) : (
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Hospital</th>
-                        <th>CCN</th>
-                        <th>Total Cases</th>
-                        <th>Total Charges</th>
-                        <th>Avg Days</th>
-                        <th>Avg Charge</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const groupedData = {};
-                        catchmentData.hospitalData?.forEach((row) => {
-                          const ccn = row.MEDICARE_PROV_NUM;
-                          if (!groupedData[ccn]) {
-                            groupedData[ccn] = {
-                              MEDICARE_PROV_NUM: ccn,
-                              TOTAL_CASES: 0,
-                              TOTAL_DAYS_OF_CARE: 0,
-                              TOTAL_CHARGES: 0,
-                            };
-                          }
-                          groupedData[ccn].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
-                          groupedData[ccn].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                          groupedData[ccn].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
-                        });
-
-                        return Object.values(groupedData)
-                          .sort((a, b) => {
-                            const casesA = parseInt(a.TOTAL_CASES) || 0;
-                            const casesB = parseInt(b.TOTAL_CASES) || 0;
-                            return casesB - casesA;
-                          })
-                          .map((row, index) => {
-                            const cases = parseInt(row.TOTAL_CASES) || 0;
-                            const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                            const charges = parseInt(row.TOTAL_CHARGES) || 0;
-                            const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
-                            const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
-
-                            const facilityName = facilityNames.get(row.MEDICARE_PROV_NUM);
-                            return (
-                              <tr key={index}>
-                                <td>{facilityName || '—'}</td>
-                                <td className={styles.ccnCell}>{row.MEDICARE_PROV_NUM}</td>
-                                <td>{cases.toLocaleString()}</td>
-                                <td>${charges.toLocaleString()}</td>
-                                <td>{avgDays}</td>
-                                <td>${parseInt(avgCharges).toLocaleString()}</td>
-                              </tr>
-                            );
-                          });
-                      })()}
-                    </tbody>
-                  </table>
-                )}
+                ) : null}
               </div>
             </>
           ) : null}

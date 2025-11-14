@@ -282,12 +282,12 @@ const Sidebar = ({
         <Link 
             to="/app/catchment" 
             className={`${styles.navItem} ${isActive('/catchment') ? styles.active : ''}`}
-            onMouseEnter={(e) => handleMouseEnter(e, 'Catchment')}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Hospital Catchment')}
           onMouseLeave={handleMouseLeave}
           {...mobileLinkHandlers}
           >
             <Target size={14} />
-            {!isCollapsed && 'Catchment'}
+            {!isCollapsed && 'Hospital Catchment'}
           </Link>
           
           {/* Section divider */}

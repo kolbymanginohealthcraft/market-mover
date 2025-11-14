@@ -1332,24 +1332,20 @@ export default function ProviderSearch() {
                             >
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%', textAlign: 'left' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <code style={{ fontSize: '11px', fontFamily: 'monospace' }}>{tag.taxonomy_code}</code>
+                                  <span style={{ fontSize: '11px' }}>
+                                    <code style={{ fontFamily: 'monospace' }}>{tag.taxonomy_code}</code>
+                                    {details && (details.classification || details.taxonomy_classification) && (
+                                      <span>: {details.classification || details.taxonomy_classification}</span>
+                                    )}
+                                  </span>
                                   {isSelected && (
                                     <span style={{ fontSize: '10px', color: 'var(--primary)' }}>✓</span>
                                   )}
                                 </div>
-                                {details && (
-                                  <>
-                                    {(details.classification || details.taxonomy_classification) && (
-                                      <div style={{ fontSize: '10px', color: 'var(--gray-600)', marginTop: '2px' }}>
-                                        {details.classification || details.taxonomy_classification}
-                                      </div>
-                                    )}
-                                    {(details.specialization || details.specialization_name || details.taxonomy_specialization) && (
-                                      <div style={{ fontSize: '10px', color: 'var(--gray-500)', fontStyle: 'italic' }}>
-                                        {details.specialization || details.specialization_name || details.taxonomy_specialization}
-                                      </div>
-                                    )}
-                                  </>
+                                {details && (details.specialization || details.specialization_name || details.taxonomy_specialization) && (
+                                  <div style={{ fontSize: '10px', color: 'var(--gray-500)', fontStyle: 'italic' }}>
+                                    {details.specialization || details.specialization_name || details.taxonomy_specialization}
+                                  </div>
                                 )}
                               </div>
                             </button>

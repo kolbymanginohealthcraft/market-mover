@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Plus, Search as SearchIcon, Tag, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search as SearchIcon, Tag, ChevronDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import styles from './Metrics.module.css';
@@ -165,15 +165,6 @@ export default function MetricsBrowseView() {
     return kpiTags.some(tag => tag.kpi_code === code);
   }
 
-  function getDirectionIcon(direction) {
-    if (direction === 'Higher') {
-      return <TrendingUp size={14} className={styles.directionIconUp} title="Higher is better" />;
-    } else if (direction === 'Lower') {
-      return <TrendingDown size={14} className={styles.directionIconDown} title="Lower is better" />;
-    }
-    return null;
-  }
-
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
@@ -324,7 +315,6 @@ export default function MetricsBrowseView() {
                   <th>Code</th>
                   <th>Name</th>
                   <th>Label</th>
-                  <th>Direction</th>
                   <th>Setting</th>
                   <th>Source</th>
                   <th>Description</th>
@@ -343,14 +333,6 @@ export default function MetricsBrowseView() {
                         {kpi.name || 'N/A'}
                       </td>
                       <td>{kpi.label || 'N/A'}</td>
-                      <td className={styles.directionCell}>
-                        {kpi.direction ? (
-                          <span className={styles.directionBadge}>
-                            {getDirectionIcon(kpi.direction)}
-                            {kpi.direction}
-                          </span>
-                        ) : 'N/A'}
-                      </td>
                       <td>
                         <span className={styles.settingBadge}>
                           {kpi.setting || 'N/A'}

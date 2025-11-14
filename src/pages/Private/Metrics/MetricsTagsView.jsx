@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../app/supabaseClient';
-import { Trash2, Bookmark, TrendingUp, TrendingDown } from 'lucide-react';
+import { Trash2, Bookmark } from 'lucide-react';
 import styles from './Metrics.module.css';
 
 export default function MetricsTagsView() {
@@ -113,15 +113,6 @@ export default function MetricsTagsView() {
     }
   }
 
-  function getDirectionIcon(direction) {
-    if (direction === 'Higher') {
-      return <TrendingUp size={14} className={styles.directionIconUp} title="Higher is better" />;
-    } else if (direction === 'Lower') {
-      return <TrendingDown size={14} className={styles.directionIconDown} title="Lower is better" />;
-    }
-    return null;
-  }
-
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -153,7 +144,6 @@ export default function MetricsTagsView() {
                 <th>Code</th>
                 <th>Name</th>
                 <th>Label</th>
-                <th>Direction</th>
                 <th>Setting</th>
                 <th>Source</th>
                 <th>Description</th>
@@ -173,14 +163,6 @@ export default function MetricsTagsView() {
                       {details?.name || '...'}
                     </td>
                     <td>{details?.label || '...'}</td>
-                    <td className={styles.directionCell}>
-                      {details?.direction ? (
-                        <span className={styles.directionBadge}>
-                          {getDirectionIcon(details.direction)}
-                          {details.direction}
-                        </span>
-                      ) : '...'}
-                    </td>
                     <td>
                       <span className={styles.settingBadge}>
                         {details?.setting || '...'}

@@ -56,14 +56,15 @@
 }
 
 .dropdownMenu {
-  min-width: 260px;
-  max-height: 320px;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid var(--gray-200);
-  border-radius: 10px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   padding: 8px 0;
+  min-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .dropdownMessage {
@@ -73,38 +74,30 @@
 }
 
 .dropdownItem {
+  display: block;
   width: 100%;
   padding: 10px 16px;
-  background: transparent;
   border: none;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
+  background: none;
   text-align: left;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--gray-700);
+  font-size: 12px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  color: var(--gray-700);
+  font-weight: 500;
+  line-height: 1.3;
+  font-family: inherit;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dropdownItem:hover {
-  background: rgba(0, 192, 139, 0.08);
+  background: rgba(0, 192, 139, 0.15) !important;
+  color: var(--primary-teal-dark);
 }
 
-.dropdownItemActive {
-  background: rgba(0, 192, 139, 0.12);
-}
-
-.marketName {
-  font-weight: 600;
-  color: var(--gray-800);
-}
-
-.marketMeta {
-  font-size: 12px;
-  color: var(--gray-500);
+.dropdownItem:last-child {
+  border-bottom: none;
 }
 
 .marketSummary {

@@ -19,7 +19,7 @@ const OSM_STYLE = {
       type: 'raster',
       source: 'osm',
       minzoom: 0,
-      maxzoom: 19,
+      maxzoom: 22,
     },
   ],
 };
@@ -78,9 +78,21 @@ export default function PlanetFeaturesMap({ center, features, onlyPoints, detail
         style: OSM_STYLE,
         center: [center.lng, center.lat],
         zoom: 12,
+        maxZoom: 18,
+        minZoom: 2,
+        maxPitch: 0,
+        preserveDrawingBuffer: false,
+        antialias: false,
       });
       mapRef.current.addControl(new maplibregl.NavigationControl(), 'top-right');
       mapRef.current.addControl(new maplibregl.FullscreenControl(), 'top-right');
+      
+      // Enforce maxZoom strictly to prevent zooming beyond tile availability
+      mapRef.current.on('zoom', () => {
+        if (mapRef.current && mapRef.current.getZoom() > 18) {
+          mapRef.current.setZoom(18);
+        }
+      });
     }
 
     return () => {
@@ -130,6 +142,7 @@ export default function PlanetFeaturesMap({ center, features, onlyPoints, detail
     if (bounds) {
       mapRef.current.fitBounds(bounds, {
         padding: { top: 32, bottom: 32, left: 32, right: 32 },
+        maxZoom: 18,
         duration: 500,
       });
     } else if (center) {

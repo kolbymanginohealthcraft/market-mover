@@ -73,6 +73,7 @@ export default function ClaimsDataInvestigation() {
   const [taxonomyTags, setTaxonomyTags] = useState([]);
   const [selectedTaxonomyTag, setSelectedTaxonomyTag] = useState(null);
   const [taxonomyCodes, setTaxonomyCodes] = useState(null);
+  const [taxonomyTagDetails, setTaxonomyTagDetails] = useState({}); // Map of taxonomy_code -> details
   const [selectedTaxonomyFields, setSelectedTaxonomyFields] = useState([]); // Which taxonomy code fields to apply filter to
   const taxonomyCodeFields = [
     { value: 'billing_provider_taxonomy_code', label: 'Billing: Taxonomy Code' },
@@ -391,6 +392,30 @@ export default function ClaimsDataInvestigation() {
         if (tagsError) throw tagsError;
         
         setTaxonomyTags(tags || []);
+
+        // Fetch taxonomy details for all taxonomy codes
+        if (tags && tags.length > 0) {
+          const codes = [...new Set(tags.map(tag => tag.taxonomy_code))];
+          try {
+            const detailsResponse = await fetch('/api/taxonomies-details', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ codes })
+            });
+
+            const detailsResult = await detailsResponse.json();
+            if (detailsResult.success) {
+              const detailsMap = {};
+              detailsResult.data.forEach(detail => {
+                detailsMap[detail.code] = detail;
+              });
+              setTaxonomyTagDetails(detailsMap);
+            }
+          } catch (detailsErr) {
+            console.error('Error fetching taxonomy details:', detailsErr);
+          }
+        }
+
         console.log('Loaded taxonomy tags:', tags?.length || 0);
       } catch (err) {
         console.error('Error fetching taxonomy tags:', err);
@@ -1502,22 +1527,30 @@ export default function ClaimsDataInvestigation() {
             >
               All Tagged ({taxonomyTags.length})
             </button>
-            {taxonomyTags.map(tag => (
-              <button 
-                key={tag.id}
-                className={styles.dropdownItem}
-                onClick={() => {
-                  handleTaxonomyTagSelect(tag.id);
-                  // Don't close dropdown - keep it open so user can select fields
-                }}
-                style={{
-                  fontWeight: selectedTaxonomyTag?.id === tag.id ? '600' : '500',
-                  background: selectedTaxonomyTag?.id === tag.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
-                }}
-              >
-                {tag.taxonomy_code}
-              </button>
-            ))}
+            {taxonomyTags.map(tag => {
+              const details = taxonomyTagDetails[tag.taxonomy_code];
+              return (
+                <button 
+                  key={tag.id}
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleTaxonomyTagSelect(tag.id);
+                    // Don't close dropdown - keep it open so user can select fields
+                  }}
+                  style={{
+                    fontWeight: selectedTaxonomyTag?.id === tag.id ? '600' : '500',
+                    background: selectedTaxonomyTag?.id === tag.id ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                  }}
+                >
+                  <span style={{ fontSize: '11px' }}>
+                    <code style={{ fontFamily: 'monospace' }}>{tag.taxonomy_code}</code>
+                    {details && (details.classification || details.taxonomy_classification) && (
+                      <span>: {details.classification || details.taxonomy_classification}</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
             {selectedTaxonomyTag && (
               <>
                 <div style={{ borderTop: '1px solid var(--gray-200)', margin: '8px 0' }}></div>

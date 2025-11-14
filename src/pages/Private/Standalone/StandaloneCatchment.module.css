@@ -79,6 +79,12 @@
   border-bottom: none;
 }
 
+.dropdownDivider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 4px 0;
+}
+
 .spacer {
   flex: 1;
 }
@@ -104,53 +110,6 @@
 
 .metaDivider {
   color: var(--gray-400);
-}
-
-.analysisToggle {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  padding: 20px;
-  margin: 20px;
-}
-
-.toggleContainer {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.toggleButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
-  border-radius: 6px;
-  color: var(--gray-600);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toggleButton:hover {
-  background: var(--gray-100);
-  border-color: var(--gray-300);
-}
-
-.toggleButton.active {
-  background: var(--primary-teal);
-  border-color: var(--primary-teal);
-  color: var(--white);
-}
-
-.toggleDescription {
-  margin: 0;
-  color: var(--gray-600);
-  font-size: 14px;
-  line-height: 1.4;
 }
 
 .content {
@@ -314,6 +273,14 @@
 
 .table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.highlightedRow {
+  transition: background-color 0.2s ease;
+}
+
+.highlightedRow:hover {
+  opacity: 0.9;
 }
 
 .ccnCell {

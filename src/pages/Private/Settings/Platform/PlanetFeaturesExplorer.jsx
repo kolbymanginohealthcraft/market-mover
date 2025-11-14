@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Search as SearchIcon, School, Church, UtensilsCrossed, Hospital, Pill, Trees } from 'lucide-react';
+import { ChevronDown, Search as SearchIcon, School, Church, UtensilsCrossed, Hospital, Pill, Trees, MapPin } from 'lucide-react';
 import { supabase } from '../../../../app/supabaseClient';
 import Dropdown from '../../../../components/Buttons/Dropdown';
 import Spinner from '../../../../components/Buttons/Spinner';
@@ -268,6 +268,11 @@ export default function PlanetFeaturesExplorer() {
 
   const handleMarketSelect = (market) => {
     setSelectedMarket(market);
+    setMarketDropdownOpen(false);
+  };
+
+  const handleNoMarket = () => {
+    setSelectedMarket(null);
     setMarketDropdownOpen(false);
   };
 
@@ -540,9 +545,10 @@ export default function PlanetFeaturesExplorer() {
         <div className={styles.controlsBarLeft}>
           <Dropdown
             trigger={
-              <button type="button" className={styles.marketSelectTrigger}>
-                <span>{selectedMarket ? selectedMarket.name : marketsLoading ? 'Loading markets…' : 'Select market'}</span>
-                <ChevronDown strokeWidth={1.75} />
+              <button type="button" className="sectionHeaderButton">
+                <MapPin size={14} />
+                {selectedMarket ? selectedMarket.name : marketsLoading ? 'Loading markets…' : 'Select market'}
+                <ChevronDown size={14} />
               </button>
             }
             isOpen={marketDropdownOpen}
@@ -556,19 +562,36 @@ export default function PlanetFeaturesExplorer() {
             ) : markets.length === 0 ? (
               <div className={styles.dropdownMessage}>No saved markets available.</div>
             ) : (
-              markets.map((market) => (
+              <>
                 <button
-                  key={market.id}
                   type="button"
-                  className={`${styles.dropdownItem} ${selectedMarket?.id === market.id ? styles.dropdownItemActive : ''}`}
-                  onClick={() => handleMarketSelect(market)}
+                  className={styles.dropdownItem}
+                  onClick={handleNoMarket}
+                  style={{
+                    fontWeight: selectedMarket === null ? '600' : '500',
+                    background: selectedMarket === null ? 'rgba(0, 192, 139, 0.1)' : undefined,
+                  }}
                 >
-                  <div className={styles.marketName}>{market.name}</div>
-                  <div className={styles.marketMeta}>
-                    {market.city}, {market.state} • {market.radius_miles} mi radius
-                  </div>
+                  No Market
                 </button>
-              ))
+                {markets.map((market) => (
+                  <button
+                    key={market.id}
+                    type="button"
+                    className={styles.dropdownItem}
+                    onClick={() => handleMarketSelect(market)}
+                    style={{
+                      fontWeight: selectedMarket?.id === market.id ? '600' : '500',
+                      background: selectedMarket?.id === market.id ? 'rgba(0, 192, 139, 0.1)' : undefined,
+                    }}
+                  >
+                    <div>{market.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                      {market.city}, {market.state} • {market.radius_miles} mi
+                    </div>
+                  </button>
+                ))}
+              </>
             )}
           </Dropdown>
 

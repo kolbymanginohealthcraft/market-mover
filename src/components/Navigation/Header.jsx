@@ -33,6 +33,7 @@ import {
   getNavigationIcon,
   getNavigationIconProps
 } from '../../utils/navigationIcons';
+import PageHelpModal from '../Layouts/PageHelpModal';
 
 const Header = ({
   currentView,
@@ -165,6 +166,8 @@ const Header = ({
       return 'CMS Enrollment';
     } else if (location.pathname.includes('/population')) {
       return 'Population Demographics';
+    } else if (location.pathname.includes('/catchment')) {
+      return 'Hospital Catchment';
     } else if (location.pathname.includes('/network')) {
       return 'My Network';
     } else if (location.pathname.includes('/procedures')) {
@@ -280,6 +283,10 @@ const Header = ({
     } else if (currentPath.includes('/population')) {
       return [
         { text: 'Census demographics and population data for your markets', type: 'description' }
+      ];
+    } else if (currentPath.includes('/catchment')) {
+      return [
+        { text: 'Service area analysis and patient flow patterns', type: 'description' }
       ];
     } else if (currentPath.includes('/network')) {
       return [
@@ -548,6 +555,7 @@ const Header = ({
       </div>
 
       <div className={styles.headerRight}>
+        {!isPublicPage && <PageHelpModal />}
         {showPlatformButton && (
           <button
             type="button"

@@ -251,10 +251,6 @@ export default function NetworkListView() {
             aValue = sanitizeProviderName(a.network) || a.network || ''; 
             bValue = sanitizeProviderName(b.network) || b.network || ''; 
             break;
-          case 'location': 
-            aValue = `${a.city || ''} ${a.state || ''}`; 
-            bValue = `${b.city || ''} ${b.state || ''}`; 
-            break;
           case 'date': 
             aValue = new Date(a.created_at); 
             bValue = new Date(b.created_at); 
@@ -505,12 +501,10 @@ export default function NetworkListView() {
                     >
                       Network {sortBy === 'network' && (sortDirection === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th 
-                      className={styles.sortableHeader}
-                      onClick={() => handleColumnSort('location')}
-                    >
-                      Location {sortBy === 'location' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
+                    <th>Street</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>ZIP</th>
                     <th 
                       className={styles.sortableHeader}
                       onClick={() => handleColumnSort('date')}
@@ -558,7 +552,10 @@ export default function NetworkListView() {
                       </td>
                       <td>{provider.type}</td>
                       <td>{sanitizeProviderName(provider.network) || provider.network || '—'}</td>
-                      <td>{provider.city}, {provider.state}</td>
+                      <td>{provider.street || '—'}</td>
+                      <td>{provider.city || '—'}</td>
+                      <td>{provider.state || '—'}</td>
+                      <td>{provider.zip || '—'}</td>
                       <td>{provider.formattedDate}</td>
                     </tr>
                   ))}
