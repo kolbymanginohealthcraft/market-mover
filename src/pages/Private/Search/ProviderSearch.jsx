@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -121,6 +121,7 @@ export default function ProviderSearch() {
   const [layersAdded, setLayersAdded] = useState(false);
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [popup, setPopup] = useState(null);
+  const [distanceSortPoint, setDistanceSortPoint] = useState(null);
 
   // Selection and bulk actions
   const [selectedProviders, setSelectedProviders] = useState(new Set());
@@ -794,8 +795,23 @@ export default function ProviderSearch() {
   const [nationalOverview, setNationalOverview] = useState(null);
   const [loadingOverview, setLoadingOverview] = useState(false);
 
-  // Apply filters to results
-  const filteredResults = results.filter(provider => {
+  // Calculate distance between two coordinates using Haversine formula (returns miles)
+  const calculateDistance = useCallback((lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
+
+  // Apply filters to results (unsorted - used for map)
+  const filteredResults = useMemo(() => {
+    return results.filter(provider => {
     if (selectedTypes.length > 0) {
       const providerType = provider.type || "Unknown";
       if (!selectedTypes.includes(providerType)) {
@@ -830,7 +846,30 @@ export default function ProviderSearch() {
       return false;
     }
     return true;
-  });
+    });
+  }, [results, selectedTypes, selectedHospitalSubtypes, selectedPhysicianGroupSpecialties, selectedNetworks, selectedCities, selectedStates]);
+
+  // Sort filtered results by distance if distanceSortPoint is set (only for table display)
+  const sortedResults = useMemo(() => {
+    if (distanceSortPoint && distanceSortPoint.lat && distanceSortPoint.lng) {
+      return [...filteredResults].sort((a, b) => {
+        const distA = calculateDistance(
+          distanceSortPoint.lat,
+          distanceSortPoint.lng,
+          a.latitude,
+          a.longitude
+        );
+        const distB = calculateDistance(
+          distanceSortPoint.lat,
+          distanceSortPoint.lng,
+          b.latitude,
+          b.longitude
+        );
+        return distA - distB;
+      });
+    }
+    return filteredResults;
+  }, [filteredResults, distanceSortPoint, calculateDistance]);
 
   // Extract unique filter options from RESULTS (unfiltered API results)
   // This ensures filter options update correctly when filters are cleared
@@ -934,6 +973,7 @@ export default function ProviderSearch() {
     setTagNPIs(null);
     setSelectedMarket(null);
     setMarketNPIs(null);
+    setDistanceSortPoint(null);
     setQueryText("");
     setSubmittedSearchTerm("");
     setError(null);
@@ -981,9 +1021,9 @@ export default function ProviderSearch() {
     }));
   };
 
-  // For listing display: limit to first 500 results only
+  // For listing display: limit to first 500 results only (use sortedResults for table)
   // Overview will use all results or national overview for full dataset stats
-  const listingResults = filteredResults.slice(0, 500);
+  const listingResults = sortedResults.slice(0, 500);
   const totalPages = Math.ceil(listingResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
@@ -991,12 +1031,12 @@ export default function ProviderSearch() {
 
   // Export to CSV
   const exportToCSV = () => {
-    if (filteredResults.length === 0) return;
+    if (sortedResults.length === 0) return;
 
     const headers = ['DHC', 'Name', 'Type', 'Network', 'Street', 'City', 'State', 'ZIP', 'Phone'];
     const csvContent = [
       headers.join(','),
-      ...filteredResults.map(p => [
+      ...sortedResults.map(p => [
         p.dhc || '',
         `"${(p.name || '').replace(/"/g, '""')}"`,
         `"${(p.type || 'Unknown').replace(/"/g, '""')}"`,
@@ -1076,7 +1116,7 @@ export default function ProviderSearch() {
   };
 
   const hasActiveFilters = submittedSearchTerm.trim() || selectedTypes.length > 0 || selectedHospitalSubtypes.length > 0 || selectedPhysicianGroupSpecialties.length > 0 || selectedNetworks.length > 0 ||
-    selectedCities.length > 0 || selectedStates.length > 0 || selectedTaxonomyCodes.length > 0 || selectedTag || selectedMarket;
+    selectedCities.length > 0 || selectedStates.length > 0 || selectedTaxonomyCodes.length > 0 || selectedTag || selectedMarket || distanceSortPoint;
 
   const formatNumber = (num) => {
     if (num === null || num === undefined) return '0';
@@ -1337,6 +1377,8 @@ export default function ProviderSearch() {
             `<span style="display: inline-flex; align-items: center; background-color: ${tagColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; text-transform: capitalize;">${tagLabel}</span>` : 
             '<span style="display: inline-flex; align-items: center; background-color: #6b7280; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Untagged</span>';
           
+          const sortButtonId = `sort-distance-${Date.now()}`;
+          
           const newPopup = new maplibregl.Popup({ 
             offset: 20,
             maxWidth: '200px',
@@ -1365,7 +1407,7 @@ export default function ProviderSearch() {
                     </div>
                   </div>
                 ` : ''}
-                <div style="padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                <div style="padding-top: 6px; border-top: 1px solid #e5e7eb; margin-bottom: 6px;">
                   <div style="font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; font-weight: 600;">
                     Tag
                   </div>
@@ -1373,11 +1415,29 @@ export default function ProviderSearch() {
                     ${tagDisplay}
                   </div>
                 </div>
+                <div style="padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                  <button id="${sortButtonId}" style="width: 100%; padding: 6px 8px; background-color: #00c08b; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#00a877'" onmouseout="this.style.backgroundColor='#00c08b'">
+                    Sort by distance from here
+                  </button>
+                </div>
               </div>
             `);
           
           newPopup.addTo(mapRef.current);
           setPopup(newPopup);
+          
+          // Add click handler for the sort button after popup is added to DOM
+          setTimeout(() => {
+            const sortButton = document.getElementById(sortButtonId);
+            if (sortButton) {
+              sortButton.addEventListener('click', () => {
+                setDistanceSortPoint({ lat: latitude, lng: longitude });
+                setCurrentPage(1);
+                newPopup.remove();
+                setPopup(null);
+              });
+            }
+          }, 50);
         }
       });
 
@@ -2235,6 +2295,17 @@ export default function ProviderSearch() {
                         </button>
                       </div>
                     ))}
+                    {distanceSortPoint && (
+                      <div className={styles.filterChip}>
+                        <span>Sorted by distance</span>
+                        <button onClick={() => {
+                          setDistanceSortPoint(null);
+                          setCurrentPage(1);
+                        }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2447,7 +2518,7 @@ export default function ProviderSearch() {
               {/* Listing Tab */}
               {activeTab === 'listing' && (
                 <div className={styles.resultsPanel}>
-                  {!loading && filteredResults.length === 0 && (
+                  {!loading && sortedResults.length === 0 && (
                     <div className={styles.emptyState}>
                       <h2>No Results Found</h2>
                       <p>Try adjusting your search terms or filters</p>
@@ -2510,7 +2581,7 @@ export default function ProviderSearch() {
                           )}
                           <span className={styles.pageInfo}>
                             {(() => {
-                              const total = hasActiveFilters || submittedSearchTerm.trim() ? filteredResults.length : (nationalOverview?.overall?.total_providers || 0);
+                              const total = hasActiveFilters || submittedSearchTerm.trim() ? sortedResults.length : (nationalOverview?.overall?.total_providers || 0);
                               return `Showing ${startIndex + 1}-${Math.min(endIndex, listingResults.length)} of ${formatNumber(total)}${total >= 500 ? ' (table limited to first 500)' : ''}`;
                             })()}
                           </span>
@@ -2535,7 +2606,7 @@ export default function ProviderSearch() {
                           <button
                             onClick={exportToCSV}
                             className="sectionHeaderButton"
-                            disabled={filteredResults.length === 0}
+                            disabled={sortedResults.length === 0}
                             title="Export to CSV"
                           >
                             <Download size={14} />
