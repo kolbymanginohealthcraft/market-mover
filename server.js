@@ -72,6 +72,16 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Debug middleware to log all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.path}`, {
+    url: req.url,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl
+  });
+  next();
+});
+
 app.use("/api", qualityMeasures);
 app.use("/api", searchProviders);
 app.use("/api", getCcns);
@@ -798,7 +808,15 @@ app.post("/api/stop-impersonate", async (req, res) => {
 
 // Catch-all fallback
 app.use((req, res) => {
-  res.status(404).json({ error: "Not found" });
+  if (req.path.startsWith('/api/')) {
+    console.error(`❌ API route not found: ${req.method} ${req.path}`, {
+      url: req.url,
+      originalUrl: req.originalUrl
+    });
+    res.status(404).json({ error: "Not found", path: req.path, method: req.method });
+  } else {
+    res.status(404).json({ error: "Not found" });
+  }
 });
 
 // Only start the server if not in Vercel's serverless environment

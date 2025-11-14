@@ -52,6 +52,11 @@ export default function MetricsBrowseView() {
   async function fetchFilterOptions() {
     try {
       const response = await fetch('/api/kpis-filters');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch filter options: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
@@ -77,6 +82,11 @@ export default function MetricsBrowseView() {
       });
       
       const response = await fetch(`/api/kpis-reference?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reference metrics: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json();
       
       if (!result.success) {
