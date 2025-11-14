@@ -397,7 +397,7 @@ export default function ClaimsDataInvestigation() {
         if (tags && tags.length > 0) {
           const codes = [...new Set(tags.map(tag => tag.taxonomy_code))];
           try {
-            const detailsResponse = await fetch('/api/taxonomies-details', {
+            const detailsResponse = await fetch(apiUrl('/api/taxonomies-details'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ codes })
