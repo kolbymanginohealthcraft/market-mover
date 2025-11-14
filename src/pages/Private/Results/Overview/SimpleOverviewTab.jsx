@@ -275,9 +275,6 @@ export default function SimpleOverviewTab({ provider }) {
     return <p className={styles.loadingFallback}>Loading provider data...</p>;
   }
 
-  const handleSeeMarket = () => {
-    navigate(`/app/${provider.dhc}/market/overview`);
-  };
 
   const formatLocation = (city, state) => {
     if (city && state) return `${city}, ${state}`;
@@ -1083,14 +1080,6 @@ export default function SimpleOverviewTab({ provider }) {
               ))}
             </p>
           )}
-        </div>
-        <div className={styles.heroAction}>
-          <button className={styles.marketButton} onClick={handleSeeMarket}>
-            View Market Overview
-          </button>
-          <p className={styles.marketDescription}>
-            Review nearby providers, population context, and demand signals.
-          </p>
         </div>
       </section>
 

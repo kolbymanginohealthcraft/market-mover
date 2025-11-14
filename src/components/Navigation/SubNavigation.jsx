@@ -30,7 +30,8 @@ import {
   Construction,
   Database,
   ChevronDown,
-  Layers
+  Layers,
+  Info
 } from 'lucide-react';
 import styles from './SubNavigation.module.css';
 import { useUser } from '../Context/UserContext';
@@ -45,7 +46,7 @@ import {
 const SubNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [marketsViewMode, setMarketsViewMode] = useState('list');
   const { user, profile, permissions, loading: userLoading } = useUser();
   const { hasTeam, loading: teamLoading } = useUserTeam();
@@ -178,9 +179,17 @@ const SubNavigation = () => {
     }
 
     // Determine the current view from the URL
-    const currentView = location.pathname.includes('/markets/list') ? 'list' : 
+    // Check if we're on a market detail page (UUID pattern)
+    const marketIdMatch = location.pathname.match(/^\/app\/markets\/([a-f0-9-]{36})$/);
+    const isMarketDetail = marketIdMatch !== null;
+    
+    const currentView = isMarketDetail ? 'detail' :
+                       location.pathname.includes('/markets/list') ? 'list' : 
                        location.pathname.includes('/markets/map') ? 'map' : 
                        location.pathname.includes('/markets/create') ? 'create' : 'list';
+
+    // Get market ID if we're on a detail page
+    const marketId = isMarketDetail ? marketIdMatch[1] : null;
 
     return (
       <nav className={styles.subNavigation}>
@@ -199,6 +208,12 @@ const SubNavigation = () => {
             <Map size={16} />
             Map
           </Link>
+          {isMarketDetail && (
+            <div className={`${styles.tab} ${styles.active}`}>
+              <Info size={16} />
+              Detail
+            </div>
+          )}
           <Link
             to="/app/markets/create"
             className={`${styles.tab} ${currentView === 'create' ? styles.active : ''}`}

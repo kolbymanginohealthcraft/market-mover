@@ -136,34 +136,31 @@ router.get("/census-data/county-names", async (req, res) => {
     let query, params;
     
     if (countyFipsList && countyFipsList.length > 0) {
-      // Query for specific counties only
+      // Query for specific counties only - use counties table to get lsad_name
       const countyConditions = countyFipsList.map((_, index) => `county_fips_code = @county${index}`).join(' OR ');
       query = `
         SELECT 
-          county_fips_code,
-          area_name
-        FROM \`bigquery-public-data.census_utility.fips_codes_all\`
+          CONCAT(state_fips_code, county_fips_code) as county_fips_code,
+          COALESCE(lsad_name, county_name) as area_name
+        FROM \`bigquery-public-data.geo_us_boundaries.counties\`
         WHERE state_fips_code = @stateFips
-          AND summary_level = '050'
           AND (${countyConditions})
         ORDER BY area_name
       `;
       
       params = { stateFips };
       countyFipsList.forEach((countyFips, index) => {
-        // Construct full county FIPS code (state + county)
-        params[`county${index}`] = `${stateFips}${countyFips.padStart(3, '0')}`;
+        // Use just the 3-digit county FIPS code
+        params[`county${index}`] = String(countyFips).padStart(3, '0');
       });
     } else {
-      // Query for all counties in the state
+      // Query for all counties in the state - use counties table to get lsad_name
       query = `
         SELECT 
-          county_fips_code,
-          area_name
-        FROM \`bigquery-public-data.census_utility.fips_codes_all\`
+          CONCAT(state_fips_code, county_fips_code) as county_fips_code,
+          COALESCE(lsad_name, county_name) as area_name
+        FROM \`bigquery-public-data.geo_us_boundaries.counties\`
         WHERE state_fips_code = @stateFips
-          AND summary_level = '050'
-          AND county_fips_code LIKE CONCAT(@stateFips, '%')
         ORDER BY area_name
       `;
       params = { stateFips };
@@ -177,9 +174,11 @@ router.get("/census-data/county-names", async (req, res) => {
     });
     console.log('🔍 County names query results:', rows.length, 'rows');
 
+    // Structure response as { fullCountyFips: lsad_name } for the requested state
     const countyNames = {};
     rows.forEach(row => {
-      countyNames[row.county_fips_code] = row.area_name;
+      const fullCountyFips = row.county_fips_code; // Already CONCAT(state_fips_code, county_fips_code)
+      countyNames[fullCountyFips] = row.area_name; // Use lsad_name (or county_name as fallback)
     });
 
     // Cache disabled for testing
@@ -617,7 +616,7 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
       SELECT DISTINCT
         state_fips_code,
         county_fips_code,
-        county_name
+        COALESCE(lsad_name, county_name) as county_name
       FROM \`bigquery-public-data.geo_us_boundaries.counties\`
       WHERE ST_INTERSECTS(
         county_geom,
@@ -650,7 +649,7 @@ async function buildZipCensusData({ lat, lon, radiusMiles, year, zipRows: provid
       const fullCountyFips = String(row.county_fips_code).length >= 5 
         ? String(row.county_fips_code)
         : `${stateFips}${countyFips.padStart(3, '0')}`;
-      countyNamesMap[stateFips][fullCountyFips] = row.county_name;
+      countyNamesMap[stateFips][fullCountyFips] = row.county_name; // Uses lsad_name (or county_name as fallback)
     });
     console.log(`✅ Found ${countiesSet.size} counties in radius`);
   } catch (err) {
@@ -1173,7 +1172,7 @@ router.get('/census-acs-api', async (req, res) => {
         const countyNamesQuery = `
           SELECT 
             county_fips_code,
-            county_name
+            COALESCE(lsad_name, county_name) as county_name
           FROM \`bigquery-public-data.geo_us_boundaries.counties\`
           WHERE (${countyConditions})
         `;

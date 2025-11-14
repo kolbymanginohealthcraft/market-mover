@@ -75,7 +75,7 @@ const Dropdown = ({
   };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ position: 'relative', display: 'inline-block', zIndex: isOpen ? 10000 : 'auto' }}>
       <div 
         ref={triggerRef} 
         onClick={handleTriggerClick}

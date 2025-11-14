@@ -1,11 +1,33 @@
 .container {
-  padding: 0;
   width: 100%;
-  max-width: none;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  position: relative;
+}
+
+.controlsGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.viewAsLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.countLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-600);
+  margin-left: auto;
 }
 
 /* Controls Row - Global Style */
@@ -105,18 +127,23 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  flex: 1;
+  flex: 1 1 0%;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
 }
 
 /* Map and List Container */
 .mapAndListContainer {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 300px 1fr;
   gap: 0;
-  align-items: start;
+  align-items: stretch;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Elements List */
@@ -125,10 +152,12 @@
   border: 1px solid var(--gray-200);
   border-radius: 8px;
   padding: 20px;
-  height: 100%;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .elementsList h3 {
@@ -146,6 +175,7 @@
   gap: 8px;
   overflow-y: auto;
   flex: 1;
+  min-width: 0;
 }
 
 .elementItem {
@@ -154,6 +184,8 @@
   border: 1px solid var(--gray-200);
   border-radius: 6px;
   transition: all 0.2s ease;
+  min-width: 0;
+  overflow: visible;
 }
 
 .elementItem:hover {
@@ -170,8 +202,8 @@
 
 .tractId {
   font-family: monospace;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--gray-900);
 }
 
@@ -189,18 +221,23 @@
 .zipInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+  min-width: 0;
+  width: 100%;
 }
 
 .zipCode {
   font-family: monospace;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--gray-900);
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .zipCity {
-  font-size: 12px;
+  font-weight: 400;
   color: var(--gray-600);
 }
 
@@ -208,23 +245,19 @@
 .countyInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
 .countyName {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--gray-900);
+  line-height: 1.4;
 }
 
-.countyDetails {
-  font-size: 12px;
+.countyState {
+  font-weight: 400;
   color: var(--gray-600);
-}
-
-.countyLocation {
-  font-size: 11px;
-  color: var(--gray-500);
 }
 
 /* Loading State */
@@ -443,10 +476,19 @@
   margin: 0 0 8px 0;
 }
 
-.marketLocation {
-  color: var(--gray-600);
-  margin: 0 0 4px 0;
+.marketName {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.marketLocation {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-600);
 }
 
 .marketRadius {

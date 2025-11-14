@@ -82,6 +82,7 @@ import TestProviderOfServicesEnriched from "../pages/TestProviderOfServicesEnric
 import StandaloneEnrollment from "../pages/Private/Standalone/StandaloneEnrollment";
 import StandalonePopulation from "../pages/Private/Standalone/StandalonePopulation";
 import StandaloneCatchment from "../pages/Private/Standalone/StandaloneCatchment";
+import GeographyAnalysis from "../pages/Private/GeographyAnalysis/GeographyAnalysis";
 
 // Inner App component that has access to UserContext
 function AppContent({ location }) {
@@ -144,6 +145,16 @@ function AppContent({ location }) {
             <Route path="catchment/*" element={<StandaloneCatchment />} />
             <Route path="storyteller/*" element={<StandaloneStoryteller />} />
             
+            {/* Markets routes - must come before :dhc/* to avoid route conflicts */}
+            {/* Specific markets sub-routes first, then catch-all for MarketsList, then market IDs */}
+            <Route path="markets" element={<Navigate to="/app/markets/list" replace />} />
+            <Route path="markets/list" element={<MarketsList />} />
+            <Route path="markets/map" element={<MarketsList />} />
+            <Route path="markets/create" element={<MarketsList />} />
+            <Route path="markets/:marketId" element={<GeographyAnalysis />} />
+            <Route path="market/:marketId/*" element={<MarketDetail />} />
+            <Route path="market/create" element={<InteractiveMarketCreation />} />
+            
             {/* Provider market analysis view - must come before the simpler provider route */}
             <Route path=":dhc/market/*" element={<ProviderMarketAnalysis />} />
             
@@ -157,10 +168,6 @@ function AppContent({ location }) {
                 <LegacyProviderRedirect />
               } 
             />
-
-            <Route path="markets/*" element={<MarketsList />} />
-            <Route path="market/:marketId/*" element={<MarketDetail />} />
-            <Route path="market/create" element={<InteractiveMarketCreation />} />
             <Route path="settings/*" element={<Settings />} />
             <Route path="platform/*" element={<PlatformLayout />} />
             <Route path="manage-announcements" element={<ManageAnnouncements />} />

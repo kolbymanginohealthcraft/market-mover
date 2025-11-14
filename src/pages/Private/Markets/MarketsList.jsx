@@ -127,7 +127,7 @@ export default function MarketsList() {
               </div>
               <div className={styles.tableCell}>
                 <div className={styles.actions}>
-                  <Link to={`/app/market/${market.id}/overview`}>
+                  <Link to={`/app/markets/${market.id}`}>
                     <button className="sectionHeaderButton">
                       <ExternalLink size={14} />
                       <span>View</span>
@@ -450,7 +450,7 @@ export default function MarketsList() {
                    <Button 
                      ghost
                      size="sm"
-                     onClick={() => navigate(`/app/market/${tooltip.market.id}/overview`)}
+                     onClick={() => navigate(`/app/markets/${tooltip.market.id}`)}
                    >
                      <ExternalLink size={14} />
                      <span>View Market</span>
@@ -506,28 +506,34 @@ export default function MarketsList() {
     );
   }
 
+  // Determine which view to show based on current pathname
+  const currentPath = location.pathname;
+  const isListView = currentPath === '/app/markets/list' || currentPath === '/app/markets';
+  const isMapView = currentPath === '/app/markets/map';
+  const isCreateView = currentPath === '/app/markets/create';
+
   return (
     <div className={styles.container}>
-      <Routes>
-        <Route path="list" element={
-          markets.length === 0 ? (
-            <div className={styles.emptyState}>
-              <h3>No Markets Yet</h3>
-              <p>You haven't created any markets yet. Create your first market to get started.</p>
-                             <Link to="/app/markets/create">
-                 <Button variant="teal" size="lg">
-                   <span>Create Your First Market</span>
-                 </Button>
-               </Link>
-            </div>
-          ) : (
-            <MarketsListView />
-          )
-        } />
-        <Route path="map" element={<MarketsMapView />} />
-        <Route path="create" element={<InteractiveMarketCreation />} />
-        <Route path="*" element={<Navigate to="list" replace />} />
-      </Routes>
+      {isListView && (
+        markets.length === 0 ? (
+          <div className={styles.emptyState}>
+            <h3>No Markets Yet</h3>
+            <p>You haven't created any markets yet. Create your first market to get started.</p>
+            <Link to="/app/markets/create">
+              <Button variant="teal" size="lg">
+                <span>Create Your First Market</span>
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <MarketsListView />
+        )
+      )}
+      {isMapView && <MarketsMapView />}
+      {isCreateView && <InteractiveMarketCreation />}
+      {!isListView && !isMapView && !isCreateView && (
+        <Navigate to="/app/markets/list" replace />
+      )}
     </div>
   );
 }

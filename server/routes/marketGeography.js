@@ -230,6 +230,7 @@ router.get("/boundaries", async (req, res) => {
           county_fips_code,
           county_name,
           state_fips_code,
+          lsad_name,
           ST_AsGeoJSON(county_geom) as geometry
         FROM \`bigquery-public-data.geo_us_boundaries.counties\`
         WHERE ST_INTERSECTS(
