@@ -3,6 +3,7 @@ import { supabase } from '../../../app/supabaseClient';
 import { Plus, Search as SearchIcon, Tag, ChevronDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
+import { apiUrl } from '../../../utils/api';
 import styles from './Metrics.module.css';
 
 export default function MetricsBrowseView() {
@@ -51,7 +52,7 @@ export default function MetricsBrowseView() {
 
   async function fetchFilterOptions() {
     try {
-      const response = await fetch('/api/kpis-filters');
+      const response = await fetch(apiUrl('/api/kpis-filters'));
       
       if (!response.ok) {
         throw new Error(`Failed to fetch filter options: ${response.status} ${response.statusText}`);
@@ -81,7 +82,7 @@ export default function MetricsBrowseView() {
         source: selectedSource !== 'all' ? selectedSource : ''
       });
       
-      const response = await fetch(`/api/kpis-reference?${params}`);
+      const response = await fetch(apiUrl(`/api/kpis-reference?${params}`));
       
       if (!response.ok) {
         throw new Error(`Failed to fetch reference metrics: ${response.status} ${response.statusText}`);

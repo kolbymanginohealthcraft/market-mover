@@ -4,6 +4,7 @@ import { Plus, Search as SearchIcon, Tag, ChevronDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import ProcedureTooltip from '../../../components/UI/ProcedureTooltip';
+import { apiUrl } from '../../../utils/api';
 import styles from './Procedures.module.css';
 
 export default function ProceduresBrowseView() {
@@ -57,7 +58,7 @@ export default function ProceduresBrowseView() {
 
   async function fetchHierarchyData() {
     try {
-      const response = await fetch('/api/procedures-hierarchy');
+      const response = await fetch(apiUrl('/api/procedures-hierarchy'));
       const result = await response.json();
       
       if (result.success) {
@@ -132,7 +133,7 @@ export default function ProceduresBrowseView() {
         is_surgery: isSurgery !== 'all' ? isSurgery : ''
       });
       
-      const response = await fetch(`/api/procedures-reference?${params}`);
+      const response = await fetch(apiUrl(`/api/procedures-reference?${params}`));
       const result = await response.json();
       
       if (!result.success) {
@@ -159,7 +160,7 @@ export default function ProceduresBrowseView() {
     try {
       const codeList = codes.map(c => c.code);
       
-      const volumeResponse = await fetch('/api/procedures-volume-by-code', {
+      const volumeResponse = await fetch(apiUrl('/api/procedures-volume-by-code'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codes: codeList })

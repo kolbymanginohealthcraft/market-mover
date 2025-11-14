@@ -4,6 +4,7 @@ import { Search as SearchIcon, ChevronDown } from 'lucide-react';
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import TaxonomyTooltip from '../../../components/UI/TaxonomyTooltip';
+import { apiUrl } from '../../../utils/api';
 import styles from './Taxonomies.module.css';
 import { ensureSingleTeamTaxonomyTag } from '../../../utils/taxonomyTagUtils';
 
@@ -78,7 +79,7 @@ export default function TaxonomiesBrowseView() {
 
   async function fetchHierarchyData() {
     try {
-      const response = await fetch('/api/taxonomies-hierarchy');
+      const response = await fetch(apiUrl('/api/taxonomies-hierarchy'));
       
       if (!response.ok) {
         throw new Error(`Failed to fetch hierarchy: ${response.status} ${response.statusText}`);
@@ -175,7 +176,7 @@ export default function TaxonomiesBrowseView() {
         specialization: selectedSpecialization !== 'all' ? selectedSpecialization : ''
       });
       
-      const response = await fetch(`/api/taxonomies-reference?${params}`);
+      const response = await fetch(apiUrl(`/api/taxonomies-reference?${params}`));
       
       if (!response.ok) {
         throw new Error(`Failed to fetch taxonomy codes: ${response.status} ${response.statusText}`);

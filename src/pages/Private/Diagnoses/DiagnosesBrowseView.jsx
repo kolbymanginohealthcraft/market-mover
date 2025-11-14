@@ -4,6 +4,7 @@ import { Plus, Search as SearchIcon, Tag, ChevronDown, Search } from 'lucide-rea
 import ControlsRow from '../../../components/Layouts/ControlsRow';
 import Dropdown from '../../../components/Buttons/Dropdown';
 import DiagnosisTooltip from '../../../components/UI/DiagnosisTooltip';
+import { apiUrl } from '../../../utils/api';
 import styles from './Diagnoses.module.css';
 
 export default function DiagnosesBrowseView() {
@@ -63,7 +64,7 @@ export default function DiagnosesBrowseView() {
 
   async function fetchHierarchyData() {
     try {
-      const response = await fetch('/api/diagnoses-hierarchy');
+      const response = await fetch(apiUrl('/api/diagnoses-hierarchy'));
       const result = await response.json();
       
       if (result.success) {
@@ -199,7 +200,7 @@ export default function DiagnosesBrowseView() {
         code_system: selectedCodeSystem !== 'all' ? selectedCodeSystem : ''
       });
       
-      const response = await fetch(`/api/diagnoses-reference?${params}`);
+      const response = await fetch(apiUrl(`/api/diagnoses-reference?${params}`));
       const result = await response.json();
       
       if (!result.success) {
@@ -228,7 +229,7 @@ export default function DiagnosesBrowseView() {
       
       console.log('🔍 Fetching volume for codes:', codeList.slice(0, 10));
       
-      const volumeResponse = await fetch('/api/diagnoses-volume-by-code', {
+      const volumeResponse = await fetch(apiUrl('/api/diagnoses-volume-by-code'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codes: codeList })
