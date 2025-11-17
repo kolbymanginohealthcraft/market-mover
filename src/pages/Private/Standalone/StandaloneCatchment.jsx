@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, MapPin, Users, TrendingUp, Calendar, Building2, Navigation, ChevronDown, Network } from 'lucide-react';
+import { Target, MapPin, Users, TrendingUp, Calendar, Building2, Navigation, ChevronDown, Network, Lock } from 'lucide-react';
 import { supabase } from '../../../app/supabaseClient';
 import { apiUrl } from '../../../utils/api';
 import Spinner from '../../../components/Buttons/Spinner';
@@ -9,9 +9,12 @@ import PageLayout from '../../../components/Layouts/PageLayout';
 import useTaggedProviders from '../../../hooks/useTaggedProviders';
 import { getTagColor, getTagLabel } from '../../../utils/tagColors';
 import NetworkProviderTooltip from '../../../components/UI/NetworkProviderTooltip';
+import { useUserTeam } from '../../../hooks/useUserTeam';
+import Button from '../../../components/Buttons/Button';
 import styles from './StandaloneCatchment.module.css';
 
 export default function StandaloneCatchment() {
+  const { hasTeam, loading: teamLoading } = useUserTeam();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -163,6 +166,39 @@ export default function StandaloneCatchment() {
       isMounted = false;
     };
   }, [dhcParam]);
+
+  if (teamLoading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loading}>
+          Loading catchment...
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasTeam) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.teamRequiredState}>
+          <div className={styles.teamRequiredIcon}>
+            <Lock size={48} />
+          </div>
+          <h3>Team Required</h3>
+          <p>Join or create a team to access catchment analysis features.</p>
+          <p>These features help you collaborate with your team and analyze hospital service areas.</p>
+          <div className={styles.teamRequiredActions}>
+            <Button variant="gold" size="lg" onClick={() => navigate('/app/settings/company')}>
+              Create Team
+            </Button>
+            <Button variant="blue" size="lg" outline onClick={() => navigate('/app/settings/users')}>
+              Join Team
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (marketIdParam) {

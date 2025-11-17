@@ -279,16 +279,30 @@ const Sidebar = ({
             {!isCollapsed && 'CMS Enrollment'}
           </Link>
 
-        <Link 
+        {hasTeam ? (
+          <Link 
             to="/app/catchment" 
             className={`${styles.navItem} ${isActive('/catchment') ? styles.active : ''}`}
             onMouseEnter={(e) => handleMouseEnter(e, 'Hospital Catchment')}
-          onMouseLeave={handleMouseLeave}
-          {...mobileLinkHandlers}
+            onMouseLeave={handleMouseLeave}
+            {...mobileLinkHandlers}
           >
             <Target size={14} />
             {!isCollapsed && 'Hospital Catchment'}
           </Link>
+        ) : (
+          <div
+            className={`${styles.navItem} ${styles.disabled}`}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Hospital Catchment - Join or create a team to access catchment analysis features')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Target size={14} />
+            {!isCollapsed && 'Hospital Catchment'}
+            {!isCollapsed && (
+              <Lock size={12} style={{ marginLeft: 'auto' }} />
+            )}
+          </div>
+        )}
           
           {/* Section divider */}
           {!isCollapsed && (
