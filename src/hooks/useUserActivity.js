@@ -83,6 +83,16 @@ export default function useUserActivity() {
   // Track a new activity
   const trackActivity = useCallback(async (activityType, targetId = null, targetName = null, metadata = {}) => {
     try {
+      // Skip activity tracking if impersonating - prevents impersonator's activities
+      // from being tracked on behalf of the impersonated user.
+      // Note: If the actual user logs in separately (different session), their
+      // activities will still be tracked normally since they won't have this flag set.
+      const isImpersonating = localStorage.getItem('impersonation_original_user_id');
+      if (isImpersonating) {
+        console.log('⏭️ Skipping activity tracking (impersonation mode)');
+        return null;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 

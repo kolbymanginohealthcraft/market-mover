@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../../app/supabaseClient';
 import { hasPlatformAccess, isTeamAdmin } from '../../utils/roleHelpers';
 import { sessionSync, getStoredSession, isSessionValid } from '../../utils/sessionSync';
+import { apiUrl } from '../../utils/api';
 
 const UserContext = createContext();
 
@@ -144,7 +145,7 @@ export const UserProvider = ({ children }) => {
       setOriginalUserId(currentUserId);
       
       // Call server endpoint to get impersonation session
-      const response = await fetch('/api/impersonate', {
+      const response = await fetch(apiUrl('/api/impersonate'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +191,7 @@ export const UserProvider = ({ children }) => {
       }
 
       // Call server endpoint to get original user session
-      const response = await fetch('/api/stop-impersonate', {
+      const response = await fetch(apiUrl('/api/stop-impersonate'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
