@@ -4,6 +4,7 @@ import { X, UserCheck } from 'lucide-react';
 import Button from '../../../components/Buttons/Button';
 import Spinner from '../../../components/Buttons/Spinner';
 import { useUser } from '../../../components/Context/UserContext';
+import { apiUrl } from '../../../utils/api';
 import styles from './UserDetailModal.module.css';
 
 export default function UserDetailModal({ user, isOpen, onClose }) {
@@ -46,7 +47,7 @@ export default function UserDetailModal({ user, isOpen, onClose }) {
       if (!session) return;
 
       // Fetch detailed user info from auth and login history
-      const authResponse = await fetch(`/api/users/${user.id}/login-history`, {
+      const authResponse = await fetch(apiUrl(`/api/users/${user.id}/login-history`), {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -59,7 +60,7 @@ export default function UserDetailModal({ user, isOpen, onClose }) {
       }
 
       // Fetch recent activities
-      const activitiesResponse = await fetch('/api/users/activity-counts', {
+      const activitiesResponse = await fetch(apiUrl('/api/users/activity-counts'), {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -72,7 +73,7 @@ export default function UserDetailModal({ user, isOpen, onClose }) {
       }
 
       // Fetch authentication events (logins, failures, password resets, etc.)
-      const authEventsResponse = await fetch(`/api/users/${user.id}/auth-events`, {
+      const authEventsResponse = await fetch(apiUrl(`/api/users/${user.id}/auth-events`), {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
