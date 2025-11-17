@@ -1,7 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { apiUrl } from '../../../../utils/api';
+import { sanitizeProviderName } from '../../../../utils/providerName';
 import styles from './BenchmarkChart.module.css';
+
+// Cache for quality measures data
+const qualityMeasuresCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(ccns, publishDate) {
+  const sortedCcns = [...ccns].sort().join(',');
+  return `${sortedCcns}|${publishDate || 'latest'}`;
+}
+
+function getCachedData(cacheKey) {
+  const cached = qualityMeasuresCache.get(cacheKey);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (cached.expiresAt && now > cached.expiresAt) {
+    qualityMeasuresCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+function setCachedData(cacheKey, data) {
+  const expiresAt = Date.now() + CACHE_TTL;
+  qualityMeasuresCache.set(cacheKey, {
+    data,
+    expiresAt
+  });
+}
 
 export default function BenchmarkChart({ 
   provider, 
@@ -12,13 +43,25 @@ export default function BenchmarkChart({
   providerTypeFilter,
   selectedMeasure,
   measuresLoading = false,
-  onExport = null
+  onExport = null,
+  hasMarketFilter = false
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [measureInfo, setMeasureInfo] = useState(null);
   const chartRef = useRef(null);
+  
+  // Memoize CCNs and publish date to create stable cache key
+  const allCcns = useMemo(() => {
+    if (!nearbyDhcCcns || nearbyDhcCcns.length === 0) return [];
+    return nearbyDhcCcns.map(row => String(row.ccn)).filter(Boolean);
+  }, [nearbyDhcCcns]);
+  
+  const cacheKey = useMemo(() => {
+    if (allCcns.length === 0) return null;
+    return getCacheKey(allCcns, selectedPublishDate);
+  }, [allCcns, selectedPublishDate]);
 
   useEffect(() => {
     async function fetchRehospitalizationData() {
@@ -39,57 +82,85 @@ export default function BenchmarkChart({
         return;
       }
 
-      setLoading(true);
+      if (allCcns.length === 0) {
+        setLoading(false);
+        setError("No CCNs found in market area");
+        return;
+      }
+
+      // Check cache first before setting loading state
+      let cachedResult = cacheKey ? getCachedData(cacheKey) : null;
+      
+      if (!cachedResult) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
-        // 1. Get all CCNs for the market area
-        const allCcns = nearbyDhcCcns.map(row => String(row.ccn)).filter(Boolean);
+        let measures, allProviderData, nationalAverages, publishDate;
         
-        if (allCcns.length === 0) {
-          throw new Error("No CCNs found in market area");
-        }
+        if (cachedResult) {
+          // Use cached data - no loading state needed
+          console.log('✅ Using cached quality measures data');
+          measures = cachedResult.measures;
+          allProviderData = cachedResult.providerData;
+          nationalAverages = cachedResult.nationalAverages;
+          publishDate = cachedResult.publishDate;
+        } else {
+          // 2. Determine publish date to use
+          publishDate = selectedPublishDate;
+          if (!publishDate) {
+            // Fetch available dates and use the latest
+            const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                ccns: allCcns, 
+                publish_date: 'latest' 
+              })
+            });
+            
+            if (!datesResponse.ok) throw new Error('Failed to fetch available dates');
+            const datesResult = await datesResponse.json();
+            if (!datesResult.success) throw new Error(datesResult.error);
+            
+            const availableDates = datesResult.data.availableDates || [];
+            if (availableDates.length === 0) {
+              throw new Error("No quality measure data available");
+            }
+            
+            publishDate = availableDates[0]; // Use the most recent date
+          }
 
-        // 2. Determine publish date to use
-        let publishDate = selectedPublishDate;
-        if (!publishDate) {
-          // Fetch available dates and use the latest
-          const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
+          // 3. Fetch quality measure data
+          console.log('🔍 Fetching quality measures data (cache miss)');
+          const response = await fetch(apiUrl('/api/qm_combined'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               ccns: allCcns, 
-              publish_date: 'latest' 
+              publish_date: publishDate 
             })
           });
+
+          if (!response.ok) throw new Error('Failed to fetch quality measure data');
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error);
+
+          measures = result.data.measures;
+          allProviderData = result.data.providerData;
+          nationalAverages = result.data.nationalAverages;
           
-          if (!datesResponse.ok) throw new Error('Failed to fetch available dates');
-          const datesResult = await datesResponse.json();
-          if (!datesResult.success) throw new Error(datesResult.error);
-          
-          const availableDates = datesResult.data.availableDates || [];
-          if (availableDates.length === 0) {
-            throw new Error("No quality measure data available");
+          // Cache the result
+          if (cacheKey) {
+            setCachedData(cacheKey, {
+              measures,
+              providerData: allProviderData,
+              nationalAverages,
+              publishDate
+            });
           }
-          
-          publishDate = availableDates[0]; // Use the most recent date
         }
-
-        // 3. Fetch quality measure data
-        const response = await fetch(apiUrl('/api/qm_combined'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            ccns: allCcns, 
-            publish_date: publishDate 
-          })
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch quality measure data');
-        const result = await response.json();
-        if (!result.success) throw new Error(result.error);
-
-        const { measures, providerData: allProviderData, nationalAverages } = result.data;
 
         // 4. Find the selected measure or fall back to first available measure
         let targetMeasure = null;
@@ -131,18 +202,20 @@ export default function BenchmarkChart({
           providerScore = providerMeasureData.reduce((sum, d) => sum + (d.score || 0), 0) / providerMeasureData.length;
         }
 
-        // 6. Calculate market average (excluding the main provider)
-        const marketCcns = nearbyDhcCcns
-          .filter(row => row.dhc !== provider.dhc)
-          .map(row => String(row.ccn));
-        
-        const marketData = allProviderData.filter(d => 
-          marketCcns.includes(d.ccn) && d.code === targetMeasure.code
-        );
-
+        // 6. Calculate market average only if market filter is active
         let marketAverage = null;
-        if (marketData.length > 0) {
-          marketAverage = marketData.reduce((sum, d) => sum + (d.score || 0), 0) / marketData.length;
+        if (hasMarketFilter && provider) {
+          const marketCcns = nearbyDhcCcns
+            .filter(row => row.dhc !== provider.dhc)
+            .map(row => String(row.ccn));
+          
+          const marketData = allProviderData.filter(d => 
+            marketCcns.includes(d.ccn) && d.code === targetMeasure.code
+          );
+
+          if (marketData.length > 0) {
+            marketAverage = marketData.reduce((sum, d) => sum + (d.score || 0), 0) / marketData.length;
+          }
         }
 
         // 7. Get national average
@@ -202,7 +275,7 @@ export default function BenchmarkChart({
     }
 
     fetchRehospitalizationData();
-  }, [provider, nearbyDhcCcns, selectedPublishDate, providerTypeFilter, selectedMeasure]);
+  }, [provider, allCcns, cacheKey, selectedPublishDate, selectedMeasure, measuresLoading]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -283,9 +356,9 @@ export default function BenchmarkChart({
            <p className={styles.noteText}>
              <strong>Note:</strong> Lower scores indicate better performance. Data collection period: 1/1/2024 to 12/31/2024.
            </p>
-           <p className={styles.noteText}>
-             <strong>Provider:</strong> {provider?.name || 'N/A'}
-           </p>
+          <p className={styles.noteText}>
+            <strong>Provider:</strong> {sanitizeProviderName(provider?.name) || provider?.name || 'N/A'}
+          </p>
          </div>
        </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { X, Plus, MapPin, Filter as FilterIcon, ChevronDown } from "lucide-react";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
@@ -9,6 +10,7 @@ import styles from './StandaloneStoryteller.module.css';
 import { getSegmentationIcon, getSegmentationIconProps } from '../../../utils/segmentationIcons';
 
 export default function StandaloneStoryteller() {
+  const [searchParams] = useSearchParams();
   const ccnInputRef = useRef(null);
   const [selectedCcns, setSelectedCcns] = useState([]);
   const [ccnInput, setCcnInput] = useState('');
@@ -16,6 +18,9 @@ export default function StandaloneStoryteller() {
   const [providerLabelMap, setProviderLabelMap] = useState({});
   const [marketProviders, setMarketProviders] = useState([]);
   const [tagProviders, setTagProviders] = useState([]);
+  
+  // Get selected provider from URL params
+  const selectedProviderDhc = searchParams.get('provider');
 
   // Saved markets and network tags
   const [savedMarkets, setSavedMarkets] = useState([]);
@@ -506,12 +511,25 @@ export default function StandaloneStoryteller() {
 
   const highlightedDhcKeys = useMemo(() => Array.from(highlightedDhcByType.keys()), [highlightedDhcByType]);
 
+  // Find the selected provider from URL params or use manual providers
   const storyTellerProvider = useMemo(() => {
+    // If a provider is selected via URL param, find it in combined providers
+    if (selectedProviderDhc) {
+      const foundProvider = combinedNearbyProviders.find(p => {
+        const dhcKey = p?.dhc ? String(p.dhc) : null;
+        return dhcKey === String(selectedProviderDhc);
+      });
+      if (foundProvider) {
+        return foundProvider;
+      }
+    }
+    
+    // Fallback to manual providers if no URL selection
     if (manualProviders.length > 0) {
       return manualProviders[0];
     }
     return null;
-  }, [manualProviders]);
+  }, [selectedProviderDhc, combinedNearbyProviders, manualProviders]);
 
   // Clear all selections
   const handleClearAll = () => {

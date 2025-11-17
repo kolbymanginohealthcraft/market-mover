@@ -15,15 +15,42 @@ export function clearClientCache() {
 }
 
 function getCacheKey(endpoint, params = {}) {
-  return `${endpoint}:${JSON.stringify(params)}`;
+  // Normalize params for consistent cache keys
+  const normalized = {
+    ...params,
+    ccns: params.ccns ? [...params.ccns].sort() : params.ccns
+  };
+  return `${endpoint}:${JSON.stringify(normalized)}`;
 }
 
-function getCachedData() {
-  return null;
+function getCachedData(cacheKey) {
+  if (!cacheKey) return null;
+  
+  const cached = apiCache.get(cacheKey);
+  if (!cached) return null;
+  
+  // Check if cache entry has expired
+  const now = Date.now();
+  if (cached.expiresAt && now > cached.expiresAt) {
+    apiCache.delete(cacheKey);
+    return null;
+  }
+  
+  console.log('✅ Cache hit for:', cacheKey);
+  return cached.data;
 }
 
-function setCachedData() {
-  return;
+function setCachedData(cacheKey, data) {
+  if (!cacheKey || !data) return;
+  
+  const expiresAt = Date.now() + CACHE_TTL;
+  apiCache.set(cacheKey, {
+    data,
+    expiresAt,
+    cachedAt: Date.now()
+  });
+  
+  console.log('💾 Cached data for:', cacheKey, 'expires in', CACHE_TTL / 1000, 'seconds');
 }
 
 function normalizeCcn(value) {

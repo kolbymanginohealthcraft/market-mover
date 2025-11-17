@@ -563,9 +563,48 @@ const SubNavigation = () => {
     );
   }
 
-  // Handle standalone storyteller route (/app/storyteller) - should not show any sub-navigation
-  if (location.pathname.includes('/storyteller') && !location.pathname.includes('/claims') && !location.pathname.match(/^\/app\/\d+\//)) {
-    return null;
+  // Handle standalone storyteller route (/app/storyteller/*) - show Scorecard/Benchmarks tabs
+  if (location.pathname.startsWith('/app/storyteller')) {
+    const searchParams = new URLSearchParams(location.search);
+    let currentStorytellerTab = "scorecard";
+    
+    if (location.pathname.includes('/benchmarks')) {
+      currentStorytellerTab = 'benchmarks';
+    } else if (location.pathname.includes('/scorecard')) {
+      currentStorytellerTab = 'scorecard';
+    }
+
+    // Remove provider parameter for scorecard, keep it for benchmarks
+    const scorecardParams = new URLSearchParams(searchParams);
+    scorecardParams.delete('provider');
+    const scorecardSearch = scorecardParams.toString() ? `?${scorecardParams.toString()}` : '';
+    
+    const benchmarksSearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
+
+    const storytellerTabs = [
+      { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `/app/storyteller/scorecard${scorecardSearch}` },
+      { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `/app/storyteller/benchmarks${benchmarksSearch}` }
+    ];
+
+    return (
+      <nav className={styles.subNavigation}>
+        <div className={styles.navLeft}>
+          {storytellerTabs.map((tab) => {
+            const IconComponent = tab.icon;
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={`${styles.tab} ${currentStorytellerTab === tab.id ? styles.active : ''}`}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
   }
 
   // Handle simple provider profile pages (/app/:dhc/* without /market)
@@ -668,9 +707,17 @@ const SubNavigation = () => {
         currentStorytellerTab = 'benchmarks';
       }
 
+      // Remove provider parameter for scorecard, keep it for benchmarks
+      const searchParams = new URLSearchParams(location.search);
+      const scorecardParams = new URLSearchParams(searchParams);
+      scorecardParams.delete('provider');
+      const scorecardSearch = scorecardParams.toString() ? `?${scorecardParams.toString()}` : '';
+      
+      const benchmarksSearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
+
       const storytellerTabs = [
-        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard${search}` },
-        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks${search}` }
+        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard${scorecardSearch}` },
+        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks${benchmarksSearch}` }
       ];
 
       return (

@@ -461,11 +461,11 @@ const Header = ({
   };
 
   const shouldShowMenuButton = Boolean(isMobile && onMenuToggle);
-  const hideUserSection = shouldShowMenuButton || isSidebarCollapsed;
+  const hideUserSection = shouldShowMenuButton;
   const headerClassName = [
     styles.header,
     isMobile ? styles.condensed : '',
-    hideUserSection ? styles.headerCollapsed : ''
+    isSidebarCollapsed ? styles.headerCollapsed : ''
   ]
     .filter(Boolean)
     .join(' ');

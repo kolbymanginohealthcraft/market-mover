@@ -283,7 +283,50 @@
   text-overflow: ellipsis;
   font-size: 0.78rem;
   color: #1d8a68;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
 }
+
+/* Make provider names look like clickable links */
+.matrixTable tbody td.stickyCol:not([data-highlight-tag]) {
+  color: #2563eb !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.matrixTable tbody td.stickyCol:not([data-highlight-tag]):hover {
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+  text-decoration-color: #1d4ed8 !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  background-color: rgba(37, 99, 235, 0.08) !important;
+  border-radius: 3px !important;
+}
+
+.matrixTable tbody td.stickyCol:not([data-highlight-tag]):active {
+  color: #1e40af !important;
+  text-decoration-color: #1e40af !important;
+  background-color: rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Keep link styling for highlighted rows but with their colors */
+.matrixTable tbody td.stickyCol[data-highlight-tag] {
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.matrixTable tbody td.stickyCol[data-highlight-tag]:hover {
+  text-decoration: underline !important;
+  text-decoration-color: currentColor !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 3px !important;
+  opacity: 0.95 !important;
+}
+
 
 /* Corner cell - MUST be highest z-index */
 .matrixTable th.stickyCol.stickyHeader {
@@ -306,8 +349,8 @@
 /* --- All other columns: allow expansion, allow wrapping --- */
 .matrixTable th:not(.stickyCol), .matrixTable td:not(.stickyCol) {
   width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+  min-width: 90px;
+  max-width: 90px;
   overflow-wrap: break-word;
   white-space: normal;
   text-align: left;
@@ -321,6 +364,43 @@
   display: inline-block;
   max-width: 200px;
   vertical-align: bottom;
+}
+
+/* Ensure hover effects show on the text inside the cell */
+.matrixTable tbody td.stickyCol:not([data-highlight-tag]) .ellipsis {
+  text-decoration: none !important;
+  color: #2563eb !important;
+}
+
+.matrixTable tbody td.stickyCol:not([data-highlight-tag]):hover .ellipsis {
+  text-decoration: underline !important;
+  text-decoration-color: #1d4ed8 !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  color: #1d4ed8 !important;
+}
+
+.matrixTable tbody td.stickyCol[data-highlight-tag] .ellipsis {
+  text-decoration: none !important;
+}
+
+.matrixTable tbody td.stickyCol[data-highlight-tag]:hover .ellipsis {
+  text-decoration: underline !important;
+  text-decoration-color: currentColor !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+}
+
+.matrixTable tbody tr.mainProviderRow .stickyCol .ellipsis {
+  text-decoration: none !important;
+  color: #1d8a68 !important;
+}
+
+.matrixTable tbody tr.mainProviderRow .stickyCol:hover .ellipsis {
+  text-decoration: underline !important;
+  text-decoration-color: #1d8a68 !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
 }
 
 .providerTooltip {
@@ -449,7 +529,19 @@
 .matrixTable tbody tr.mainProviderRow .averagePercentile {
   background: var(--highlight-selected-provider) !important;
   font-weight: 700;
-  color: #1d8a68;
+  color: #1d8a68 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.matrixTable tbody tr.mainProviderRow .stickyCol:hover {
+  text-decoration: underline !important;
+  text-decoration-color: #1d8a68 !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  background-color: rgba(29, 138, 104, 0.12) !important;
+  border-radius: 3px !important;
 }
 
 .stickyCol[data-highlight-tag] {
@@ -559,6 +651,8 @@
   min-width: 200px;
   max-width: 240px;
   width: 210px;
+  /* Allow hover background to show */
+  padding: 4px 8px;
 }
 
 /* Main provider row sticky column styling */

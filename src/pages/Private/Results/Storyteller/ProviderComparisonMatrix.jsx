@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './ProviderComparisonMatrix.module.css'; // Create this CSS module for styling
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { sanitizeProviderName } from '../../../../utils/providerName';
@@ -38,9 +39,25 @@ const ProviderComparisonMatrix = ({
   highlightTagTypes = [],
   highlightPrimaryProvider = true,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   // Sidebar: measure selection and drag-and-drop order
   const allMeasureCodes = measures.map((m) => m.code);
   const [selectedMeasures, setSelectedMeasures] = useState([]);
+  
+  // Handle provider click to navigate to benchmarks
+  const handleProviderClick = (providerDhc) => {
+    if (!providerDhc) return;
+    
+    // Build the benchmarks URL with provider parameter
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set('provider', String(providerDhc));
+    
+    // Navigate to benchmarks tab
+    const basePath = location.pathname.replace(/\/scorecard$/, '').replace(/\/benchmarks$/, '');
+    navigate(`${basePath}/benchmarks?${searchParams.toString()}`);
+  };
 
   // Update selectedMeasures when measures data loads
   useEffect(() => {
@@ -344,6 +361,8 @@ const ProviderComparisonMatrix = ({
                   <td
                     className={`${styles.stickyCol} ${styles.ellipsisCell}`}
                     data-highlight-tag={hasRowHighlight && appliedHighlightType ? appliedHighlightType : undefined}
+                    onClick={() => handleProviderClick(row.key)}
+                    title="Click to view benchmarks for this provider"
                     onMouseEnter={e => {
                       const name = row.label || row.providerObj?.facility_name || '';
                       const locationParts = [

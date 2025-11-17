@@ -227,6 +227,19 @@
   align-self: center;
 }
 
+.headerCollapsed .userName {
+  display: none;
+}
+
+.headerCollapsed .userProfile {
+  gap: 0;
+  padding: 0.5rem;
+}
+
+.headerCollapsed .chevron {
+  display: none;
+}
+
 .platformButton {
   display: flex;
   align-items: center;

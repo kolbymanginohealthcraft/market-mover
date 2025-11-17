@@ -1,12 +1,13 @@
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect, useMemo } from "react";
 import { useLocation, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import Scorecard from "./Scorecard";
 import Benchmarks from "./Benchmarks";
+import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import styles from "./Storyteller.module.css";
 
 function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false, showMyKpisOnly = false, myKpiCodes = [], highlightedDhcKeys = [], highlightedDhcByType = new Map(), highlightTagTypes = [], highlightPrimaryProvider = true }) {
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // Debug logging for production troubleshooting
   useEffect(() => {
@@ -85,6 +86,41 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
     });
   }, [providerTypeFilter, selectedPublishDate, finalProviderTypes, finalPublishDates, finalCurrentDate, availableProviderTypes, availablePublishDates]);
 
+  // Determine if market filter is active (more than just the selected provider)
+  const hasMarketFilter = useMemo(() => {
+    if (!provider || !nearbyProviders || nearbyProviders.length === 0) return false;
+    // If there are other providers besides the selected one, market filter is active
+    return nearbyProviders.some(p => {
+      const providerDhc = provider?.dhc ? String(provider.dhc) : null;
+      const pDhc = p?.dhc ? String(p.dhc) : null;
+      return pDhc && pDhc !== providerDhc;
+    });
+  }, [provider, nearbyProviders]);
+
+  // Fetch quality measures data once at Storyteller level to share between tabs
+  const qualityMeasuresData = useQualityMeasures(
+    provider,
+    nearbyProviders,
+    nearbyDhcCcns,
+    selectedPublishDate,
+    prefetchedData?.qualityMeasuresDates,
+    providerTypeFilter,
+    providerLabels
+  );
+
+  // Remove provider query parameter when on scorecard page
+  useEffect(() => {
+    const isScorecard = location.pathname.includes('/scorecard') || 
+                       (location.pathname.includes('/storyteller') && !location.pathname.includes('/benchmarks'));
+    
+    if (isScorecard && location.search.includes('provider=')) {
+      const currentParams = new URLSearchParams(location.search);
+      currentParams.delete('provider');
+      const newSearch = currentParams.toString();
+      setSearchParams(currentParams, { replace: true });
+    }
+  }, [location.pathname, location.search, setSearchParams]);
+
   return (
     <Routes>
       <Route path="scorecard" element={
@@ -101,15 +137,16 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           setSelectedPublishDate={setSelectedPublishDate}
           chartMode={chartMode}
           setChartMode={setChartMode}
-          availableProviderTypes={finalProviderTypes}
+          availableProviderTypes={qualityMeasuresData.availableProviderTypes.length > 0 ? qualityMeasuresData.availableProviderTypes : finalProviderTypes}
           providerLabels={providerLabels}
-          forcedLoading={isLoading}
+          forcedLoading={isLoading || qualityMeasuresData.matrixLoading}
           showMyKpisOnly={showMyKpisOnly}
           myKpiCodes={myKpiCodes}
           highlightedDhcKeys={highlightedDhcKeys}
           highlightedDhcByType={highlightedDhcByType}
           highlightTagTypes={highlightTagTypes}
           highlightPrimaryProvider={highlightPrimaryProvider}
+          qualityMeasuresData={qualityMeasuresData}
         />
       } />
       <Route path="benchmarks" element={
@@ -124,7 +161,7 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           setProviderTypeFilter={setProviderTypeFilter}
           selectedPublishDate={selectedPublishDate}
           setSelectedPublishDate={setSelectedPublishDate}
-          availableProviderTypes={finalProviderTypes}
+          availableProviderTypes={qualityMeasuresData.availableProviderTypes.length > 0 ? qualityMeasuresData.availableProviderTypes : finalProviderTypes}
           providerLabels={providerLabels}
           showMyKpisOnly={showMyKpisOnly}
           myKpiCodes={myKpiCodes}
@@ -132,6 +169,8 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           highlightedDhcByType={highlightedDhcByType}
           highlightTagTypes={highlightTagTypes}
           highlightPrimaryProvider={highlightPrimaryProvider}
+          hasMarketFilter={hasMarketFilter}
+          qualityMeasuresData={qualityMeasuresData}
         />
       } />
       <Route path="*" element={<Navigate to={`scorecard${location.search}`} replace />} />

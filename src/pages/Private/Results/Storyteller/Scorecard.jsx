@@ -23,10 +23,22 @@ export default function Scorecard({
   highlightedDhcKeys = [],
   highlightedDhcByType = new Map(),
   highlightTagTypes = [],
-  highlightPrimaryProvider = true
+  highlightPrimaryProvider = true,
+  qualityMeasuresData = null
 }) {
   const [isHydrating, setIsHydrating] = useState(true);
-  // Always use the hook to ensure we get all providers, but use prefetched data if available
+  
+  // Use shared quality measures data if provided, otherwise use hook (hook will use cache)
+  const hookData = useQualityMeasures(
+    provider, 
+    nearbyProviders, 
+    nearbyDhcCcns, 
+    selectedPublishDate,
+    prefetchedData?.qualityMeasuresDates,
+    providerTypeFilter,
+    providerLabels
+  );
+  
   const {
     matrixLoading,
     matrixMeasures,
@@ -39,15 +51,7 @@ export default function Scorecard({
     availablePublishDates,
     currentPublishDate,
     clearCache
-  } = useQualityMeasures(
-    provider, 
-    nearbyProviders, 
-    nearbyDhcCcns, 
-    selectedPublishDate,
-    prefetchedData?.qualityMeasuresDates,
-    providerTypeFilter,
-    providerLabels
-  );
+  } = qualityMeasuresData || hookData;
 
   // Always use the hook data to ensure we get all providers
   useEffect(() => {

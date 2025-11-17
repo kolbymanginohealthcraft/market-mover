@@ -7,6 +7,65 @@ import { apiUrl } from '../../../../utils/api';
 import useQualityMeasures from '../../../../hooks/useQualityMeasures';
 import styles from './Benchmarks.module.css';
 
+// Cache for quality measures dictionary
+const measuresDictionaryCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getDictionaryCacheKey(providerTypeFilter, showMyKpisOnly, kpiCodes) {
+  const sortedKpiCodes = kpiCodes ? [...kpiCodes].sort().join(',') : '';
+  return `qm_dictionary:${providerTypeFilter || 'all'}:${showMyKpisOnly}:${sortedKpiCodes}`;
+}
+
+function getCachedDictionary(cacheKey) {
+  const cached = measuresDictionaryCache.get(cacheKey);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (cached.expiresAt && now > cached.expiresAt) {
+    measuresDictionaryCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+function setCachedDictionary(cacheKey, data) {
+  const expiresAt = Date.now() + CACHE_TTL;
+  measuresDictionaryCache.set(cacheKey, {
+    data,
+    expiresAt
+  });
+}
+
+// Cache for wins calculation data
+const winsDataCache = new Map();
+
+function getWinsCacheKey(ccns, publishDate, providerDhc, hasMarketFilter) {
+  const sortedCcns = [...ccns].sort().join(',');
+  return `wins:${sortedCcns}:${publishDate || 'latest'}:${providerDhc || 'none'}:${hasMarketFilter}`;
+}
+
+function getCachedWins(cacheKey) {
+  const cached = winsDataCache.get(cacheKey);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (cached.expiresAt && now > cached.expiresAt) {
+    winsDataCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+function setCachedWins(cacheKey, data) {
+  const expiresAt = Date.now() + CACHE_TTL;
+  winsDataCache.set(cacheKey, {
+    data,
+    expiresAt
+  });
+}
+
 export default function Benchmarks({ 
   provider, 
   radiusInMiles, 
@@ -24,13 +83,12 @@ export default function Benchmarks({
   highlightedDhcKeys = [],
   highlightedDhcByType = new Map(),
   highlightTagTypes = [],
-  highlightPrimaryProvider = true
+  highlightPrimaryProvider = true,
+  hasMarketFilter = false,
+  qualityMeasuresData = null
 }) {
-  // Use the same quality measures hook to get consistent date handling
-  const {
-    currentPublishDate,
-    availablePublishDates
-  } = useQualityMeasures(
+  // Use shared quality measures data if provided, otherwise use hook (hook will use cache)
+  const hookData = useQualityMeasures(
     provider, 
     nearbyProviders, 
     nearbyDhcCcns, 
@@ -39,6 +97,17 @@ export default function Benchmarks({
     providerTypeFilter,
     providerLabels
   );
+  
+  const {
+    currentPublishDate,
+    availablePublishDates
+  } = qualityMeasuresData ? {
+    currentPublishDate: qualityMeasuresData.currentPublishDate,
+    availablePublishDates: qualityMeasuresData.availablePublishDates
+  } : {
+    currentPublishDate: hookData.currentPublishDate,
+    availablePublishDates: hookData.availablePublishDates
+  };
 
   const [availableMeasures, setAvailableMeasures] = useState([]);
   const [selectedMeasure, setSelectedMeasure] = useState(null);
@@ -110,20 +179,35 @@ export default function Benchmarks({
 
   // Function to determine if a measure is a "win" for the provider
   const isWin = (measureCode, providerScore, marketAverage, nationalAverage, direction) => {
-    if (providerScore === null || marketAverage === null || nationalAverage === null) {
+    if (providerScore === null || nationalAverage === null) {
       return false;
     }
 
     if (direction === 'Higher') {
-      // For "Higher is better" measures, provider score must be higher than both averages
-      return providerScore > marketAverage && providerScore > nationalAverage;
+      // For "Higher is better" measures, provider score must be higher than national average
+      // If market average exists, also beat that
+      const beatsNational = providerScore > nationalAverage;
+      if (marketAverage !== null) {
+        return beatsNational && providerScore > marketAverage;
+      }
+      return beatsNational;
     } else if (direction === 'Lower') {
-      // For "Lower is better" measures, provider score must be lower than both averages
-      return providerScore < marketAverage && providerScore < nationalAverage;
+      // For "Lower is better" measures, provider score must be lower than national average
+      // If market average exists, also beat that
+      const beatsNational = providerScore < nationalAverage;
+      if (marketAverage !== null) {
+        return beatsNational && providerScore < marketAverage;
+      }
+      return beatsNational;
     }
     
     return false;
   };
+
+  // Memoize cache keys
+  const dictionaryCacheKey = useMemo(() => {
+    return getDictionaryCacheKey(providerTypeFilter, showMyKpisOnly, myKpiCodes);
+  }, [providerTypeFilter, showMyKpisOnly, myKpiCodes]);
 
   // Fetch quality measures and calculate wins
   useEffect(() => {
@@ -152,31 +236,48 @@ export default function Benchmarks({
         return;
       }
 
-      setMeasuresLoading(true);
-      setMeasuresError(null);
+      // Check cache for dictionary first
+      const cachedDictionary = getCachedDictionary(dictionaryCacheKey);
+      let allMeasuresData;
+      
+      if (cachedDictionary) {
+        console.log('✅ Using cached quality measures dictionary');
+        allMeasuresData = cachedDictionary;
+        setMeasuresLoading(false);
+      } else {
+        setMeasuresLoading(true);
+        setMeasuresError(null);
+      }
 
       try {
-        console.log('🔍 Fetching quality measures from /api/qm_dictionary');
-        const response = await fetch(apiUrl('/api/qm_dictionary'));
-        
-        console.log('🔍 API response status:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ API call failed:', errorText);
-          throw new Error(`Failed to fetch quality measures: ${response.status} ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('🔍 API response data keys:', Object.keys(result));
-        
-        if (!result.success) {
-          console.error('❌ API returned error:', result.error);
-          throw new Error(result.error || 'Failed to fetch quality measures');
+        if (!cachedDictionary) {
+          console.log('🔍 Fetching quality measures from /api/qm_dictionary');
+          const response = await fetch(apiUrl('/api/qm_dictionary'));
+          
+          console.log('🔍 API response status:', response.status, response.statusText);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API call failed:', errorText);
+            throw new Error(`Failed to fetch quality measures: ${response.status} ${response.statusText}`);
+          }
+          
+          const result = await response.json();
+          console.log('🔍 API response data keys:', Object.keys(result));
+          
+          if (!result.success) {
+            console.error('❌ API returned error:', result.error);
+            throw new Error(result.error || 'Failed to fetch quality measures');
+          }
+
+          allMeasuresData = result.data;
+          
+          // Cache the dictionary
+          setCachedDictionary(dictionaryCacheKey, allMeasuresData);
         }
 
         // Filter measures by the selected setting
-        let filteredMeasures = result.data.filter(measure => 
+        let filteredMeasures = allMeasuresData.filter(measure => 
           measure.setting === providerTypeFilter && measure.active === true
         );
 
@@ -190,20 +291,18 @@ export default function Benchmarks({
         }
 
         console.log('🔍 Filtered measures:', {
-          totalMeasures: result.data.length,
+          totalMeasures: allMeasuresData.length,
           filteredCount: filteredMeasures.length,
           setting: providerTypeFilter
         });
 
-                 // Sort by sort_order if available, otherwise by name
-         filteredMeasures.sort((a, b) => {
-           if (a.sort_order !== undefined && b.sort_order !== undefined) {
-             return a.sort_order - b.sort_order;
-           }
-           return (a.name || '').localeCompare(b.name || '');
-         });
-
-
+        // Sort by sort_order if available, otherwise by name
+        filteredMeasures.sort((a, b) => {
+          if (a.sort_order !== undefined && b.sort_order !== undefined) {
+            return a.sort_order - b.sort_order;
+          }
+          return (a.name || '').localeCompare(b.name || '');
+        });
 
         setAvailableMeasures(filteredMeasures);
 
@@ -235,82 +334,86 @@ export default function Benchmarks({
               }
             }
 
-            // Fetch quality measure data
-            const qmResponse = await fetch(apiUrl('/api/qm_combined'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                ccns: allCcns, 
-                publish_date: publishDate 
-              })
-            });
+            // Check cache for wins data
+            const winsCacheKey = getWinsCacheKey(allCcns, publishDate, provider?.dhc, hasMarketFilter);
+            const cachedWins = getCachedWins(winsCacheKey);
+            
+            if (cachedWins) {
+              console.log('✅ Using cached wins data');
+              setWinsData(cachedWins);
+            } else {
+              // Fetch quality measure data
+              console.log('🔍 Fetching quality measure data for wins calculation');
+              const qmResponse = await fetch(apiUrl('/api/qm_combined'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  ccns: allCcns, 
+                  publish_date: publishDate 
+                })
+              });
 
-            if (qmResponse.ok) {
-              const qmResult = await qmResponse.json();
-              if (qmResult.success) {
-                const { providerData: allProviderData, nationalAverages } = qmResult.data;
+              if (qmResponse.ok) {
+                const qmResult = await qmResponse.json();
+                if (qmResult.success) {
+                  const { providerData: allProviderData, nationalAverages } = qmResult.data;
 
-                // Calculate wins for each measure
-                const wins = {};
-                filteredMeasures.forEach(measure => {
-                  // Get provider's score
-                  const providerCcns = nearbyDhcCcns
-                    .filter(row => row.dhc === provider.dhc)
-                    .map(row => String(row.ccn));
-                  
-                  const providerMeasureData = allProviderData.filter(d => 
-                    providerCcns.includes(d.ccn) && d.code === measure.code
-                  );
+                  // Calculate wins for each measure
+                  const wins = {};
+                  filteredMeasures.forEach(measure => {
+                    // Get provider's score
+                    const providerCcns = nearbyDhcCcns
+                      .filter(row => row.dhc === provider.dhc)
+                      .map(row => String(row.ccn));
+                    
+                    const providerMeasureData = allProviderData.filter(d => 
+                      providerCcns.includes(d.ccn) && d.code === measure.code
+                    );
 
-                  let providerScore = null;
-                  if (providerMeasureData.length > 0) {
-                    providerScore = providerMeasureData.reduce((sum, d) => sum + (d.score || 0), 0) / providerMeasureData.length;
-                  }
+                    let providerScore = null;
+                    if (providerMeasureData.length > 0) {
+                      providerScore = providerMeasureData.reduce((sum, d) => sum + (d.score || 0), 0) / providerMeasureData.length;
+                    }
 
-                  // Calculate market average (excluding the main provider)
-                  const marketCcns = nearbyDhcCcns
-                    .filter(row => row.dhc !== provider.dhc)
-                    .map(row => String(row.ccn));
-                  
-                  const marketData = allProviderData.filter(d => 
-                    marketCcns.includes(d.ccn) && d.code === measure.code
-                  );
+                    // Calculate market average only if market filter is active
+                    let marketAverage = null;
+                    if (hasMarketFilter && provider) {
+                      // Calculate market average (excluding the main provider)
+                      const marketCcns = nearbyDhcCcns
+                        .filter(row => row.dhc !== provider.dhc)
+                        .map(row => String(row.ccn));
+                      
+                      const marketData = allProviderData.filter(d => 
+                        marketCcns.includes(d.ccn) && d.code === measure.code
+                      );
 
-                  let marketAverage = null;
-                  if (marketData.length > 0) {
-                    marketAverage = marketData.reduce((sum, d) => sum + (d.score || 0), 0) / marketData.length;
-                  }
+                      if (marketData.length > 0) {
+                        marketAverage = marketData.reduce((sum, d) => sum + (d.score || 0), 0) / marketData.length;
+                      }
+                    }
 
-                  // Get national average
-                  const nationalAverage = nationalAverages[measure.code]?.score || null;
+                    // Get national average
+                    const nationalAverage = nationalAverages[measure.code]?.score || null;
 
-                  // Determine if this is a win
-                  const isWinResult = isWin(measure.code, providerScore, marketAverage, nationalAverage, measure.direction);
-                  
-                  wins[measure.code] = {
-                    isWin: isWinResult,
-                    providerScore,
-                    marketAverage,
-                    nationalAverage,
-                    direction: measure.direction
-                  };
-                });
+                    // Determine if this is a win
+                    const isWinResult = isWin(measure.code, providerScore, marketAverage, nationalAverage, measure.direction);
+                    
+                    wins[measure.code] = {
+                      isWin: isWinResult,
+                      providerScore,
+                      marketAverage,
+                      nationalAverage,
+                      direction: measure.direction
+                    };
+                  });
 
-                setWinsData(wins);
-                console.log('🔍 Calculated wins:', wins);
+                  setWinsData(wins);
+                  setCachedWins(winsCacheKey, wins);
+                  console.log('🔍 Calculated wins:', wins);
+                }
               }
             }
           }
-        }
-        
-        // Auto-select the first measure if none is selected
-        if (filteredMeasures.length > 0) {
-          if (!selectedMeasure || !filteredMeasures.some(measure => measure.code === selectedMeasure)) {
-            setSelectedMeasure(filteredMeasures[0].code);
-            console.log('🔍 Auto-selected measure:', filteredMeasures[0].code);
-          }
-        } else {
-          setSelectedMeasure(null);
         }
       } catch (err) {
         console.error('❌ Error fetching quality measures:', err);
@@ -337,7 +440,28 @@ export default function Benchmarks({
     }
 
     fetchQualityMeasures();
-  }, [providerTypeFilter, provider, nearbyDhcCcns, currentPublishDate, showMyKpisOnly, myKpiCodes, selectedMeasure]);
+  }, [providerTypeFilter, provider, nearbyDhcCcns, currentPublishDate, showMyKpisOnly, myKpiCodes, dictionaryCacheKey, hasMarketFilter, kpiCodeSet]);
+
+  // Validate selected measure when available measures change (without re-fetching)
+  useEffect(() => {
+    if (availableMeasures.length === 0) {
+      // No measures available, clear selection
+      if (selectedMeasure) {
+        setSelectedMeasure(null);
+      }
+    } else if (selectedMeasure) {
+      const isMeasureValid = availableMeasures.some(measure => measure.code === selectedMeasure);
+      if (!isMeasureValid) {
+        // Selected measure is no longer in the filtered list, auto-select first
+        setSelectedMeasure(availableMeasures[0].code);
+        console.log('🔍 Selected measure no longer valid, auto-selected:', availableMeasures[0].code);
+      }
+    } else {
+      // No measure selected, auto-select first
+      setSelectedMeasure(availableMeasures[0].code);
+      console.log('🔍 No measure selected, auto-selected:', availableMeasures[0].code);
+    }
+  }, [availableMeasures, selectedMeasure]);
 
   // Handle chart export
   const handleChartExport = async (format) => {
@@ -529,7 +653,7 @@ export default function Benchmarks({
                           <div className={styles.measureHeader}>
                             <div className={styles.measureName}>{measure.name}</div>
                             {isWin && (
-                              <div className={styles.winBadge} title="Provider outperforms both market and national averages">
+                              <div className={styles.winBadge} title={winData.marketAverage !== null ? "Provider outperforms both market and national averages" : "Provider outperforms national average"}>
                                 WIN
                               </div>
                             )}
@@ -545,14 +669,16 @@ export default function Benchmarks({
                                      `${winData.providerScore.toFixed(1)}%`) : 
                                    'N/A'}
                                </span>
-                               <span className={styles.statLabel}>Market:</span>
-                               <span className={styles.statValue}>
-                                 {winData.marketAverage !== null ? 
-                                   (measure.source === 'Ratings' ? 
-                                     winData.marketAverage.toFixed(1) : 
-                                     `${winData.marketAverage.toFixed(1)}%`) : 
-                                   'N/A'}
-                               </span>
+                               {winData.marketAverage !== null && (
+                                 <>
+                                   <span className={styles.statLabel}>Market:</span>
+                                   <span className={styles.statValue}>
+                                     {measure.source === 'Ratings' ? 
+                                       winData.marketAverage.toFixed(1) : 
+                                       `${winData.marketAverage.toFixed(1)}%`}
+                                   </span>
+                                 </>
+                               )}
                                <span className={styles.statLabel}>National:</span>
                                <span className={styles.statValue}>
                                  {winData.nationalAverage !== null ? 
@@ -584,6 +710,7 @@ export default function Benchmarks({
               selectedMeasure={selectedMeasure}
               measuresLoading={measuresLoading}
               onExport={setChartExportData}
+              hasMarketFilter={hasMarketFilter}
             />
           </div>
         </div>
