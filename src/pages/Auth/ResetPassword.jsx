@@ -10,145 +10,141 @@ const ResetPassword = () => {
   const [status, setStatus] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const passwordInputRef = useRef(null);
 
   useEffect(() => {
-    // Check if we need to refresh the session first
-    refreshSessionIfNeeded();
-  }, []);
+    let authSubscription;
+    let timeoutId;
+    let sessionValidated = false;
 
-  const refreshSessionIfNeeded = async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.log("🔍 ResetPassword - Session error, refreshing:", error);
-        // Try to refresh the session
-        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+    const checkRecoverySession = async () => {
+      try {
+        const hash = window.location.hash.substring(1);
+        const hashParams = new URLSearchParams(hash);
         
-        if (refreshError) {
-          console.log("🔍 ResetPassword - Session refresh failed:", refreshError);
-          setStatus("Your password reset link has expired. Please request a new password reset.");
+        const hashError = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
+        
+        if (hashError) {
+          console.log("🔍 ResetPassword - Hash error detected:", hashError, errorDescription);
+          if (hashError === 'access_denied' && errorDescription?.includes('expired')) {
+            setStatus("This password reset link has expired. Please request a new password reset.");
+          } else {
+            setStatus(`Password reset error: ${errorDescription || hashError}`);
+          }
+          setIsCheckingSession(false);
           return;
         }
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        console.log("🔍 ResetPassword - Session refreshed successfully");
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          
+          const hashHasTokens = hashParams.get('access_token') || hashParams.get('type') === 'recovery';
+          
+          if (hashHasTokens) {
+            setStatus("Processing reset link...");
+            return;
+          }
+          
+          setStatus("Unable to verify your session. Please try the reset link again.");
+          setIsCheckingSession(false);
+          return;
+        }
+
+        if (session && session.user) {
+          const user = session.user;
+          console.log("🔍 ResetPassword - User authenticated:", { 
+            email: user.email,
+            recoverySession: true
+          });
+          
+          sessionValidated = true;
+          setIsValidSession(true);
+          setStatus("✅ Recovery session valid. Please enter your new password.");
+          setIsCheckingSession(false);
+          
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          
+          setTimeout(() => {
+            passwordInputRef.current?.focus();
+          }, 100);
+          return;
+        }
+
+        const hashHasTokens = hashParams.get('access_token') || hashParams.get('type') === 'recovery';
+        const queryHasTokens = searchParams.get('access_token') || searchParams.get('token');
+        
+        if (hashHasTokens || queryHasTokens) {
+          setStatus("Processing reset link...");
+          
+          timeoutId = setTimeout(async () => {
+            if (!sessionValidated) {
+              const { data: { session: retrySession } } = await supabase.auth.getSession();
+              if (!retrySession || !retrySession.user) {
+                setStatus("❌ Invalid or expired reset link. Please request a new password reset using the button below.");
+                setIsCheckingSession(false);
+              }
+            }
+          }, 5000);
+          
+          return;
+        }
+
+        setStatus("❌ Invalid or expired reset link. Please request a new password reset using the button below.");
+        setIsCheckingSession(false);
+
+      } catch (err) {
+        console.error("Error checking recovery session:", err);
+        setStatus("❌ An unexpected error occurred. Please try again.");
+        setIsCheckingSession(false);
       }
+    };
+
+    authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔍 ResetPassword - Auth state change:", event);
       
-      // Now check the recovery session
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        if (session && session.user) {
+          sessionValidated = true;
+          setIsValidSession(true);
+          setStatus("✅ Recovery session valid. Please enter your new password.");
+          setIsCheckingSession(false);
+          
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          
+          setTimeout(() => {
+            passwordInputRef.current?.focus();
+          }, 100);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        sessionValidated = false;
+        setIsValidSession(false);
+        setIsCheckingSession(false);
+      }
+    });
+
+    setTimeout(() => {
       checkRecoverySession();
-    } catch (err) {
-      console.error("Error refreshing session:", err);
-      setStatus("Your password reset link has expired. Please request a new password reset.");
-    }
-  };
+    }, 100);
 
-  const checkRecoverySession = async () => {
-    try {
-      // Debug: Log the current URL and search params
-      console.log("🔍 ResetPassword - Current URL:", window.location.href);
-      console.log("🔍 ResetPassword - Search params:", Object.fromEntries(searchParams.entries()));
-      console.log("🔍 ResetPassword - Hash:", window.location.hash);
-      
-      // Check for error in hash fragment first
-      const hash = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hash);
-      console.log("🔍 ResetPassword - Hash params:", Object.fromEntries(hashParams.entries()));
-      
-      const hashError = hashParams.get('error');
-      const errorDescription = hashParams.get('error_description');
-      
-      if (hashError) {
-        console.log("🔍 ResetPassword - Hash error detected:", hashError, errorDescription);
-        if (hashError === 'access_denied' && errorDescription?.includes('expired')) {
-          setStatus("This password reset link has expired. Please request a new password reset.");
-        } else {
-          setStatus(`Password reset error: ${errorDescription || hashError}`);
-        }
-        return;
+    return () => {
+      if (authSubscription) {
+        authSubscription.data.subscription.unsubscribe();
       }
-
-      // First, check if we already have a valid session (user clicked reset link)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      console.log("🔍 ResetPassword - Session check:", { hasSession: !!session, sessionError });
-      
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        setStatus("Unable to verify your session. Please try the reset link again.");
-        return;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
-
-      if (session && session.user) {
-        // User is authenticated, they can reset their password
-        const user = session.user;
-        console.log("🔍 ResetPassword - User authenticated:", { 
-          email: user.email, 
-          provider: user.app_metadata?.provider,
-          emailConfirmed: user.email_confirmed_at
-        });
-        
-        setIsValidSession(true);
-        setStatus("✅ Recovery session valid. Please enter your new password.");
-        setTimeout(() => {
-          passwordInputRef.current?.focus();
-        }, 100);
-        return;
-      }
-
-      // No session found - check for tokens in URL (legacy support)
-      let accessToken = searchParams.get('access_token') || searchParams.get('token');
-      let refreshToken = searchParams.get('refresh_token') || searchParams.get('refresh');
-      
-      console.log("🔍 ResetPassword - No session, checking URL tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
-      
-      // Also check hash fragment
-      if (!accessToken) {
-        accessToken = hashParams.get('access_token') || hashParams.get('token');
-        refreshToken = hashParams.get('refresh_token') || hashParams.get('refresh');
-        console.log("🔍 ResetPassword - Checking hash tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
-      }
-      
-      if (accessToken) {
-        // Try to set session with tokens
-        console.log("🔍 ResetPassword - Setting session with tokens");
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
-
-        if (error) {
-          console.error("🔍 ResetPassword - Token session error:", error);
-          setStatus("Invalid or expired password reset link.");
-          return;
-        }
-
-        // Get user info
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setStatus("Unable to verify user.");
-          return;
-        }
-
-        setIsValidSession(true);
-        setStatus("✅ Recovery session valid. Please enter your new password.");
-        setTimeout(() => {
-          passwordInputRef.current?.focus();
-        }, 100);
-        return;
-      }
-
-      // No valid session or tokens found
-      console.log("🔍 ResetPassword - No valid session or tokens found");
-      setStatus("❌ Invalid or expired reset link. Please request a new password reset using the button below.");
-
-    } catch (err) {
-      console.error("Error checking recovery session:", err);
-      setStatus("❌ An unexpected error occurred. Please try again.");
-    }
-  };
+    };
+  }, [searchParams]);
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
@@ -278,7 +274,7 @@ const ResetPassword = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={!isValidSession || isResetting}
+                  disabled={!isValidSession || isResetting || isCheckingSession}
                   className={`form-input ${styles['form-input']}`}
                   style={{
                     width: '100%',
@@ -289,7 +285,7 @@ const ResetPassword = () => {
                     boxSizing: 'border-box',
                     transition: 'all 0.2s ease'
                   }}
-                  placeholder="Enter new password (min 8 characters)"
+                  placeholder={isCheckingSession ? "Verifying reset link..." : "Enter new password (min 8 characters)"}
                 />
               </div>
 
@@ -308,7 +304,7 @@ const ResetPassword = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  disabled={!isValidSession || isResetting}
+                  disabled={!isValidSession || isResetting || isCheckingSession}
                   className={`form-input ${styles['form-input']}`}
                   style={{
                     width: '100%',
@@ -319,7 +315,7 @@ const ResetPassword = () => {
                     boxSizing: 'border-box',
                     transition: 'all 0.2s ease'
                   }}
-                  placeholder="Confirm new password"
+                  placeholder={isCheckingSession ? "Verifying reset link..." : "Confirm new password"}
                 />
               </div>
 
@@ -327,11 +323,11 @@ const ResetPassword = () => {
                 type="submit"
                 variant="blue"
                 size="lg"
-                disabled={!isValidSession || isResetting}
+                disabled={!isValidSession || isResetting || isCheckingSession}
                 className={styles.primaryButton}
                 style={{ marginTop: '8px' }}
               >
-                {isResetting ? 'Updating Password...' : 'Update Password'}
+                {isCheckingSession ? 'Verifying Link...' : isResetting ? 'Updating Password...' : 'Update Password'}
               </Button>
             </form>
 

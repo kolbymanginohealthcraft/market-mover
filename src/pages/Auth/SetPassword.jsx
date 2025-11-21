@@ -19,190 +19,168 @@ const SetPassword = () => {
   const passwordRef = useRef(null);
 
   useEffect(() => {
-    // Check if we need to refresh the session first
-    refreshSessionIfNeeded();
-  }, []);
+    let authSubscription;
+    let timeoutId;
+    let sessionValidated = false;
 
-  const refreshSessionIfNeeded = async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.log("🔍 SetPassword - Session error, refreshing:", error);
-        // Try to refresh the session
-        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+    const checkInvitation = async () => {
+      try {
+        const hash = window.location.hash.substring(1);
+        const hashParams = new URLSearchParams(hash);
         
-        if (refreshError) {
-          console.log("🔍 SetPassword - Session refresh failed:", refreshError);
-          setMessage("Your invitation link has expired. Please contact your team admin for a new invitation.");
-          setMessageType("error");
-          setLoading(false);
-          return;
-        }
+        const hashError = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
         
-        console.log("🔍 SetPassword - Session refreshed successfully");
-      }
-      
-      // Now checking the invitation
-      checkInvitation();
-    } catch (err) {
-      console.error("Error refreshing session:", err);
-      setMessage("Your invitation link has expired. Please contact your team admin for a new invitation.");
-      setMessageType("error");
-      setLoading(false);
-    }
-  };
-
-  const checkInvitation = async () => {
-    try {
-      // Debug: Log the current URL and search params
-      console.log("🔍 SetPassword - Current URL:", window.location.href);
-      console.log("🔍 SetPassword - Search params:", Object.fromEntries(searchParams.entries()));
-      console.log("🔍 SetPassword - Hash:", window.location.hash);
-      
-      // Check for error in hash fragment first
-      const hash = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hash);
-      console.log("🔍 SetPassword - Hash params:", Object.fromEntries(hashParams.entries()));
-      
-      const hashError = hashParams.get('error');
-      const errorDescription = hashParams.get('error_description');
-      
-      if (hashError) {
-        console.log("🔍 SetPassword - Hash error detected:", hashError, errorDescription);
-        if (hashError === 'access_denied' && errorDescription?.includes('expired')) {
-          setMessage("This invitation link has expired. Please ask your team admin to send a new invitation.");
-        } else {
-          setMessage(`Invitation error: ${errorDescription || hashError}`);
-        }
-        setMessageType("error");
-        setLoading(false);
-        return;
-      }
-
-      // First, check if we already have a valid session (user clicked invitation link)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      console.log("🔍 SetPassword - Session check:", { hasSession: !!session, sessionError });
-      
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        setMessage("Unable to verify your session. Please try the invitation link again.");
-        setMessageType("error");
-        setLoading(false);
-        return;
-      }
-
-      if (session && session.user) {
-        // User is authenticated, check if they need to set password
-        const user = session.user;
-        console.log("🔍 SetPassword - User authenticated:", { 
-          email: user.email, 
-          provider: user.app_metadata?.provider,
-          emailConfirmed: user.email_confirmed_at,
-          userMetadata: user.user_metadata
-        });
-        
-        setUserEmail(user.email);
-
-        // User is on the set-password page, so they need to set a password
-        console.log("🔍 SetPassword - User needs to set password");
-
-        // Get team info from user metadata or profile
-        if (user.user_metadata?.team_name) {
-          console.log("🔍 SetPassword - Team name from metadata:", user.user_metadata.team_name);
-          setTeamName(user.user_metadata.team_name);
-        } else {
-          // Try to get team info from profile
-          console.log("🔍 SetPassword - Fetching team info from profile");
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('teams(name)')
-            .eq('id', user.id)
-            .single();
-          
-          if (profile?.teams?.name) {
-            console.log("🔍 SetPassword - Team name from profile:", profile.teams.name);
-            setTeamName(profile.teams.name);
+        if (hashError) {
+          console.log("🔍 SetPassword - Hash error detected:", hashError, errorDescription);
+          if (hashError === 'access_denied' && errorDescription?.includes('expired')) {
+            setMessage("This invitation link has expired. Please ask your team admin to send a new invitation.");
+          } else {
+            setMessage(`Invitation error: ${errorDescription || hashError}`);
           }
-        }
-
-        // Focus on password input
-        setTimeout(() => {
-          passwordRef.current?.focus();
-        }, 100);
-        
-        setLoading(false);
-        return;
-      }
-
-      // No session found - check for tokens in URL (legacy support)
-      let accessToken = searchParams.get('access_token') || searchParams.get('token');
-      let refreshToken = searchParams.get('refresh_token') || searchParams.get('refresh');
-      
-      console.log("🔍 SetPassword - No session, checking URL tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
-      
-      // Also check hash fragment
-      if (!accessToken) {
-        accessToken = hashParams.get('access_token') || hashParams.get('token');
-        refreshToken = hashParams.get('refresh_token') || hashParams.get('refresh');
-        console.log("🔍 SetPassword - Checking hash tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
-      }
-      
-      if (accessToken) {
-        // Try to set session with tokens
-        console.log("🔍 SetPassword - Setting session with tokens");
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
-
-        if (error) {
-          console.error("🔍 SetPassword - Token session error:", error);
-          setMessage("Invalid or expired invitation link.");
           setMessageType("error");
           setLoading(false);
           return;
         }
 
-        // Get user info
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setMessage("Unable to verify user.");
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          
+          const hashHasTokens = hashParams.get('access_token') || hashParams.get('type') === 'invite';
+          
+          if (hashHasTokens) {
+            setMessage("Processing invitation link...");
+            return;
+          }
+          
+          setMessage("Unable to verify your session. Please try the invitation link again.");
           setMessageType("error");
           setLoading(false);
           return;
         }
 
-        setUserEmail(user.email);
+        if (session && session.user) {
+          const user = session.user;
+          console.log("🔍 SetPassword - User authenticated:", { 
+            email: user.email,
+            invitationSession: true
+          });
+          
+          sessionValidated = true;
+          setUserEmail(user.email);
 
-        // Get team info from user metadata
-        if (user.user_metadata?.team_name) {
-          setTeamName(user.user_metadata.team_name);
+          if (user.user_metadata?.team_name) {
+            console.log("🔍 SetPassword - Team name from metadata:", user.user_metadata.team_name);
+            setTeamName(user.user_metadata.team_name);
+          } else {
+            console.log("🔍 SetPassword - Fetching team info from profile");
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('teams(name)')
+              .eq('id', user.id)
+              .single();
+            
+            if (profile?.teams?.name) {
+              console.log("🔍 SetPassword - Team name from profile:", profile.teams.name);
+              setTeamName(profile.teams.name);
+            }
+          }
+
+          setTimeout(() => {
+            passwordRef.current?.focus();
+          }, 100);
+          
+          setLoading(false);
+          return;
         }
 
-        // Focus on password input
-        setTimeout(() => {
-          passwordRef.current?.focus();
-        }, 100);
+        const hashHasTokens = hashParams.get('access_token') || hashParams.get('type') === 'invite';
+        const queryHasTokens = searchParams.get('access_token') || searchParams.get('token');
         
+        if (hashHasTokens || queryHasTokens) {
+          setMessage("Processing invitation link...");
+          
+          timeoutId = setTimeout(async () => {
+            if (!sessionValidated) {
+              const { data: { session: retrySession } } = await supabase.auth.getSession();
+              if (!retrySession || !retrySession.user) {
+                setMessage("Invalid or expired invitation link. Please check your email for the correct link.");
+                setMessageType("error");
+                setLoading(false);
+              }
+            }
+          }, 5000);
+          
+          return;
+        }
+
+        setMessage("Invalid invitation link. Please check your email for the correct link.");
+        setMessageType("error");
         setLoading(false);
-        return;
+
+      } catch (err) {
+        console.error("Error checking invitation:", err);
+        setMessage("An unexpected error occurred. Please try again.");
+        setMessageType("error");
+        setLoading(false);
       }
+    };
 
-      // No valid session or tokens found
-      console.log("🔍 SetPassword - No valid session or tokens found");
-      setMessage("Invalid invitation link. Please check your email for the correct link.");
-      setMessageType("error");
-      setLoading(false);
+    authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔍 SetPassword - Auth state change:", event);
+      
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session && session.user) {
+          sessionValidated = true;
+          const user = session.user;
+          
+          setUserEmail(user.email);
 
-    } catch (err) {
-      console.error("Error checking invitation:", err);
-      setMessage("An unexpected error occurred. Please try again.");
-      setMessageType("error");
-      setLoading(false);
-    }
-  };
+          if (user.user_metadata?.team_name) {
+            setTeamName(user.user_metadata.team_name);
+          } else {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('teams(name)')
+              .eq('id', user.id)
+              .single();
+            
+            if (profile?.teams?.name) {
+              setTeamName(profile.teams.name);
+            }
+          }
+
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          
+          setTimeout(() => {
+            passwordRef.current?.focus();
+          }, 100);
+          
+          setLoading(false);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        sessionValidated = false;
+        setLoading(false);
+      }
+    });
+
+    setTimeout(() => {
+      checkInvitation();
+    }, 100);
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
