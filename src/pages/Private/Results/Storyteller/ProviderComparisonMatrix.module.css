@@ -265,6 +265,42 @@
   word-break: break-word;
 }
 
+/* Sortable header styling - all headers are sortable */
+.sortableHeader {
+  cursor: pointer !important;
+  user-select: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sortableHeader:hover {
+  background-color: #d1e9fb !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+  transform: translateY(-1px);
+}
+
+.sortableHeader:active {
+  background-color: #b8d9f0 !important;
+  transform: translateY(0);
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+}
+
+.sortIndicator {
+  color: #2563eb;
+  font-weight: 700;
+  margin-left: 4px;
+  font-size: 0.9em;
+}
+
 /* First column cells (provider names) */
 .stickyCol {
   position: sticky !important;
@@ -284,6 +320,7 @@
   font-size: 0.78rem;
   color: #1d8a68;
   transition: color 0.2s ease, text-decoration 0.2s ease;
+  box-sizing: border-box;
 }
 
 /* Make provider names look like clickable links */
@@ -344,6 +381,42 @@
   color: #1d8a68;
   text-align: left !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+  position: relative;
+}
+
+.matrixTable th.stickyCol.stickyHeader.sortableHeader:hover {
+  background-color: #d1e9fb !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+  transform: translateY(-1px);
+}
+
+.matrixTable th.stickyCol.stickyHeader.sortableHeader:active {
+  background-color: #b8d9f0 !important;
+  transform: translateY(0);
+}
+
+/* Resize handle for provider column */
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 1000;
+  transition: background-color 0.15s ease;
+  border-right: 2px solid transparent;
+}
+
+.resizeHandle:hover {
+  background-color: rgba(74, 144, 226, 0.2);
+  border-right-color: #4a90e2;
+}
+
+.resizeHandle:active {
+  background-color: rgba(37, 99, 235, 0.3);
+  border-right-color: #2563eb;
 }
 
 /* --- All other columns: allow expansion, allow wrapping --- */
@@ -653,6 +726,7 @@
   width: 210px;
   /* Allow hover background to show */
   padding: 4px 8px;
+  box-sizing: border-box;
 }
 
 /* Main provider row sticky column styling */

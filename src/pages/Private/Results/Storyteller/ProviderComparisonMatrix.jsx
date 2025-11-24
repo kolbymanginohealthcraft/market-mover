@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './ProviderComparisonMatrix.module.css'; // Create this CSS module for styling
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -41,6 +41,16 @@ const ProviderComparisonMatrix = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Provider column resize state
+  const [providerColWidth, setProviderColWidth] = useState(210);
+  const resizeStartX = useRef(0);
+  const resizeStartWidth = useRef(210);
+  const isResizingRef = useRef(false);
+  
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState(null); // null, 'provider', 'avg', or measure code
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   
   // Sidebar: measure selection and drag-and-drop order
   const allMeasureCodes = measures.map((m) => m.code);
@@ -142,33 +152,94 @@ const ProviderComparisonMatrix = ({
   }, [highlightedDhcByType]);
 
   // Helper to get cell value
-  const getCell = (rowKey, measureCode) => {
+  const getCell = useCallback((rowKey, measureCode) => {
     if (rowKey === 'market') return marketAverages[measureCode] || {};
     if (rowKey === 'national') return nationalAverages[measureCode] || {};
     return (data[rowKey] && data[rowKey][measureCode]) || {};
-  };
+  }, [data, marketAverages, nationalAverages]);
 
   // Calculate average percentile for each provider
-  const calculateAveragePercentile = (providerKey) => {
+  const calculateAveragePercentile = useCallback((providerKey) => {
     const percentiles = selectedMeasureObjs
       .map(m => getCell(providerKey, m.code)?.percentile)
       .filter(p => p !== null && p !== undefined);
     
     if (percentiles.length === 0) return null;
     return percentiles.reduce((sum, p) => sum + p, 0) / percentiles.length;
+  }, [selectedMeasureObjs, getCell]);
+
+  // Handle column header click for sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to descending
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
   };
 
-  // Sort rows by average percentile (descending)
-  const sortedRows = [...rows].sort((a, b) => {
-    const avgA = calculateAveragePercentile(a.key);
-    const avgB = calculateAveragePercentile(b.key);
-    
-    if (avgA === null && avgB === null) return 0;
-    if (avgA === null) return 1;
-    if (avgB === null) return -1;
-    
-    return avgB - avgA; // Descending order
-  });
+  // Get sort value for a row based on the current sort column
+  const getSortValue = useCallback((row, column) => {
+    if (column === 'provider') {
+      return row.label || '';
+    } else if (column === 'avg') {
+      return calculateAveragePercentile(row.key);
+    } else {
+      // It's a measure code
+      const cell = getCell(row.key, column);
+      // Prefer percentile if available, otherwise use score
+      return cell?.percentile !== null && cell?.percentile !== undefined 
+        ? cell.percentile 
+        : (cell?.score !== null && cell?.score !== undefined ? cell.score : null);
+    }
+  }, [calculateAveragePercentile, getCell]);
+
+  // Check if a value is blank (null, undefined, or displays as em dash)
+  const isBlank = (value) => {
+    return value === null || value === undefined || value === '';
+  };
+
+  // Sort rows based on current sort column and direction
+  const sortedRows = useMemo(() => {
+    if (!sortColumn) {
+      // Default: sort by average percentile (descending)
+      return [...rows].sort((a, b) => {
+        const avgA = calculateAveragePercentile(a.key);
+        const avgB = calculateAveragePercentile(b.key);
+        
+        if (isBlank(avgA) && isBlank(avgB)) return 0;
+        if (isBlank(avgA)) return 1; // Blank values at bottom
+        if (isBlank(avgB)) return -1; // Blank values at bottom
+        
+        return avgB - avgA; // Descending order
+      });
+    }
+
+    return [...rows].sort((a, b) => {
+      const valueA = getSortValue(a, sortColumn);
+      const valueB = getSortValue(b, sortColumn);
+      
+      // Both blank - maintain order
+      if (isBlank(valueA) && isBlank(valueB)) return 0;
+      
+      // Blank values always go to bottom regardless of sort direction
+      if (isBlank(valueA)) return 1;
+      if (isBlank(valueB)) return -1;
+      
+      // Compare non-blank values
+      let comparison = 0;
+      if (typeof valueA === 'string' && typeof valueB === 'string') {
+        comparison = valueA.localeCompare(valueB);
+      } else {
+        comparison = valueA - valueB;
+      }
+      
+      // Apply sort direction
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [rows, sortColumn, sortDirection, calculateAveragePercentile, getSortValue]);
 
   // Continuous conditional formatting with Excel-style green-red gradient
   const getCellClass = (measureCode, values, direction, rowIdx) => {
@@ -225,6 +296,41 @@ const ProviderComparisonMatrix = ({
     const [year, month] = dateStr.split('-');
     return `${year}-${month}`;
   };
+
+  // Provider column resize handlers
+  const handleResizeMove = useCallback((e) => {
+    if (!isResizingRef.current) return;
+    const diff = e.clientX - resizeStartX.current;
+    const newWidth = Math.max(150, Math.min(500, resizeStartWidth.current + diff));
+    setProviderColWidth(newWidth);
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    isResizingRef.current = false;
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, [handleResizeMove]);
+
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingRef.current = true;
+    resizeStartX.current = e.clientX;
+    resizeStartWidth.current = providerColWidth;
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [providerColWidth, handleResizeMove, handleResizeEnd]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, [handleResizeMove, handleResizeEnd]);
 
 
 
@@ -313,10 +419,54 @@ const ProviderComparisonMatrix = ({
             <thead>
               <tr>
                 {/* Top-left cell: sticky header and sticky column */}
-                <th className={`${styles.stickyCol} ${styles.stickyHeader} ${styles.stickyCorner}`}>Provider</th>
-                <th className={styles.stickyHeader} title="Average percentile across selected measures">Avg %</th>
+                <th 
+                  className={`${styles.stickyCol} ${styles.stickyHeader} ${styles.stickyCorner} ${styles.sortableHeader}`}
+                  style={{ width: providerColWidth, minWidth: providerColWidth, maxWidth: providerColWidth }}
+                >
+                  <span 
+                    className={styles.headerContent}
+                    onClick={() => handleSort('provider')}
+                  >
+                    Provider
+                    {sortColumn === 'provider' && (
+                      <span className={styles.sortIndicator}>
+                        {sortDirection === 'asc' ? ' ↑' : ' ↓'}
+                      </span>
+                    )}
+                  </span>
+                  <div 
+                    className={styles.resizeHandle}
+                    onMouseDown={handleResizeStart}
+                    onClick={(e) => e.stopPropagation()}
+                    title="Drag to resize column"
+                  />
+                </th>
+                <th 
+                  className={`${styles.stickyHeader} ${styles.sortableHeader}`}
+                  title="Average percentile across selected measures - Click to sort"
+                  onClick={() => handleSort('avg')}
+                >
+                  Avg %
+                  {sortColumn === 'avg' && (
+                    <span className={styles.sortIndicator}>
+                      {sortDirection === 'asc' ? ' ↑' : ' ↓'}
+                    </span>
+                  )}
+                </th>
                 {selectedMeasureObjs.map((m) => (
-                  <th key={m.code} className={styles.stickyHeader} title={m.description}>{m.name}</th>
+                  <th 
+                    key={m.code} 
+                    className={`${styles.stickyHeader} ${styles.sortableHeader}`}
+                    title={`${m.description} - Click to sort`}
+                    onClick={() => handleSort(m.code)}
+                  >
+                    {m.name}
+                    {sortColumn === m.code && (
+                      <span className={styles.sortIndicator}>
+                        {sortDirection === 'asc' ? ' ↑' : ' ↓'}
+                      </span>
+                    )}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -360,6 +510,7 @@ const ProviderComparisonMatrix = ({
                   <tr key={row.key} className={rowClassNames.length > 0 ? rowClassNames.join(' ') : undefined}>
                   <td
                     className={`${styles.stickyCol} ${styles.ellipsisCell}`}
+                    style={{ width: providerColWidth, minWidth: providerColWidth, maxWidth: providerColWidth }}
                     data-highlight-tag={hasRowHighlight && appliedHighlightType ? appliedHighlightType : undefined}
                     onClick={() => handleProviderClick(row.key)}
                     title="Click to view benchmarks for this provider"
@@ -390,7 +541,13 @@ const ProviderComparisonMatrix = ({
                     }}
                     onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                   >
-                    <span className={styles.ellipsis} title={row.label}>{row.label}</span>
+                    <span 
+                      className={styles.ellipsis} 
+                      title={row.label}
+                      style={{ maxWidth: providerColWidth - 16 }}
+                    >
+                      {row.label}
+                    </span>
                   </td>
                   <td className={styles.averagePercentile}>
                     {(() => {
