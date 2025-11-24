@@ -167,39 +167,6 @@ export default function StandaloneCatchment() {
     };
   }, [dhcParam]);
 
-  if (teamLoading) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loading}>
-          Loading catchment...
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasTeam) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.teamRequiredState}>
-          <div className={styles.teamRequiredIcon}>
-            <Lock size={48} />
-          </div>
-          <h3>Team Required</h3>
-          <p>Join or create a team to access catchment analysis features.</p>
-          <p>These features help you collaborate with your team and analyze hospital service areas.</p>
-          <div className={styles.teamRequiredActions}>
-            <Button variant="gold" size="lg" onClick={() => navigate('/app/settings/company')}>
-              Create Team
-            </Button>
-            <Button variant="blue" size="lg" outline onClick={() => navigate('/app/settings/users')}>
-              Join Team
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (marketIdParam) {
       setSelectedProvider(null);
@@ -625,6 +592,39 @@ export default function StandaloneCatchment() {
 
     fetchFacilityNames();
   }, [catchmentData]);
+
+  if (teamLoading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loading}>
+          Loading catchment...
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasTeam) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.teamRequiredState}>
+          <div className={styles.teamRequiredIcon}>
+            <Lock size={48} />
+          </div>
+          <h3>Team Required</h3>
+          <p>Join or create a team to access catchment analysis features.</p>
+          <p>These features help you collaborate with your team and analyze hospital service areas.</p>
+          <div className={styles.teamRequiredActions}>
+            <Button variant="gold" size="lg" onClick={() => navigate('/app/settings/company')}>
+              Create Team
+            </Button>
+            <Button variant="blue" size="lg" outline onClick={() => navigate('/app/settings/users')}>
+              Join Team
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleMarketSelect = (market) => {
     if (!market) {
