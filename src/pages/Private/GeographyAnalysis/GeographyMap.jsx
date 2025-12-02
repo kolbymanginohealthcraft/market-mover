@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import styles from './GeographyMap.module.css';
 import { getColorForValue, formatMetricValue, getMetricLabel } from '../../../utils/demographicColors';
+import { apiUrl } from '../../../utils/api';
 
 export default function GeographyMap({ 
   center, 
@@ -166,13 +167,18 @@ export default function GeographyMap({
           year: '2023'
         });
 
-        const response = await fetch(`/api/market-geography/demographics-map?${params}`);
+        const response = await fetch(apiUrl(`/api/market-geography/demographics-map?${params}`));
         
         if (!response.ok) {
           throw new Error('Failed to load demographic data');
         }
 
-        const data = await response.json();
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load demographic data');
+        }
+        
+        const data = result.data;
         geojson = data;
         metadata = data.metadata;
         setDemographicData(data.metadata);
@@ -195,13 +201,17 @@ export default function GeographyMap({
           type: boundaryType
         });
 
-        const response = await fetch(`/api/market-geography/boundaries?${params}`);
+        const response = await fetch(apiUrl(`/api/market-geography/boundaries?${params}`));
         
         if (!response.ok) {
           throw new Error('Failed to load boundary data');
         }
 
-        geojson = await response.json();
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load boundary data');
+        }
+        geojson = result.data;
         setDemographicData(null);
         
         // Clear demographic stats in parent

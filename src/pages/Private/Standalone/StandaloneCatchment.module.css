@@ -271,6 +271,18 @@
   color: var(--gray-900);
 }
 
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dropdownScrollable {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .tableContainer {
   background: var(--white);
   border: 1px solid var(--gray-200);

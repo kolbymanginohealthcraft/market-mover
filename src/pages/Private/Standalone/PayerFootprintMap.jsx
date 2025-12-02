@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import styles from './PayerFootprintMap.module.css';
+import { apiUrl } from '../../../utils/api';
 
 export default function PayerFootprintMap({ enrollmentData, parentOrg }) {
   const mapContainer = useRef(null);
@@ -133,11 +134,12 @@ export default function PayerFootprintMap({ enrollmentData, parentOrg }) {
             const countyFipsList = counties.map(c => c.countyFips);
             const countyParams = countyFipsList.map(fips => `countyFips=${fips}`).join('&');
             
-            const response = await fetch(`/api/market-geography/boundaries?type=counties&latitude=39&longitude=-98&radius=2000`);
+            const response = await fetch(apiUrl(`/api/market-geography/boundaries?type=counties&latitude=39&longitude=-98&radius=2000`));
             if (!response.ok) return [];
             const result = await response.json();
+            if (!result.success) return [];
             
-            const features = (result.features || []).filter(f => {
+            const features = (result.data?.features || []).filter(f => {
               const props = f.properties;
               return props?.state_fips_code === stateFips && 
                      countyFipsList.includes(props?.county_fips_code);

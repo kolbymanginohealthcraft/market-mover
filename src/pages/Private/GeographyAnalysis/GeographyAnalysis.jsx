@@ -9,6 +9,7 @@ import { ChevronDown } from 'lucide-react';
 import PageLayout from '../../../components/Layouts/PageLayout';
 import styles from './GeographyAnalysis.module.css';
 import DetailedLoadingSpinner from '../../../components/Buttons/DetailedLoadingSpinner';
+import { apiUrl } from '../../../utils/api';
 
 const STATE_FIPS_TO_NAME = {
   '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
@@ -112,14 +113,18 @@ export default function GeographyAnalysis() {
         type: boundaryType
       });
 
-      const response = await fetch(`/api/market-geography/boundaries?${params}`);
+      const response = await fetch(apiUrl(`/api/market-geography/boundaries?${params}`));
 
       if (!response.ok) {
         throw new Error('Failed to fetch boundary elements');
       }
 
-      const data = await response.json();
-      setBoundaryElements(data.features || []);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch boundary elements');
+      }
+
+      setBoundaryElements(result.data?.features || []);
     } catch (error) {
       console.error('Error fetching boundary elements:', error);
       setBoundaryElements([]);

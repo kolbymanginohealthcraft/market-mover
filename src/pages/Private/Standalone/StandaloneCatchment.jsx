@@ -51,6 +51,8 @@ export default function StandaloneCatchment() {
   const [zipCodeToTagMap, setZipCodeToTagMap] = useState(new Map()); // ZIP code -> tag types mapping
   const [zipCodeToProvidersMap, setZipCodeToProvidersMap] = useState(new Map()); // ZIP code -> array of provider names mapping
   const [loadingNetworkTags, setLoadingNetworkTags] = useState(false);
+  const [selectedZipCodes, setSelectedZipCodes] = useState([]); // Array of selected ZIP codes for filtering
+  const [zipCodeFilterDropdownOpen, setZipCodeFilterDropdownOpen] = useState(false);
 
   // Fetch tagged providers
   const { taggedProviders } = useTaggedProviders();
@@ -235,16 +237,38 @@ export default function StandaloneCatchment() {
     [effectiveProvider, effectiveRadius]
   );
 
+  // Get unique ZIP codes from hospitalData for filtering
+  const availableZipCodes = useMemo(() => {
+    if (!catchmentData?.hospitalData) return [];
+    const zipSet = new Set(
+      catchmentData.hospitalData
+        .map(row => row.ZIP_CD_OF_RESIDENCE)
+        .filter(zip => zip && zip !== '*')
+    );
+    return Array.from(zipSet).sort();
+  }, [catchmentData]);
+
+  // Filter hospitalData by selected ZIP codes
+  const filteredHospitalData = useMemo(() => {
+    if (!catchmentData?.hospitalData) return [];
+    if (selectedZipCodes.length === 0) return catchmentData.hospitalData;
+    return catchmentData.hospitalData.filter(row => 
+      selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE)
+    );
+  }, [catchmentData, selectedZipCodes]);
+
   useEffect(() => {
     if (!hasSelection || !effectiveProvider) {
       setCatchmentData(null);
       setError(null);
+      setSelectedZipCodes([]);
       return;
     }
 
     async function fetchCatchmentData() {
       setLoading(true);
       setError(null);
+      setSelectedZipCodes([]);
 
       try {
         // Map frontend analysisType to backend expected values
@@ -776,6 +800,64 @@ export default function StandaloneCatchment() {
                 Target
               </button>
             </Dropdown>
+
+            {analysisType === 'ByHospital' && availableZipCodes.length > 0 && (
+              <Dropdown
+                trigger={
+                  <button type="button" className="sectionHeaderButton">
+                    <MapPin size={14} />
+                    {selectedZipCodes.length === 0 
+                      ? 'All ZIP Codes' 
+                      : `${selectedZipCodes.length} ZIP${selectedZipCodes.length === 1 ? '' : 's'} selected`}
+                    <ChevronDown size={14} />
+                  </button>
+                }
+                isOpen={zipCodeFilterDropdownOpen}
+                onToggle={setZipCodeFilterDropdownOpen}
+                className={styles.dropdownMenu}
+              >
+                <button
+                  type="button"
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    setSelectedZipCodes([]);
+                    setZipCodeFilterDropdownOpen(false);
+                  }}
+                  style={{
+                    fontWeight: selectedZipCodes.length === 0 ? '600' : '500',
+                    background: selectedZipCodes.length === 0 ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                  }}
+                >
+                  All ZIP Codes
+                </button>
+                <div className={styles.dropdownDivider}></div>
+                <div className={styles.dropdownScrollable}>
+                  {availableZipCodes.map((zip) => {
+                    const isSelected = selectedZipCodes.includes(zip);
+                    return (
+                      <button
+                        key={zip}
+                        type="button"
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedZipCodes(prev => prev.filter(z => z !== zip));
+                          } else {
+                            setSelectedZipCodes(prev => [...prev, zip]);
+                          }
+                        }}
+                        style={{
+                          fontWeight: isSelected ? '600' : '500',
+                          background: isSelected ? 'rgba(0, 192, 139, 0.1)' : 'none',
+                        }}
+                      >
+                        {zip}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Dropdown>
+            )}
           </div>
 
           <div className={styles.spacer} />
@@ -831,7 +913,7 @@ export default function StandaloneCatchment() {
                   </div>
                   <div className={styles.summaryContent}>
                     <h3>ZIP Codes</h3>
-                    <p>{catchmentData.summary?.totalZipCodes || 0} in area</p>
+                    <p>{catchmentData.summary?.zipCodesWithData || 0} in area</p>
                   </div>
                 </div>
 
@@ -882,7 +964,7 @@ export default function StandaloneCatchment() {
                     <tbody>
                       {(() => {
                         const groupedData = {};
-                        catchmentData.hospitalData?.forEach((row) => {
+                        filteredHospitalData.forEach((row) => {
                           const ccn = row.MEDICARE_PROV_NUM;
                           if (!groupedData[ccn]) {
                             groupedData[ccn] = {

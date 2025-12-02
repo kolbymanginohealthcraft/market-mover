@@ -58,7 +58,12 @@ export default function useCountyFipsCodes(provider, radiusInMiles) {
           throw new Error(`Failed to fetch county boundaries: ${boundariesResp.status}`);
         }
         
-        const boundariesGeoJson = await boundariesResp.json();
+        const result = await boundariesResp.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch county boundaries');
+        }
+        
+        const boundariesGeoJson = result.data;
         
         if (!boundariesGeoJson.features || boundariesGeoJson.features.length === 0) {
           throw new Error('No counties found in market area');

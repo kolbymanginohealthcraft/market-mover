@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import styles from './GeographyMap.module.css';
+import { apiUrl } from '../../../utils/api';
 
 export default function GeographyMap({ center, radius, boundaryType = 'tracts' }) {
   const mapContainer = useRef(null);
@@ -70,13 +71,17 @@ export default function GeographyMap({ center, radius, boundaryType = 'tracts' }
         type: boundaryType
       });
 
-      const response = await fetch(`/api/market-geography/boundaries?${params}`);
+      const response = await fetch(apiUrl(`/api/market-geography/boundaries?${params}`));
       
       if (!response.ok) {
         throw new Error('Failed to load boundary data');
       }
 
-      const geojson = await response.json();
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to load boundary data');
+      }
+      const geojson = result.data;
 
       // Remove existing layers and sources
       if (map.current.getLayer('boundaries-fill')) {

@@ -36,6 +36,7 @@ router.get("/profile", async (req, res) => {
 
     if (!latitude || !longitude || !radius) {
       return res.status(400).json({
+        success: false,
         error: "Missing required parameters: latitude, longitude, radius",
       });
     }
@@ -181,6 +182,7 @@ router.get("/boundaries", async (req, res) => {
 
     if (!latitude || !longitude || !radius) {
       return res.status(400).json({
+        success: false,
         error: "Missing required parameters: latitude, longitude, radius",
       });
     }
@@ -239,7 +241,10 @@ router.get("/boundaries", async (req, res) => {
         )
       `;
     } else {
-      return res.status(400).json({ error: "Invalid type. Must be 'tracts', 'zips', or 'counties'" });
+      return res.status(400).json({ 
+        success: false,
+        error: "Invalid type. Must be 'tracts', 'zips', or 'counties'" 
+      });
     }
 
     const [results] = await vendorBigQuery.query({ query });
@@ -262,11 +267,15 @@ router.get("/boundaries", async (req, res) => {
 
     console.log(`✅ Retrieved ${features.length} ${type} boundaries`);
 
-    res.json(geojson);
+    res.json({
+      success: true,
+      data: geojson
+    });
 
   } catch (error) {
     console.error("Error fetching boundaries:", error);
     res.status(500).json({
+      success: false,
       error: "Failed to fetch boundary data",
       details: error.message,
     });
@@ -286,6 +295,7 @@ router.get("/demographics", async (req, res) => {
 
     if (!latitude || !longitude || !radius) {
       return res.status(400).json({
+        success: false,
         error: "Missing required parameters: latitude, longitude, radius",
       });
     }
@@ -367,6 +377,7 @@ router.get("/demographics-map", async (req, res) => {
 
     if (!latitude || !longitude || !radius) {
       return res.status(400).json({
+        success: false,
         error: "Missing required parameters: latitude, longitude, radius",
       });
     }
@@ -400,12 +411,15 @@ router.get("/demographics-map", async (req, res) => {
 
     if (tractRows.length === 0) {
       return res.json({
-        type: 'FeatureCollection',
-        features: [],
-        metadata: {
-          metric,
-          tract_count: 0,
-          message: "No census tracts found in this radius"
+        success: true,
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+          metadata: {
+            metric,
+            tract_count: 0,
+            message: "No census tracts found in this radius"
+          }
         }
       });
     }
@@ -612,11 +626,15 @@ router.get("/demographics-map", async (req, res) => {
 
     console.log(`✅ Created demographics map GeoJSON: ${features.length} features, metric: ${metric}`);
 
-    res.json(geojson);
+    res.json({
+      success: true,
+      data: geojson
+    });
 
   } catch (error) {
     console.error("Error generating demographics map:", error);
     res.status(500).json({
+      success: false,
       error: "Failed to generate demographics map",
       details: error.message,
     });
@@ -636,6 +654,7 @@ router.get("/distance-distribution", async (req, res) => {
 
     if (!latitude || !longitude || !radius) {
       return res.status(400).json({
+        success: false,
         error: "Missing required parameters: latitude, longitude, radius",
       });
     }

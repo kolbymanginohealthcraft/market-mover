@@ -298,8 +298,17 @@ router.post("/catchment-zip-analysis", async (req, res) => {
     );
     const totalUniqueHospitals = uniqueCcns.size;
 
+    // Count unique ZIP codes that have CMS data
+    const uniqueZipCodesWithData = new Set(
+      filteredHospitalData
+        .map(row => row.ZIP_CD_OF_RESIDENCE)
+        .filter(zip => zip && zip !== '*')
+    );
+    const zipCodesWithData = uniqueZipCodesWithData.size;
+
     console.log(`✅ Returning ${filteredHospitalData.length} filtered hospital records for ${zipCodes.length} zip codes`);
     console.log(`📊 Found ${totalUniqueHospitals} unique hospitals (by CCN)`);
+    console.log(`📊 Found ${zipCodesWithData} unique ZIP codes with CMS data`);
 
     res.json({
       success: true,
@@ -308,6 +317,7 @@ router.post("/catchment-zip-analysis", async (req, res) => {
         hospitalData: filteredHospitalData,
         summary: {
           totalZipCodes: zipCodes.length,
+          zipCodesWithData: zipCodesWithData,
           totalHospitalRecords: filteredHospitalData.length,
           totalUniqueHospitals: totalUniqueHospitals,
           totalCases: filteredHospitalData.reduce((sum, row) => sum + (parseInt(row.TOTAL_CASES) || 0), 0),
