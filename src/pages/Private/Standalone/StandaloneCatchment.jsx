@@ -38,10 +38,8 @@ export default function StandaloneCatchment() {
   const marketIdParam = searchParams.get('marketId');
   const [radiusInMiles, setRadiusInMiles] = useState(initialRadius);
 
-  // Get analysisType from URL, default to 'ByHospital'
-  const analysisType = useMemo(() => {
-    return searchParams.get('view') || 'ByHospital';
-  }, [searchParams]);
+  // Always use 'ByHospital' view (no subtabs)
+  const analysisType = 'ByHospital';
   const [catchmentData, setCatchmentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -53,6 +51,7 @@ export default function StandaloneCatchment() {
   const [loadingNetworkTags, setLoadingNetworkTags] = useState(false);
   const [selectedZipCodes, setSelectedZipCodes] = useState([]); // Array of selected ZIP codes for filtering
   const [zipCodeFilterDropdownOpen, setZipCodeFilterDropdownOpen] = useState(false);
+  const [selectedHospitals, setSelectedHospitals] = useState([]); // Array of selected hospital CCNs for filtering
 
   // Fetch tagged providers
   const { taggedProviders } = useTaggedProviders();
@@ -71,6 +70,13 @@ export default function StandaloneCatchment() {
     },
     [searchParams, setSearchParams]
   );
+
+  // Remove 'view' parameter from URL if present (no longer needed)
+  useEffect(() => {
+    if (searchParams.get('view')) {
+      updateSearchParams({ view: null });
+    }
+  }, [searchParams, updateSearchParams]);
 
   useEffect(() => {
     setMarketsLoading(true);
@@ -248,20 +254,163 @@ export default function StandaloneCatchment() {
     return Array.from(zipSet).sort();
   }, [catchmentData]);
 
-  // Filter hospitalData by selected ZIP codes
+  // Filter hospitalData by selected ZIP codes and hospitals (cross-filtering)
   const filteredHospitalData = useMemo(() => {
     if (!catchmentData?.hospitalData) return [];
-    if (selectedZipCodes.length === 0) return catchmentData.hospitalData;
-    return catchmentData.hospitalData.filter(row => 
-      selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE)
-    );
+    let filtered = catchmentData.hospitalData;
+    
+    // Filter by selected ZIP codes
+    if (selectedZipCodes.length > 0) {
+      filtered = filtered.filter(row => 
+        selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE)
+      );
+    }
+    
+    // Filter by selected hospitals
+    if (selectedHospitals.length > 0) {
+      filtered = filtered.filter(row => 
+        selectedHospitals.includes(row.MEDICARE_PROV_NUM)
+      );
+    }
+    
+    return filtered;
+  }, [catchmentData, selectedZipCodes, selectedHospitals]);
+
+  // Get filtered ZIP code data (grouped by ZIP, filtered by selected hospitals)
+  const filteredZipCodeData = useMemo(() => {
+    if (!catchmentData?.hospitalData) return [];
+    let filtered = catchmentData.hospitalData;
+    
+    // Filter by selected hospitals
+    if (selectedHospitals.length > 0) {
+      filtered = filtered.filter(row => 
+        selectedHospitals.includes(row.MEDICARE_PROV_NUM)
+      );
+    }
+    
+    // Group by ZIP code
+    const groupedData = {};
+    filtered.forEach((row) => {
+      const zipCode = row.ZIP_CD_OF_RESIDENCE;
+      if (!groupedData[zipCode]) {
+        groupedData[zipCode] = {
+          ZIP_CD_OF_RESIDENCE: zipCode,
+          TOTAL_CASES: 0,
+          TOTAL_DAYS_OF_CARE: 0,
+          TOTAL_CHARGES: 0,
+          HOSPITAL_COUNT: new Set(),
+        };
+      }
+      groupedData[zipCode].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
+      groupedData[zipCode].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+      groupedData[zipCode].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
+      if (row.MEDICARE_PROV_NUM && row.MEDICARE_PROV_NUM !== '*') {
+        groupedData[zipCode].HOSPITAL_COUNT.add(row.MEDICARE_PROV_NUM);
+      }
+    });
+    
+    return Object.values(groupedData).map(row => ({
+      ...row,
+      HOSPITAL_COUNT: row.HOSPITAL_COUNT.size
+    }));
+  }, [catchmentData, selectedHospitals]);
+
+  // Get filtered hospital data (grouped by CCN, filtered by selected ZIP codes)
+  const filteredHospitalGroupedData = useMemo(() => {
+    if (!catchmentData?.hospitalData) return [];
+    let filtered = catchmentData.hospitalData;
+    
+    // Filter by selected ZIP codes
+    if (selectedZipCodes.length > 0) {
+      filtered = filtered.filter(row => 
+        selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE)
+      );
+    }
+    
+    // Group by CCN
+    const groupedData = {};
+    filtered.forEach((row) => {
+      const ccn = row.MEDICARE_PROV_NUM;
+      if (!groupedData[ccn]) {
+        groupedData[ccn] = {
+          MEDICARE_PROV_NUM: ccn,
+          TOTAL_CASES: 0,
+          TOTAL_DAYS_OF_CARE: 0,
+          TOTAL_CHARGES: 0,
+        };
+      }
+      groupedData[ccn].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
+      groupedData[ccn].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+      groupedData[ccn].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
+    });
+    
+    return Object.values(groupedData);
   }, [catchmentData, selectedZipCodes]);
+
+  // Calculate summary for ZIP codes table
+  const zipCodeSummary = useMemo(() => {
+    if (!catchmentData?.hospitalData) {
+      return { zipCodes: 0, totalCases: 0, totalCharges: 0, totalDays: 0, uniqueHospitals: 0 };
+    }
+    
+    let filtered = catchmentData.hospitalData;
+    if (selectedHospitals.length > 0) {
+      filtered = filtered.filter(row => selectedHospitals.includes(row.MEDICARE_PROV_NUM));
+    }
+    
+    const totalCases = filtered.reduce((sum, row) => sum + (parseInt(row.TOTAL_CASES) || 0), 0);
+    const totalCharges = filtered.reduce((sum, row) => sum + (parseInt(row.TOTAL_CHARGES) || 0), 0);
+    const totalDays = filtered.reduce((sum, row) => sum + (parseInt(row.TOTAL_DAYS_OF_CARE) || 0), 0);
+    const uniqueHospitals = new Set(
+      filtered
+        .map(row => row.MEDICARE_PROV_NUM)
+        .filter(ccn => ccn && ccn !== '*')
+    );
+    
+    return {
+      zipCodes: filteredZipCodeData.length,
+      totalCases,
+      totalCharges,
+      totalDays,
+      uniqueHospitals: uniqueHospitals.size
+    };
+  }, [catchmentData, selectedHospitals, filteredZipCodeData]);
+
+  // Calculate summary for hospitals table
+  const hospitalSummary = useMemo(() => {
+    if (!catchmentData?.hospitalData) {
+      return { hospitals: 0, totalCases: 0, totalCharges: 0, totalDays: 0, uniqueZipCodes: 0 };
+    }
+    
+    let filtered = catchmentData.hospitalData;
+    if (selectedZipCodes.length > 0) {
+      filtered = filtered.filter(row => selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE));
+    }
+    
+    const totalCases = filtered.reduce((sum, row) => sum + (parseInt(row.TOTAL_CASES) || 0), 0);
+    const totalCharges = filtered.reduce((sum, row) => sum + (parseInt(row.TOTAL_CHARGES) || 0), 0);
+    const totalDays = filtered.reduce((sum, row) => sum + (parseInt(row.TOTAL_DAYS_OF_CARE) || 0), 0);
+    const uniqueZipCodes = new Set(
+      filtered
+        .map(row => row.ZIP_CD_OF_RESIDENCE)
+        .filter(zip => zip && zip !== '*')
+    );
+    
+    return {
+      hospitals: filteredHospitalGroupedData.length,
+      totalCases,
+      totalCharges,
+      totalDays,
+      uniqueZipCodes: uniqueZipCodes.size
+    };
+  }, [catchmentData, selectedZipCodes, filteredHospitalGroupedData]);
 
   useEffect(() => {
     if (!hasSelection || !effectiveProvider) {
       setCatchmentData(null);
       setError(null);
       setSelectedZipCodes([]);
+      setSelectedHospitals([]);
       return;
     }
 
@@ -269,14 +418,11 @@ export default function StandaloneCatchment() {
       setLoading(true);
       setError(null);
       setSelectedZipCodes([]);
+      setSelectedHospitals([]);
 
       try {
-        // Map frontend analysisType to backend expected values
-        const backendAnalysisType = analysisType === 'ByHospital' 
-          ? 'hospitals_grouped' 
-          : analysisType === 'ByZipCode' 
-          ? 'zip_codes_grouped' 
-          : analysisType;
+        // Always use hospitals_grouped
+        const backendAnalysisType = 'hospitals_grouped';
 
         const response = await fetch(apiUrl('/api/catchment-zip-analysis'), {
           method: 'POST',
@@ -305,7 +451,7 @@ export default function StandaloneCatchment() {
     }
 
     fetchCatchmentData();
-  }, [effectiveProvider, effectiveRadius, analysisType, hasSelection]);
+  }, [effectiveProvider, effectiveRadius, hasSelection]);
 
   // Fetch ZIP codes for tagged providers and create ZIP code -> tag mapping
   useEffect(() => {
@@ -801,63 +947,6 @@ export default function StandaloneCatchment() {
               </button>
             </Dropdown>
 
-            {analysisType === 'ByHospital' && availableZipCodes.length > 0 && (
-              <Dropdown
-                trigger={
-                  <button type="button" className="sectionHeaderButton">
-                    <MapPin size={14} />
-                    {selectedZipCodes.length === 0 
-                      ? 'All ZIP Codes' 
-                      : `${selectedZipCodes.length} ZIP${selectedZipCodes.length === 1 ? '' : 's'} selected`}
-                    <ChevronDown size={14} />
-                  </button>
-                }
-                isOpen={zipCodeFilterDropdownOpen}
-                onToggle={setZipCodeFilterDropdownOpen}
-                className={styles.dropdownMenu}
-              >
-                <button
-                  type="button"
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setSelectedZipCodes([]);
-                    setZipCodeFilterDropdownOpen(false);
-                  }}
-                  style={{
-                    fontWeight: selectedZipCodes.length === 0 ? '600' : '500',
-                    background: selectedZipCodes.length === 0 ? 'rgba(0, 192, 139, 0.1)' : 'none',
-                  }}
-                >
-                  All ZIP Codes
-                </button>
-                <div className={styles.dropdownDivider}></div>
-                <div className={styles.dropdownScrollable}>
-                  {availableZipCodes.map((zip) => {
-                    const isSelected = selectedZipCodes.includes(zip);
-                    return (
-                      <button
-                        key={zip}
-                        type="button"
-                        className={styles.dropdownItem}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedZipCodes(prev => prev.filter(z => z !== zip));
-                          } else {
-                            setSelectedZipCodes(prev => [...prev, zip]);
-                          }
-                        }}
-                        style={{
-                          fontWeight: isSelected ? '600' : '500',
-                          background: isSelected ? 'rgba(0, 192, 139, 0.1)' : 'none',
-                        }}
-                      >
-                        {zip}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Dropdown>
-            )}
           </div>
 
           <div className={styles.spacer} />
@@ -913,7 +1002,10 @@ export default function StandaloneCatchment() {
                   </div>
                   <div className={styles.summaryContent}>
                     <h3>ZIP Codes</h3>
-                    <p>{catchmentData.summary?.zipCodesWithData || 0} in area</p>
+                    <p>{catchmentData.summary?.totalZipCodes || 0} in area</p>
+                    <p style={{ fontSize: '12px', color: 'var(--gray-600)', marginTop: '4px', fontWeight: '400' }}>
+                      {catchmentData.summary?.zipCodesWithData || 0} with data
+                    </p>
                   </div>
                 </div>
 
@@ -924,6 +1016,9 @@ export default function StandaloneCatchment() {
                   <div className={styles.summaryContent}>
                     <h3>Hospitals</h3>
                     <p>{catchmentData.summary?.totalUniqueHospitals || 0}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--gray-600)', marginTop: '4px', fontWeight: '400' }}>
+                      visited by residents of these ZIP codes
+                    </p>
                   </div>
                 </div>
 
@@ -948,159 +1043,142 @@ export default function StandaloneCatchment() {
                 </div>
               </div>
 
-              <div className={styles.tableContainer}>
-                {analysisType === 'ByHospital' ? (
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Hospital</th>
-                        <th>CCN</th>
-                        <th>Total Cases</th>
-                        <th>Total Charges</th>
-                        <th>Avg Days</th>
-                        <th>Avg Charge</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const groupedData = {};
-                        filteredHospitalData.forEach((row) => {
-                          const ccn = row.MEDICARE_PROV_NUM;
-                          if (!groupedData[ccn]) {
-                            groupedData[ccn] = {
-                              MEDICARE_PROV_NUM: ccn,
-                              TOTAL_CASES: 0,
-                              TOTAL_DAYS_OF_CARE: 0,
-                              TOTAL_CHARGES: 0,
-                            };
-                          }
-                          groupedData[ccn].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
-                          groupedData[ccn].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                          groupedData[ccn].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
-                        });
+              <div className={styles.sideBySideLayout}>
+                    <div className={styles.sidePanel}>
+                      <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                          <thead>
+                            <tr>
+                              <th>Resident ZIP Code</th>
+                              <th>Total Cases</th>
+                              <th>Total Charges</th>
+                              <th>Avg Days</th>
+                              <th>Avg Charge</th>
+                              <th>Hospitals</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredZipCodeData
+                              .sort((a, b) => {
+                                const casesA = parseInt(a.TOTAL_CASES) || 0;
+                                const casesB = parseInt(b.TOTAL_CASES) || 0;
+                                return casesB - casesA;
+                              })
+                              .map((row, index) => {
+                                const cases = parseInt(row.TOTAL_CASES) || 0;
+                                const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+                                const charges = parseInt(row.TOTAL_CHARGES) || 0;
+                                const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
+                                const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
+                                const isSelected = selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE);
+                                const zipHasNetworkProvider = zipCodeHasNetworkProvider(row.ZIP_CD_OF_RESIDENCE);
+                                const zipCode = String(row.ZIP_CD_OF_RESIDENCE).trim();
+                                const matchingProviders = zipHasNetworkProvider && zipCodeToProvidersMap.get(zipCode) 
+                                  ? zipCodeToProvidersMap.get(zipCode).filter(p => p.tags.includes(selectedNetworkTag))
+                                  : [];
 
-                        return Object.values(groupedData)
-                          .sort((a, b) => {
-                            const casesA = parseInt(a.TOTAL_CASES) || 0;
-                            const casesB = parseInt(b.TOTAL_CASES) || 0;
-                            return casesB - casesA;
-                          })
-                          .map((row, index) => {
-                            const cases = parseInt(row.TOTAL_CASES) || 0;
-                            const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                            const charges = parseInt(row.TOTAL_CHARGES) || 0;
-                            const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
-                            const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
+                                return (
+                                  <tr 
+                                    key={index}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setSelectedZipCodes(prev => prev.filter(z => z !== row.ZIP_CD_OF_RESIDENCE));
+                                      } else {
+                                        setSelectedZipCodes(prev => [...prev, row.ZIP_CD_OF_RESIDENCE]);
+                                      }
+                                    }}
+                                    className={isSelected ? styles.selectedRow : zipHasNetworkProvider ? styles.highlightedRow : ''}
+                                    style={{ 
+                                      cursor: 'pointer',
+                                      ...(zipHasNetworkProvider ? { 
+                                        backgroundColor: `${getTagColor(selectedNetworkTag)}15`,
+                                        borderLeft: `3px solid ${getTagColor(selectedNetworkTag)}`
+                                      } : {})
+                                    }}
+                                  >
+                                    <td>
+                                      {zipHasNetworkProvider && matchingProviders.length > 0 ? (
+                                        <NetworkProviderTooltip
+                                          zipCode={zipCode}
+                                          tagLabel={getTagLabel(selectedNetworkTag)}
+                                          tagColor={getTagColor(selectedNetworkTag)}
+                                          providers={matchingProviders}
+                                        >
+                                          {row.ZIP_CD_OF_RESIDENCE}
+                                        </NetworkProviderTooltip>
+                                      ) : (
+                                        row.ZIP_CD_OF_RESIDENCE
+                                      )}
+                                    </td>
+                                    <td>{cases.toLocaleString()}</td>
+                                    <td>${charges.toLocaleString()}</td>
+                                    <td>{avgDays}</td>
+                                    <td>${parseInt(avgCharges).toLocaleString()}</td>
+                                    <td>{row.HOSPITAL_COUNT}</td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
 
-                            const facilityName = facilityNames.get(row.MEDICARE_PROV_NUM);
+                    <div className={styles.sidePanel}>
+                      <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                          <thead>
+                            <tr>
+                              <th>Hospital</th>
+                              <th>CCN</th>
+                              <th>Total Cases</th>
+                              <th>Total Charges</th>
+                              <th>Avg Days</th>
+                              <th>Avg Charge</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredHospitalGroupedData
+                              .sort((a, b) => {
+                                const casesA = parseInt(a.TOTAL_CASES) || 0;
+                                const casesB = parseInt(b.TOTAL_CASES) || 0;
+                                return casesB - casesA;
+                              })
+                              .map((row, index) => {
+                                const cases = parseInt(row.TOTAL_CASES) || 0;
+                                const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
+                                const charges = parseInt(row.TOTAL_CHARGES) || 0;
+                                const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
+                                const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
+                                const facilityName = facilityNames.get(row.MEDICARE_PROV_NUM);
+                                const isSelected = selectedHospitals.includes(row.MEDICARE_PROV_NUM);
 
-                            return (
-                              <tr key={index}>
-                                <td>{facilityName || '—'}</td>
-                                <td className={styles.ccnCell}>{row.MEDICARE_PROV_NUM}</td>
-                                <td>{cases.toLocaleString()}</td>
-                                <td>${charges.toLocaleString()}</td>
-                                <td>{avgDays}</td>
-                                <td>${parseInt(avgCharges).toLocaleString()}</td>
-                              </tr>
-                            );
-                          });
-                      })()}
-                    </tbody>
-                  </table>
-                ) : analysisType === 'ByZipCode' ? (
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Resident ZIP Code</th>
-                        <th>Total Cases</th>
-                        <th>Total Charges</th>
-                        <th>Avg Days</th>
-                        <th>Avg Charge</th>
-                        <th>Hospitals</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const groupedData = {};
-                        catchmentData.hospitalData?.forEach((row) => {
-                          const zipCode = row.ZIP_CD_OF_RESIDENCE;
-                          if (!groupedData[zipCode]) {
-                            groupedData[zipCode] = {
-                              ZIP_CD_OF_RESIDENCE: zipCode,
-                              TOTAL_CASES: 0,
-                              TOTAL_DAYS_OF_CARE: 0,
-                              TOTAL_CHARGES: 0,
-                              HOSPITAL_COUNT: new Set(),
-                            };
-                          }
-                          groupedData[zipCode].TOTAL_CASES += parseInt(row.TOTAL_CASES) || 0;
-                          groupedData[zipCode].TOTAL_DAYS_OF_CARE += parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                          groupedData[zipCode].TOTAL_CHARGES += parseInt(row.TOTAL_CHARGES) || 0;
-                          if (row.MEDICARE_PROV_NUM && row.MEDICARE_PROV_NUM !== '*') {
-                            groupedData[zipCode].HOSPITAL_COUNT.add(row.MEDICARE_PROV_NUM);
-                          }
-                        });
-
-                        return Object.values(groupedData)
-                          .map(row => ({
-                            ...row,
-                            HOSPITAL_COUNT: row.HOSPITAL_COUNT.size
-                          }))
-                          .sort((a, b) => {
-                            const casesA = parseInt(a.TOTAL_CASES) || 0;
-                            const casesB = parseInt(b.TOTAL_CASES) || 0;
-                            return casesB - casesA;
-                          })
-                          .map((row, index) => {
-                            const cases = parseInt(row.TOTAL_CASES) || 0;
-                            const days = parseInt(row.TOTAL_DAYS_OF_CARE) || 0;
-                            const charges = parseInt(row.TOTAL_CHARGES) || 0;
-                            const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
-                            const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
-
-                            const zipHasNetworkProvider = zipCodeHasNetworkProvider(row.ZIP_CD_OF_RESIDENCE);
-                            const zipCode = String(row.ZIP_CD_OF_RESIDENCE).trim();
-                            const matchingProviders = zipHasNetworkProvider && zipCodeToProvidersMap.get(zipCode) 
-                              ? zipCodeToProvidersMap.get(zipCode).filter(p => p.tags.includes(selectedNetworkTag))
-                              : [];
-
-                            return (
-                              <tr 
-                                key={index}
-                                className={zipHasNetworkProvider ? styles.highlightedRow : ''}
-                                style={zipHasNetworkProvider ? { 
-                                  backgroundColor: `${getTagColor(selectedNetworkTag)}15`,
-                                  borderLeft: `3px solid ${getTagColor(selectedNetworkTag)}`
-                                } : {}}
-                              >
-                                <td>
-                                  {zipHasNetworkProvider && matchingProviders.length > 0 ? (
-                                    <NetworkProviderTooltip
-                                      zipCode={zipCode}
-                                      tagLabel={getTagLabel(selectedNetworkTag)}
-                                      tagColor={getTagColor(selectedNetworkTag)}
-                                      providers={matchingProviders}
-                                    >
-                                      {row.ZIP_CD_OF_RESIDENCE}
-                                    </NetworkProviderTooltip>
-                                  ) : (
-                                    row.ZIP_CD_OF_RESIDENCE
-                                  )}
-                                </td>
-                                <td>{cases.toLocaleString()}</td>
-                                <td>${charges.toLocaleString()}</td>
-                                <td>{avgDays}</td>
-                                <td>${parseInt(avgCharges).toLocaleString()}</td>
-                                <td>{row.HOSPITAL_COUNT}</td>
-                              </tr>
-                            );
-                          });
-                      })()}
-                    </tbody>
-                  </table>
-                ) : null}
-              </div>
+                                return (
+                                  <tr 
+                                    key={index}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setSelectedHospitals(prev => prev.filter(h => h !== row.MEDICARE_PROV_NUM));
+                                      } else {
+                                        setSelectedHospitals(prev => [...prev, row.MEDICARE_PROV_NUM]);
+                                      }
+                                    }}
+                                    className={isSelected ? styles.selectedRow : ''}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    <td>{facilityName || '—'}</td>
+                                    <td className={styles.ccnCell}>{row.MEDICARE_PROV_NUM}</td>
+                                    <td>{cases.toLocaleString()}</td>
+                                    <td>${charges.toLocaleString()}</td>
+                                    <td>{avgDays}</td>
+                                    <td>${parseInt(avgCharges).toLocaleString()}</td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
             </>
           ) : null}
         </div>

@@ -1209,45 +1209,6 @@ const SubNavigation = () => {
     );
   }
 
-  // Handle catchment page navigation
-  if (location.pathname.includes('/catchment')) {
-    const currentView = searchParams.get('view') || 'ByHospital';
-    
-    // Build base search params without view param
-    const baseParams = new URLSearchParams(searchParams);
-    baseParams.delete('view');
-    
-    const buildPath = (view) => {
-      const params = new URLSearchParams(baseParams);
-      params.set('view', view);
-      return `/app/catchment?${params.toString()}`;
-    };
-    
-    const catchmentTabs = [
-      { id: "ByHospital", label: "By Hospital", icon: Users, path: buildPath('ByHospital') },
-      { id: "ByZipCode", label: "By ZIP Code", icon: MapPin, path: buildPath('ByZipCode') }
-    ];
-
-    return (
-      <nav className={styles.subNavigation}>
-        <div className={styles.navLeft}>
-          {catchmentTabs.map((tab) => {
-            const IconComponent = tab.icon;
-            return (
-              <Link
-                key={tab.id}
-                to={tab.path}
-                className={`${styles.tab} ${currentView === tab.id ? styles.active : ''}`}
-              >
-                <IconComponent size={16} />
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
 
   // Default: no sub-navigation
   return null;
