@@ -119,6 +119,7 @@ export default function Benchmarks({
   const [showWinsOnly, setShowWinsOnly] = useState(false);
   const [winsData, setWinsData] = useState({});
   const [sortByPercentile, setSortByPercentile] = useState(false);
+  const [chartMode, setChartMode] = useState('snapshot'); // 'snapshot' or 'trend'
   const chartRef = useRef(null);
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
@@ -611,7 +612,7 @@ export default function Benchmarks({
     <div className={styles.benchmarksContainer}>
       {/* Date Display Banner */}
       <div className={styles.dataPeriodBanner}>
-        {/* Left side - Back Button and Export Button */}
+        {/* Left side - Back Button, Export Button, and Chart Mode Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Back to Scorecard Button */}
           <button
@@ -628,6 +629,24 @@ export default function Benchmarks({
             onExport={handleChartExport}
             disabled={false}
           />
+
+          {/* Chart Mode Toggle */}
+          <div style={{ display: 'flex', gap: '8px', marginLeft: '8px' }}>
+            <button
+              type="button"
+              className={chartMode === 'snapshot' ? styles.activeChartModeButton : styles.chartModeButton}
+              onClick={() => setChartMode('snapshot')}
+            >
+              Snapshot
+            </button>
+            <button
+              type="button"
+              className={chartMode === 'trend' ? styles.activeChartModeButton : styles.chartModeButton}
+              onClick={() => setChartMode('trend')}
+            >
+              Trend
+            </button>
+          </div>
         </div>
         
         {/* Data Publication Date - Right side */}
@@ -809,6 +828,7 @@ export default function Benchmarks({
               measuresLoading={measuresLoading}
               onExport={setChartExportData}
               hasMarketFilter={hasMarketFilter}
+              chartMode={chartMode}
             />
           </div>
         </div>
