@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Download, ChevronDown } from 'lucide-react';
-import styles from './ExportButton.module.css';
+import Dropdown from './Dropdown';
+import standaloneStyles from '../../pages/Private/Investigation/StandaloneStoryteller.module.css';
 
 export default function ExportButton({ 
   onExport, 
@@ -9,63 +10,48 @@ export default function ExportButton({
   children = 'Export'
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const exportFormats = [
-    { key: 'png', label: 'PNG Image' },
-    { key: 'svg', label: 'SVG Vector' },
-    { key: 'pdf', label: 'PDF Document' },
-    { key: 'csv', label: 'CSV Data' }
+    { key: 'png', label: 'PNG: Chart Image' },
+    { key: 'csv', label: 'CSV: My Results' }
   ];
 
   const handleExport = (format) => {
     console.log('ExportButton: Export requested for format:', format);
-    if (onExport) {
+    if (onExport && !disabled) {
       onExport(format);
     }
     setIsOpen(false);
   };
 
   return (
-    <div className={`${styles.exportButtonContainer} ${className}`} ref={dropdownRef}>
-      <button
-        className={`${styles.exportButton} ${disabled ? styles.disabled : ''}`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        title="Export chart"
-      >
-        <Download size={16} />
-        <span>{children}</span>
-        <ChevronDown size={14} className={styles.chevron} />
-      </button>
-      
-      {isOpen && (
-                     <div className={styles.dropdown}>
-               {exportFormats.map((format) => (
-                 <button
-                   key={format.key}
-                   className={styles.dropdownItem}
-                   onClick={() => handleExport(format.key)}
-                 >
-                   <span>{format.label}</span>
-                 </button>
-               ))}
-             </div>
-      )}
-    </div>
+    <Dropdown
+      trigger={
+        <button 
+          type="button" 
+          className="sectionHeaderButton"
+          disabled={disabled}
+          title="Export chart"
+        >
+          <Download size={14} />
+          <span>{children}</span>
+          <ChevronDown size={14} />
+        </button>
+      }
+      isOpen={isOpen}
+      onToggle={setIsOpen}
+      className={standaloneStyles.dropdownMenu}
+    >
+      {exportFormats.map((format) => (
+        <button
+          key={format.key}
+          type="button"
+          className={standaloneStyles.dropdownItem}
+          onClick={() => handleExport(format.key)}
+        >
+          {format.label}
+        </button>
+      ))}
+    </Dropdown>
   );
 }

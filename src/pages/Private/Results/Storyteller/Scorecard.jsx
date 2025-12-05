@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { ChevronDown, Settings, Filter as FilterIcon } from "lucide-react";
+import { ChevronDown, Settings, Filter as FilterIcon, Download } from "lucide-react";
 import Spinner from "../../../../components/Buttons/Spinner";
 import Dropdown from "../../../../components/Buttons/Dropdown";
 import useQualityMeasures from "../../../../hooks/useQualityMeasures";
@@ -7,6 +7,7 @@ import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
 import standaloneStyles from "../../Investigation/StandaloneStoryteller.module.css";
 import { sanitizeProviderName } from "../../../../utils/providerName";
+import { exportChart } from "../../../../utils/chartExport";
 
 export default function Scorecard({ 
   provider, 
@@ -425,15 +426,117 @@ export default function Scorecard({
     );
   }
 
+  // Helper to format value for export
+  const formatValueForExport = (val, measure) => {
+    if (val === null || val === undefined) return '';
+    
+    const STAR_RATING_COLUMNS = [
+      "overall", "survey", "qm", "qm long", "qm short", "staffing"
+    ];
+    
+    const isRating = measure && (
+      (typeof measure.source === "string" && measure.source.toLowerCase() === "ratings") ||
+      STAR_RATING_COLUMNS.includes(measure.name?.toLowerCase())
+    );
+    
+    if (isRating) {
+      return Math.round(val).toString();
+    }
+    return Number(val).toFixed(2);
+  };
+
+  // Helper to format percentile for export
+  const formatPercentileForExport = (val) => {
+    if (val === null || val === undefined) return '';
+    return `${Math.round(val * 100)}%`;
+  };
+
+  // Calculate average percentile for a provider
+  const calculateAvgPercentile = (providerDhc) => {
+    const providerData = finalData[providerDhc] || {};
+    const percentiles = finalFilteredMeasures
+      .map(m => providerData[m.code]?.percentile)
+      .filter(p => p !== null && p !== undefined);
+    
+    if (percentiles.length === 0) return '';
+    const avg = percentiles.reduce((sum, p) => sum + p, 0) / percentiles.length;
+    return formatPercentileForExport(avg);
+  };
+
+  // Handle scorecard export
+  const handleScorecardExport = async (format) => {
+    console.log('Scorecard export clicked:', format);
+    
+    try {
+      if (format === 'csv') {
+        // Export scorecard table as CSV
+        if (!finalFilteredMeasures || finalFilteredMeasures.length === 0) {
+          console.warn('No measures data available for CSV export');
+          return;
+        }
+
+        // Get all providers (main provider + competitors)
+        const allProviders = [];
+        if (mainProviderInMatrix) {
+          allProviders.push(mainProviderInMatrix);
+        }
+        allProviders.push(...competitorProviders);
+
+        if (allProviders.length === 0) {
+          console.warn('No providers available for CSV export');
+          return;
+        }
+
+        // Build CSV data
+        const csvData = allProviders.map(provider => {
+          const providerDhc = provider.dhc;
+          const providerData = finalData[providerDhc] || {};
+          const providerName = sanitizeProviderName(provider.name) || provider.name || 'Provider';
+          
+          const row = {
+            Provider: providerName
+          };
+
+          // Add measure columns
+          finalFilteredMeasures.forEach(measure => {
+            const cell = providerData[measure.code];
+            if (cell) {
+              const value = formatValueForExport(cell.score, measure);
+              if (showPercentiles && cell.percentile !== null && cell.percentile !== undefined) {
+                row[measure.name] = `${value} (${formatPercentileForExport(cell.percentile)})`;
+              } else {
+                row[measure.name] = value;
+              }
+            } else {
+              row[measure.name] = '';
+            }
+          });
+
+          // Add Avg % column
+          row['Avg %'] = calculateAvgPercentile(providerDhc);
+
+          return row;
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `scorecard-${timestamp}.csv`;
+        await exportChart(format, null, csvData, filename);
+      }
+      
+      console.log('Export completed successfully');
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  };
+
   return (
     <div className={styles.scorecardContainer}>
              {/* Date Display Banner */}
        <div style={{
-         background: '#f8f9fa',
-         border: '1px solid #e9ecef',
-         borderRadius: '8px',
-         padding: '8px 12px',
-         marginBottom: '12px',
+         background: 'white',
+         borderBottom: '1px solid var(--gray-200)',
+         padding: '12px 20px',
+         marginBottom: '0',
          fontSize: '13px',
          color: '#495057',
          display: 'flex',
@@ -695,12 +798,23 @@ export default function Scorecard({
            <span style={{ fontSize: '13px' }}>Show Percentiles</span>
          </label>
          
-         {/* Data Publication Date - Right side */}
-         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-           <strong>Data Publication Date:</strong>
-           <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
-             {finalCurrentDate ? formatPublishDate(finalCurrentDate) : 'Not set'}
-           </span>
+         {/* Export Button and Data Publication Date - Right side */}
+         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+           <button
+             type="button"
+             className="sectionHeaderButton"
+             onClick={() => handleScorecardExport('csv')}
+             title="Export Scorecard"
+           >
+             <Download size={14} />
+             Export Scorecard
+           </button>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <strong>Data Publication Date:</strong>
+             <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+               {finalCurrentDate ? formatPublishDate(finalCurrentDate) : 'Not set'}
+             </span>
+           </div>
          </div>
        </div>
       

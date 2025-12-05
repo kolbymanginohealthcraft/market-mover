@@ -13,16 +13,16 @@
 
 /* Data Period Banner */
 .dataPeriodBanner {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 24px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 12px 20px;
+  margin-bottom: 0;
   font-size: 13px;
   color: #495057;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -103,10 +103,16 @@
 /* Measures Header with Wins Filter */
 .measuresHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-bottom: 1rem;
   flex-shrink: 0;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .measuresTitle {
@@ -114,6 +120,11 @@
   font-weight: 600;
   color: #265947;
   margin: 0;
+}
+
+.sortButtonsRow {
+  display: flex;
+  gap: 6px;
 }
 
 /* Wins Filter Toggle */
@@ -164,6 +175,160 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Measures Table Container */
+.measuresTableContainer {
+  margin-top: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.measuresTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+  background: white;
+}
+
+.measuresTable thead {
+  position: sticky;
+  top: 0;
+  background: #e8f4fd;
+  z-index: 10;
+}
+
+.measuresTable th {
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: #1d8a68;
+  border-bottom: 2px solid #265947;
+  white-space: nowrap;
+}
+
+.sortButton {
+  background: white;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+.sortButton:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.activeSortButton {
+  background: #e8f4fd;
+  border: 1px solid #265947;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #1d8a68;
+  transition: all 0.2s;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+.activeSortButton:hover {
+  background: #d1e9fb;
+}
+
+.measuresTable td {
+  padding: 0.2rem 0.4rem;
+  border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.measuresTable tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.measuresTable tbody tr {
+  background-color: white;
+}
+
+.measuresTable tbody tr.winRow {
+  background-color: #dcfce7;
+}
+
+.measuresTable tbody tr:hover {
+  background-color: #e0f2fe;
+}
+
+.measuresTable tbody tr.winRow:hover {
+  background-color: #bae6fd;
+}
+
+.radioColumn {
+  width: 40px;
+}
+
+.radioCell {
+  text-align: center;
+  padding: 0.2rem 0.4rem;
+}
+
+.radioInput {
+  margin: 0;
+  accent-color: #3FB985;
+  cursor: pointer;
+}
+
+
+.measureNameCell {
+  font-weight: 500;
+  color: #374151;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.valueCell {
+  text-align: right;
+  font-family: monospace;
+  color: #374151;
+  font-weight: 500;
+}
+
+.percentileCell {
+  text-align: right;
+  font-family: monospace;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.winColumn {
+  text-align: center;
+  width: 40px;
+}
+
+.winCell {
+  text-align: center;
+}
+
+.winIndicator {
+  color: #3FB985;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.noWinIndicator {
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .measureItem {

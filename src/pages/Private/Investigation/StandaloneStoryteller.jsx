@@ -822,7 +822,7 @@ export default function StandaloneStoryteller() {
             <span className={styles.filtersLabel}>Filters:</span>
             {selectedMarket && (
               <div className={styles.filterChip}>
-                <span>{selectedMarket.name}</span>
+                <span>Market: {selectedMarket.name}</span>
                 <button onClick={() => handleMarketSelect('')}>
                   <X size={12} />
                 </button>

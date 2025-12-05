@@ -412,6 +412,7 @@ export default function BenchmarkChart({
                dataKey="value" 
                radius={[4, 4, 0, 0]}
                strokeWidth={2}
+               minPointSize={3}
              >
                               <LabelList 
                   dataKey="value" 

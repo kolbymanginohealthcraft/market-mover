@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, ArrowLeft } from 'lucide-react';
+import { Search, ArrowLeft, X } from 'lucide-react';
 import BenchmarkChart from './BenchmarkChart';
 import ExportButton from '../../../../components/Buttons/ExportButton';
 import { exportChart } from '../../../../utils/chartExport';
@@ -118,6 +118,7 @@ export default function Benchmarks({
   const [chartExportData, setChartExportData] = useState(null);
   const [showWinsOnly, setShowWinsOnly] = useState(false);
   const [winsData, setWinsData] = useState({});
+  const [sortByPercentile, setSortByPercentile] = useState(false);
   const chartRef = useRef(null);
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
@@ -383,8 +384,10 @@ export default function Benchmarks({
                     );
 
                     let providerScore = null;
+                    let providerPercentile = null;
                     if (providerMeasureData.length > 0) {
                       providerScore = providerMeasureData.reduce((sum, d) => sum + (d.score || 0), 0) / providerMeasureData.length;
+                      providerPercentile = providerMeasureData.reduce((sum, d) => sum + (d.percentile_column || 0), 0) / providerMeasureData.length;
                     }
 
                     // Calculate market average only if market filter is active
@@ -413,6 +416,7 @@ export default function Benchmarks({
                     wins[measure.code] = {
                       isWin: isWinResult,
                       providerScore,
+                      providerPercentile,
                       marketAverage,
                       nationalAverage,
                       direction: measure.direction
@@ -478,36 +482,64 @@ export default function Benchmarks({
   // Handle chart export
   const handleChartExport = async (format) => {
     console.log('Export button clicked:', format);
-    console.log('Chart export data:', chartExportData);
     
-    if (!chartExportData) {
-      console.warn('No chart data available for export');
-      return;
-    }
-
     try {
-      const { measureInfo, publishDate, chartRef: chartElementRef } = chartExportData;
-      const filename = `${measureInfo?.name || 'benchmark'}-${publishDate || 'data'}`;
-      
-      console.log('Exporting with filename:', filename);
-      
       if (format === 'csv') {
-        // For CSV, we need to transform the chart data
-        const csvData = chartExportData.data.map(item => ({
-          Provider: item.name,
-          Value: `${item.value}%`,
-          Type: item.type || 'Provider'
-        }));
-        console.log('CSV data:', csvData);
-        await exportChart(format, null, csvData, `${filename}.csv`);
-      } else {
-        // For image formats, we need the chart element
+        // Export measures table as CSV
+        if (!sortedMeasures || sortedMeasures.length === 0) {
+          console.warn('No measures data available for CSV export');
+          return;
+        }
+
+        const csvData = sortedMeasures.map(measure => {
+          const winData = winsData[measure.code];
+          const isRating = measure.source === 'Ratings';
+          
+          const baseRow = {
+            Measure: measure.name,
+            Provider: formatValue(winData?.providerScore, isRating),
+            National: formatValue(winData?.nationalAverage, isRating),
+            Percentile: winData?.providerPercentile !== null && winData?.providerPercentile !== undefined
+              ? `${Math.round(winData.providerPercentile * 100)}%`
+              : '—',
+            Win: winData && winData.isWin ? 'Yes' : 'No'
+          };
+
+          // Add Market column if market filter is active
+          if (hasMarketFilter) {
+            return {
+              Measure: baseRow.Measure,
+              Provider: baseRow.Provider,
+              Market: formatValue(winData?.marketAverage, isRating),
+              National: baseRow.National,
+              Percentile: baseRow.Percentile,
+              Win: baseRow.Win
+            };
+          }
+
+          return baseRow;
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `quality-measures-${timestamp}.csv`;
+        await exportChart(format, null, csvData, filename);
+      } else if (format === 'png') {
+        // Export chart as PNG
+        if (!chartExportData) {
+          console.warn('No chart data available for export');
+          return;
+        }
+
+        const { measureInfo, publishDate, chartRef: chartElementRef } = chartExportData;
+        const filename = `${measureInfo?.name || 'benchmark'}-${publishDate || 'data'}.png`;
+        
         if (!chartElementRef || !chartElementRef.current) {
           console.error('Chart element reference not available');
           return;
         }
+        
         console.log('Chart element found:', chartElementRef.current);
-        await exportChart(format, chartElementRef.current, null, `${filename}.${format}`);
+        await exportChart(format, chartElementRef.current, null, filename);
       }
       
       console.log('Export completed successfully');
@@ -515,6 +547,17 @@ export default function Benchmarks({
       console.error('Export failed:', error);
       // You could add a toast notification here
     }
+  };
+
+  // Helper to format value for display
+  const formatValue = (val, isRating) => {
+    if (val === null || val === undefined) return '—';
+    return isRating ? val.toFixed(1) : `${Math.round(val * 100) / 100}%`;
+  };
+
+  // Handle sort toggle
+  const handleToggleSort = () => {
+    setSortByPercentile(!sortByPercentile);
   };
 
   // Filter measures based on search term and wins filter
@@ -539,6 +582,27 @@ export default function Benchmarks({
     return true;
   });
 
+  // Sort filtered measures
+  const sortedMeasures = useMemo(() => {
+    if (!sortByPercentile) return filteredMeasures;
+    
+    return [...filteredMeasures].sort((a, b) => {
+      const winDataA = winsData[a.code];
+      const winDataB = winsData[b.code];
+      
+      const valueA = winDataA?.providerPercentile ?? null;
+      const valueB = winDataB?.providerPercentile ?? null;
+      
+      // Handle null values - put them at the end
+      if (valueA === null && valueB === null) return 0;
+      if (valueA === null) return 1;
+      if (valueB === null) return -1;
+      
+      // Sort descending (highest percentile first)
+      return valueB - valueA;
+    });
+  }, [filteredMeasures, sortByPercentile, winsData]);
+
   // Count wins for display
   const totalWins = Object.values(winsData).filter(win => win.isWin).length;
   const totalMeasures = availableMeasures.length;
@@ -547,53 +611,32 @@ export default function Benchmarks({
     <div className={styles.benchmarksContainer}>
       {/* Date Display Banner */}
       <div className={styles.dataPeriodBanner}>
-        {/* Left side - Back Button and Data Publication Date */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Left side - Back Button and Export Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Back to Scorecard Button */}
           <button
+            type="button"
             onClick={handleBackToScorecard}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: '#ffffff',
-              border: '1px solid #d0d0d0',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              color: '#495057',
-              fontWeight: '500',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f8f9fa';
-              e.currentTarget.style.borderColor = '#adb5bd';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.borderColor = '#d0d0d0';
-            }}
+            className="sectionHeaderButton"
           >
             <ArrowLeft size={14} />
             Back to Scorecard
           </button>
 
-          {/* Data Publication Date */}
-          <div className={styles.bannerLeft}>
-            <strong>Data Publication Date:</strong>
-            <span className={styles.dateDisplay}>
-              {currentPublishDate ? formatPublishDate(currentPublishDate) : 'Not set'}
-            </span>
-          </div>
+          {/* Export Button */}
+          <ExportButton
+            onExport={handleChartExport}
+            disabled={false}
+          />
         </div>
         
-        {/* Export Button - Right side */}
-        <ExportButton
-          onExport={handleChartExport}
-          disabled={!chartExportData}
-          className={styles.exportButton}
-        />
+        {/* Data Publication Date - Right side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+          <strong>Data Publication Date:</strong>
+          <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+            {currentPublishDate ? formatPublishDate(currentPublishDate) : 'Not set'}
+          </span>
+        </div>
       </div>
       
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -601,21 +644,38 @@ export default function Benchmarks({
           {/* Left Column - Measures List */}
           <div className={styles.measuresPanel}>
             <div className={styles.measuresHeader}>
-              <h3 className={styles.measuresTitle}>Quality Measures</h3>
+              {/* First Row: Title and Wins Filter */}
+              <div className={styles.headerRow}>
+                <h3 className={styles.measuresTitle}>Quality Measures</h3>
+                <div className={styles.winsFilter}>
+                  <label className={styles.winsToggle}>
+                    <input
+                      type="checkbox"
+                      checked={showWinsOnly}
+                      onChange={(e) => setShowWinsOnly(e.target.checked)}
+                      className={styles.winsCheckbox}
+                    />
+                    <span className={styles.winsLabel}>
+                      Show Wins Only ({totalWins}/{totalMeasures})
+                    </span>
+                  </label>
+                </div>
+              </div>
               
-              {/* Wins Filter Toggle */}
-              <div className={styles.winsFilter}>
-                <label className={styles.winsToggle}>
-                  <input
-                    type="checkbox"
-                    checked={showWinsOnly}
-                    onChange={(e) => setShowWinsOnly(e.target.checked)}
-                    className={styles.winsCheckbox}
-                  />
-                  <span className={styles.winsLabel}>
-                    Show Wins Only ({totalWins}/{totalMeasures})
-                  </span>
-                </label>
+              {/* Second Row: Sort Buttons */}
+              <div className={styles.sortButtonsRow}>
+                <button
+                  onClick={() => setSortByPercentile(false)}
+                  className={!sortByPercentile ? styles.activeSortButton : styles.sortButton}
+                >
+                  Default Order
+                </button>
+                <button
+                  onClick={() => setSortByPercentile(true)}
+                  className={sortByPercentile ? styles.activeSortButton : styles.sortButton}
+                >
+                  Sort by %
+                </button>
               </div>
             </div>
             
@@ -642,11 +702,11 @@ export default function Benchmarks({
             {/* Search Results Count */}
             {searchTerm && !measuresLoading && !measuresError && availableMeasures.length > 0 && (
               <div className={styles.searchResultsCount}>
-                {filteredMeasures.length} of {availableMeasures.length} measures
+                {sortedMeasures.length} of {availableMeasures.length} measures
               </div>
             )}
             
-            <div className={styles.measuresList}>
+            <div className={styles.measuresTableContainer}>
               {measuresLoading ? (
                 <div className={styles.loadingMessage}>Loading measures...</div>
               ) : measuresError ? (
@@ -657,71 +717,81 @@ export default function Benchmarks({
                     ? 'None of your tagged metrics are available for this setting yet. Toggle off "Show My Metrics" to browse all measures.'
                     : providerTypeFilter ? 'No measures available for this setting' : 'Select a measure setting to view available measures'}
                 </div>
-              ) : filteredMeasures.length === 0 ? (
+              ) : sortedMeasures.length === 0 ? (
                 <div className={styles.noDataMessage}>
                   {showWinsOnly ? 'No wins found' : `No measures found matching "${searchTerm}"`}
                 </div>
               ) : (
-                filteredMeasures.map((measure) => {
-                  const winData = winsData[measure.code];
-                  const isWin = winData && winData.isWin;
-                  
-                                     return (
-                     <div key={measure.code} className={styles.measureItem}>
-                      <label className={styles.measureRadio}>
-                        <input
-                          type="radio"
-                          name="selectedMeasure"
-                          value={measure.code}
-                          checked={selectedMeasure === measure.code}
-                          onChange={(e) => setSelectedMeasure(e.target.value)}
-                          className={styles.radioInput}
-                        />
-                        <div className={styles.measureContent}>
-                          <div className={styles.measureHeader}>
-                            <div className={styles.measureName}>{measure.name}</div>
-                            {isWin && (
-                              <div className={styles.winBadge} title={winData.marketAverage !== null ? "Provider outperforms both market and national averages" : "Provider outperforms national average"}>
-                                WIN
-                              </div>
+                <table className={styles.measuresTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.radioColumn}></th>
+                      <th>Measure</th>
+                      <th>Provider</th>
+                      {hasMarketFilter && <th>Market</th>}
+                      <th>National</th>
+                      <th title="Provider Percentile">%</th>
+                      <th className={styles.winColumn}>Win</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedMeasures.map((measure) => {
+                      const winData = winsData[measure.code];
+                      const isWin = winData && winData.isWin;
+                      const isRating = measure.source === 'Ratings';
+                      const isSelected = selectedMeasure === measure.code;
+                      
+                      return (
+                        <tr 
+                          key={measure.code} 
+                          className={isWin ? styles.winRow : ''}
+                          onClick={() => setSelectedMeasure(measure.code)}
+                        >
+                          <td className={styles.radioCell} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="radio"
+                              name="selectedMeasure"
+                              value={measure.code}
+                              checked={isSelected}
+                              onChange={(e) => setSelectedMeasure(e.target.value)}
+                              className={styles.radioInput}
+                            />
+                          </td>
+                          <td className={styles.measureNameCell} title={measure.description}>
+                            {measure.name}
+                          </td>
+                          <td className={styles.valueCell}>
+                            {formatValue(winData?.providerScore, isRating)}
+                          </td>
+                          {hasMarketFilter && (
+                            <td className={styles.valueCell}>
+                              {formatValue(winData?.marketAverage, isRating)}
+                            </td>
+                          )}
+                          <td className={styles.valueCell}>
+                            {formatValue(winData?.nationalAverage, isRating)}
+                          </td>
+                          <td className={styles.percentileCell}>
+                            {winData?.providerPercentile !== null && winData?.providerPercentile !== undefined
+                              ? `${Math.round(winData.providerPercentile * 100)}%`
+                              : '—'}
+                          </td>
+                          <td className={styles.winCell}>
+                            {isWin ? (
+                              <span className={styles.winIndicator} title={winData.marketAverage !== null ? "Provider outperforms both market and national averages" : "Provider outperforms national average"}>
+                                ✓
+                              </span>
+                            ) : (
+                              <span className={styles.noWinIndicator} title="Not a win">
+                                <X size={14} />
+                              </span>
                             )}
-                          </div>
-                          <div className={styles.measureDescription}>{measure.description}</div>
-                                                     {winData && (
-                             <div className={styles.measureStats}>
-                               <span className={styles.statLabel}>Provider:</span>
-                               <span className={styles.statValue}>
-                                 {winData.providerScore !== null ? 
-                                   (measure.source === 'Ratings' ? 
-                                     winData.providerScore.toFixed(1) : 
-                                     `${Math.round(winData.providerScore * 100) / 100}%`) : 
-                                   'N/A'}
-                               </span>
-                               {winData.marketAverage !== null && (
-                                 <>
-                                   <span className={styles.statLabel}>Market:</span>
-                                   <span className={styles.statValue}>
-                                     {measure.source === 'Ratings' ? 
-                                       winData.marketAverage.toFixed(1) : 
-                                       `${Math.round(winData.marketAverage * 100) / 100}%`}
-                                   </span>
-                                 </>
-                               )}
-                               <span className={styles.statLabel}>National:</span>
-                               <span className={styles.statValue}>
-                                 {winData.nationalAverage !== null ? 
-                                   (measure.source === 'Ratings' ? 
-                                     winData.nationalAverage.toFixed(1) : 
-                                     `${Math.round(winData.nationalAverage * 100) / 100}%`) : 
-                                   'N/A'}
-                               </span>
-                             </div>
-                           )}
-                        </div>
-                      </label>
-                    </div>
-                  );
-                })
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
