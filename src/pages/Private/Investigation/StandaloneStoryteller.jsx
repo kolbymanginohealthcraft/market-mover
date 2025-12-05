@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { X, Plus, MapPin, Filter as FilterIcon, ChevronDown } from "lucide-react";
 import { apiUrl } from '../../../utils/api';
 import { supabase } from '../../../app/supabaseClient';
@@ -8,9 +8,11 @@ import Spinner from '../../../components/Buttons/Spinner';
 import Storyteller from '../Results/Storyteller/Storyteller';
 import styles from './StandaloneStoryteller.module.css';
 import { getSegmentationIcon, getSegmentationIconProps } from '../../../utils/segmentationIcons';
+import { sanitizeProviderName } from '../../../utils/providerName';
 
 export default function StandaloneStoryteller() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const ccnInputRef = useRef(null);
   const [selectedCcns, setSelectedCcns] = useState([]);
   const [ccnInput, setCcnInput] = useState('');
@@ -636,9 +638,13 @@ export default function StandaloneStoryteller() {
     }
   }, [ccnInput]);
 
+  const isBenchmarksRoute = location.pathname.includes('/benchmarks');
+  const isScorecardRoute = location.pathname.includes('/scorecard') || (location.pathname.includes('/storyteller') && !location.pathname.includes('/benchmarks'));
+
   return (
     <div className={styles.container}>
       {/* Filter Controls Bar */}
+      {!isBenchmarksRoute && (
       <div className={styles.controlsBar}>
         {/* CCN Input */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
@@ -814,26 +820,42 @@ export default function StandaloneStoryteller() {
 
         <div className={styles.spacer}></div>
       </div>
+      )}
 
       {/* Active Filter Chips Bar */}
       {hasParameters && (
         <div className={styles.activeFiltersBar}>
           <div className={styles.activeFilters}>
             <span className={styles.filtersLabel}>Filters:</span>
+            {storyTellerProvider && (() => {
+              const dhcKey = storyTellerProvider?.dhc ? String(storyTellerProvider.dhc) : null;
+              const mappedName = dhcKey ? providerLabelMap[dhcKey] : null;
+              const providerName = mappedName || storyTellerProvider.name || storyTellerProvider.facility_name || (dhcKey ? `Provider ${dhcKey}` : 'Provider');
+              const sanitizedName = sanitizeProviderName(providerName) || providerName;
+              return (
+                <div className={styles.filterChip}>
+                  <span>Provider: {sanitizedName}</span>
+                </div>
+              );
+            })()}
             {selectedMarket && (
               <div className={styles.filterChip}>
                 <span>Market: {selectedMarket.name}</span>
-                <button onClick={() => handleMarketSelect('')}>
-                  <X size={12} />
-                </button>
+                {isScorecardRoute && (
+                  <button onClick={() => handleMarketSelect('')}>
+                    <X size={12} />
+                  </button>
+                )}
               </div>
             )}
             {selectedTag && (
               <div className={styles.filterChip}>
                 <span>{selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}</span>
-                <button onClick={() => handleTagSelect('')}>
-                  <X size={12} />
-                </button>
+                {isScorecardRoute && (
+                  <button onClick={() => handleTagSelect('')}>
+                    <X size={12} />
+                  </button>
+                )}
               </div>
             )}
             {selectedCcns.map((ccn) => (
@@ -842,9 +864,11 @@ export default function StandaloneStoryteller() {
                   {manualProviderDetails[ccn]?.FAC_NAME || `CCN ${ccn}`}
                   {manualProviderDetails[ccn]?.FAC_NAME ? ` • CCN ${ccn}` : ''}
                 </span>
-                <button onClick={() => handleCcnRemove(ccn)}>
-                  <X size={12} />
-                </button>
+                {isScorecardRoute && (
+                  <button onClick={() => handleCcnRemove(ccn)}>
+                    <X size={12} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
