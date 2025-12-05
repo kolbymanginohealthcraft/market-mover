@@ -547,7 +547,7 @@ export default function Benchmarks({
     <div className={styles.benchmarksContainer}>
       {/* Date Display Banner */}
       <div className={styles.dataPeriodBanner}>
-        {/* Left side - Back Button, Measure Setting and Data Publication Date */}
+        {/* Left side - Back Button and Data Publication Date */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {/* Back to Scorecard Button */}
           <button
@@ -579,20 +579,6 @@ export default function Benchmarks({
             Back to Scorecard
           </button>
 
-          {/* Measure Setting Filter */}
-          {typeof window !== 'undefined' && availableProviderTypes && availableProviderTypes.length > 0 && (
-            <div className={styles.filterGroup}>
-              <label htmlFor="provider-type-select" className={styles.filterLabel}>Measure Setting:</label>
-              <SelectInput
-                id="provider-type-select"
-                value={providerTypeFilter || ''}
-                onChange={e => setProviderTypeFilter(e.target.value)}
-                options={availableProviderTypes}
-                size="sm"
-              />
-            </div>
-          )}
-          
           {/* Data Publication Date */}
           <div className={styles.bannerLeft}>
             <strong>Data Publication Date:</strong>

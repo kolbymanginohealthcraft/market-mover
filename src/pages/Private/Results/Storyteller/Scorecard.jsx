@@ -231,10 +231,11 @@ export default function Scorecard({
     setUsingMyMetrics(showMyKpisOnly);
   }, [showMyKpisOnly]);
 
-  // Filter measures based on selectedMeasures
-  const finalFilteredMeasures = filteredMeasures.filter(measure => {
-    return selectedMeasures.includes(measure.code);
-  });
+  // Filter measures based on selectedMeasures, maintaining the order from filteredMeasures
+  const finalFilteredMeasures = useMemo(() => {
+    // Return measures in the order they appear in filteredMeasures, but only those in selectedMeasures
+    return filteredMeasures.filter(measure => selectedMeasures.includes(measure.code));
+  }, [filteredMeasures, selectedMeasures]);
 
   // Toggle measure selection
   const toggleMeasure = (code) => {
@@ -242,7 +243,27 @@ export default function Scorecard({
       if (prev.includes(code)) {
         return prev.filter(c => c !== code);
       } else {
-        return [...prev, code];
+        // Find the position of this measure in filteredMeasures
+        const measureIndex = filteredMeasures.findIndex(m => m.code === code);
+        if (measureIndex === -1) {
+          // If not found, append at end
+          return [...prev, code];
+        }
+        
+        // Find where to insert: find the first selected measure that comes after this one in filteredMeasures
+        let insertIndex = prev.length;
+        for (let i = 0; i < prev.length; i++) {
+          const selectedCode = prev[i];
+          const selectedIndex = filteredMeasures.findIndex(m => m.code === selectedCode);
+          if (selectedIndex > measureIndex) {
+            insertIndex = i;
+            break;
+          }
+        }
+        
+        const newSelected = [...prev];
+        newSelected.splice(insertIndex, 0, code);
+        return newSelected;
       }
     });
   };

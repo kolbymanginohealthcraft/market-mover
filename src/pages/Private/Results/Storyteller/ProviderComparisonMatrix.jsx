@@ -379,7 +379,7 @@ const ProviderComparisonMatrix = ({
                   />
                 </th>
                 <th 
-                  className={`${styles.stickyHeader} ${styles.sortableHeader}`}
+                  className={`${styles.stickyHeader} ${styles.sortableHeader} ${styles.averagePercentile}`}
                   title="Average percentile across selected measures - Click to sort"
                   onClick={() => handleSort('avg')}
                 >
