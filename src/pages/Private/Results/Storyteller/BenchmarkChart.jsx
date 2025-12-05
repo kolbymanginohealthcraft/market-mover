@@ -50,6 +50,7 @@ export default function BenchmarkChart({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [measureInfo, setMeasureInfo] = useState(null);
+  const [publishDate, setPublishDate] = useState(null);
   const chartRef = useRef(null);
   
   // Memoize CCNs and publish date to create stable cache key
@@ -99,17 +100,18 @@ export default function BenchmarkChart({
       try {
         let measures, allProviderData, nationalAverages, publishDate;
         
+        let publishDateToUse;
         if (cachedResult) {
           // Use cached data - no loading state needed
           console.log('✅ Using cached quality measures data');
           measures = cachedResult.measures;
           allProviderData = cachedResult.providerData;
           nationalAverages = cachedResult.nationalAverages;
-          publishDate = cachedResult.publishDate;
+          publishDateToUse = cachedResult.publishDate;
         } else {
           // 2. Determine publish date to use
-          publishDate = selectedPublishDate;
-          if (!publishDate) {
+          publishDateToUse = selectedPublishDate;
+          if (!publishDateToUse) {
             // Fetch available dates and use the latest
             const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
               method: 'POST',
@@ -129,7 +131,7 @@ export default function BenchmarkChart({
               throw new Error("No quality measure data available");
             }
             
-            publishDate = availableDates[0]; // Use the most recent date
+            publishDateToUse = availableDates[0]; // Use the most recent date
           }
 
           // 3. Fetch quality measure data
@@ -139,7 +141,7 @@ export default function BenchmarkChart({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               ccns: allCcns, 
-              publish_date: publishDate 
+              publish_date: publishDateToUse 
             })
           });
 
@@ -157,10 +159,13 @@ export default function BenchmarkChart({
               measures,
               providerData: allProviderData,
               nationalAverages,
-              publishDate
+              publishDate: publishDateToUse
             });
           }
         }
+        
+        // Store publish date in state for display
+        setPublishDate(publishDateToUse);
 
         // 4. Find the selected measure or fall back to first available measure
         let targetMeasure = null;
@@ -263,7 +268,7 @@ export default function BenchmarkChart({
             chartRef,
             data: chartData,
             measureInfo: targetMeasure,
-            publishDate
+            publishDate: publishDateToUse
           });
         }
 
@@ -352,14 +357,25 @@ export default function BenchmarkChart({
              {measureInfo?.description || 'Rate of patients readmitted to hospital within 30 days'}
            </p>
          )}
-         <div className={styles.chartNotes}>
-           <p className={styles.noteText}>
-             <strong>Note:</strong> Lower scores indicate better performance. Data collection period: 1/1/2024 to 12/31/2024.
-           </p>
+        <div className={styles.chartNotes}>
+          <p className={styles.noteText}>
+            <strong>Data Publication Date:</strong> {publishDate ? (() => {
+              const [year, month] = publishDate.split('-');
+              return `${year}-${month}`;
+            })() : 'Not set'}
+            <span style={{ fontSize: '0.9em', color: '#666', marginLeft: '12px' }}>
+              (Data collection period: 1/1/2024 to 12/31/2024)
+            </span>
+          </p>
+          <p className={styles.noteText}>
+            <strong>Note:</strong> {measureInfo?.source === 'Ratings' 
+              ? 'Higher scores indicate better performance.' 
+              : 'Lower scores indicate better performance.'}
+          </p>
           <p className={styles.noteText}>
             <strong>Provider:</strong> {sanitizeProviderName(provider?.name) || provider?.name || 'N/A'}
           </p>
-         </div>
+        </div>
        </div>
 
       <div className={styles.chartContent}>

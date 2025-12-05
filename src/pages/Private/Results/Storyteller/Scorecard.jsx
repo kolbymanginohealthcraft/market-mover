@@ -409,7 +409,7 @@ export default function Scorecard({
              trigger={
                <button type="button" className="sectionHeaderButton">
                  <Settings size={14} />
-                 {providerTypeFilter || 'All Settings'}
+                 {providerTypeFilter || finalProviderTypes[0]}
                  <ChevronDown size={14} />
                </button>
              }
@@ -417,19 +417,6 @@ export default function Scorecard({
              onToggle={setMeasureSettingDropdownOpen}
              className={standaloneStyles.dropdownMenu}
            >
-             <button
-               className={standaloneStyles.dropdownItem}
-               onClick={() => {
-                 setProviderTypeFilter('');
-                 setMeasureSettingDropdownOpen(false);
-               }}
-               style={{
-                 fontWeight: !providerTypeFilter ? '600' : '500',
-                 background: !providerTypeFilter ? 'rgba(0, 192, 139, 0.1)' : 'none'
-               }}
-             >
-               All Settings
-             </button>
              {finalProviderTypes.map(type => (
                <button
                  key={type}
@@ -658,11 +645,11 @@ export default function Scorecard({
            </Dropdown>
          )}
          
-         {/* Current Data Period - Right side */}
+         {/* Data Publication Date - Right side */}
          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-           <strong>Current Data Period:</strong>
+           <strong>Data Publication Date:</strong>
            <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
-             {finalCurrentDate || 'Not set'}
+             {finalCurrentDate ? formatPublishDate(finalCurrentDate) : 'Not set'}
            </span>
          </div>
        </div>

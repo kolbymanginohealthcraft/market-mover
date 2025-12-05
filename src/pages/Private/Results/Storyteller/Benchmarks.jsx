@@ -547,7 +547,7 @@ export default function Benchmarks({
     <div className={styles.benchmarksContainer}>
       {/* Date Display Banner */}
       <div className={styles.dataPeriodBanner}>
-        {/* Left side - Back Button, Measure Setting and Current Data Period */}
+        {/* Left side - Back Button, Measure Setting and Data Publication Date */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {/* Back to Scorecard Button */}
           <button
@@ -593,11 +593,11 @@ export default function Benchmarks({
             </div>
           )}
           
-          {/* Current Data Period */}
+          {/* Data Publication Date */}
           <div className={styles.bannerLeft}>
-            <strong>Current Data Period:</strong>
+            <strong>Data Publication Date:</strong>
             <span className={styles.dateDisplay}>
-              {currentPublishDate || 'Not set'}
+              {currentPublishDate ? formatPublishDate(currentPublishDate) : 'Not set'}
             </span>
           </div>
         </div>
