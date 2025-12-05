@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { ChevronDown, Settings, Filter as FilterIcon } from "lucide-react";
 import Spinner from "../../../../components/Buttons/Spinner";
+import Dropdown from "../../../../components/Buttons/Dropdown";
 import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import ProviderComparisonMatrix from "./ProviderComparisonMatrix";
 import styles from "./Scorecard.module.css";
+import standaloneStyles from "../../Investigation/StandaloneStoryteller.module.css";
 import { sanitizeProviderName } from "../../../../utils/providerName";
 
 export default function Scorecard({ 
@@ -23,10 +26,22 @@ export default function Scorecard({
   highlightedDhcKeys = [],
   highlightedDhcByType = new Map(),
   highlightTagTypes = [],
+  setHighlightTagTypes,
   highlightPrimaryProvider = true,
-  qualityMeasuresData = null
+  qualityMeasuresData = null,
+  providerTags = null,
+  highlightCounts = {},
+  hasHighlightOptions = false,
+  highlightLabels = {},
+  highlightSelectionSet = new Set(),
+  highlightTriggerLabel = 'Highlight Providers'
 }) {
   const [isHydrating, setIsHydrating] = useState(true);
+  const [selectedMeasures, setSelectedMeasures] = useState([]);
+  const [metricsDropdownOpen, setMetricsDropdownOpen] = useState(false);
+  const [measureSettingDropdownOpen, setMeasureSettingDropdownOpen] = useState(false);
+  const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false);
+  const hasInitializedMeasures = useRef(false);
   
   // Use shared quality measures data if provided, otherwise use hook (hook will use cache)
   const hookData = useQualityMeasures(
@@ -155,13 +170,124 @@ export default function Scorecard({
     );
   }, [myKpiCodes]);
 
+  // Track if we're using "My Metrics" mode locally
+  const [usingMyMetrics, setUsingMyMetrics] = useState(showMyKpisOnly);
+
+  // Track the measure codes to detect when they actually change
+  const measureCodesRef = useRef('');
+  
+  // Initialize selectedMeasures when measures load (only on initial load or when measures actually change)
+  useEffect(() => {
+    const currentMeasureCodes = filteredMeasures.map(m => m.code).sort().join(',');
+    const measuresChanged = measureCodesRef.current !== currentMeasureCodes;
+    
+    if (filteredMeasures.length > 0 && (!hasInitializedMeasures.current || measuresChanged)) {
+      // If showMyKpisOnly is true and we have KPI codes, use those
+      if (showMyKpisOnly && kpiCodeSet.size > 0) {
+        const myKpiMeasures = filteredMeasures
+          .filter(m => {
+            const code = m?.code ? String(m.code).trim().toUpperCase() : '';
+            return code && kpiCodeSet.has(code);
+          })
+          .map(m => m.code);
+        setSelectedMeasures(myKpiMeasures);
+        setUsingMyMetrics(true);
+      } else {
+        // Otherwise, select all measures
+        setSelectedMeasures(filteredMeasures.map(m => m.code));
+        setUsingMyMetrics(false);
+      }
+      hasInitializedMeasures.current = true;
+      measureCodesRef.current = currentMeasureCodes;
+    }
+  }, [filteredMeasures, showMyKpisOnly, kpiCodeSet.size]);
+
+  // Reset initialization flag when provider type filter changes (new measures loaded)
+  useEffect(() => {
+    hasInitializedMeasures.current = false;
+    measureCodesRef.current = '';
+  }, [providerTypeFilter]);
+
+  // Sync usingMyMetrics when showMyKpisOnly prop changes
+  useEffect(() => {
+    setUsingMyMetrics(showMyKpisOnly);
+  }, [showMyKpisOnly]);
+
+  // Filter measures based on selectedMeasures
   const finalFilteredMeasures = filteredMeasures.filter(measure => {
-    if (!showMyKpisOnly) return true;
-    if (kpiCodeSet.size === 0) return false;
-    const code = measure?.code ? String(measure.code).trim().toUpperCase() : '';
-    if (!code) return false;
-    return kpiCodeSet.has(code);
+    return selectedMeasures.includes(measure.code);
   });
+
+  // Toggle measure selection
+  const toggleMeasure = (code) => {
+    setSelectedMeasures(prev => {
+      if (prev.includes(code)) {
+        return prev.filter(c => c !== code);
+      } else {
+        return [...prev, code];
+      }
+    });
+  };
+
+  // Check/Uncheck all measures
+  const handleToggleAll = () => {
+    const allSelected = selectedMeasures.length === filteredMeasures.length && filteredMeasures.length > 0;
+    if (allSelected) {
+      // Uncheck all
+      hasInitializedMeasures.current = true; // Prevent auto-recheck
+      setSelectedMeasures([]);
+      setUsingMyMetrics(false);
+    } else {
+      // Check all
+      setSelectedMeasures(filteredMeasures.map(m => m.code));
+      setUsingMyMetrics(false);
+    }
+  };
+
+  // Handle "Use My Metrics" toggle
+  const handleUseMyMetrics = () => {
+    if (usingMyMetrics) {
+      // Turn off - select all measures
+      setSelectedMeasures(filteredMeasures.map(m => m.code));
+      setUsingMyMetrics(false);
+    } else {
+      // Turn on - select only my KPIs
+      if (kpiCodeSet.size > 0) {
+        const myKpiMeasures = filteredMeasures
+          .filter(m => {
+            const code = m?.code ? String(m.code).trim().toUpperCase() : '';
+            return code && kpiCodeSet.has(code);
+          })
+          .map(m => m.code);
+        if (myKpiMeasures.length > 0) {
+          setSelectedMeasures(myKpiMeasures);
+          setUsingMyMetrics(true);
+        }
+      }
+    }
+  };
+
+  // When user manually toggles measures, turn off "My Metrics" mode if they deselect a my KPI or select a non-my KPI
+  useEffect(() => {
+    if (usingMyMetrics && kpiCodeSet.size > 0) {
+      const hasNonMyKpi = selectedMeasures.some(code => {
+        const measure = filteredMeasures.find(m => m.code === code);
+        if (!measure) return false;
+        const measureCode = measure?.code ? String(measure.code).trim().toUpperCase() : '';
+        return measureCode && !kpiCodeSet.has(measureCode);
+      });
+      const allMyKpisSelected = selectedMeasures.length > 0 && selectedMeasures.every(code => {
+        const measure = filteredMeasures.find(m => m.code === code);
+        if (!measure) return false;
+        const measureCode = measure?.code ? String(measure.code).trim().toUpperCase() : '';
+        return measureCode && kpiCodeSet.has(measureCode);
+      });
+      
+      if (hasNonMyKpi || !allMyKpisSelected) {
+        setUsingMyMetrics(false);
+      }
+    }
+  }, [selectedMeasures, usingMyMetrics, kpiCodeSet, filteredMeasures]);
 
   // Filter providers to only show those that have data for at least one of the selected measures
   const filteredProviders = finalAllProviders.filter(currentProvider => {
@@ -274,55 +400,271 @@ export default function Scorecard({
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'flex-start',
-         gap: '16px',
+         gap: '12px',
          flexShrink: 0
        }}>
-         {/* Measure Setting Filter - Left side */}
-         {typeof window !== 'undefined' && (
-           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <label htmlFor="provider-type-select" style={{ fontSize: '13px', fontWeight: '600', color: '#495057' }}>
-               Measure Setting:
-             </label>
-             <select
-               id="provider-type-select"
-               value={providerTypeFilter || 'SNF'}
-               onChange={e => setProviderTypeFilter(e.target.value)}
+         {/* Measure Setting Dropdown */}
+         {typeof window !== 'undefined' && finalProviderTypes && finalProviderTypes.length > 0 && (
+           <Dropdown
+             trigger={
+               <button type="button" className="sectionHeaderButton">
+                 <Settings size={14} />
+                 {providerTypeFilter || 'All Settings'}
+                 <ChevronDown size={14} />
+               </button>
+             }
+             isOpen={measureSettingDropdownOpen}
+             onToggle={setMeasureSettingDropdownOpen}
+             className={standaloneStyles.dropdownMenu}
+           >
+             <button
+               className={standaloneStyles.dropdownItem}
+               onClick={() => {
+                 setProviderTypeFilter('');
+                 setMeasureSettingDropdownOpen(false);
+               }}
                style={{
-                 fontSize: '13px',
-                 padding: '4px 8px',
-                 border: '1px solid #d0d0d0',
-                 borderRadius: '4px',
-                 background: '#ffffff',
-                 color: '#333',
-                 cursor: 'pointer',
-                 minWidth: '120px'
+                 fontWeight: !providerTypeFilter ? '600' : '500',
+                 background: !providerTypeFilter ? 'rgba(0, 192, 139, 0.1)' : 'none'
                }}
              >
-               <option value="">All Settings</option>
-               {finalProviderTypes && finalProviderTypes.length > 0 ? (
-                 finalProviderTypes.map(type => (
-                   <option key={type} value={type}>{type}</option>
-                 ))
-               ) : (
-                 <>
-                   <option value="SNF">SNF</option>
-                   <option value="HH">HH</option>
-                   <option value="Hospice">Hospice</option>
-                   <option value="IRF">IRF</option>
-                   <option value="Hospital">Hospital</option>
-                 </>
-               )}
-             </select>
+               All Settings
+             </button>
+             {finalProviderTypes.map(type => (
+               <button
+                 key={type}
+                 className={standaloneStyles.dropdownItem}
+                 onClick={() => {
+                   setProviderTypeFilter(type);
+                   setMeasureSettingDropdownOpen(false);
+                 }}
+                 style={{
+                   fontWeight: providerTypeFilter === type ? '600' : '500',
+                   background: providerTypeFilter === type ? 'rgba(0, 192, 139, 0.1)' : 'none'
+                 }}
+               >
+                 {type}
+               </button>
+             ))}
+           </Dropdown>
+         )}
+
+         {/* Metrics Selection Dropdown */}
+         <Dropdown
+           trigger={
+             <button type="button" className="sectionHeaderButton">
+               Select Metrics ({selectedMeasures.length}/{filteredMeasures.length})
+               <ChevronDown size={14} />
+             </button>
+           }
+           isOpen={metricsDropdownOpen}
+           onToggle={setMetricsDropdownOpen}
+           className={standaloneStyles.dropdownMenu}
+           style={{ minWidth: '300px', maxHeight: '400px' }}
+         >
+           {/* Check All / Uncheck All Button */}
+           <button
+             type="button"
+             className={standaloneStyles.dropdownItem}
+             onClick={(e) => {
+               e.stopPropagation();
+               handleToggleAll();
+             }}
+             style={{
+               fontWeight: '500',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'space-between'
+             }}
+           >
+             <span>{selectedMeasures.length === filteredMeasures.length && filteredMeasures.length > 0 ? 'Uncheck All' : 'Check All'}</span>
+             {selectedMeasures.length > 0 && selectedMeasures.length < filteredMeasures.length && (
+               <span style={{ fontSize: '11px', color: 'var(--gray-500)' }}>
+                 ({selectedMeasures.length} selected)
+               </span>
+             )}
+           </button>
+
+           {/* Use My Metrics Button */}
+           {myKpiCodes.length > 0 && (
+             <>
+               {/* Divider */}
+               <div style={{ height: '1px', background: 'var(--gray-200)', margin: '4px 0' }} />
+               <button
+                 className={standaloneStyles.dropdownItem}
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   handleUseMyMetrics();
+                 }}
+                 style={{
+                   fontWeight: usingMyMetrics ? '600' : '500',
+                   background: usingMyMetrics ? 'rgba(0, 192, 139, 0.1)' : 'none'
+                 }}
+               >
+                 {usingMyMetrics ? '✓ Using My Metrics' : 'Use My Metrics'}
+               </button>
+               {/* Divider */}
+               <div style={{ height: '1px', background: 'var(--gray-200)', margin: '4px 0' }} />
+             </>
+           )}
+
+           {/* Measure Checkboxes */}
+           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+             {filteredMeasures.map(measure => {
+               const isSelected = selectedMeasures.includes(measure.code);
+               const isMyKpi = kpiCodeSet.has(measure.code?.toUpperCase() || '');
+               return (
+                 <button
+                   key={measure.code}
+                   type="button"
+                   className={standaloneStyles.dropdownItem}
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     toggleMeasure(measure.code);
+                   }}
+                   style={{
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '8px',
+                     fontWeight: isSelected ? '500' : '400',
+                     background: isSelected ? 'rgba(0, 192, 139, 0.05)' : 'none',
+                     textAlign: 'left',
+                     justifyContent: 'flex-start'
+                   }}
+                 >
+                   <input
+                     type="checkbox"
+                     checked={isSelected}
+                     onChange={() => {}}
+                     onClick={(e) => e.stopPropagation()}
+                     style={{ cursor: 'pointer', margin: 0, pointerEvents: 'none' }}
+                   />
+                   <span style={{ flex: 1, color: isSelected ? 'var(--gray-700)' : 'var(--gray-600)' }}>
+                     {measure.name || measure.code}
+                   </span>
+                   {isMyKpi && (
+                     <span style={{ 
+                       fontSize: '10px', 
+                       color: '#1971c2', 
+                       fontWeight: '600',
+                       background: '#e7f5ff',
+                       padding: '2px 6px',
+                       borderRadius: '3px',
+                       flexShrink: 0
+                     }}>
+                       MY
+                     </span>
+                   )}
+                 </button>
+               );
+             })}
            </div>
+         </Dropdown>
+
+         {/* Highlight Providers Dropdown */}
+         {hasHighlightOptions && (
+           <Dropdown
+             trigger={
+               <button
+                 type="button"
+                 className={`sectionHeaderButton ${highlightTagTypes.length > 0 ? standaloneStyles.activeFilterButton : ''}`}
+               >
+                 <FilterIcon size={14} />
+                 {highlightTriggerLabel}
+                 <ChevronDown size={14} />
+               </button>
+             }
+             isOpen={highlightDropdownOpen}
+             onToggle={setHighlightDropdownOpen}
+             className={standaloneStyles.dropdownMenu}
+           >
+             <button
+               className={standaloneStyles.dropdownItem}
+               onClick={() => {
+                 setHighlightTagTypes([]);
+                 setHighlightDropdownOpen(false);
+               }}
+               style={{
+                 fontWeight: highlightTagTypes.length === 0 ? '600' : '500',
+                 background: highlightTagTypes.length === 0 ? 'rgba(38, 89, 71, 0.08)' : 'none'
+               }}
+             >
+               No Highlight
+             </button>
+             {highlightCounts.me > 0 && (
+               <button
+                 className={standaloneStyles.dropdownItem}
+                 onClick={() => {
+                   setHighlightTagTypes(prev => (
+                     prev.includes('me') ? prev.filter(type => type !== 'me') : [...prev, 'me']
+                   ));
+                 }}
+                 style={{
+                   fontWeight: highlightSelectionSet.has('me') ? '600' : '500',
+                   background: highlightSelectionSet.has('me') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                 }}
+               >
+                 Highlight My Providers ({highlightCounts.me})
+               </button>
+             )}
+             {highlightCounts.partner > 0 && (
+               <button
+                 className={standaloneStyles.dropdownItem}
+                 onClick={() => {
+                   setHighlightTagTypes(prev => (
+                     prev.includes('partner') ? prev.filter(type => type !== 'partner') : [...prev, 'partner']
+                   ));
+                 }}
+                 style={{
+                   fontWeight: highlightSelectionSet.has('partner') ? '600' : '500',
+                   background: highlightSelectionSet.has('partner') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                 }}
+               >
+                 Highlight Partners ({highlightCounts.partner})
+               </button>
+             )}
+             {highlightCounts.competitor > 0 && (
+               <button
+                 className={standaloneStyles.dropdownItem}
+                 onClick={() => {
+                   setHighlightTagTypes(prev => (
+                     prev.includes('competitor') ? prev.filter(type => type !== 'competitor') : [...prev, 'competitor']
+                   ));
+                 }}
+                 style={{
+                   fontWeight: highlightSelectionSet.has('competitor') ? '600' : '500',
+                   background: highlightSelectionSet.has('competitor') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                 }}
+               >
+                 Highlight Competitors ({highlightCounts.competitor})
+               </button>
+             )}
+             {highlightCounts.target > 0 && (
+               <button
+                 className={standaloneStyles.dropdownItem}
+                 onClick={() => {
+                   setHighlightTagTypes(prev => (
+                     prev.includes('target') ? prev.filter(type => type !== 'target') : [...prev, 'target']
+                   ));
+                 }}
+                 style={{
+                   fontWeight: highlightSelectionSet.has('target') ? '600' : '500',
+                   background: highlightSelectionSet.has('target') ? 'rgba(38, 89, 71, 0.08)' : 'none'
+                 }}
+               >
+                 Highlight Targets ({highlightCounts.target})
+               </button>
+             )}
+           </Dropdown>
          )}
          
-                   {/* Current Data Period - Right after measure setting */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <strong>Current Data Period:</strong>
-            <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
-              {finalCurrentDate || 'Not set'}
-            </span>
-          </div>
+         {/* Current Data Period - Right side */}
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+           <strong>Current Data Period:</strong>
+           <span style={{ fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>
+             {finalCurrentDate || 'Not set'}
+           </span>
+         </div>
        </div>
       
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -340,10 +682,11 @@ export default function Scorecard({
           availablePublishDates={finalPublishDates}
           selectedPublishDate={selectedPublishDate}
           setSelectedPublishDate={setSelectedPublishDate}
-        highlightedDhcKeys={highlightedDhcKeys}
-        highlightedDhcByType={highlightedDhcByType}
-        highlightTagTypes={highlightTagTypes}
-        highlightPrimaryProvider={highlightPrimaryProvider}
+          highlightedDhcKeys={highlightedDhcKeys}
+          highlightedDhcByType={highlightedDhcByType}
+          highlightTagTypes={highlightTagTypes}
+          highlightPrimaryProvider={highlightPrimaryProvider}
+          selectedMeasures={selectedMeasures}
         />
       </div>
     </div>

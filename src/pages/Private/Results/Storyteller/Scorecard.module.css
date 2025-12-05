@@ -56,3 +56,7 @@
   max-width: 420px;
   line-height: 1.6;
 }
+
+.metricsDropdown {
+  z-index: 1000;
+}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import styles from './ProviderComparisonMatrix.module.css'; // Create this CSS module for styling
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import styles from './ProviderComparisonMatrix.module.css';
 import { sanitizeProviderName } from '../../../../utils/providerName';
 
 /**
@@ -38,6 +37,7 @@ const ProviderComparisonMatrix = ({
   highlightedDhcByType = new Map(),
   highlightTagTypes = [],
   highlightPrimaryProvider = true,
+  selectedMeasures = [], // Now passed as prop from parent
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,10 +52,6 @@ const ProviderComparisonMatrix = ({
   const [sortColumn, setSortColumn] = useState(null); // null, 'provider', 'avg', or measure code
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   
-  // Sidebar: measure selection and drag-and-drop order
-  const allMeasureCodes = measures.map((m) => m.code);
-  const [selectedMeasures, setSelectedMeasures] = useState([]);
-  
   // Handle provider click to navigate to benchmarks
   const handleProviderClick = (providerDhc) => {
     if (!providerDhc) return;
@@ -67,31 +63,6 @@ const ProviderComparisonMatrix = ({
     // Navigate to benchmarks tab
     const basePath = location.pathname.replace(/\/scorecard$/, '').replace(/\/benchmarks$/, '');
     navigate(`${basePath}/benchmarks?${searchParams.toString()}`);
-  };
-
-  // Update selectedMeasures when measures data loads
-  useEffect(() => {
-    if (measures.length > 0 && selectedMeasures.length === 0) {
-      setSelectedMeasures(allMeasureCodes);
-    }
-  }, [measures, allMeasureCodes, selectedMeasures.length]);
-
-  // Drag-and-drop reorder
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-    const reordered = [...selectedMeasures];
-    const [moved] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, moved);
-    setSelectedMeasures(reordered);
-  };
-
-  // Toggle measure on/off
-  const toggleMeasure = (code) => {
-    if (selectedMeasures.includes(code)) {
-      setSelectedMeasures(selectedMeasures.filter((c) => c !== code));
-    } else {
-      setSelectedMeasures([...selectedMeasures, code]);
-    }
   };
 
   // Only show selected measures, in selected order
@@ -336,84 +307,8 @@ const ProviderComparisonMatrix = ({
 
   return (
     <div className={styles.matrixLayout}>
-      {/* Sidebar */}
-      <aside className={styles.sidebarCol}>
-        {/* Sticky sidebar title */}
-        <div className={styles.stickySidebarTitle}>Settings</div>
-        
-
-        
-
-        
-        <div className="selectMeasures">
-          {/* Drag-and-drop and toggles here */}
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="measures">
-              {(provided) => (
-                <ul
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={styles.metricList}
-                >
-                  {selectedMeasures.map((code, index) => {
-                    const m = measures.find((m) => m.code === code);
-                    if (!m) return null;
-                    return (
-                      <Draggable key={code} draggableId={code} index={index}>
-                        {(provided, snapshot) => (
-                                                  <li
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={styles.metricItem}
-                          style={{
-                            ...provided.draggableProps.style,
-                            backgroundColor: snapshot.isDragging ? '#e0f7ff' : undefined,
-                          }}
-                          onClick={() => toggleMeasure(code)}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedMeasures.includes(code)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleMeasure(code);
-                            }}
-                          />
-                          {m.name}
-                        </li>
-                        )}
-                      </Draggable>
-                    );
-                  })}
-                  {provided.placeholder}
-                </ul>
-              )}
-            </Droppable>
-          </DragDropContext>
-          {/* Unchecked metrics: same style, gray, inside scrollable area */}
-          <ul className={styles.unselectedList}>
-            {measures
-              .filter((m) => !selectedMeasures.includes(m.code))
-              .map((m) => (
-                <li key={m.code} className={styles.unselectedItem} onClick={() => toggleMeasure(m.code)}>
-                  <input
-                    type="checkbox"
-                    checked={false}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleMeasure(m.code);
-                    }}
-                  />
-                  {m.name}
-                </li>
-              ))}
-          </ul>
-        </div>
-      </aside>
-
       {/* Table Section */}
-      <section className={styles.tableCol}>
+      <section className={styles.tableCol} style={{ width: '100%' }}>
         <div className={styles.matrixWrapper}>
           <table className={styles.matrixTable}>
             <thead>

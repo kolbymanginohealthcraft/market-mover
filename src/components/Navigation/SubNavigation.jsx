@@ -563,48 +563,10 @@ const SubNavigation = () => {
     );
   }
 
-  // Handle standalone storyteller route (/app/storyteller/*) - show Scorecard/Benchmarks tabs
+  // Handle standalone storyteller route (/app/storyteller/*) - no subnav tabs, navigation handled within components
   if (location.pathname.startsWith('/app/storyteller')) {
-    const searchParams = new URLSearchParams(location.search);
-    let currentStorytellerTab = "scorecard";
-    
-    if (location.pathname.includes('/benchmarks')) {
-      currentStorytellerTab = 'benchmarks';
-    } else if (location.pathname.includes('/scorecard')) {
-      currentStorytellerTab = 'scorecard';
-    }
-
-    // Remove provider parameter for scorecard, keep it for benchmarks
-    const scorecardParams = new URLSearchParams(searchParams);
-    scorecardParams.delete('provider');
-    const scorecardSearch = scorecardParams.toString() ? `?${scorecardParams.toString()}` : '';
-    
-    const benchmarksSearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
-
-    const storytellerTabs = [
-      { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `/app/storyteller/scorecard${scorecardSearch}` },
-      { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `/app/storyteller/benchmarks${benchmarksSearch}` }
-    ];
-
-    return (
-      <nav className={styles.subNavigation}>
-        <div className={styles.navLeft}>
-          {storytellerTabs.map((tab) => {
-            const IconComponent = tab.icon;
-            return (
-              <Link
-                key={tab.id}
-                to={tab.path}
-                className={`${styles.tab} ${currentStorytellerTab === tab.id ? styles.active : ''}`}
-              >
-                <IconComponent size={16} />
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
+    // Return null to hide subnav for standalone storyteller
+    return null;
   }
 
   // Handle simple provider profile pages (/app/:dhc/* without /market)
@@ -696,30 +658,8 @@ const SubNavigation = () => {
       { id: "storyteller", label: "Quality Storyteller", icon: Shield, path: `${basePath}/storyteller${search}`, locked: teamLoading ? false : !hasTeam }
     ];
 
-    // If we're on a storyteller sub-page, render both navigation levels
+      // If we're on a storyteller sub-page, only show first level navigation (no storyteller sub-tabs)
     if (location.pathname.includes('/storyteller/')) {
-      // Determine the correct active storyteller sub-tab
-      let currentStorytellerTab = "scorecard"; // Default to scorecard
-      
-      if (location.pathname.includes('/scorecard')) {
-        currentStorytellerTab = 'scorecard';
-      } else if (location.pathname.includes('/benchmarks')) {
-        currentStorytellerTab = 'benchmarks';
-      }
-
-      // Remove provider parameter for scorecard, keep it for benchmarks
-      const searchParams = new URLSearchParams(location.search);
-      const scorecardParams = new URLSearchParams(searchParams);
-      scorecardParams.delete('provider');
-      const scorecardSearch = scorecardParams.toString() ? `?${scorecardParams.toString()}` : '';
-      
-      const benchmarksSearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
-
-      const storytellerTabs = [
-        { id: "scorecard", label: "Scorecard", icon: BarChart3, path: `${basePath}/storyteller/scorecard${scorecardSearch}` },
-        { id: "benchmarks", label: "Benchmarks", icon: Activity, path: `${basePath}/storyteller/benchmarks${benchmarksSearch}` }
-      ];
-
       return (
         <>
           {/* First level navigation - Provider/Market tabs */}
@@ -745,25 +685,6 @@ const SubNavigation = () => {
                     key={tab.id}
                     to={tab.path}
                     className={`${styles.tab} ${currentActiveTab === tab.id ? styles.active : ''}`}
-                  >
-                    <IconComponent size={16} />
-                    {tab.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-          
-          {/* Second level navigation - Storyteller sub-tabs */}
-          <nav className={`${styles.subNavigation} ${styles.storytellerSubNav}`}>
-            <div className={styles.navLeft}>
-              {storytellerTabs.map((tab) => {
-                const IconComponent = tab.icon;
-                return (
-                  <Link
-                    key={tab.id}
-                    to={tab.path}
-                    className={`${styles.tab} ${currentStorytellerTab === tab.id ? styles.active : ''}`}
                   >
                     <IconComponent size={16} />
                     {tab.label}

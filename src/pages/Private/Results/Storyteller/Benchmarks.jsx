@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Search, ArrowLeft } from 'lucide-react';
 import BenchmarkChart from './BenchmarkChart';
 import ExportButton from '../../../../components/Buttons/ExportButton';
 import { exportChart } from '../../../../utils/chartExport';
@@ -119,6 +120,17 @@ export default function Benchmarks({
   const [winsData, setWinsData] = useState({});
   const chartRef = useRef(null);
   const searchInputRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handle back to scorecard navigation
+  const handleBackToScorecard = () => {
+    const basePath = location.pathname.replace(/\/benchmarks$/, '').replace(/\/scorecard$/, '');
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.delete('provider');
+    const search = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    navigate(`${basePath}/scorecard${search}`);
+  };
 
   const kpiCodeSet = useMemo(() => {
     if (!Array.isArray(myKpiCodes) || myKpiCodes.length === 0) {
@@ -535,8 +547,38 @@ export default function Benchmarks({
     <div className={styles.benchmarksContainer}>
       {/* Date Display Banner */}
       <div className={styles.dataPeriodBanner}>
-        {/* Left side - Measure Setting and Current Data Period */}
+        {/* Left side - Back Button, Measure Setting and Current Data Period */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Back to Scorecard Button */}
+          <button
+            onClick={handleBackToScorecard}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: '#ffffff',
+              border: '1px solid #d0d0d0',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              color: '#495057',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f8f9fa';
+              e.currentTarget.style.borderColor = '#adb5bd';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#d0d0d0';
+            }}
+          >
+            <ArrowLeft size={14} />
+            Back to Scorecard
+          </button>
+
           {/* Measure Setting Filter */}
           {typeof window !== 'undefined' && availableProviderTypes && availableProviderTypes.length > 0 && (
             <div className={styles.filterGroup}>

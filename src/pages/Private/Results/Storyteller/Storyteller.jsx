@@ -5,7 +5,7 @@ import Benchmarks from "./Benchmarks";
 import useQualityMeasures from "../../../../hooks/useQualityMeasures";
 import styles from "./Storyteller.module.css";
 
-function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false, showMyKpisOnly = false, myKpiCodes = [], highlightedDhcKeys = [], highlightedDhcByType = new Map(), highlightTagTypes = [], highlightPrimaryProvider = true }) {
+function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, mainProviderCcns, prefetchedData, providerLabels = {}, isLoading = false, showMyKpisOnly = false, myKpiCodes = [], highlightedDhcKeys = [], highlightedDhcByType = new Map(), highlightTagTypes = [], setHighlightTagTypes, highlightPrimaryProvider = true, providerTags = null, highlightCounts = {}, hasHighlightOptions = false, highlightLabels = {}, highlightSelectionSet = new Set(), highlightTriggerLabel = 'Highlight Providers' }) {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -159,8 +159,15 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
           highlightedDhcKeys={highlightedDhcKeys}
           highlightedDhcByType={highlightedDhcByType}
           highlightTagTypes={highlightTagTypes}
+          setHighlightTagTypes={setHighlightTagTypes}
           highlightPrimaryProvider={highlightPrimaryProvider}
           qualityMeasuresData={qualityMeasuresData}
+          providerTags={providerTags}
+          highlightCounts={highlightCounts}
+          hasHighlightOptions={hasHighlightOptions}
+          highlightLabels={highlightLabels}
+          highlightSelectionSet={highlightSelectionSet}
+          highlightTriggerLabel={highlightTriggerLabel}
         />
       } />
       <Route path="benchmarks" element={

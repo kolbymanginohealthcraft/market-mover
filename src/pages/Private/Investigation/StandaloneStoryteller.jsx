@@ -32,7 +32,6 @@ export default function StandaloneStoryteller() {
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [highlightTagTypes, setHighlightTagTypes] = useState([]);
-  const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false);
   const [myKpiCodes, setMyKpiCodes] = useState([]);
   const [kpiTagsLoading, setKpiTagsLoading] = useState(false);
   const [showMyKpisOnly, setShowMyKpisOnly] = useState(false);
@@ -542,7 +541,6 @@ export default function StandaloneStoryteller() {
     setTagProviders([]);
     setCcnInput('');
     setManualProviderDetails({});
-    setShowMyKpisOnly(false);
     setHighlightTagTypes([]);
     setHighlightDropdownOpen(false);
   };
@@ -806,117 +804,6 @@ export default function StandaloneStoryteller() {
           );
         })()}
 
-        {/* Vertical Separator */}
-        <div style={{ width: '1px', height: '24px', background: 'var(--gray-300)', margin: '0 8px' }}></div>
-
-        {/* Highlight Providers */}
-        {hasHighlightOptions && (
-          <Dropdown
-            trigger={
-              <button
-                type="button"
-                className={`sectionHeaderButton ${highlightTagTypes.length > 0 ? styles.activeFilterButton : ''}`}
-              >
-                <FilterIcon size={14} />
-                {highlightTriggerLabel}
-                <ChevronDown size={14} />
-              </button>
-            }
-            isOpen={highlightDropdownOpen}
-            onToggle={setHighlightDropdownOpen}
-            className={styles.dropdownMenu}
-          >
-            <button
-              className={styles.dropdownItem}
-              onClick={() => {
-                setHighlightTagTypes([]);
-                setHighlightDropdownOpen(false);
-              }}
-              style={{
-                fontWeight: highlightTagTypes.length === 0 ? '600' : '500',
-                background: highlightTagTypes.length === 0 ? 'rgba(38, 89, 71, 0.08)' : 'none'
-              }}
-            >
-              No Highlight
-            </button>
-            {highlightCounts.me > 0 && (
-              <button
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setHighlightTagTypes(prev => (
-                    prev.includes('me') ? prev.filter(type => type !== 'me') : [...prev, 'me']
-                  ));
-                }}
-                style={{
-                  fontWeight: highlightSelectionSet.has('me') ? '600' : '500',
-                  background: highlightSelectionSet.has('me') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                }}
-              >
-                Highlight My Providers ({highlightCounts.me})
-              </button>
-            )}
-            {highlightCounts.partner > 0 && (
-              <button
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setHighlightTagTypes(prev => (
-                    prev.includes('partner') ? prev.filter(type => type !== 'partner') : [...prev, 'partner']
-                  ));
-                }}
-                style={{
-                  fontWeight: highlightSelectionSet.has('partner') ? '600' : '500',
-                  background: highlightSelectionSet.has('partner') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                }}
-              >
-                Highlight Partners ({highlightCounts.partner})
-              </button>
-            )}
-            {highlightCounts.competitor > 0 && (
-              <button
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setHighlightTagTypes(prev => (
-                    prev.includes('competitor') ? prev.filter(type => type !== 'competitor') : [...prev, 'competitor']
-                  ));
-                }}
-                style={{
-                  fontWeight: highlightSelectionSet.has('competitor') ? '600' : '500',
-                  background: highlightSelectionSet.has('competitor') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                }}
-              >
-                Highlight Competitors ({highlightCounts.competitor})
-              </button>
-            )}
-            {highlightCounts.target > 0 && (
-              <button
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setHighlightTagTypes(prev => (
-                    prev.includes('target') ? prev.filter(type => type !== 'target') : [...prev, 'target']
-                  ));
-                }}
-                style={{
-                  fontWeight: highlightSelectionSet.has('target') ? '600' : '500',
-                  background: highlightSelectionSet.has('target') ? 'rgba(38, 89, 71, 0.08)' : 'none'
-                }}
-              >
-                Highlight Targets ({highlightCounts.target})
-              </button>
-            )}
-          </Dropdown>
-        )}
-
-        {/* Use My Metrics */}
-        <button
-          type="button"
-          onClick={() => setShowMyKpisOnly(prev => !prev)}
-          className={`sectionHeaderButton ${showMyKpisOnly ? styles.activeFilterButton : ''} ${(!kpiTagsLoading && myKpiCodes.length === 0) ? styles.disabledFilterButton : ''}`}
-          disabled={(!kpiTagsLoading && myKpiCodes.length === 0)}
-          title={(!kpiTagsLoading && myKpiCodes.length === 0) ? 'Tag metrics to enable this filter' : undefined}
-        >
-          {showMyKpisOnly ? 'Using My Metrics' : 'Use My Metrics'}
-        </button>
-
         {/* Clear All Button */}
         {hasParameters && (
           <button type="button" onClick={handleClearAll} className="sectionHeaderButton" style={{ flexShrink: 0 }}>
@@ -945,14 +832,6 @@ export default function StandaloneStoryteller() {
               <div className={styles.filterChip}>
                 <span>{selectedTag.charAt(0).toUpperCase() + selectedTag.slice(1)}</span>
                 <button onClick={() => handleTagSelect('')}>
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-            {showMyKpisOnly && (
-              <div className={styles.filterChip}>
-                <span>My Metrics ({myKpiCodes.length})</span>
-                <button onClick={() => setShowMyKpisOnly(false)}>
                   <X size={12} />
                 </button>
               </div>
@@ -998,7 +877,14 @@ export default function StandaloneStoryteller() {
             highlightedDhcKeys={highlightedDhcKeys}
             highlightedDhcByType={highlightedDhcByType}
             highlightTagTypes={highlightTagTypes}
+            setHighlightTagTypes={setHighlightTagTypes}
             highlightPrimaryProvider={false}
+            providerTags={providerTags}
+            highlightCounts={highlightCounts}
+            hasHighlightOptions={hasHighlightOptions}
+            highlightLabels={highlightLabels}
+            highlightSelectionSet={highlightSelectionSet}
+            highlightTriggerLabel={highlightTriggerLabel}
           />
         )}
       </div>
