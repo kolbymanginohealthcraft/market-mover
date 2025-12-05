@@ -229,7 +229,7 @@
   min-width: 900px;
   width: max-content;
   background: #fff;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   margin: 0;
   position: relative;
   table-layout: auto;
@@ -237,15 +237,15 @@
 }
 
 .matrixTable th, .matrixTable td {
-  padding: 0.32rem 0.45rem;
+  padding: 0.2rem 0.4rem;
   text-align: center;
   border-bottom: 1px solid #e0e0e0;
   border-right: 1px solid #e0e0e0;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: #222;
   overflow-wrap: break-word;
   white-space: normal;
-  min-width: 90px;
+  min-width: 70px;
   max-width: none;
 }
 
@@ -263,6 +263,14 @@
   border-bottom: 4px double #265947;
   white-space: normal;
   word-break: break-word;
+}
+
+/* Ellipsize measure column headers (not the sticky provider column) */
+.matrixTable th.stickyHeader:not(.stickyCol) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
 }
 
 /* Sortable header styling - all headers are sortable */
@@ -317,7 +325,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: #1d8a68;
   transition: color 0.2s ease, text-decoration 0.2s ease;
   box-sizing: border-box;
@@ -421,12 +429,20 @@
 
 /* --- All other columns: allow expansion, allow wrapping --- */
 .matrixTable th:not(.stickyCol), .matrixTable td:not(.stickyCol) {
-  width: 120px;
-  min-width: 90px;
-  max-width: 90px;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
   overflow-wrap: break-word;
   white-space: normal;
   text-align: left;
+}
+
+/* Wider columns when percentiles are shown */
+.matrixTable.showPercentiles th:not(.stickyCol):not(.averagePercentile), 
+.matrixTable.showPercentiles td:not(.stickyCol):not(.averagePercentile) {
+  width: 95px;
+  min-width: 95px;
+  max-width: 95px;
 }
 
 /* --- Provider name ellipsis --- */
@@ -725,7 +741,7 @@
   max-width: 240px;
   width: 210px;
   /* Allow hover background to show */
-  padding: 4px 8px;
+  padding: 0.2rem 0.4rem;
   box-sizing: border-box;
 }
 
@@ -743,6 +759,13 @@
   background: #e8f4fd !important;
   white-space: normal;
   word-break: break-word;
+}
+
+.matrixTable th.stickyHeader:not(.stickyCol) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
 }
 
 .matrixTable th, .stickyHeader {

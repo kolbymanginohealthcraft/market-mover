@@ -40,6 +40,7 @@ const ProviderComparisonMatrix = ({
   highlightPrimaryProvider = true,
   selectedMeasures = [], // Now passed as prop from parent
   nearbyDhcCcns = [], // For trend modal
+  showPercentiles = false, // Toggle to show/hide percentiles
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -351,7 +352,7 @@ const ProviderComparisonMatrix = ({
       {/* Table Section */}
       <section className={styles.tableCol} style={{ width: '100%' }}>
         <div className={styles.matrixWrapper}>
-          <table className={styles.matrixTable}>
+          <table className={`${styles.matrixTable} ${showPercentiles ? styles.showPercentiles : ''}`}>
             <thead>
               <tr>
                 {/* Top-left cell: sticky header and sticky column */}
@@ -511,7 +512,7 @@ const ProviderComparisonMatrix = ({
                         {hasData ? (
                           <span>
                             {formatValue(cell.score, m)}
-                            {cell.percentile !== undefined && (
+                            {showPercentiles && cell.percentile !== undefined && (
                               <span className={styles.percentile}>{formatPercentile(cell.percentile)}</span>
                             )}
                           </span>

@@ -41,7 +41,25 @@ export default function Scorecard({
   const [metricsDropdownOpen, setMetricsDropdownOpen] = useState(false);
   const [measureSettingDropdownOpen, setMeasureSettingDropdownOpen] = useState(false);
   const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false);
+  const [showPercentiles, setShowPercentiles] = useState(false);
   const hasInitializedMeasures = useRef(false);
+  const hasInitializedHighlights = useRef(false);
+  
+  // Automatically enable all available highlight types by default (only once on mount)
+  useEffect(() => {
+    if (hasHighlightOptions && !hasInitializedHighlights.current && highlightTagTypes.length === 0) {
+      const availableTypes = [];
+      if (highlightCounts.me > 0) availableTypes.push('me');
+      if (highlightCounts.partner > 0) availableTypes.push('partner');
+      if (highlightCounts.competitor > 0) availableTypes.push('competitor');
+      if (highlightCounts.target > 0) availableTypes.push('target');
+      
+      if (availableTypes.length > 0) {
+        setHighlightTagTypes(availableTypes);
+        hasInitializedHighlights.current = true;
+      }
+    }
+  }, [hasHighlightOptions, highlightCounts, highlightTagTypes.length, setHighlightTagTypes]);
   
   // Use shared quality measures data if provided, otherwise use hook (hook will use cache)
   const hookData = useQualityMeasures(
@@ -642,8 +660,19 @@ export default function Scorecard({
                  Highlight Targets ({highlightCounts.target})
                </button>
              )}
-           </Dropdown>
-         )}
+          </Dropdown>
+        )}
+         
+         {/* Show Percentiles Checkbox */}
+         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}>
+           <input
+             type="checkbox"
+             checked={showPercentiles}
+             onChange={(e) => setShowPercentiles(e.target.checked)}
+             style={{ cursor: 'pointer', margin: 0 }}
+           />
+           <span style={{ fontSize: '13px' }}>Show Percentiles</span>
+         </label>
          
          {/* Data Publication Date - Right side */}
          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
@@ -675,6 +704,7 @@ export default function Scorecard({
           highlightPrimaryProvider={highlightPrimaryProvider}
           selectedMeasures={selectedMeasures}
           nearbyDhcCcns={nearbyDhcCcns}
+          showPercentiles={showPercentiles}
         />
       </div>
     </div>
