@@ -10,10 +10,32 @@
 }
 
 .chartTitle {
-  margin: 0;
-  font-size: 18px;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
   font-weight: 600;
-  color: var(--gray-900);
+  color: #265947;
+  text-align: left;
+}
+
+.chartDescription {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.chartNotes {
+  margin-bottom: 1rem;
+}
+
+.noteText {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+  text-align: left;
+  line-height: 1.4;
+  font-style: italic;
 }
 
 .emptyChart {

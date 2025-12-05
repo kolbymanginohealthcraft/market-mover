@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './ProviderComparisonMatrix.module.css';
 import { sanitizeProviderName } from '../../../../utils/providerName';
+import TrendModal from './TrendModal';
 
 /**
  * ProviderComparisonMatrix
@@ -38,6 +39,7 @@ const ProviderComparisonMatrix = ({
   highlightTagTypes = [],
   highlightPrimaryProvider = true,
   selectedMeasures = [], // Now passed as prop from parent
+  nearbyDhcCcns = [], // For trend modal
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,6 +54,11 @@ const ProviderComparisonMatrix = ({
   const [sortColumn, setSortColumn] = useState(null); // null, 'provider', 'avg', or measure code
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   
+  // Trend modal state
+  const [trendModalOpen, setTrendModalOpen] = useState(false);
+  const [selectedTrendProvider, setSelectedTrendProvider] = useState(null);
+  const [selectedTrendMeasure, setSelectedTrendMeasure] = useState(null);
+  
   // Handle provider click to navigate to benchmarks
   const handleProviderClick = (providerDhc) => {
     if (!providerDhc) return;
@@ -63,6 +70,40 @@ const ProviderComparisonMatrix = ({
     // Navigate to benchmarks tab
     const basePath = location.pathname.replace(/\/scorecard$/, '').replace(/\/benchmarks$/, '');
     navigate(`${basePath}/benchmarks?${searchParams.toString()}`);
+  };
+
+  // Handle data cell click to show trend
+  const handleCellClick = (e, rowKey, measureCode) => {
+    // Don't trigger if clicking on provider name column
+    if (e.target.closest('td')?.classList.contains(styles.stickyCol)) {
+      return;
+    }
+    
+    e.stopPropagation();
+    
+    const clickedRow = rows.find(r => r.key === rowKey);
+    if (!clickedRow) return;
+    
+    const clickedMeasure = measures.find(m => m.code === measureCode);
+    if (!clickedMeasure) return;
+    
+    // Check if there's data for this cell
+    const cell = getCell(rowKey, measureCode);
+    if (cell.score === undefined) return;
+    
+    setSelectedTrendProvider({
+      dhc: rowKey,
+      name: clickedRow.label
+    });
+    setSelectedTrendMeasure({
+      code: measureCode,
+      name: clickedMeasure.name || clickedMeasure.label || measureCode,
+      label: clickedMeasure.label,
+      description: clickedMeasure.description,
+      source: clickedMeasure.source,
+      direction: clickedMeasure.direction
+    });
+    setTrendModalOpen(true);
   };
 
   // Only show selected measures, in selected order
@@ -455,9 +496,19 @@ const ProviderComparisonMatrix = ({
                     const values = sortedRows.map((r) => getCell(r.key, m.code));
                     const cell = getCell(row.key, m.code);
                     const cellClass = getCellClass(m.code, values, m.direction, rowIdx);
+                    const hasData = cell.score !== undefined;
                     return (
-                      <td key={m.code} className={cellClass}>
-                        {cell.score !== undefined ? (
+                      <td 
+                        key={m.code} 
+                        className={cellClass}
+                        onClick={(e) => hasData && handleCellClick(e, row.key, m.code)}
+                        style={{ 
+                          cursor: hasData ? 'pointer' : 'default',
+                          position: 'relative'
+                        }}
+                        title={hasData ? 'Click to view trend' : undefined}
+                      >
+                        {hasData ? (
                           <span>
                             {formatValue(cell.score, m)}
                             {cell.percentile !== undefined && (
@@ -487,6 +538,26 @@ const ProviderComparisonMatrix = ({
           {/* TODO: Add tooltips, export, and other features as needed */}
         </div>
       </section>
+      
+      {/* Trend Modal */}
+      <TrendModal
+        isOpen={trendModalOpen}
+        onClose={() => {
+          setTrendModalOpen(false);
+          setSelectedTrendProvider(null);
+          setSelectedTrendMeasure(null);
+        }}
+        providerDhc={selectedTrendProvider?.dhc}
+        providerName={selectedTrendProvider?.name}
+        measureCode={selectedTrendMeasure?.code}
+        measureName={selectedTrendMeasure?.name}
+        measureLabel={selectedTrendMeasure?.label}
+        measureDescription={selectedTrendMeasure?.description}
+        measureSource={selectedTrendMeasure?.source}
+        measureDirection={selectedTrendMeasure?.direction}
+        nearbyDhcCcns={nearbyDhcCcns}
+        measures={measures}
+      />
     </div>
   );
 };

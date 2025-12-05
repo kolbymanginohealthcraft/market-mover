@@ -674,6 +674,7 @@ export default function Scorecard({
           highlightTagTypes={highlightTagTypes}
           highlightPrimaryProvider={highlightPrimaryProvider}
           selectedMeasures={selectedMeasures}
+          nearbyDhcCcns={nearbyDhcCcns}
         />
       </div>
     </div>

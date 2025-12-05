@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { sanitizeProviderName } from '../../../../utils/providerName';
 import styles from './MetricTrendChart.module.css';
 
-export default function MetricTrendChart({ periods, measureName }) {
+export default function MetricTrendChart({ periods, measureName, measureLabel, measureDescription, measureSource, measureDirection, providerName }) {
   // Process data for chart - sort by date ascending
   const chartData = useMemo(() => {
     if (!periods || periods.length === 0) return [];
@@ -19,11 +20,12 @@ export default function MetricTrendChart({ periods, measureName }) {
 
   // Determine if this is a star rating metric
   const isStarRating = useMemo(() => {
+    if (measureSource === 'Ratings') return true;
     const STAR_RATING_COLUMNS = [
       "overall", "survey", "qm", "qm long", "qm short", "staffing"
     ];
     return STAR_RATING_COLUMNS.includes(measureName?.toLowerCase());
-  }, [measureName]);
+  }, [measureName, measureSource]);
 
   // Format Y-axis values
   const formatYAxisValue = (value) => {
@@ -68,10 +70,34 @@ export default function MetricTrendChart({ periods, measureName }) {
     );
   }
 
+  // Determine note text based on direction
+  const noteText = useMemo(() => {
+    if (measureSource === 'Ratings') {
+      return 'Higher scores indicate better performance.';
+    }
+    if (measureDirection === 'Higher') {
+      return 'Higher scores indicate better performance.';
+    }
+    return 'Lower scores indicate better performance.';
+  }, [measureSource, measureDirection]);
+
   return (
     <div className={styles.chartWrapper}>
       <div className={styles.chartHeader}>
-        <h3 className={styles.chartTitle}>{measureName}</h3>
+        <h3 className={styles.chartTitle}>{measureLabel || measureName || 'Quality Measure'}</h3>
+        {measureSource !== 'Ratings' && measureDescription && (
+          <p className={styles.chartDescription}>{measureDescription}</p>
+        )}
+        <div className={styles.chartNotes}>
+          <p className={styles.noteText}>
+            <strong>Note:</strong> {noteText}
+          </p>
+          {providerName && (
+            <p className={styles.noteText}>
+              <strong>Provider:</strong> {sanitizeProviderName(providerName) || providerName || 'N/A'}
+            </p>
+          )}
+        </div>
       </div>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart

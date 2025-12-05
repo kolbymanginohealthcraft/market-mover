@@ -708,7 +708,7 @@ export default function Benchmarks({
                                  {winData.providerScore !== null ? 
                                    (measure.source === 'Ratings' ? 
                                      winData.providerScore.toFixed(1) : 
-                                     `${winData.providerScore.toFixed(1)}%`) : 
+                                     `${Math.round(winData.providerScore * 100) / 100}%`) : 
                                    'N/A'}
                                </span>
                                {winData.marketAverage !== null && (
@@ -717,7 +717,7 @@ export default function Benchmarks({
                                    <span className={styles.statValue}>
                                      {measure.source === 'Ratings' ? 
                                        winData.marketAverage.toFixed(1) : 
-                                       `${winData.marketAverage.toFixed(1)}%`}
+                                       `${Math.round(winData.marketAverage * 100) / 100}%`}
                                    </span>
                                  </>
                                )}
@@ -726,7 +726,7 @@ export default function Benchmarks({
                                  {winData.nationalAverage !== null ? 
                                    (measure.source === 'Ratings' ? 
                                      winData.nationalAverage.toFixed(1) : 
-                                     `${winData.nationalAverage.toFixed(1)}%`) : 
+                                     `${Math.round(winData.nationalAverage * 100) / 100}%`) : 
                                    'N/A'}
                                </span>
                              </div>

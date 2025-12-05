@@ -246,23 +246,42 @@ export default function ClaimsDataInvestigation() {
           throw new Error('Failed to fetch metadata');
         }
         
-        const maxDateValue = new Date(result.data.maxDate.value);
-        setMaxDate(maxDateValue);
+        const maxDateValue = result.data.maxDate.value || result.data.maxDate;
         
-        // Calculate 12 months before max date
-        const minDate = new Date(maxDateValue);
-        minDate.setMonth(minDate.getMonth() - 11); // -11 to include current month = 12 months total
+        // Parse YYYY-MM-DD string directly to avoid timezone issues
+        // The data is already in month-grain format (YYYY-MM-01)
+        let maxDateStr = maxDateValue;
+        if (typeof maxDateValue !== 'string') {
+          maxDateStr = new Date(maxDateValue).toISOString().substring(0, 10);
+        }
+        
+        // Extract year and month from YYYY-MM-DD
+        const [year, month] = maxDateStr.split('-').map(Number);
+        
+        // Calculate 11 months back for a 12-month range
+        let fromYear = year;
+        let fromMonth = month - 11;
+        
+        // Handle year rollover
+        while (fromMonth <= 0) {
+          fromMonth += 12;
+          fromYear -= 1;
+        }
         
         // Format as YYYY-MM
-        const minDateStr = minDate.toISOString().substring(0, 7);
-        const maxDateStr = maxDateValue.toISOString().substring(0, 7);
+        const minDateStr = `${fromYear}-${String(fromMonth).padStart(2, '0')}`;
+        const maxDateStrFormatted = `${year}-${String(month).padStart(2, '0')}`;
         
-        setDefaultDateRange({ min: minDateStr, max: maxDateStr });
+        // Set maxDate for display purposes
+        const maxDateObj = new Date(`${maxDateStrFormatted}-01`);
+        setMaxDate(maxDateObj);
+        
+        setDefaultDateRange({ min: minDateStr, max: maxDateStrFormatted });
         
         // Set default filter for last 12 months
-        setFilters({ date__month_grain: `${minDateStr},${maxDateStr}` });
+        setFilters({ date__month_grain: `${minDateStr},${maxDateStrFormatted}` });
         
-        console.log(`📅 Default date range: ${minDateStr} to ${maxDateStr} (last 12 months)`);
+        console.log(`📅 Default date range: ${minDateStr} to ${maxDateStrFormatted} (last 12 months)`);
       } catch (err) {
         console.error('Error fetching metadata:', err);
       }
