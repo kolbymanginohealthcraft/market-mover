@@ -65,14 +65,15 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
   }, [finalProviderTypes, providerTypeFilter]);
 
   // Set default publish date when available dates change
+  // Only use prefetchedData dates if they exist, don't use fallback dates
   useEffect(() => {
-    if (finalPublishDates.length > 0 && !selectedPublishDate) {
-      // Always use the most recent available date (availableDates is sorted chronologically)
-      const defaultDate = finalPublishDates[0];
+    if (availablePublishDates.length > 0 && !selectedPublishDate) {
+      // Only use dates from prefetchedData, not fallback dates
+      const defaultDate = availablePublishDates[0];
       setSelectedPublishDate(defaultDate);
-      console.log('🔍 Setting default publish date to:', defaultDate);
+      console.log('🔍 Setting default publish date from prefetchedData to:', defaultDate);
     }
-  }, [finalPublishDates, selectedPublishDate]);
+  }, [availablePublishDates, selectedPublishDate]);
 
   // Debug logging for state changes
   useEffect(() => {
@@ -107,6 +108,19 @@ function Storyteller({ provider, radiusInMiles, nearbyProviders, nearbyDhcCcns, 
     providerTypeFilter,
     providerLabels
   );
+
+  // Update selectedPublishDate when fresh dates are available from the hook
+  // This ensures we use the latest dates fetched from the API, not stale fallback dates
+  useEffect(() => {
+    if (qualityMeasuresData.availablePublishDates && qualityMeasuresData.availablePublishDates.length > 0) {
+      const latestDate = qualityMeasuresData.availablePublishDates[0];
+      // Only update if we don't have a selected date, or if the latest date is newer
+      if (!selectedPublishDate || latestDate > selectedPublishDate) {
+        setSelectedPublishDate(latestDate);
+        console.log('🔍 Updated selectedPublishDate from hook to latest date:', latestDate);
+      }
+    }
+  }, [qualityMeasuresData.availablePublishDates, selectedPublishDate]);
 
   // Remove provider query parameter when on scorecard page
   useEffect(() => {

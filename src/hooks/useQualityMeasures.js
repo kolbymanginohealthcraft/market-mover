@@ -109,19 +109,33 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
   const memoizedNearbyDhcCcns = useMemo(() => nearbyDhcCcns || [], [nearbyDhcCcnsKey]);
 
        // Effect to update current publish date when measure setting changes
+  // Note: This is now mainly for initial state. The fetchMatrixData function will fetch fresh dates
+  // and set the correct currentPublishDate, so this is just a fallback for initial render
   useEffect(() => {
     if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0 && currentMeasureSetting) {
       if (qualityMeasuresDates[currentMeasureSetting]) {
         const settingSpecificDate = qualityMeasuresDates[currentMeasureSetting];
-        console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
-        setCurrentPublishDate(settingSpecificDate);
+        // Only set if we don't already have a more recent date
+        setCurrentPublishDate(prev => {
+          if (!prev || settingSpecificDate >= prev) {
+            console.log('📅 Updating publish date for setting:', currentMeasureSetting, 'to:', settingSpecificDate);
+            return settingSpecificDate;
+          }
+          return prev;
+        });
         // Clear cache when measure setting changes to ensure fresh data
         apiCache.clear();
       } else {
         // Fallback to the most recent available date if the setting doesn't have a specific date
         const allDates = Object.values(qualityMeasuresDates).sort().reverse();
-        console.log('📅 Setting not found, using fallback date:', allDates[0]);
-        setCurrentPublishDate(allDates[0]);
+        const fallbackDate = allDates[0];
+        setCurrentPublishDate(prev => {
+          if (!prev || fallbackDate >= prev) {
+            console.log('📅 Setting not found, using fallback date:', fallbackDate);
+            return fallbackDate;
+          }
+          return prev;
+        });
         // Clear cache when measure setting changes to ensure fresh data
         apiCache.clear();
       }
@@ -275,54 +289,129 @@ export default function useQualityMeasures(provider, nearbyProviders, nearbyDhcC
           return;
         }
         
-        // 6. Use quality measures dates if provided, otherwise fetch them
+        // 6. Always fetch fresh dates from API to ensure we get the latest available dates
+        // If a measure setting is selected, fetch setting-specific dates
+        // This prevents using stale dates from prefetchedData when new data has been uploaded
         let availableDates = [];
         let publish_date;
         
-        if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0) {
-          // Use the provided quality measures dates
-          console.log('📅 Using provided quality measures dates:', qualityMeasuresDates);
-          
-          // Get all available dates from the quality measures dates object
-          availableDates = Array.from(new Set(Object.values(qualityMeasuresDates))).sort().reverse();
-          
-          // Determine which publish date to use based on the current measure setting
-          if (currentMeasureSetting && qualityMeasuresDates[currentMeasureSetting]) {
-            publish_date = qualityMeasuresDates[currentMeasureSetting];
-            console.log('📅 Using setting-specific date for', currentMeasureSetting, ':', publish_date);
-          } else {
-            // Fallback to the most recent available date
-            publish_date = availableDates[0];
-            console.log('📅 Setting not found, using fallback date:', publish_date);
+        try {
+          // If we have a measure setting, fetch setting-specific dates
+          if (currentMeasureSetting) {
+            console.log('📅 Fetching setting-specific dates for', currentMeasureSetting, 'with', uniqueCcns.length, 'CCNs');
+            
+            // First, get the measure codes for this setting from the dictionary
+            const dictionaryResponse = await fetch(apiUrl('/api/qm_dictionary'), {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (dictionaryResponse.ok) {
+              const dictionaryResult = await dictionaryResponse.json();
+              if (dictionaryResult.success && dictionaryResult.data) {
+                const measures = dictionaryResult.data || [];
+                const settingMeasures = measures.filter(m => m.setting === currentMeasureSetting && m.active === true);
+                
+                if (settingMeasures.length > 0) {
+                  const settingMeasureCodes = settingMeasures.map(m => m.code);
+                  console.log(`📅 Found ${settingMeasureCodes.length} measures for ${currentMeasureSetting}`);
+                  
+                  // Fetch dates filtered by these specific measures
+                  const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      ccns: uniqueCcns, 
+                      publish_date: 'latest',
+                      measures: settingMeasureCodes
+                    })
+                  });
+                  
+                  if (datesResponse.ok) {
+                    const datesResult = await datesResponse.json();
+                    if (datesResult.success && datesResult.data.availableDates) {
+                      availableDates = datesResult.data.availableDates || [];
+                      console.log(`📅 Setting-specific dates for ${currentMeasureSetting}:`, availableDates);
+                    }
+                  }
+                }
+              }
+            }
+            
+            // If we didn't get setting-specific dates, fall through to general date fetch
+            if (availableDates.length === 0) {
+              console.log(`⚠️ No setting-specific dates found for ${currentMeasureSetting}, fetching general dates`);
+            }
           }
-        } else {
-          // Fallback: fetch available dates dynamically
-          const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              ccns: uniqueCcns, 
-              publish_date: 'latest' 
-            })
-          });
           
-          if (!datesResponse.ok) throw new Error('Failed to fetch available dates');
-          const datesResult = await datesResponse.json();
-          if (!datesResult.success) throw new Error(datesResult.error);
-          
-          availableDates = datesResult.data.availableDates || [];
+          // If no setting-specific dates were found, fetch general dates
           if (availableDates.length === 0) {
-            setMatrixError("No quality measure data available for any publish date");
-            setMatrixLoading(false);
-            return;
+            console.log('📅 Fetching fresh dates from API for', uniqueCcns.length, 'CCNs');
+            const datesResponse = await fetch(apiUrl('/api/qm_combined'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                ccns: uniqueCcns, 
+                publish_date: 'latest' 
+              })
+            });
+            
+            if (!datesResponse.ok) throw new Error('Failed to fetch available dates');
+            const datesResult = await datesResponse.json();
+            if (!datesResult.success) throw new Error(datesResult.error);
+            
+            availableDates = datesResult.data.availableDates || [];
+            console.log('📅 Fresh dates fetched from API:', availableDates);
+          }
+          
+          if (availableDates.length === 0) {
+            // Fallback to provided qualityMeasuresDates if API returns no dates
+            if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0) {
+              console.log('⚠️ No dates from API, falling back to provided qualityMeasuresDates');
+              availableDates = Array.from(new Set(Object.values(qualityMeasuresDates))).sort().reverse();
+            } else {
+              setMatrixError("No quality measure data available for any publish date");
+              setMatrixLoading(false);
+              return;
+            }
           }
           
           // Determine which publish date to use
+          // Always prefer the most recent date from the API to ensure we get the latest data
+          // Only use selectedPublishDate if it's the most recent or if no dates are available
+          const mostRecentDate = availableDates[0];
           if (selectedPublishDate && availableDates.includes(selectedPublishDate)) {
-            publish_date = selectedPublishDate;
+            // Use selectedPublishDate only if it's the most recent date or if user explicitly selected it
+            // If there's a newer date available, prefer that instead
+            if (selectedPublishDate >= mostRecentDate) {
+              publish_date = selectedPublishDate;
+              console.log('📅 Using selected publish date:', publish_date);
+            } else {
+              publish_date = mostRecentDate;
+              console.log('📅 Using most recent date (newer than selected):', publish_date, 'vs selected:', selectedPublishDate);
+            }
           } else {
             // Always use the most recent available date (availableDates is sorted chronologically)
-            publish_date = availableDates[0];
+            publish_date = mostRecentDate;
+            console.log('📅 Using most recent available date:', publish_date);
+          }
+        } catch (datesError) {
+          // Fallback to provided qualityMeasuresDates if API call fails
+          console.warn('⚠️ Failed to fetch fresh dates, using provided qualityMeasuresDates:', datesError);
+          if (qualityMeasuresDates && Object.keys(qualityMeasuresDates).length > 0) {
+            availableDates = Array.from(new Set(Object.values(qualityMeasuresDates))).sort().reverse();
+            
+            if (currentMeasureSetting && qualityMeasuresDates[currentMeasureSetting]) {
+              publish_date = qualityMeasuresDates[currentMeasureSetting];
+              console.log('📅 Using setting-specific date from fallback for', currentMeasureSetting, ':', publish_date);
+            } else {
+              publish_date = availableDates[0];
+              console.log('📅 Using fallback date:', publish_date);
+            }
+          } else {
+            setMatrixError("Failed to fetch available dates and no fallback dates provided");
+            setMatrixLoading(false);
+            return;
           }
         }
         
