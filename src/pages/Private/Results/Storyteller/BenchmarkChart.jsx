@@ -80,6 +80,7 @@ export default function BenchmarkChart({
   const [error, setError] = useState(null);
   const [measureInfo, setMeasureInfo] = useState(null);
   const [publishDate, setPublishDate] = useState(null);
+  const [collectionPeriod, setCollectionPeriod] = useState(null);
   const chartRef = useRef(null);
   
   // Memoize CCNs and publish date to create stable cache key
@@ -98,6 +99,7 @@ export default function BenchmarkChart({
       // Clear previous data when starting a new fetch
       setData(null);
       setError(null);
+      setCollectionPeriod(null);
       
       // Clear trend cache when measure changes to ensure fresh data
       // (The cache key includes measure code, but clearing on measure change ensures no stale data)
@@ -234,6 +236,40 @@ export default function BenchmarkChart({
           source: targetMeasure.source || null,
           direction: targetMeasure.direction || null
         });
+
+        // Fetch data collection period from qm_post (only needed for snapshot mode)
+        if (chartMode === 'snapshot') {
+          try {
+            const periodResponse = await fetch(apiUrl('/api/qm_post/collection-period'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                code: targetMeasure.code,
+                publish_date: publishDateToUse
+              })
+            });
+
+            if (periodResponse.ok) {
+              const periodResult = await periodResponse.json();
+              if (periodResult.success && periodResult.data) {
+                setCollectionPeriod({
+                  start_date: periodResult.data.start_date,
+                  end_date: periodResult.data.end_date
+                });
+              } else {
+                setCollectionPeriod(null);
+              }
+            } else {
+              setCollectionPeriod(null);
+            }
+          } catch (err) {
+            console.error('Error fetching collection period:', err);
+            setCollectionPeriod(null);
+          }
+        } else {
+          // Clear collection period in trend mode (not needed)
+          setCollectionPeriod(null);
+        }
 
         const isStarRating = targetMeasure.source === 'Ratings';
         const providerCcns = nearbyDhcCcns
@@ -703,9 +739,57 @@ export default function BenchmarkChart({
                   const [year, month] = publishDate.split('-');
                   return `${year}-${month}`;
                 })() : 'Not set'}
-              <span style={{ fontSize: '0.9em', color: '#666', marginLeft: '12px' }}>
-                (Data collection period: 1/1/2024 to 12/31/2024)
-              </span>
+              {collectionPeriod && collectionPeriod.start_date && collectionPeriod.end_date && (
+                <span style={{ fontSize: '0.9em', color: '#666', marginLeft: '12px' }}>
+                  (Data collection period: {(() => {
+                    const formatDate = (dateStr) => {
+                      if (!dateStr) return '';
+                      // Handle both YYYY-MM-DD strings and date objects from BigQuery
+                      let dateValue = dateStr.value || dateStr;
+                      
+                      // If it's already a string in YYYY-MM-DD format, parse it directly to avoid timezone issues
+                      if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+                        const parts = dateValue.split('T')[0].split('-'); // Handle YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss
+                        const year = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10);
+                        const day = parseInt(parts[2], 10);
+                        // Parse directly from string to avoid timezone conversion
+                        return `${month}/${day}/${year}`;
+                      }
+                      
+                      // If it's a Date object, extract components using UTC methods to avoid timezone shifts
+                      if (dateValue instanceof Date || (typeof dateValue === 'object' && dateValue.getTime)) {
+                        const date = new Date(dateValue);
+                        if (!isNaN(date.getTime())) {
+                          // Use UTC methods to avoid timezone conversion
+                          const year = date.getUTCFullYear();
+                          const month = date.getUTCMonth() + 1;
+                          const day = date.getUTCDate();
+                          return `${month}/${day}/${year}`;
+                        }
+                      }
+                      
+                      // Try parsing as ISO string with UTC methods
+                      try {
+                        const date = new Date(dateValue);
+                        if (!isNaN(date.getTime())) {
+                          const year = date.getUTCFullYear();
+                          const month = date.getUTCMonth() + 1;
+                          const day = date.getUTCDate();
+                          return `${month}/${day}/${year}`;
+                        }
+                      } catch (e) {
+                        // If parsing fails, return as-is
+                      }
+                      
+                      return String(dateValue);
+                    };
+                    const startFormatted = formatDate(collectionPeriod.start_date);
+                    const endFormatted = formatDate(collectionPeriod.end_date);
+                    return `${startFormatted} to ${endFormatted}`;
+                  })()})
+                </span>
+              )}
             </p>
           )}
           <p className={styles.noteText}>

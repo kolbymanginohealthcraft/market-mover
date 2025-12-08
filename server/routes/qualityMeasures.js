@@ -813,6 +813,78 @@ router.post("/qm_setting_dates", async (req, res) => {
   }
 });
 
+// Get data collection period (start_date and end_date) for a specific measure and publish_date
+router.post("/qm_post/collection-period", async (req, res) => {
+  try {
+    const { code, publish_date } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "code (measure code) is required" 
+      });
+    }
+    
+    if (!publish_date) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "publish_date is required" 
+      });
+    }
+
+    // Check if qm_post table exists
+    const checkTableQuery = `
+      SELECT table_name 
+      FROM \`market-mover-464517.quality.INFORMATION_SCHEMA.TABLES\`
+      WHERE table_name = 'qm_post'
+    `;
+    
+    const [checkRows] = await myBigQuery.query({ query: checkTableQuery, location: "US" });
+    
+    if (checkRows.length === 0) {
+      console.log("⚠️ qm_post table not found");
+      return res.status(200).json({ success: true, data: null });
+    }
+
+    // Get start_date and end_date from qm_post for the specific measure and publish_date
+    const query = `
+      SELECT start_date, end_date
+      FROM \`market-mover-464517.quality.qm_post\`
+      WHERE code = @code
+        AND publish_date = @publish_date
+      LIMIT 1
+    `;
+    
+    const [rows] = await myBigQuery.query({ 
+      query, 
+      location: "US",
+      params: { code, publish_date }
+    });
+    
+    if (rows.length === 0) {
+      console.log(`⚠️ No collection period found for measure ${code} and publish_date ${publish_date}`);
+      return res.status(200).json({ success: true, data: null });
+    }
+
+    const result = rows[0];
+    const startDate = result.start_date?.value || result.start_date;
+    const endDate = result.end_date?.value || result.end_date;
+    
+    console.log(`📅 Found collection period for ${code}:`, { startDate, endDate });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    });
+  } catch (err) {
+    console.error("❌ BigQuery qm_post collection period query error:", err);
+    res.status(200).json({ success: true, data: null });
+  }
+});
+
 // Cache clearing endpoint
 router.post("/clear-cache", async (req, res) => {
   try {
