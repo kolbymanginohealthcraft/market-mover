@@ -231,7 +231,8 @@ export default function BenchmarkChart({
           name: targetMeasure.name || 'Quality Measure',
           label: targetMeasure.label || targetMeasure.name || 'Quality Measure',
           description: targetMeasure.description || 'Quality measure performance',
-          source: targetMeasure.source || null
+          source: targetMeasure.source || null,
+          direction: targetMeasure.direction || null
         });
 
         const isStarRating = targetMeasure.source === 'Ratings';
@@ -708,9 +709,15 @@ export default function BenchmarkChart({
             </p>
           )}
           <p className={styles.noteText}>
-            <strong>Note:</strong> {measureInfo?.source === 'Ratings' 
-              ? 'Higher scores indicate better performance.' 
-              : 'Lower scores indicate better performance.'}
+            <strong>Note:</strong> {(() => {
+              if (measureInfo?.source === 'Ratings') {
+                return 'Higher scores indicate better performance.';
+              }
+              if (measureInfo?.direction === 'Higher') {
+                return 'Higher scores indicate better performance.';
+              }
+              return 'Lower scores indicate better performance.';
+            })()}
           </p>
           <p className={styles.noteText}>
             <strong>Provider:</strong> {sanitizeProviderName(provider?.name) || provider?.name || 'N/A'}

@@ -13,6 +13,7 @@ export default function SimpleStorytellerTab({ provider }) {
   const [trendLoading, setTrendLoading] = useState(false);
   const [trendError, setTrendError] = useState(null);
   const [selectedMetric, setSelectedMetric] = useState(null);
+  const [measuresDictionary, setMeasuresDictionary] = useState([]);
   const lastCcnsString = useRef('');
   const isFetching = useRef(false);
   
@@ -177,6 +178,11 @@ export default function SimpleStorytellerTab({ provider }) {
           const { publishDate, data } = result;
           const { measures, providerData: rawProviderData, nationalAverages } = data;
 
+          // Store measures dictionary (use first non-empty one)
+          if (measures && measures.length > 0 && measuresDictionary.length === 0) {
+            setMeasuresDictionary(measures);
+          }
+
           console.log(`📊 Processing ${publishDate}:`, {
             rawProviderDataCount: rawProviderData?.length || 0,
             measuresCount: measures?.length || 0,
@@ -283,15 +289,20 @@ export default function SimpleStorytellerTab({ provider }) {
     const result = {};
     trendData.forEach(item => {
       if (!result[item.measureCode]) {
+        const measureInfo = measuresDictionary.find(m => m.code === item.measureCode);
         result[item.measureCode] = {
           measureName: item.measureName,
+          measureLabel: measureInfo?.label,
+          measureDescription: measureInfo?.description,
+          measureSource: measureInfo?.source,
+          measureDirection: measureInfo?.direction,
           periods: []
         };
       }
       result[item.measureCode].periods.push(item);
     });
     return result;
-  }, [trendData]);
+  }, [trendData, measuresDictionary]);
 
   // Get unique measure codes sorted by name
   const measureCodes = useMemo(() => {
@@ -473,6 +484,11 @@ export default function SimpleStorytellerTab({ provider }) {
               <MetricTrendChart 
                 periods={selectedMetricTrend.periods}
                 measureName={selectedMetricTrend.measureName}
+                measureLabel={selectedMetricTrend.measureLabel}
+                measureDescription={selectedMetricTrend.measureDescription}
+                measureSource={selectedMetricTrend.measureSource}
+                measureDirection={selectedMetricTrend.measureDirection}
+                providerName={provider?.name}
               />
             </div>
           </div>
