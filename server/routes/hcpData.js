@@ -1171,5 +1171,284 @@ router.post("/taxonomy-density", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/hcp-data/filter-specialties
+ * Search specialties filtered by active filters (states, gender, taxonomyCodes, affiliations, etc.)
+ * Query params:
+ *   - search: Search string to filter specialties (optional)
+ *   - states: States filter (optional, array)
+ *   - gender: Gender filter (optional, array)
+ *   - taxonomyCodes: Taxonomy codes filter (optional, array)
+ *   - hasHospitalAffiliation: Hospital affiliation filter (optional, boolean)
+ *   - hasPhysicianGroupAffiliation: Physician group affiliation filter (optional, boolean)
+ *   - hasNetworkAffiliation: Network affiliation filter (optional, boolean)
+ *   - lat: Latitude for location filter (optional)
+ *   - lon: Longitude for location filter (optional)
+ *   - radius: Radius in miles for location filter (optional)
+ *   - limit: Maximum number of results (default: 500)
+ * Returns: Array of unique specialty names matching the search and filters
+ */
+router.get("/filter-specialties", async (req, res) => {
+  try {
+    const { 
+      search = '', 
+      states,
+      gender,
+      taxonomyCodes,
+      hasHospitalAffiliation,
+      hasPhysicianGroupAffiliation,
+      hasNetworkAffiliation,
+      lat,
+      lon,
+      radius,
+      limit = 500 
+    } = req.query;
+    
+    // Build WHERE conditions (same as main search endpoint)
+    const whereConditions = [
+      'npi_deactivation_date IS NULL',
+      'primary_taxonomy_consolidated_specialty IS NOT NULL',
+      'primary_taxonomy_consolidated_specialty != ""'
+    ];
+    
+    const queryParams = { limit: parseInt(limit) };
+
+    // Apply filters
+    const filterStates = states ? (Array.isArray(states) ? states : [states]) : [];
+    const filterGender = gender ? (Array.isArray(gender) ? gender : [gender]) : [];
+    const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+
+    if (filterStates.length > 0) {
+      whereConditions.push('primary_address_state_or_province IN UNNEST(@states)');
+      queryParams.states = filterStates;
+    }
+
+    if (filterGender.length > 0) {
+      whereConditions.push('gender IN UNNEST(@gender)');
+      queryParams.gender = filterGender;
+    }
+
+    if (filterTaxonomyCodes.length > 0) {
+      whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      queryParams.taxonomyCodes = filterTaxonomyCodes;
+    }
+
+    // Hospital affiliation filter
+    if (hasHospitalAffiliation === 'true') {
+      whereConditions.push('atlas_affiliation_primary_hospital_parent_id IS NOT NULL');
+    } else if (hasHospitalAffiliation === 'false') {
+      whereConditions.push('atlas_affiliation_primary_hospital_parent_id IS NULL');
+    }
+
+    // Physician group affiliation filter
+    if (hasPhysicianGroupAffiliation === 'true') {
+      whereConditions.push('atlas_affiliation_primary_physician_group_parent_id IS NOT NULL');
+    } else if (hasPhysicianGroupAffiliation === 'false') {
+      whereConditions.push('atlas_affiliation_primary_physician_group_parent_id IS NULL');
+    }
+
+    // Network affiliation filter
+    if (hasNetworkAffiliation === 'true') {
+      whereConditions.push('atlas_affiliation_primary_network_id IS NOT NULL');
+    } else if (hasNetworkAffiliation === 'false') {
+      whereConditions.push('atlas_affiliation_primary_network_id IS NULL');
+    }
+
+    // Location filter (for saved markets)
+    if (lat && lon && radius) {
+      const distanceFormula = getDistanceFormula(Number(lat), Number(lon));
+      whereConditions.push(`${distanceFormula} <= ${Number(radius)}`);
+    }
+
+    // Add specialty name search filter
+    if (search && search.trim().length > 0) {
+      whereConditions.push('LOWER(primary_taxonomy_consolidated_specialty) LIKE LOWER(@searchTerm)');
+      queryParams.searchTerm = `%${search.trim()}%`;
+    }
+
+    const query = `
+      SELECT DISTINCT
+        primary_taxonomy_consolidated_specialty as specialty
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY primary_taxonomy_consolidated_specialty
+      LIMIT @limit
+    `;
+
+    console.log('🔍 Filter specialties query:', {
+      search: search || 'none',
+      filters: {
+        states: filterStates.length,
+        gender: filterGender.length,
+        taxonomyCodes: filterTaxonomyCodes.length,
+        hasHospitalAffiliation,
+        hasPhysicianGroupAffiliation,
+        hasNetworkAffiliation,
+        location: !!(lat && lon && radius)
+      }
+    });
+
+    const [specialties] = await vendorBigQuery.query({ 
+      query, 
+      params: queryParams 
+    });
+
+    const specialtyList = specialties.map(s => s.specialty);
+
+    console.log(`✅ Filter specialties returned ${specialtyList.length} results`);
+
+    res.status(200).json({
+      success: true,
+      data: specialtyList
+    });
+  } catch (err) {
+    console.error('❌ Error searching specialties:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/hcp-data/filter-states
+ * Search states filtered by active filters (specialties, gender, taxonomyCodes, affiliations, etc.)
+ * Query params:
+ *   - search: Search string to filter states (optional)
+ *   - specialties: Specialties filter (optional, array)
+ *   - gender: Gender filter (optional, array)
+ *   - taxonomyCodes: Taxonomy codes filter (optional, array)
+ *   - hasHospitalAffiliation: Hospital affiliation filter (optional, boolean)
+ *   - hasPhysicianGroupAffiliation: Physician group affiliation filter (optional, boolean)
+ *   - hasNetworkAffiliation: Network affiliation filter (optional, boolean)
+ *   - lat: Latitude for location filter (optional)
+ *   - lon: Longitude for location filter (optional)
+ *   - radius: Radius in miles for location filter (optional)
+ *   - limit: Maximum number of results (default: 500)
+ * Returns: Array of unique state codes matching the search and filters
+ */
+router.get("/filter-states", async (req, res) => {
+  try {
+    const { 
+      search = '', 
+      specialties,
+      gender,
+      taxonomyCodes,
+      hasHospitalAffiliation,
+      hasPhysicianGroupAffiliation,
+      hasNetworkAffiliation,
+      lat,
+      lon,
+      radius,
+      limit = 500 
+    } = req.query;
+    
+    // Build WHERE conditions (same as main search endpoint)
+    const whereConditions = [
+      'npi_deactivation_date IS NULL',
+      'LENGTH(primary_address_state_or_province) = 2',
+      `primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )`
+    ];
+    
+    const queryParams = { limit: parseInt(limit) };
+
+    // Apply filters
+    const filterSpecialties = specialties ? (Array.isArray(specialties) ? specialties : [specialties]) : [];
+    const filterGender = gender ? (Array.isArray(gender) ? gender : [gender]) : [];
+    const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+
+    if (filterSpecialties.length > 0) {
+      whereConditions.push('primary_taxonomy_consolidated_specialty IN UNNEST(@specialties)');
+      queryParams.specialties = filterSpecialties;
+    }
+
+    if (filterGender.length > 0) {
+      whereConditions.push('gender IN UNNEST(@gender)');
+      queryParams.gender = filterGender;
+    }
+
+    if (filterTaxonomyCodes.length > 0) {
+      whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      queryParams.taxonomyCodes = filterTaxonomyCodes;
+    }
+
+    // Hospital affiliation filter
+    if (hasHospitalAffiliation === 'true') {
+      whereConditions.push('atlas_affiliation_primary_hospital_parent_id IS NOT NULL');
+    } else if (hasHospitalAffiliation === 'false') {
+      whereConditions.push('atlas_affiliation_primary_hospital_parent_id IS NULL');
+    }
+
+    // Physician group affiliation filter
+    if (hasPhysicianGroupAffiliation === 'true') {
+      whereConditions.push('atlas_affiliation_primary_physician_group_parent_id IS NOT NULL');
+    } else if (hasPhysicianGroupAffiliation === 'false') {
+      whereConditions.push('atlas_affiliation_primary_physician_group_parent_id IS NULL');
+    }
+
+    // Network affiliation filter
+    if (hasNetworkAffiliation === 'true') {
+      whereConditions.push('atlas_affiliation_primary_network_id IS NOT NULL');
+    } else if (hasNetworkAffiliation === 'false') {
+      whereConditions.push('atlas_affiliation_primary_network_id IS NULL');
+    }
+
+    // Location filter (for saved markets)
+    if (lat && lon && radius) {
+      const distanceFormula = getDistanceFormula(Number(lat), Number(lon));
+      whereConditions.push(`${distanceFormula} <= ${Number(radius)}`);
+    }
+
+    // Add state code search filter
+    if (search && search.trim().length > 0) {
+      whereConditions.push('LOWER(primary_address_state_or_province) LIKE LOWER(@searchTerm)');
+      queryParams.searchTerm = `%${search.trim()}%`;
+    }
+
+    const query = `
+      SELECT DISTINCT
+        primary_address_state_or_province as state
+      FROM \`aegis_access.hcp_flat\`
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY primary_address_state_or_province
+      LIMIT @limit
+    `;
+
+    console.log('🔍 Filter states query:', {
+      search: search || 'none',
+      filters: {
+        specialties: filterSpecialties.length,
+        gender: filterGender.length,
+        taxonomyCodes: filterTaxonomyCodes.length,
+        hasHospitalAffiliation,
+        hasPhysicianGroupAffiliation,
+        hasNetworkAffiliation,
+        location: !!(lat && lon && radius)
+      }
+    });
+
+    const [states] = await vendorBigQuery.query({ 
+      query, 
+      params: queryParams 
+    });
+
+    const stateList = states.map(s => s.state);
+
+    console.log(`✅ Filter states returned ${stateList.length} results`);
+
+    res.status(200).json({
+      success: true,
+      data: stateList
+    });
+  } catch (err) {
+    console.error('❌ Error searching states:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;
 

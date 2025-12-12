@@ -96,6 +96,25 @@ export default function ProviderSearch() {
     markets: false
   });
 
+  // Filter search terms for searching within filter lists
+  const [filterSearchTerms, setFilterSearchTerms] = useState({
+    networks: '',
+    cities: '',
+    states: ''
+  });
+
+  // Searched networks from API (filtered by active filters)
+  const [searchedNetworks, setSearchedNetworks] = useState(null);
+  const [loadingNetworkSearch, setLoadingNetworkSearch] = useState(false);
+  
+  // Searched cities from API (filtered by active filters)
+  const [searchedCities, setSearchedCities] = useState(null);
+  const [loadingCitySearch, setLoadingCitySearch] = useState(false);
+  
+  // Searched states from API (filtered by active filters)
+  const [searchedStates, setSearchedStates] = useState(null);
+  const [loadingStateSearch, setLoadingStateSearch] = useState(false);
+
   // Show/hide filters sidebar
   const [showFiltersSidebar, setShowFiltersSidebar] = useState(false);
 
@@ -106,6 +125,9 @@ export default function ProviderSearch() {
   const [tagNPIs, setTagNPIs] = useState(null);
 
   const searchInputRef = useRef(null);
+  const networkSearchInputRef = useRef(null);
+  const citySearchInputRef = useRef(null);
+  const stateSearchInputRef = useRef(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const mapContainerElementRef = useRef(null);
@@ -113,7 +135,13 @@ export default function ProviderSearch() {
   const bulkDropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const escapeTimeoutRef = useRef(null);
+  const networkEscapeTimeoutRef = useRef(null);
+  const cityEscapeTimeoutRef = useRef(null);
+  const stateEscapeTimeoutRef = useRef(null);
   const [escapeCount, setEscapeCount] = useState(0);
+  const [networkEscapeCount, setNetworkEscapeCount] = useState(0);
+  const [cityEscapeCount, setCityEscapeCount] = useState(0);
+  const [stateEscapeCount, setStateEscapeCount] = useState(0);
   
   // Map state
   const [mapReady, setMapReady] = useState(false);
@@ -817,6 +845,11 @@ export default function ProviderSearch() {
   // Apply filters to results (unsorted - used for map)
   const filteredResults = useMemo(() => {
     return results.filter(provider => {
+    // Exclude closed providers
+    if (provider.isClosed === true) {
+      return false;
+    }
+    
     if (selectedTypes.length > 0) {
       const providerType = provider.type || "Unknown";
       if (!selectedTypes.includes(providerType)) {
@@ -902,6 +935,44 @@ export default function ProviderSearch() {
     ? Array.from(new Set(results.map(p => p.state).filter(Boolean))).sort()
     : filterOptions.states;
 
+  // Filter options based on search terms and active filters
+  // If we have active filters (excluding networks) or a search term, use API results
+  const hasActiveFiltersForNetworkSearch = selectedTypes.length > 0 || 
+    selectedCities.length > 0 || 
+    selectedStates.length > 0 || 
+    selectedTaxonomyCodes.length > 0 || 
+    selectedMarket;
+  
+  const filteredNetworks = (filterSearchTerms.networks.trim() || hasActiveFiltersForNetworkSearch) && searchedNetworks !== null
+    ? searchedNetworks
+    : allNetworks.filter(network =>
+        network.toLowerCase().includes(filterSearchTerms.networks.toLowerCase())
+      );
+  
+  const hasActiveFiltersForCitySearch = selectedTypes.length > 0 || 
+    selectedNetworks.length > 0 || 
+    selectedStates.length > 0 || 
+    selectedTaxonomyCodes.length > 0 || 
+    selectedMarket;
+  
+  const hasActiveFiltersForStateSearch = selectedTypes.length > 0 || 
+    selectedNetworks.length > 0 || 
+    selectedCities.length > 0 || 
+    selectedTaxonomyCodes.length > 0 || 
+    selectedMarket;
+  
+  const filteredCities = (filterSearchTerms.cities.trim() || hasActiveFiltersForCitySearch) && searchedCities !== null
+    ? searchedCities
+    : allCities.filter(city =>
+        city.toLowerCase().includes(filterSearchTerms.cities.toLowerCase())
+      );
+  
+  const filteredStates = (filterSearchTerms.states.trim() || hasActiveFiltersForStateSearch) && searchedStates !== null
+    ? searchedStates
+    : allStates.filter(state =>
+        state.toLowerCase().includes(filterSearchTerms.states.toLowerCase())
+      );
+
 
   // Filter functions
   const toggleType = (type) => {
@@ -983,6 +1054,10 @@ export default function ProviderSearch() {
     setSubmittedSearchTerm("");
     setError(null);
     setCurrentPage(1);
+    setFilterSearchTerms({ networks: '', cities: '', states: '' });
+    setSearchedNetworks(null);
+    setSearchedCities(null);
+    setSearchedStates(null);
     // Reset to default state - load first 500 results
     // The useEffect will trigger handleSearch which will fetch first 500 results
     // Reload national overview filter options when clearing all
@@ -1020,11 +1095,259 @@ export default function ProviderSearch() {
   };
 
   const toggleSection = (section) => {
+    const isExpanding = !expandedSections[section];
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
+    // Clear network search when closing networks section
+    if (section === 'networks' && expandedSections.networks) {
+      setFilterSearchTerms(prev => ({ ...prev, networks: '' }));
+      setSearchedNetworks(null);
+    }
+    // Auto-focus search inputs when expanding sections
+    if (isExpanding) {
+      setTimeout(() => {
+        if (section === 'networks') {
+          networkSearchInputRef.current?.focus();
+        } else if (section === 'cities') {
+          citySearchInputRef.current?.focus();
+        } else if (section === 'states') {
+          stateSearchInputRef.current?.focus();
+        }
+      }, 100);
+    }
+    
+    // Clear search when closing sections
+    if (!isExpanding) {
+      if (section === 'networks') {
+        setFilterSearchTerms(prev => ({ ...prev, networks: '' }));
+        setSearchedNetworks(null);
+      } else if (section === 'cities') {
+        setFilterSearchTerms(prev => ({ ...prev, cities: '' }));
+        setSearchedCities(null);
+      } else if (section === 'states') {
+        setFilterSearchTerms(prev => ({ ...prev, states: '' }));
+        setSearchedStates(null);
+      }
+    }
   };
+
+  // Debounced search for networks filtered by active filters
+  useEffect(() => {
+    if (!expandedSections.networks) {
+      return;
+    }
+
+    const searchTerm = filterSearchTerms.networks.trim();
+    
+    // Check if we have active filters (excluding networks filter)
+    const hasActiveFilters = selectedTypes.length > 0 || 
+      selectedCities.length > 0 || 
+      selectedStates.length > 0 || 
+      selectedTaxonomyCodes.length > 0 || 
+      selectedMarket;
+    
+    // If search term is empty and no active filters, use default networks
+    if (!searchTerm && !hasActiveFilters) {
+      setSearchedNetworks(null);
+      return;
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(async () => {
+      setLoadingNetworkSearch(true);
+      try {
+        // Build query params with current filters (excluding networks filter)
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        params.append('limit', '500');
+        
+        // Add current filter values (excluding networks since we're searching for networks)
+        if (selectedTypes.length > 0) {
+          selectedTypes.forEach(type => params.append('types', type));
+        }
+        if (selectedCities.length > 0) {
+          selectedCities.forEach(city => params.append('cities', city));
+        }
+        if (selectedStates.length > 0) {
+          selectedStates.forEach(state => params.append('states', state));
+        }
+        if (selectedTaxonomyCodes.length > 0) {
+          selectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+        }
+        
+        // Add location filter if market is selected
+        if (selectedMarket) {
+          params.append('lat', selectedMarket.latitude);
+          params.append('lon', selectedMarket.longitude);
+          params.append('radius', selectedMarket.radius_miles);
+        }
+
+        const response = await fetch(apiUrl(`/api/search-providers-vendor/filter-networks?${params.toString()}`));
+        if (!response.ok) {
+          throw new Error('Failed to search networks');
+        }
+        const result = await response.json();
+        if (result.success) {
+          setSearchedNetworks(result.data);
+        }
+      } catch (err) {
+        console.error('Error searching networks:', err);
+        setSearchedNetworks([]);
+      } finally {
+        setLoadingNetworkSearch(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [filterSearchTerms.networks, expandedSections.networks, selectedTypes, selectedCities, selectedStates, selectedTaxonomyCodes, selectedMarket]);
+
+  // Debounced search for cities filtered by active filters
+  useEffect(() => {
+    if (!expandedSections.cities) {
+      return;
+    }
+
+    const searchTerm = filterSearchTerms.cities.trim();
+    
+    // Check if we have active filters (excluding cities filter)
+    const hasActiveFilters = selectedTypes.length > 0 || 
+      selectedNetworks.length > 0 || 
+      selectedStates.length > 0 || 
+      selectedTaxonomyCodes.length > 0 || 
+      selectedMarket;
+    
+    // If search term is empty and no active filters, use default cities
+    if (!searchTerm && !hasActiveFilters) {
+      setSearchedCities(null);
+      return;
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(async () => {
+      setLoadingCitySearch(true);
+      try {
+        // Build query params with current filters (excluding cities filter)
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        params.append('limit', '500');
+        
+        // Add current filter values (excluding cities since we're searching for cities)
+        if (selectedTypes.length > 0) {
+          selectedTypes.forEach(type => params.append('types', type));
+        }
+        if (selectedNetworks.length > 0) {
+          selectedNetworks.forEach(network => params.append('networks', network));
+        }
+        if (selectedStates.length > 0) {
+          selectedStates.forEach(state => params.append('states', state));
+        }
+        if (selectedTaxonomyCodes.length > 0) {
+          selectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+        }
+        
+        // Add location filter if market is selected
+        if (selectedMarket) {
+          params.append('lat', selectedMarket.latitude);
+          params.append('lon', selectedMarket.longitude);
+          params.append('radius', selectedMarket.radius_miles);
+        }
+
+        const response = await fetch(apiUrl(`/api/search-providers-vendor/filter-cities?${params.toString()}`));
+        if (!response.ok) {
+          throw new Error('Failed to search cities');
+        }
+        const result = await response.json();
+        if (result.success) {
+          setSearchedCities(result.data);
+        }
+      } catch (err) {
+        console.error('Error searching cities:', err);
+        setSearchedCities([]);
+      } finally {
+        setLoadingCitySearch(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [filterSearchTerms.cities, expandedSections.cities, selectedTypes, selectedNetworks, selectedStates, selectedTaxonomyCodes, selectedMarket]);
+
+  // Debounced search for states filtered by active filters
+  useEffect(() => {
+    if (!expandedSections.states) {
+      return;
+    }
+
+    const searchTerm = filterSearchTerms.states.trim();
+    
+    // Check if we have active filters (excluding states filter)
+    const hasActiveFilters = selectedTypes.length > 0 || 
+      selectedNetworks.length > 0 || 
+      selectedCities.length > 0 || 
+      selectedTaxonomyCodes.length > 0 || 
+      selectedMarket;
+    
+    // If search term is empty and no active filters, use default states
+    if (!searchTerm && !hasActiveFilters) {
+      setSearchedStates(null);
+      return;
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(async () => {
+      setLoadingStateSearch(true);
+      try {
+        // Build query params with current filters (excluding states filter)
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        params.append('limit', '500');
+        
+        // Add current filter values (excluding states since we're searching for states)
+        if (selectedTypes.length > 0) {
+          selectedTypes.forEach(type => params.append('types', type));
+        }
+        if (selectedNetworks.length > 0) {
+          selectedNetworks.forEach(network => params.append('networks', network));
+        }
+        if (selectedCities.length > 0) {
+          selectedCities.forEach(city => params.append('cities', city));
+        }
+        if (selectedTaxonomyCodes.length > 0) {
+          selectedTaxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+        }
+        
+        // Add location filter if market is selected
+        if (selectedMarket) {
+          params.append('lat', selectedMarket.latitude);
+          params.append('lon', selectedMarket.longitude);
+          params.append('radius', selectedMarket.radius_miles);
+        }
+
+        const response = await fetch(apiUrl(`/api/search-providers-vendor/filter-states?${params.toString()}`));
+        if (!response.ok) {
+          throw new Error('Failed to search states');
+        }
+        const result = await response.json();
+        if (result.success) {
+          setSearchedStates(result.data);
+        }
+      } catch (err) {
+        console.error('Error searching states:', err);
+        setSearchedStates([]);
+      } finally {
+        setLoadingStateSearch(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [filterSearchTerms.states, expandedSections.states, selectedTypes, selectedNetworks, selectedCities, selectedTaxonomyCodes, selectedMarket]);
 
   // For listing display: limit to first 500 results only (use sortedResults for table)
   // Overview will use all results or national overview for full dataset stats
@@ -1043,9 +1366,9 @@ export default function ProviderSearch() {
       headers.join(','),
       ...sortedResults.map(p => [
         p.dhc || '',
-        `"${(p.name || '').replace(/"/g, '""')}"`,
+        `"${sanitizeProviderName(p.name || '').replace(/"/g, '""')}"`,
         `"${(p.type || 'Unknown').replace(/"/g, '""')}"`,
-        `"${(p.network || '').replace(/"/g, '""')}"`,
+        `"${sanitizeProviderName(p.network || '').replace(/"/g, '""')}"`,
         `"${(p.street || '').replace(/"/g, '""')}"`,
         `"${(p.city || '').replace(/"/g, '""')}"`,
         p.state || '',
@@ -2082,18 +2405,78 @@ export default function ProviderSearch() {
                 </button>
                 {expandedSections.networks && (
                   <div className={styles.filterContent}>
-                    <div className={styles.filterList}>
-                      {allNetworks.map(network => (
-                        <label key={network} className={styles.filterCheckbox}>
-                          <input
-                            type="checkbox"
-                            checked={selectedNetworks.includes(network)}
-                            onChange={() => toggleNetwork(network)}
-                          />
-                          <span>{network}</span>
-                        </label>
-                      ))}
+                    <div className="searchBarContainer" style={{ width: '100%', minWidth: '0', marginTop: '8px', marginBottom: '8px' }}>
+                      <div className="searchIcon">
+                        <Search size={16} />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search networks..."
+                        value={filterSearchTerms.networks}
+                        onChange={(e) => {
+                          setFilterSearchTerms(prev => ({ ...prev, networks: e.target.value }));
+                          setNetworkEscapeCount(0);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            e.preventDefault();
+                            if (networkEscapeTimeoutRef.current) {
+                              clearTimeout(networkEscapeTimeoutRef.current);
+                            }
+                            if (filterSearchTerms.networks && networkEscapeCount === 0) {
+                              setFilterSearchTerms(prev => ({ ...prev, networks: '' }));
+                              setSearchedNetworks(null);
+                              setNetworkEscapeCount(1);
+                              networkEscapeTimeoutRef.current = setTimeout(() => setNetworkEscapeCount(0), 1000);
+                            } else {
+                              networkSearchInputRef.current?.blur();
+                              setNetworkEscapeCount(0);
+                            }
+                          }
+                        }}
+                        className="searchInput"
+                        style={{ width: '100%', paddingRight: filterSearchTerms.networks ? '70px' : '12px' }}
+                        data-search-enhanced="true"
+                        ref={networkSearchInputRef}
+                      />
+                      {filterSearchTerms.networks && (
+                        <button
+                          onClick={() => {
+                            setFilterSearchTerms(prev => ({ ...prev, networks: '' }));
+                            setSearchedNetworks(null);
+                          }}
+                          className="clearButton"
+                          style={{ right: '8px' }}
+                          type="button"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
+                    {loadingNetworkSearch || (filterSearchTerms.networks.trim() && searchedNetworks === null) ? (
+                      <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                        Searching...
+                      </div>
+                    ) : (
+                      <div className={styles.filterList}>
+                        {filteredNetworks.length > 0 ? (
+                          filteredNetworks.map(network => (
+                            <label key={network} className={styles.filterCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={selectedNetworks.includes(network)}
+                                onChange={() => toggleNetwork(network)}
+                              />
+                              <span>{sanitizeProviderName(network) || network}</span>
+                            </label>
+                          ))
+                        ) : (
+                          <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                            {filterSearchTerms.networks.trim() ? 'No networks found' : 'No networks available'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                   </div>
@@ -2118,18 +2501,78 @@ export default function ProviderSearch() {
                 </button>
                 {expandedSections.cities && (
                   <div className={styles.filterContent}>
-                    <div className={styles.filterList}>
-                      {allCities.map(city => (
-                        <label key={city} className={styles.filterCheckbox}>
-                          <input
-                            type="checkbox"
-                            checked={selectedCities.includes(city)}
-                            onChange={() => toggleCity(city)}
-                          />
-                          <span>{city}</span>
-                        </label>
-                      ))}
+                    <div className="searchBarContainer" style={{ width: '100%', minWidth: '0', marginTop: '8px', marginBottom: '8px' }}>
+                      <div className="searchIcon">
+                        <Search size={16} />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search cities..."
+                        value={filterSearchTerms.cities}
+                        onChange={(e) => {
+                          setFilterSearchTerms(prev => ({ ...prev, cities: e.target.value }));
+                          setCityEscapeCount(0);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            e.preventDefault();
+                            if (cityEscapeTimeoutRef.current) {
+                              clearTimeout(cityEscapeTimeoutRef.current);
+                            }
+                            if (filterSearchTerms.cities && cityEscapeCount === 0) {
+                              setFilterSearchTerms(prev => ({ ...prev, cities: '' }));
+                              setSearchedCities(null);
+                              setCityEscapeCount(1);
+                              cityEscapeTimeoutRef.current = setTimeout(() => setCityEscapeCount(0), 1000);
+                            } else {
+                              citySearchInputRef.current?.blur();
+                              setCityEscapeCount(0);
+                            }
+                          }
+                        }}
+                        className="searchInput"
+                        style={{ width: '100%', paddingRight: filterSearchTerms.cities ? '70px' : '12px' }}
+                        data-search-enhanced="true"
+                        ref={citySearchInputRef}
+                      />
+                      {filterSearchTerms.cities && (
+                        <button
+                          onClick={() => {
+                            setFilterSearchTerms(prev => ({ ...prev, cities: '' }));
+                            setSearchedCities(null);
+                          }}
+                          className="clearButton"
+                          style={{ right: '8px' }}
+                          type="button"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
+                    {loadingCitySearch || (filterSearchTerms.cities.trim() && searchedCities === null) ? (
+                      <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                        Searching...
+                      </div>
+                    ) : (
+                      <div className={styles.filterList}>
+                        {filteredCities.length > 0 ? (
+                          filteredCities.map(city => (
+                            <label key={city} className={styles.filterCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={selectedCities.includes(city)}
+                                onChange={() => toggleCity(city)}
+                              />
+                              <span>{city}</span>
+                            </label>
+                          ))
+                        ) : (
+                          <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                            {filterSearchTerms.cities.trim() ? 'No cities found' : 'No cities available'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                   </div>
@@ -2154,18 +2597,78 @@ export default function ProviderSearch() {
                 </button>
                 {expandedSections.states && (
                   <div className={styles.filterContent}>
-                    <div className={styles.filterList}>
-                      {allStates.map(state => (
-                        <label key={state} className={styles.filterCheckbox}>
-                          <input
-                            type="checkbox"
-                            checked={selectedStates.includes(state)}
-                            onChange={() => toggleState(state)}
-                          />
-                          <span>{state}</span>
-                        </label>
-                      ))}
+                    <div className="searchBarContainer" style={{ width: '100%', minWidth: '0', marginTop: '8px', marginBottom: '8px' }}>
+                      <div className="searchIcon">
+                        <Search size={16} />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search states..."
+                        value={filterSearchTerms.states}
+                        onChange={(e) => {
+                          setFilterSearchTerms(prev => ({ ...prev, states: e.target.value }));
+                          setStateEscapeCount(0);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            e.preventDefault();
+                            if (stateEscapeTimeoutRef.current) {
+                              clearTimeout(stateEscapeTimeoutRef.current);
+                            }
+                            if (filterSearchTerms.states && stateEscapeCount === 0) {
+                              setFilterSearchTerms(prev => ({ ...prev, states: '' }));
+                              setSearchedStates(null);
+                              setStateEscapeCount(1);
+                              stateEscapeTimeoutRef.current = setTimeout(() => setStateEscapeCount(0), 1000);
+                            } else {
+                              stateSearchInputRef.current?.blur();
+                              setStateEscapeCount(0);
+                            }
+                          }
+                        }}
+                        className="searchInput"
+                        style={{ width: '100%', paddingRight: filterSearchTerms.states ? '70px' : '12px' }}
+                        data-search-enhanced="true"
+                        ref={stateSearchInputRef}
+                      />
+                      {filterSearchTerms.states && (
+                        <button
+                          onClick={() => {
+                            setFilterSearchTerms(prev => ({ ...prev, states: '' }));
+                            setSearchedStates(null);
+                          }}
+                          className="clearButton"
+                          style={{ right: '8px' }}
+                          type="button"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
+                    {loadingStateSearch || (filterSearchTerms.states.trim() && searchedStates === null) ? (
+                      <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                        Searching...
+                      </div>
+                    ) : (
+                      <div className={styles.filterList}>
+                        {filteredStates.length > 0 ? (
+                          filteredStates.map(state => (
+                            <label key={state} className={styles.filterCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={selectedStates.includes(state)}
+                                onChange={() => toggleState(state)}
+                              />
+                              <span>{state}</span>
+                            </label>
+                          ))
+                        ) : (
+                          <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                            {filterSearchTerms.states.trim() ? 'No states found' : 'No states available'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                   </div>
@@ -2384,7 +2887,7 @@ export default function ProviderSearch() {
                           })()}</h4>
                           <div className={styles.breakdownList}>
                             {(() => {
-                              const types = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
+                              const types = (hasActiveFilters || submittedSearchTerm.trim())
                                 ? Object.entries(
                                     filteredResults.reduce((acc, r) => {
                                       const type = r.type || 'Unknown';
@@ -2400,11 +2903,15 @@ export default function ProviderSearch() {
                                     count: parseInt(item.count || 0)
                                   })).slice(0, 10);
                               
-                              if (types.length === 0) return null;
+                              if (types.length === 0 && !(hasActiveFilters || submittedSearchTerm.trim())) return null;
                               
-                              return types.map((item, idx) => (
+                              return types.length === 0 ? (
+                                <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                                  No data available
+                                </div>
+                              ) : types.map((item, idx) => (
                                 <div key={idx} className={styles.breakdownItem}>
-                                  <span className={styles.breakdownName}>{item.name}</span>
+                                  <span className={styles.breakdownName}>{sanitizeProviderName(item.name) || item.name}</span>
                                   <div className={styles.breakdownBar}>
                                     <div 
                                       className={styles.breakdownBarFill}
@@ -2430,7 +2937,7 @@ export default function ProviderSearch() {
                           })()}</h4>
                           <div className={styles.breakdownList}>
                             {(() => {
-                              const states = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
+                              const states = (hasActiveFilters || submittedSearchTerm.trim())
                                 ? Object.entries(
                                     filteredResults.reduce((acc, r) => {
                                       const state = r.state || 'Unknown';
@@ -2446,9 +2953,13 @@ export default function ProviderSearch() {
                                     count: parseInt(item.count || 0)
                                   })).slice(0, 10);
                               
-                              if (states.length === 0) return null;
+                              if (states.length === 0 && !(hasActiveFilters || submittedSearchTerm.trim())) return null;
                               
-                              return states.map((item, idx) => (
+                              return states.length === 0 ? (
+                                <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                                  No data available
+                                </div>
+                              ) : states.map((item, idx) => (
                                 <div key={idx} className={styles.breakdownItem}>
                                   <span className={styles.breakdownName}>{item.name}</span>
                                   <div className={styles.breakdownBar}>
@@ -2476,7 +2987,7 @@ export default function ProviderSearch() {
                           })()}</h4>
                           <div className={styles.breakdownList}>
                             {(() => {
-                              const cities = (hasActiveFilters || submittedSearchTerm.trim()) && filteredResults.length > 0
+                              const cities = (hasActiveFilters || submittedSearchTerm.trim())
                                 ? Object.entries(
                                     filteredResults.reduce((acc, r) => {
                                       const city = r.city || 'Unknown';
@@ -2496,9 +3007,13 @@ export default function ProviderSearch() {
                                     count: parseInt(item.count || 0)
                                   })).slice(0, 10);
                               
-                              if (cities.length === 0) return null;
+                              if (cities.length === 0 && !(hasActiveFilters || submittedSearchTerm.trim())) return null;
                               
-                              return cities.map((item, idx) => (
+                              return cities.length === 0 ? (
+                                <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                                  No data available
+                                </div>
+                              ) : cities.map((item, idx) => (
                                 <div key={idx} className={styles.breakdownItem}>
                                   <span className={styles.breakdownName}>{item.name}</span>
                                   <div className={styles.breakdownBar}>

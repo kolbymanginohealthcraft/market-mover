@@ -12,3 +12,10 @@ export const sanitizeProviderName = (name) => {
   return cleaned || original;
 };
 
+export const isProviderClosed = (name) => {
+  if (!name) return false;
+  const nameStr = String(name).trim();
+  const closedPattern = /\((?:closed|temporarily closed)\)/i;
+  return closedPattern.test(nameStr);
+};
+

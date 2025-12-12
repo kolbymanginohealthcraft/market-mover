@@ -174,11 +174,21 @@ router.get("/search-providers-vendor", async (req, res) => {
     // Execute main query
     const [rows] = await vendorBigQuery.query({ query, params });
 
+    // Add isClosed flag based on provider name pattern
+    const processedRows = rows.map(row => {
+      const name = row.name || '';
+      const isClosed = /\((?:closed|temporarily closed)\)/i.test(name);
+      return {
+        ...row,
+        isClosed
+      };
+    });
+
     console.log(`✅ [VENDOR] Search returned ${rows.length} providers`);
 
     res.status(200).json({
       success: true,
-      data: dhc ? rows[0] || null : rows
+      data: dhc ? processedRows[0] || null : processedRows
     });
   } catch (err) {
     console.error("❌ [VENDOR] BigQuery search-providers error:", err);
@@ -559,6 +569,366 @@ router.get("/search-providers-vendor/national-overview", async (req, res) => {
       success: false,
       error: err.message
     });
+  }
+});
+
+/**
+ * GET /api/search-providers-vendor/filter-networks
+ * Search networks filtered by active filters (types, states, cities, etc.)
+ * Query params:
+ *   - search: Search string to filter networks (optional)
+ *   - types: Provider types filter (optional, array)
+ *   - states: States filter (optional, array)
+ *   - cities: Cities filter (optional, array)
+ *   - taxonomyCodes: Taxonomy codes filter (optional, array)
+ *   - lat: Latitude for location filter (optional)
+ *   - lon: Longitude for location filter (optional)
+ *   - radius: Radius in miles for location filter (optional)
+ *   - limit: Maximum number of results (default: 500)
+ * Returns: Array of unique network names matching the search and filters
+ */
+router.get("/search-providers-vendor/filter-networks", async (req, res) => {
+  try {
+    const { 
+      search = '', 
+      types,
+      states,
+      cities,
+      taxonomyCodes,
+      lat,
+      lon,
+      radius,
+      limit = 500 
+    } = req.query;
+    
+    // Build WHERE conditions (same as main search endpoint)
+    const whereConditions = [
+      'atlas_definitive_id IS NOT NULL',
+      'atlas_definitive_id_primary_npi = TRUE',
+      'npi_deactivation_date IS NULL',
+      'atlas_network_name IS NOT NULL',
+      'LENGTH(primary_address_state_or_province) = 2',
+      `primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )`
+    ];
+    
+    const queryParams = { limit: parseInt(limit) };
+
+    // Apply filters (excluding networks filter since we're searching for networks)
+    const filterTypes = types ? (Array.isArray(types) ? types : [types]) : [];
+    const filterCities = cities ? (Array.isArray(cities) ? cities : [cities]) : [];
+    const filterStates = states ? (Array.isArray(states) ? states : [states]) : [];
+    const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+
+    if (filterTypes.length > 0) {
+      whereConditions.push('atlas_definitive_firm_type IN UNNEST(@types)');
+      queryParams.types = filterTypes;
+    }
+
+    if (filterCities.length > 0) {
+      whereConditions.push('primary_address_city IN UNNEST(@cities)');
+      queryParams.cities = filterCities;
+    }
+
+    if (filterStates.length > 0) {
+      whereConditions.push('primary_address_state_or_province IN UNNEST(@states)');
+      queryParams.states = filterStates;
+    }
+
+    if (filterTaxonomyCodes.length > 0) {
+      whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      queryParams.taxonomyCodes = filterTaxonomyCodes;
+    }
+
+    // Location filter (for saved markets)
+    if (lat && lon && radius) {
+      const radiusMeters = Number(radius) * 1609.34;
+      whereConditions.push('primary_address_lat IS NOT NULL');
+      whereConditions.push('primary_address_long IS NOT NULL');
+      whereConditions.push(`ST_DISTANCE(
+        ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+        ST_GEOGPOINT(@lon, @lat)
+      ) <= @radiusMeters`);
+      queryParams.lat = Number(lat);
+      queryParams.lon = Number(lon);
+      queryParams.radiusMeters = radiusMeters;
+    }
+
+    // Add network name search filter
+    if (search && search.trim().length > 0) {
+      whereConditions.push('LOWER(atlas_network_name) LIKE LOWER(@searchTerm)');
+      queryParams.searchTerm = `%${search.trim()}%`;
+    }
+
+    const query = `
+      SELECT DISTINCT
+        atlas_network_name as network
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY atlas_network_name
+      LIMIT @limit
+    `;
+
+    const [networks] = await vendorBigQuery.query({ 
+      query, 
+      params: queryParams 
+    });
+
+    const networkList = networks.map(n => n.network);
+
+    res.status(200).json({
+      success: true,
+      data: networkList
+    });
+  } catch (err) {
+    console.error('❌ Error searching networks:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/search-providers-vendor/filter-cities
+ * Search cities filtered by active filters (types, states, networks, etc.)
+ * Query params:
+ *   - search: Search string to filter cities (optional)
+ *   - types: Provider types filter (optional, array)
+ *   - states: States filter (optional, array)
+ *   - networks: Networks filter (optional, array)
+ *   - taxonomyCodes: Taxonomy codes filter (optional, array)
+ *   - lat: Latitude for location filter (optional)
+ *   - lon: Longitude for location filter (optional)
+ *   - radius: Radius in miles for location filter (optional)
+ *   - limit: Maximum number of results (default: 500)
+ * Returns: Array of unique city names matching the search and filters
+ */
+router.get("/search-providers-vendor/filter-cities", async (req, res) => {
+  try {
+    const { 
+      search = '', 
+      types,
+      states,
+      networks,
+      taxonomyCodes,
+      lat,
+      lon,
+      radius,
+      limit = 500 
+    } = req.query;
+    
+    // Build WHERE conditions (same as main search endpoint)
+    const whereConditions = [
+      'atlas_definitive_id IS NOT NULL',
+      'atlas_definitive_id_primary_npi = TRUE',
+      'npi_deactivation_date IS NULL',
+      'primary_address_city IS NOT NULL',
+      'primary_address_city != ""',
+      'LENGTH(primary_address_state_or_province) = 2',
+      `primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )`
+    ];
+    
+    const queryParams = { limit: parseInt(limit) };
+
+    // Apply filters
+    const filterTypes = types ? (Array.isArray(types) ? types : [types]) : [];
+    const filterNetworks = networks ? (Array.isArray(networks) ? networks : [networks]) : [];
+    const filterStates = states ? (Array.isArray(states) ? states : [states]) : [];
+    const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+
+    if (filterTypes.length > 0) {
+      whereConditions.push('atlas_definitive_firm_type IN UNNEST(@types)');
+      queryParams.types = filterTypes;
+    }
+
+    if (filterNetworks.length > 0) {
+      whereConditions.push('atlas_network_name IN UNNEST(@networks)');
+      queryParams.networks = filterNetworks;
+    }
+
+    if (filterStates.length > 0) {
+      whereConditions.push('primary_address_state_or_province IN UNNEST(@states)');
+      queryParams.states = filterStates;
+    }
+
+    if (filterTaxonomyCodes.length > 0) {
+      whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      queryParams.taxonomyCodes = filterTaxonomyCodes;
+    }
+
+    // Location filter (for saved markets)
+    if (lat && lon && radius) {
+      const radiusMeters = Number(radius) * 1609.34;
+      whereConditions.push('primary_address_lat IS NOT NULL');
+      whereConditions.push('primary_address_long IS NOT NULL');
+      whereConditions.push(`ST_DISTANCE(
+        ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+        ST_GEOGPOINT(@lon, @lat)
+      ) <= @radiusMeters`);
+      queryParams.lat = Number(lat);
+      queryParams.lon = Number(lon);
+      queryParams.radiusMeters = radiusMeters;
+    }
+
+    // Add city name search filter
+    if (search && search.trim().length > 0) {
+      whereConditions.push('LOWER(primary_address_city) LIKE LOWER(@searchTerm)');
+      queryParams.searchTerm = `%${search.trim()}%`;
+    }
+
+    const query = `
+      SELECT DISTINCT
+        primary_address_city as city
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY primary_address_city
+      LIMIT @limit
+    `;
+
+    const [cities] = await vendorBigQuery.query({ 
+      query, 
+      params: queryParams 
+    });
+
+    const cityList = cities.map(c => c.city);
+
+    res.status(200).json({
+      success: true,
+      data: cityList
+    });
+  } catch (err) {
+    console.error('❌ Error searching cities:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/search-providers-vendor/filter-states
+ * Search states filtered by active filters (types, networks, cities, etc.)
+ * Query params:
+ *   - search: Search string to filter states (optional)
+ *   - types: Provider types filter (optional, array)
+ *   - cities: Cities filter (optional, array)
+ *   - networks: Networks filter (optional, array)
+ *   - taxonomyCodes: Taxonomy codes filter (optional, array)
+ *   - lat: Latitude for location filter (optional)
+ *   - lon: Longitude for location filter (optional)
+ *   - radius: Radius in miles for location filter (optional)
+ *   - limit: Maximum number of results (default: 500)
+ * Returns: Array of unique state codes matching the search and filters
+ */
+router.get("/search-providers-vendor/filter-states", async (req, res) => {
+  try {
+    const { 
+      search = '', 
+      types,
+      cities,
+      networks,
+      taxonomyCodes,
+      lat,
+      lon,
+      radius,
+      limit = 500 
+    } = req.query;
+    
+    // Build WHERE conditions (same as main search endpoint)
+    const whereConditions = [
+      'atlas_definitive_id IS NOT NULL',
+      'atlas_definitive_id_primary_npi = TRUE',
+      'npi_deactivation_date IS NULL',
+      'LENGTH(primary_address_state_or_province) = 2',
+      `primary_address_state_or_province IN (
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+        'DC'
+      )`
+    ];
+    
+    const queryParams = { limit: parseInt(limit) };
+
+    // Apply filters
+    const filterTypes = types ? (Array.isArray(types) ? types : [types]) : [];
+    const filterNetworks = networks ? (Array.isArray(networks) ? networks : [networks]) : [];
+    const filterCities = cities ? (Array.isArray(cities) ? cities : [cities]) : [];
+    const filterTaxonomyCodes = taxonomyCodes ? (Array.isArray(taxonomyCodes) ? taxonomyCodes : [taxonomyCodes]) : [];
+
+    if (filterTypes.length > 0) {
+      whereConditions.push('atlas_definitive_firm_type IN UNNEST(@types)');
+      queryParams.types = filterTypes;
+    }
+
+    if (filterNetworks.length > 0) {
+      whereConditions.push('atlas_network_name IN UNNEST(@networks)');
+      queryParams.networks = filterNetworks;
+    }
+
+    if (filterCities.length > 0) {
+      whereConditions.push('primary_address_city IN UNNEST(@cities)');
+      queryParams.cities = filterCities;
+    }
+
+    if (filterTaxonomyCodes.length > 0) {
+      whereConditions.push('primary_taxonomy_code IN UNNEST(@taxonomyCodes)');
+      queryParams.taxonomyCodes = filterTaxonomyCodes;
+    }
+
+    // Location filter (for saved markets)
+    if (lat && lon && radius) {
+      const radiusMeters = Number(radius) * 1609.34;
+      whereConditions.push('primary_address_lat IS NOT NULL');
+      whereConditions.push('primary_address_long IS NOT NULL');
+      whereConditions.push(`ST_DISTANCE(
+        ST_GEOGPOINT(CAST(primary_address_long AS FLOAT64), CAST(primary_address_lat AS FLOAT64)),
+        ST_GEOGPOINT(@lon, @lat)
+      ) <= @radiusMeters`);
+      queryParams.lat = Number(lat);
+      queryParams.lon = Number(lon);
+      queryParams.radiusMeters = radiusMeters;
+    }
+
+    // Add state code search filter
+    if (search && search.trim().length > 0) {
+      whereConditions.push('LOWER(primary_address_state_or_province) LIKE LOWER(@searchTerm)');
+      queryParams.searchTerm = `%${search.trim()}%`;
+    }
+
+    const query = `
+      SELECT DISTINCT
+        primary_address_state_or_province as state
+      FROM \`aegis_access.hco_flat\`
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY primary_address_state_or_province
+      LIMIT @limit
+    `;
+
+    const [states] = await vendorBigQuery.query({ 
+      query, 
+      params: queryParams 
+    });
+
+    const stateList = states.map(s => s.state);
+
+    res.status(200).json({
+      success: true,
+      data: stateList
+    });
+  } catch (err) {
+    console.error('❌ Error searching states:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

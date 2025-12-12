@@ -68,11 +68,16 @@ router.get("/nearby-providers-vendor", async (req, res) => {
   try {
     const [rows] = await vendorBigQuery.query(options);
 
-    const providersWithDistance = rows.map(row => ({
-      ...row,
-      distance: row.distance_meters / 1609.34, // miles
-      distance_meters: undefined,
-    }));
+    const providersWithDistance = rows.map(row => {
+      const name = row.name || '';
+      const isClosed = /\((?:closed|temporarily closed)\)/i.test(name);
+      return {
+        ...row,
+        distance: row.distance_meters / 1609.34, // miles
+        distance_meters: undefined,
+        isClosed
+      };
+    });
 
     console.log(`✅ [VENDOR] Returned ${providersWithDistance.length} nearby providers`);
 

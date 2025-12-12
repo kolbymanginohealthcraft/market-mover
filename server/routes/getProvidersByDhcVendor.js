@@ -63,7 +63,16 @@ router.post("/getProvidersByDhcVendor", async (req, res) => {
     
     console.log("✅ [VENDOR] Vendor BigQuery returned", rows.length, "providers");
     
-    res.status(200).json({ success: true, providers: rows });
+    const providers = rows.map(row => {
+      const name = row.name || '';
+      const isClosed = /\((?:closed|temporarily closed)\)/i.test(name);
+      return {
+        ...row,
+        isClosed
+      };
+    });
+    
+    res.status(200).json({ success: true, providers });
   } catch (err) {
     console.error("❌ [VENDOR] Vendor BigQuery error:", err);
     res.status(500).json({ success: false, error: err.message });

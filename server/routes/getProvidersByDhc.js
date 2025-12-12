@@ -60,11 +60,16 @@ router.post("/getProvidersByDhc", async (req, res) => {
 
     console.log("✅ Vendor BigQuery returned", rows.length, "providers");
 
-    const providers = rows.map((row) => ({
-      ...row,
-      dhc: row.dhc ? String(row.dhc) : null,
-      npi: row.npi ? String(row.npi) : null,
-    }));
+    const providers = rows.map((row) => {
+      const name = row.name || '';
+      const isClosed = /\((?:closed|temporarily closed)\)/i.test(name);
+      return {
+        ...row,
+        dhc: row.dhc ? String(row.dhc) : null,
+        npi: row.npi ? String(row.npi) : null,
+        isClosed
+      };
+    });
 
     res.status(200).json({ success: true, providers });
   } catch (err) {

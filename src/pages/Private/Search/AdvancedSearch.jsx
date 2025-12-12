@@ -18,7 +18,8 @@ export default function AdvancedSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [filterSearches, setFilterSearches] = useState({
-    specialties: ''
+    specialties: '',
+    states: ''
   });
   const [filters, setFilters] = useState({
     states: [],
@@ -35,6 +36,14 @@ export default function AdvancedSearch() {
     states: [],
     specialties: []
   });
+  
+  // Searched specialties from API (filtered by active filters)
+  const [searchedSpecialties, setSearchedSpecialties] = useState(null);
+  const [loadingSpecialtySearch, setLoadingSpecialtySearch] = useState(false);
+  
+  // Searched states from API (filtered by active filters)
+  const [searchedStates, setSearchedStates] = useState(null);
+  const [loadingStateSearch, setLoadingStateSearch] = useState(false);
   
   // My Taxonomies
   const [taxonomyTags, setTaxonomyTags] = useState([]);
@@ -69,11 +78,17 @@ export default function AdvancedSearch() {
   
   // Search input refs and escape handling
   const searchInputRef = useRef(null);
+  const specialtySearchInputRef = useRef(null);
+  const stateSearchInputRef = useRef(null);
   const escapeTimeoutRef = useRef(null);
+  const specialtyEscapeTimeoutRef = useRef(null);
+  const stateEscapeTimeoutRef = useRef(null);
   const hasInitialized = useRef(false);
   const isClearingRef = useRef(false);
   const latestSearchRequestRef = useRef(0);
   const [escapeCount, setEscapeCount] = useState(0);
+  const [specialtyEscapeCount, setSpecialtyEscapeCount] = useState(0);
+  const [stateEscapeCount, setStateEscapeCount] = useState(0);
   
   useEffect(() => {
     fetchMarkets();
@@ -124,6 +139,172 @@ export default function AdvancedSearch() {
     searchPractitioners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMarket, selectedTaxonomyTag, filters.states, filters.specialties, filters.gender, filters.taxonomyCodes, filters.hasHospitalAffiliation, filters.hasPhysicianGroupAffiliation, filters.hasNetworkAffiliation]);
+
+  // Debounced search for specialties filtered by active filters
+  useEffect(() => {
+    if (!expandedSections.specialties) {
+      return;
+    }
+
+    const searchTerm = filterSearches.specialties.trim();
+    
+    // Check if we have active filters (excluding specialties filter)
+    const hasActiveFilters = filters.states.length > 0 || 
+      filters.gender.length > 0 || 
+      filters.taxonomyCodes.length > 0 || 
+      filters.hasHospitalAffiliation !== null ||
+      filters.hasPhysicianGroupAffiliation !== null ||
+      filters.hasNetworkAffiliation !== null ||
+      selectedMarket ||
+      selectedTaxonomyTag;
+    
+    // If search term is empty and no active filters, use default specialties
+    if (!searchTerm && !hasActiveFilters) {
+      setSearchedSpecialties(null);
+      return;
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(async () => {
+      setLoadingSpecialtySearch(true);
+      try {
+        // Build query params with current filters (excluding specialties filter)
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        params.append('limit', '500');
+        
+        // Add current filter values (excluding specialties since we're searching for specialties)
+        if (filters.states.length > 0) {
+          filters.states.forEach(state => params.append('states', state));
+        }
+        if (filters.gender.length > 0) {
+          filters.gender.forEach(g => params.append('gender', g));
+        }
+        if (filters.taxonomyCodes.length > 0) {
+          filters.taxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+        }
+        if (filters.hasHospitalAffiliation !== null) {
+          params.append('hasHospitalAffiliation', filters.hasHospitalAffiliation.toString());
+        }
+        if (filters.hasPhysicianGroupAffiliation !== null) {
+          params.append('hasPhysicianGroupAffiliation', filters.hasPhysicianGroupAffiliation.toString());
+        }
+        if (filters.hasNetworkAffiliation !== null) {
+          params.append('hasNetworkAffiliation', filters.hasNetworkAffiliation.toString());
+        }
+        
+        // Add location filter if market is selected
+        if (selectedMarket) {
+          params.append('lat', selectedMarket.latitude);
+          params.append('lon', selectedMarket.longitude);
+          params.append('radius', selectedMarket.radius_miles);
+        }
+
+        const response = await fetch(apiUrl(`/api/hcp-data/filter-specialties?${params.toString()}`));
+        if (!response.ok) {
+          throw new Error('Failed to search specialties');
+        }
+        const result = await response.json();
+        if (result.success) {
+          setSearchedSpecialties(result.data);
+        } else {
+          throw new Error(result.error || 'Failed to search specialties');
+        }
+      } catch (err) {
+        console.error('Error searching specialties:', err);
+        setSearchedSpecialties([]);
+      } finally {
+        setLoadingSpecialtySearch(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [filterSearches.specialties, expandedSections.specialties, filters.states, filters.gender, filters.taxonomyCodes, filters.hasHospitalAffiliation, filters.hasPhysicianGroupAffiliation, filters.hasNetworkAffiliation, selectedMarket, selectedTaxonomyTag]);
+
+  // Debounced search for states filtered by active filters
+  useEffect(() => {
+    if (!expandedSections.states) {
+      return;
+    }
+
+    const searchTerm = filterSearches.states.trim();
+    
+    // Check if we have active filters (excluding states filter)
+    const hasActiveFilters = filters.specialties.length > 0 || 
+      filters.gender.length > 0 || 
+      filters.taxonomyCodes.length > 0 || 
+      filters.hasHospitalAffiliation !== null ||
+      filters.hasPhysicianGroupAffiliation !== null ||
+      filters.hasNetworkAffiliation !== null ||
+      selectedMarket ||
+      selectedTaxonomyTag;
+    
+    // If search term is empty and no active filters, use default states
+    if (!searchTerm && !hasActiveFilters) {
+      setSearchedStates(null);
+      return;
+    }
+
+    // Debounce the API call
+    const timeoutId = setTimeout(async () => {
+      setLoadingStateSearch(true);
+      try {
+        // Build query params with current filters (excluding states filter)
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        params.append('limit', '500');
+        
+        // Add current filter values (excluding states since we're searching for states)
+        if (filters.specialties.length > 0) {
+          filters.specialties.forEach(specialty => params.append('specialties', specialty));
+        }
+        if (filters.gender.length > 0) {
+          filters.gender.forEach(g => params.append('gender', g));
+        }
+        if (filters.taxonomyCodes.length > 0) {
+          filters.taxonomyCodes.forEach(code => params.append('taxonomyCodes', code));
+        }
+        if (filters.hasHospitalAffiliation !== null) {
+          params.append('hasHospitalAffiliation', filters.hasHospitalAffiliation.toString());
+        }
+        if (filters.hasPhysicianGroupAffiliation !== null) {
+          params.append('hasPhysicianGroupAffiliation', filters.hasPhysicianGroupAffiliation.toString());
+        }
+        if (filters.hasNetworkAffiliation !== null) {
+          params.append('hasNetworkAffiliation', filters.hasNetworkAffiliation.toString());
+        }
+        
+        // Add location filter if market is selected
+        if (selectedMarket) {
+          params.append('lat', selectedMarket.latitude);
+          params.append('lon', selectedMarket.longitude);
+          params.append('radius', selectedMarket.radius_miles);
+        }
+
+        const response = await fetch(apiUrl(`/api/hcp-data/filter-states?${params.toString()}`));
+        if (!response.ok) {
+          throw new Error('Failed to search states');
+        }
+        const result = await response.json();
+        if (result.success) {
+          setSearchedStates(result.data);
+        } else {
+          throw new Error(result.error || 'Failed to search states');
+        }
+      } catch (err) {
+        console.error('Error searching states:', err);
+        setSearchedStates([]);
+      } finally {
+        setLoadingStateSearch(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [filterSearches.states, expandedSections.states, filters.specialties, filters.gender, filters.taxonomyCodes, filters.hasHospitalAffiliation, filters.hasPhysicianGroupAffiliation, filters.hasNetworkAffiliation, selectedMarket, selectedTaxonomyTag]);
   
   const fetchMarkets = async () => {
     try {
@@ -329,9 +510,12 @@ export default function AdvancedSearch() {
     // Clear all state
     setSearchTerm('');
     setSubmittedSearchTerm('');
+    setFilterSearches({ specialties: '', states: '' });
     setFilters(clearedFilters);
     setSelectedTaxonomyTag(null);
     setSelectedMarket(null);
+    setSearchedSpecialties(null);
+    setSearchedStates(null);
     setError(null);
     setPage(1);
     
@@ -365,10 +549,33 @@ export default function AdvancedSearch() {
   };
   
   const toggleSection = (section) => {
+    const isExpanding = !expandedSections[section];
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
+    
+    // Auto-focus search inputs when expanding sections
+    if (isExpanding) {
+      setTimeout(() => {
+        if (section === 'specialties') {
+          specialtySearchInputRef.current?.focus();
+        } else if (section === 'states') {
+          stateSearchInputRef.current?.focus();
+        }
+      }, 100);
+    }
+    
+    // Clear search when closing sections
+    if (!isExpanding) {
+      if (section === 'specialties') {
+        setFilterSearches(prev => ({ ...prev, specialties: '' }));
+        setSearchedSpecialties(null);
+      } else if (section === 'states') {
+        setFilterSearches(prev => ({ ...prev, states: '' }));
+        setSearchedStates(null);
+      }
+    }
   };
   
   const exportToCSV = () => {
@@ -431,14 +638,38 @@ export default function AdvancedSearch() {
     };
   };
   
-  // Extract unique filter options from RESULTS (current filtered results)
-  // This ensures filter options update in real-time as filters are toggled
-  const availableStates = results && results.practitioners && results.practitioners.length > 0
+  // Filter states based on search terms and active filters
+  // If we have active filters (excluding states) or a search term, use API results
+  const hasActiveFiltersForStateSearch = filters.specialties.length > 0 || 
+    filters.gender.length > 0 || 
+    filters.taxonomyCodes.length > 0 || 
+    filters.hasHospitalAffiliation !== null ||
+    filters.hasPhysicianGroupAffiliation !== null ||
+    filters.hasNetworkAffiliation !== null ||
+    selectedMarket ||
+    selectedTaxonomyTag;
+  
+  const availableStates = (filterSearches.states.trim() || hasActiveFiltersForStateSearch) && searchedStates !== null
+    ? searchedStates.map(state => ({ state, count: 0 }))
+    : results && results.practitioners && results.practitioners.length > 0
     ? Array.from(new Set(results.practitioners.map(p => p.state).filter(Boolean)))
         .map(state => ({ state, count: results.practitioners.filter(p => p.state === state).length }))
     : filterOptions.states;
   
-  const availableSpecialties = results && results.practitioners && results.practitioners.length > 0
+  // Filter specialties based on search terms and active filters
+  // If we have active filters (excluding specialties) or a search term, use API results
+  const hasActiveFiltersForSpecialtySearch = filters.states.length > 0 || 
+    filters.gender.length > 0 || 
+    filters.taxonomyCodes.length > 0 || 
+    filters.hasHospitalAffiliation !== null ||
+    filters.hasPhysicianGroupAffiliation !== null ||
+    filters.hasNetworkAffiliation !== null ||
+    selectedMarket ||
+    selectedTaxonomyTag;
+  
+  const availableSpecialties = (filterSearches.specialties.trim() || hasActiveFiltersForSpecialtySearch) && searchedSpecialties !== null
+    ? searchedSpecialties.map(specialty => ({ specialty, count: 0 }))
+    : results && results.practitioners && results.practitioners.length > 0
     ? Array.from(new Set(results.practitioners.map(p => p.consolidated_specialty || p.primary_specialty).filter(Boolean)))
         .map(specialty => ({ specialty, count: results.practitioners.filter(p => (p.consolidated_specialty || p.primary_specialty) === specialty).length }))
     : filterOptions.specialties;
@@ -810,21 +1041,84 @@ export default function AdvancedSearch() {
               </button>
               {expandedSections.states && (
                 <div className={styles.filterContent}>
-                  <div className={styles.filterList}>
-                    {[...availableStates]
-                      .sort((a, b) => a.state.localeCompare(b.state))
-                      .slice(0, 10)
-                      .map((state, idx) => (
-                      <label key={idx} className={styles.filterCheckbox}>
-                        <input
-                          type="checkbox"
-                          checked={filters.states.includes(state.state)}
-                          onChange={() => toggleFilterValue('states', state.state)}
-                        />
-                        <span>{state.state}</span>
-                      </label>
-                    ))}
+                  <div className="searchBarContainer" style={{ width: '100%', minWidth: '0', marginTop: '8px', marginBottom: '8px' }}>
+                    <div className="searchIcon">
+                      <Search size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search states..."
+                      value={filterSearches.states}
+                      onChange={(e) => {
+                        setFilterSearches(prev => ({ ...prev, states: e.target.value }));
+                        setStateEscapeCount(0);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          if (stateEscapeTimeoutRef.current) {
+                            clearTimeout(stateEscapeTimeoutRef.current);
+                          }
+                          if (filterSearches.states && stateEscapeCount === 0) {
+                            setFilterSearches(prev => ({ ...prev, states: '' }));
+                            setSearchedStates(null);
+                            setStateEscapeCount(1);
+                            stateEscapeTimeoutRef.current = setTimeout(() => setStateEscapeCount(0), 1000);
+                          } else {
+                            stateSearchInputRef.current?.blur();
+                            setStateEscapeCount(0);
+                          }
+                        }
+                      }}
+                      className="searchInput"
+                      style={{ width: '100%', paddingRight: filterSearches.states ? '70px' : '12px' }}
+                      data-search-enhanced="true"
+                      ref={stateSearchInputRef}
+                    />
+                    {filterSearches.states && (
+                      <button
+                        onClick={() => {
+                          setFilterSearches(prev => ({ ...prev, states: '' }));
+                          setSearchedStates(null);
+                        }}
+                        className="clearButton"
+                        style={{ right: '8px' }}
+                        type="button"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
+                  {loadingStateSearch || (filterSearches.states.trim() && searchedStates === null) ? (
+                    <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                      Searching...
+                    </div>
+                  ) : (
+                    <div className={styles.filterList}>
+                      {availableStates.length > 0 ? (
+                        [...availableStates]
+                          .sort((a, b) => a.state.localeCompare(b.state))
+                          .filter(state =>
+                            !filterSearches.states ||
+                            state.state.toLowerCase().includes(filterSearches.states.toLowerCase())
+                          )
+                          .map((state, idx) => (
+                            <label key={idx} className={styles.filterCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={filters.states.includes(state.state)}
+                                onChange={() => toggleFilterValue('states', state.state)}
+                              />
+                              <span>{state.state}</span>
+                            </label>
+                          ))
+                      ) : (
+                        <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                          {filterSearches.states.trim() ? 'No states found' : 'No states available'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -849,31 +1143,84 @@ export default function AdvancedSearch() {
               </button>
               {expandedSections.specialties && (
                 <div className={styles.filterContent}>
-                  <input
-                    type="text"
-                    value={filterSearches.specialties}
-                    onChange={(e) => setFilterSearches(prev => ({ ...prev, specialties: e.target.value }))}
-                    placeholder="Search specialties..."
-                    className={styles.filterSearchInput}
-                  />
-                  <div className={styles.filterList}>
-                    {[...availableSpecialties]
-                      .sort((a, b) => a.specialty.localeCompare(b.specialty))
-                      .filter(spec =>
-                        !filterSearches.specialties ||
-                        spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
-                      )
-                      .map((spec, idx) => (
-                        <label key={idx} className={styles.filterCheckbox}>
-                          <input
-                            type="checkbox"
-                            checked={filters.specialties.includes(spec.specialty)}
-                            onChange={() => toggleFilterValue('specialties', spec.specialty)}
-                          />
-                          <span className={styles.specialtyName}>{spec.specialty}</span>
-                        </label>
-                      ))}
+                  <div className="searchBarContainer" style={{ width: '100%', minWidth: '0', marginTop: '8px', marginBottom: '8px' }}>
+                    <div className="searchIcon">
+                      <Search size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search specialties..."
+                      value={filterSearches.specialties}
+                      onChange={(e) => {
+                        setFilterSearches(prev => ({ ...prev, specialties: e.target.value }));
+                        setSpecialtyEscapeCount(0);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          if (specialtyEscapeTimeoutRef.current) {
+                            clearTimeout(specialtyEscapeTimeoutRef.current);
+                          }
+                          if (filterSearches.specialties && specialtyEscapeCount === 0) {
+                            setFilterSearches(prev => ({ ...prev, specialties: '' }));
+                            setSearchedSpecialties(null);
+                            setSpecialtyEscapeCount(1);
+                            specialtyEscapeTimeoutRef.current = setTimeout(() => setSpecialtyEscapeCount(0), 1000);
+                          } else {
+                            specialtySearchInputRef.current?.blur();
+                            setSpecialtyEscapeCount(0);
+                          }
+                        }
+                      }}
+                      className="searchInput"
+                      style={{ width: '100%', paddingRight: filterSearches.specialties ? '70px' : '12px' }}
+                      data-search-enhanced="true"
+                      ref={specialtySearchInputRef}
+                    />
+                    {filterSearches.specialties && (
+                      <button
+                        onClick={() => {
+                          setFilterSearches(prev => ({ ...prev, specialties: '' }));
+                          setSearchedSpecialties(null);
+                        }}
+                        className="clearButton"
+                        style={{ right: '8px' }}
+                        type="button"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
+                  {loadingSpecialtySearch || (filterSearches.specialties.trim() && searchedSpecialties === null) ? (
+                    <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                      Searching...
+                    </div>
+                  ) : (
+                    <div className={styles.filterList}>
+                      {availableSpecialties.length > 0 ? (
+                        [...availableSpecialties]
+                          .sort((a, b) => a.specialty.localeCompare(b.specialty))
+                          .filter(spec =>
+                            !filterSearches.specialties ||
+                            spec.specialty.toLowerCase().includes(filterSearches.specialties.toLowerCase())
+                          )
+                          .map((spec, idx) => (
+                            <label key={idx} className={styles.filterCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={filters.specialties.includes(spec.specialty)}
+                                onChange={() => toggleFilterValue('specialties', spec.specialty)}
+                              />
+                              <span className={styles.specialtyName}>{spec.specialty}</span>
+                            </label>
+                          ))
+                      ) : (
+                        <div style={{ padding: '12px', color: 'var(--gray-500)', fontSize: '12px', textAlign: 'center' }}>
+                          {filterSearches.specialties.trim() ? 'No specialties found' : 'No specialties available'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
