@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { getTagColor, getTagLabel } from '../../utils/tagColors';
+import { sanitizeProviderName } from '../../utils/providerName';
 import styles from './NetworkProviderTooltip.module.css';
 
 export default function NetworkProviderTooltip({ 
   zipCode,
-  tagLabel,
-  tagColor,
-  providers,
+  providersByTag, // Object mapping tag types to arrays of providers
   children 
 }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -22,7 +22,10 @@ export default function NetworkProviderTooltip({
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
         const tooltipWidth = 300;
-        const tooltipHeight = 200; // Estimated
+        // Estimate height based on number of tags and providers
+        const tagCount = providersByTag ? Object.keys(providersByTag).length : 0;
+        const totalProviders = providersByTag ? Object.values(providersByTag).reduce((sum, arr) => sum + arr.length, 0) : 0;
+        const tooltipHeight = Math.min(400, 100 + (tagCount * 30) + (totalProviders * 35)); // Dynamic height estimation
         const padding = 10;
 
         // Calculate horizontal position
@@ -106,7 +109,7 @@ export default function NetworkProviderTooltip({
     setIsVisible(false);
   };
 
-  if (!providers || providers.length === 0) {
+  if (!providersByTag || Object.keys(providersByTag).length === 0) {
     return <span>{children}</span>;
   }
 
@@ -123,16 +126,26 @@ export default function NetworkProviderTooltip({
       onMouseLeave={() => setIsVisible(false)}
     >
       <div className={styles.tooltipHeader}>
-        <span style={{ color: tagColor, fontWeight: '600' }}>
-          {tagLabel} Providers
+        <span style={{ fontWeight: '600' }}>
+          Network Providers
         </span>
         <span className={styles.tooltipZipCode}>ZIP: {zipCode}</span>
       </div>
       
       <div className={styles.tooltipProviders}>
-        {providers.map((provider, idx) => (
-          <div key={idx} className={styles.tooltipProvider}>
-            {provider.name}
+        {Object.entries(providersByTag).map(([tag, providers]) => (
+          <div key={tag} className={styles.tooltipTagSection}>
+            <div 
+              className={styles.tooltipTagHeader}
+              style={{ color: getTagColor(tag) }}
+            >
+              {getTagLabel(tag)} ({providers.length})
+            </div>
+            {providers.map((provider, idx) => (
+              <div key={idx} className={styles.tooltipProvider}>
+                {sanitizeProviderName(provider.name) || provider.name}
+              </div>
+            ))}
           </div>
         ))}
       </div>

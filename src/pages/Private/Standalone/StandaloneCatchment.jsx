@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, MapPin, Users, TrendingUp, Calendar, Building2, Navigation, ChevronDown, Network, Lock } from 'lucide-react';
+import { Target, MapPin, Users, TrendingUp, Calendar, Building2, Navigation, ChevronDown, Lock, Clock, DollarSign } from 'lucide-react';
 import { supabase } from '../../../app/supabaseClient';
 import { apiUrl } from '../../../utils/api';
 import Spinner from '../../../components/Buttons/Spinner';
@@ -11,6 +11,7 @@ import { getTagColor, getTagLabel } from '../../../utils/tagColors';
 import NetworkProviderTooltip from '../../../components/UI/NetworkProviderTooltip';
 import { useUserTeam } from '../../../hooks/useUserTeam';
 import Button from '../../../components/Buttons/Button';
+import { sanitizeProviderName } from '../../../utils/providerName';
 import styles from './StandaloneCatchment.module.css';
 
 export default function StandaloneCatchment() {
@@ -24,7 +25,6 @@ export default function StandaloneCatchment() {
   const [marketsError, setMarketsError] = useState(null);
 
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
-  const [networkTagDropdownOpen, setNetworkTagDropdownOpen] = useState(false);
 
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedMarketId, setSelectedMarketId] = useState(searchParams.get('marketId') || null);
@@ -45,7 +45,6 @@ export default function StandaloneCatchment() {
   const [error, setError] = useState(null);
   const [facilityNames, setFacilityNames] = useState(new Map());
   const [loadingFacilityNames, setLoadingFacilityNames] = useState(false);
-  const [selectedNetworkTag, setSelectedNetworkTag] = useState(null);
   const [zipCodeToTagMap, setZipCodeToTagMap] = useState(new Map()); // ZIP code -> tag types mapping
   const [zipCodeToProvidersMap, setZipCodeToProvidersMap] = useState(new Map()); // ZIP code -> array of provider names mapping
   const [loadingNetworkTags, setLoadingNetworkTags] = useState(false);
@@ -505,7 +504,7 @@ export default function StandaloneCatchment() {
               const dhc = String(provider.dhc);
               const zip = provider.zip ? String(provider.zip).trim() : null;
               const tags = dhcToTagsMap.get(dhc);
-              const providerName = provider.name || `Provider ${dhc}`;
+              const providerName = sanitizeProviderName(provider.name) || `Provider ${dhc}`;
               
               if (zip && tags && tags.length > 0) {
                 // If ZIP already has tags, merge them
@@ -543,14 +542,20 @@ export default function StandaloneCatchment() {
     buildZipCodeToTagMap();
   }, [taggedProviders]);
 
-  // Helper function to check if a ZIP code contains providers from selected network tag
-  const zipCodeHasNetworkProvider = useCallback((zipCode) => {
-    if (!selectedNetworkTag || !zipCode) return false;
+  // Helper function to get all tags for a ZIP code
+  const getZipCodeTags = useCallback((zipCode) => {
+    if (!zipCode) return [];
     
     const zipStr = String(zipCode).trim();
     const tags = zipCodeToTagMap.get(zipStr);
-    return tags && tags.includes(selectedNetworkTag);
-  }, [selectedNetworkTag, zipCodeToTagMap]);
+    return tags || [];
+  }, [zipCodeToTagMap]);
+  
+  // Helper function to check if a ZIP code has any network providers
+  const zipCodeHasNetworkProvider = useCallback((zipCode) => {
+    const tags = getZipCodeTags(zipCode);
+    return tags.length > 0;
+  }, [getZipCodeTags]);
 
   // Helper function to get specialty label from CCN letter
   const getSpecialtyLabel = (letter) => {
@@ -653,14 +658,103 @@ export default function StandaloneCatchment() {
             const heResult = await heResponse.json();
             if (heResult.success && Array.isArray(heResult.data)) {
               let heCount = 0;
+              const specialtyCcnsFound = [];
+              
               heResult.data.forEach((record) => {
                 const ccn = record?.CCN || record?.ccn;
                 const orgName = record?.ORGANIZATION_NAME || record?.organization_name;
                 if (ccn && orgName && !nameMap.has(String(ccn))) {
-                  nameMap.set(String(ccn), String(orgName));
-                  heCount++;
+                  const ccnStr = String(ccn);
+                  // Check if this is a specialty CCN (letter in 3rd position)
+                  if (ccnStr.length >= 6 && /[A-Z]/.test(ccnStr[2])) {
+                    specialtyCcnsFound.push({ ccn: ccnStr, orgName });
+                  } else {
+                    nameMap.set(ccnStr, String(orgName));
+                    heCount++;
+                  }
                 }
               });
+              
+              // For specialty CCNs found in hospital-enrollments, try to find main hospital CCN
+              if (specialtyCcnsFound.length > 0) {
+                console.log(`🔍 Found ${specialtyCcnsFound.length} specialty CCNs in Hospital Enrollments, looking up main hospital names...`);
+                
+                // Get all possible main CCNs for these specialty CCNs
+                const possibleMainCcns = new Set();
+                specialtyCcnsFound.forEach(({ ccn }) => {
+                  const pattern = getMainCcnPattern(ccn);
+                  if (pattern) {
+                    for (let digit = 0; digit <= 9; digit++) {
+                      const possibleCcn = pattern.prefix + digit + pattern.suffix;
+                      possibleMainCcns.add(possibleCcn);
+                    }
+                  }
+                });
+                
+                // Try to get main hospital names from hospital-enrollments
+                const mainCcnsToLookup = Array.from(possibleMainCcns);
+                if (mainCcnsToLookup.length > 0) {
+                  const mainHeResponse = await fetch(apiUrl('/api/hospital-enrollments'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      ccns: mainCcnsToLookup,
+                    }),
+                  });
+                  
+                  if (mainHeResponse.ok) {
+                    const mainHeResult = await mainHeResponse.json();
+                    if (mainHeResult.success && Array.isArray(mainHeResult.data)) {
+                      const mainNameMap = new Map();
+                      mainHeResult.data.forEach((record) => {
+                        const ccn = record?.CCN || record?.ccn;
+                        const orgName = record?.ORGANIZATION_NAME || record?.organization_name;
+                        if (ccn && orgName) {
+                          mainNameMap.set(String(ccn), String(orgName));
+                        }
+                      });
+                      
+                      // Now create names for specialty units
+                      let specialtyCount = 0;
+                      specialtyCcnsFound.forEach(({ ccn, orgName }) => {
+                        const pattern = getMainCcnPattern(ccn);
+                        if (pattern) {
+                          // Find matching main CCN (try digits 0-9)
+                          let foundMainName = null;
+                          for (let digit = 0; digit <= 9; digit++) {
+                            const testCcn = pattern.prefix + digit + pattern.suffix;
+                            if (mainNameMap.has(testCcn)) {
+                              foundMainName = mainNameMap.get(testCcn);
+                              break;
+                            }
+                          }
+                          
+                          if (foundMainName) {
+                            const specialtyLetter = ccn[2];
+                            const specialtyLabel = getSpecialtyLabel(specialtyLetter);
+                            const fullName = foundMainName + specialtyLabel;
+                            nameMap.set(ccn, fullName);
+                            specialtyCount++;
+                          } else {
+                            // Fallback: use the name from hospital-enrollments without suffix
+                            nameMap.set(ccn, orgName);
+                            heCount++;
+                          }
+                        } else {
+                          // Not a specialty CCN pattern, use name as-is
+                          nameMap.set(ccn, orgName);
+                          heCount++;
+                        }
+                      });
+                      
+                      if (specialtyCount > 0) {
+                        console.log(`✅ Added ${specialtyCount} specialty unit names with suffixes from main hospital CCNs`);
+                      }
+                    }
+                  }
+                }
+              }
+              
               console.log(`✅ Hospital Enrollments: Added ${heCount} additional names from ${heResult.data.length} records`);
             }
           }
@@ -878,74 +972,6 @@ export default function StandaloneCatchment() {
               </div>
             )}
 
-            <Dropdown
-              trigger={
-                <button type="button" className="sectionHeaderButton">
-                  <Network size={14} />
-                  {selectedNetworkTag ? getTagLabel(selectedNetworkTag) : 'Network Tag'}
-                  <ChevronDown size={14} />
-                </button>
-              }
-              isOpen={networkTagDropdownOpen}
-              onToggle={setNetworkTagDropdownOpen}
-              className={styles.dropdownMenu}
-            >
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setSelectedNetworkTag(null);
-                  setNetworkTagDropdownOpen(false);
-                }}
-              >
-                All Tags
-              </button>
-              <div className={styles.dropdownDivider}></div>
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setSelectedNetworkTag('me');
-                  setNetworkTagDropdownOpen(false);
-                }}
-                style={{ color: getTagColor('me') }}
-              >
-                Me
-              </button>
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setSelectedNetworkTag('partner');
-                  setNetworkTagDropdownOpen(false);
-                }}
-                style={{ color: getTagColor('partner') }}
-              >
-                Partner
-              </button>
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setSelectedNetworkTag('competitor');
-                  setNetworkTagDropdownOpen(false);
-                }}
-                style={{ color: getTagColor('competitor') }}
-              >
-                Competitor
-              </button>
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => {
-                  setSelectedNetworkTag('target');
-                  setNetworkTagDropdownOpen(false);
-                }}
-                style={{ color: getTagColor('target') }}
-              >
-                Target
-              </button>
-            </Dropdown>
 
           </div>
 
@@ -1041,6 +1067,34 @@ export default function StandaloneCatchment() {
                     <p>${catchmentData.summary?.totalCharges?.toLocaleString() || 0}</p>
                   </div>
                 </div>
+
+                <div className={styles.summaryCard}>
+                  <div className={styles.summaryIcon}>
+                    <Clock size={20} />
+                  </div>
+                  <div className={styles.summaryContent}>
+                    <h3>Avg Days</h3>
+                    <p>
+                      {catchmentData.summary?.totalCases > 0 
+                        ? (catchmentData.summary.totalDays / catchmentData.summary.totalCases).toFixed(1)
+                        : '0.0'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.summaryCard}>
+                  <div className={styles.summaryIcon}>
+                    <DollarSign size={20} />
+                  </div>
+                  <div className={styles.summaryContent}>
+                    <h3>Avg Charge</h3>
+                    <p>
+                      ${catchmentData.summary?.totalCases > 0 
+                        ? parseInt((catchmentData.summary.totalCharges / catchmentData.summary.totalCases).toFixed(0)).toLocaleString()
+                        : '0'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className={styles.sideBySideLayout}>
@@ -1071,12 +1125,24 @@ export default function StandaloneCatchment() {
                                 const avgDays = cases > 0 ? (days / cases).toFixed(1) : '0';
                                 const avgCharges = cases > 0 ? (charges / cases).toFixed(0) : '0';
                                 const isSelected = selectedZipCodes.includes(row.ZIP_CD_OF_RESIDENCE);
-                                const zipHasNetworkProvider = zipCodeHasNetworkProvider(row.ZIP_CD_OF_RESIDENCE);
                                 const zipCode = String(row.ZIP_CD_OF_RESIDENCE).trim();
-                                const matchingProviders = zipHasNetworkProvider && zipCodeToProvidersMap.get(zipCode) 
-                                  ? zipCodeToProvidersMap.get(zipCode).filter(p => p.tags.includes(selectedNetworkTag))
-                                  : [];
-
+                                const zipTags = getZipCodeTags(zipCode);
+                                const zipHasNetworkProvider = zipTags.length > 0;
+                                
+                                // Group providers by tag for tooltip
+                                const providersByTag = {};
+                                if (zipHasNetworkProvider && zipCodeToProvidersMap.has(zipCode)) {
+                                  const allProviders = zipCodeToProvidersMap.get(zipCode);
+                                  allProviders.forEach(provider => {
+                                    provider.tags.forEach(tag => {
+                                      if (!providersByTag[tag]) {
+                                        providersByTag[tag] = [];
+                                      }
+                                      providersByTag[tag].push(provider);
+                                    });
+                                  });
+                                }
+                                
                                 return (
                                   <tr 
                                     key={index}
@@ -1087,25 +1153,37 @@ export default function StandaloneCatchment() {
                                         setSelectedZipCodes(prev => [...prev, row.ZIP_CD_OF_RESIDENCE]);
                                       }
                                     }}
-                                    className={isSelected ? styles.selectedRow : zipHasNetworkProvider ? styles.highlightedRow : ''}
+                                    className={isSelected ? styles.selectedRow : ''}
                                     style={{ 
-                                      cursor: 'pointer',
-                                      ...(zipHasNetworkProvider ? { 
-                                        backgroundColor: `${getTagColor(selectedNetworkTag)}15`,
-                                        borderLeft: `3px solid ${getTagColor(selectedNetworkTag)}`
-                                      } : {})
+                                      cursor: 'pointer'
                                     }}
                                   >
                                     <td>
-                                      {zipHasNetworkProvider && matchingProviders.length > 0 ? (
-                                        <NetworkProviderTooltip
-                                          zipCode={zipCode}
-                                          tagLabel={getTagLabel(selectedNetworkTag)}
-                                          tagColor={getTagColor(selectedNetworkTag)}
-                                          providers={matchingProviders}
-                                        >
-                                          {row.ZIP_CD_OF_RESIDENCE}
-                                        </NetworkProviderTooltip>
+                                      {zipHasNetworkProvider && Object.keys(providersByTag).length > 0 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <NetworkProviderTooltip
+                                            zipCode={zipCode}
+                                            providersByTag={providersByTag}
+                                          >
+                                            {row.ZIP_CD_OF_RESIDENCE}
+                                          </NetworkProviderTooltip>
+                                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                            {zipTags.map(tag => (
+                                              <span
+                                                key={tag}
+                                                style={{
+                                                  width: '8px',
+                                                  height: '8px',
+                                                  borderRadius: '50%',
+                                                  backgroundColor: getTagColor(tag),
+                                                  display: 'inline-block',
+                                                  flexShrink: 0
+                                                }}
+                                                title={getTagLabel(tag)}
+                                              />
+                                            ))}
+                                          </div>
+                                        </div>
                                       ) : (
                                         row.ZIP_CD_OF_RESIDENCE
                                       )}

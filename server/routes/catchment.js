@@ -243,8 +243,9 @@ router.post("/catchment-zip-analysis", async (req, res) => {
     }
 
     // Extract zip codes for Hospital Service Area analysis
-    const zipCodes = zipRows.map(row => row.zip_code);
+    const zipCodes = zipRows.map(row => String(row.zip_code || row).trim()).filter(zip => zip && zip !== '*');
     console.log(`🔍 Extracted ${zipCodes.length} zip codes for Hospital Service Area analysis`);
+    console.log(`🔍 Sample ZIP codes: ${zipCodes.slice(0, 10).join(', ')}${zipCodes.length > 10 ? '...' : ''}`);
 
     // Now query the Hospital Service Area dataset for these zip codes
     const datasetId = await getCurrentDatasetId();
@@ -252,33 +253,122 @@ router.post("/catchment-zip-analysis", async (req, res) => {
 
     if (zipCodes.length > 0) {
       // Process zip codes in batches for the CMS API
-      const batchSize = 25;
+      // Reduced batch size to avoid hitting CMS API 1000 record limit
+      const batchSize = 10;
       let allHospitalData = [];
+      const failedBatches = [];
       
       for (let i = 0; i < zipCodes.length; i += batchSize) {
         const batch = zipCodes.slice(i, i + batchSize);
-        console.log(`🔍 Processing zip code batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(zipCodes.length/batchSize)} with ${batch.length} zip codes`);
+        console.log(`🔍 Processing zip code batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(zipCodes.length/batchSize)} with ${batch.length} zip codes: ${batch.slice(0, 5).join(', ')}${batch.length > 5 ? '...' : ''}`);
         
-        // Use CMS API filter for zip codes
-        const zipFilters = batch.map(zip => `filter[condition][value][]=${zip}`).join('&');
+        // Use CMS API filter for zip codes (ensure proper URL encoding)
+        const zipFilters = batch.map(zip => `filter[condition][value][]=${encodeURIComponent(zip)}`).join('&');
         const apiUrl = `https://data.cms.gov/data-api/v1/dataset/${datasetId}/data?filter[condition][path]=ZIP_CD_OF_RESIDENCE&filter[condition][operator]=IN&${zipFilters}&limit=0`;
         
-        console.log(`🔍 Fetching hospital data for zip codes: ${apiUrl.substring(0, 100)}...`);
+        console.log(`🔍 Fetching hospital data for zip codes: ${apiUrl.substring(0, 150)}...`);
         
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          console.warn(`⚠️ Failed to fetch data for batch ${Math.floor(i/batchSize) + 1}: ${response.status}`);
-          continue;
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Failed to fetch data for batch ${Math.floor(i/batchSize) + 1}: ${response.status} ${response.statusText}`);
+            console.error(`❌ Error details: ${errorText.substring(0, 500)}`);
+            console.error(`❌ ZIP codes in failed batch: ${batch.join(', ')}`);
+            failedBatches.push({ batch, status: response.status, error: errorText });
+            continue;
+          }
+          
+          const batchData = await response.json();
+          console.log(`📊 Received ${batchData.length} hospital records from batch ${Math.floor(i/batchSize) + 1}`);
+          
+          // Check which ZIP codes we actually got data for
+          const zipCodesInResponse = new Set(
+            batchData.map(row => String(row.ZIP_CD_OF_RESIDENCE || '').trim())
+              .filter(zip => zip && zip !== '*')
+          );
+          
+          // If we got exactly 1000 records, we likely hit the CMS API limit
+          // Check if all requested ZIP codes are represented in the response
+          if (batchData.length === 1000) {
+            console.warn(`⚠️ Batch ${Math.floor(i/batchSize) + 1} returned exactly 1000 records (likely hit API limit)`);
+            console.log(`📊 ZIP codes in response: ${Array.from(zipCodesInResponse).slice(0, 10).join(', ')}${zipCodesInResponse.size > 10 ? '...' : ''}`);
+          }
+          
+          // Check for missing ZIP codes (ZIP codes we requested but didn't get data for)
+          const missingZipCodes = batch.filter(zip => {
+            const zipStr = String(zip).trim();
+            return !zipCodesInResponse.has(zipStr);
+          });
+          
+          if (missingZipCodes.length > 0) {
+            console.log(`⚠️ ${missingZipCodes.length} ZIP codes requested but not found in batch response: ${missingZipCodes.join(', ')}`);
+            console.log(`🔍 Processing missing ZIP codes individually...`);
+            
+            for (const zipCode of missingZipCodes) {
+              try {
+                const singleZipUrl = `https://data.cms.gov/data-api/v1/dataset/${datasetId}/data?filter[condition][path]=ZIP_CD_OF_RESIDENCE&filter[condition][operator]=IN&filter[condition][value][]=${encodeURIComponent(zipCode)}&limit=0`;
+                const singleResponse = await fetch(singleZipUrl);
+                if (singleResponse.ok) {
+                  const singleZipData = await singleResponse.json();
+                  if (singleZipData.length > 0) {
+                    console.log(`✅ Fetched ${singleZipData.length} records for ZIP ${zipCode} individually`);
+                    allHospitalData = allHospitalData.concat(singleZipData);
+                  } else {
+                    console.log(`ℹ️ ZIP ${zipCode} has no hospital data (this is expected for some ZIP codes)`);
+                  }
+                } else {
+                  console.warn(`⚠️ Failed to fetch ZIP ${zipCode} individually: ${singleResponse.status}`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
+              } catch (err) {
+                console.warn(`⚠️ Exception fetching ZIP ${zipCode} individually:`, err.message);
+              }
+            }
+          }
+          
+          allHospitalData = allHospitalData.concat(batchData);
+        } catch (fetchError) {
+          console.error(`❌ Exception fetching batch ${Math.floor(i/batchSize) + 1}:`, fetchError.message);
+          console.error(`❌ ZIP codes in failed batch: ${batch.join(', ')}`);
+          failedBatches.push({ batch, error: fetchError.message });
         }
         
-        const batchData = await response.json();
-        console.log(`📊 Received ${batchData.length} hospital records from batch ${Math.floor(i/batchSize) + 1}`);
-        
-        allHospitalData = allHospitalData.concat(batchData);
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < zipCodes.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      // Try to process failed batches individually (fallback)
+      if (failedBatches.length > 0) {
+        console.log(`⚠️ Attempting to process ${failedBatches.length} failed batches individually...`);
+        for (const failedBatch of failedBatches) {
+          for (const zipCode of failedBatch.batch) {
+            try {
+              const singleZipUrl = `https://data.cms.gov/data-api/v1/dataset/${datasetId}/data?filter[condition][path]=ZIP_CD_OF_RESIDENCE&filter[condition][operator]=IN&filter[condition][value][]=${encodeURIComponent(zipCode)}&limit=0`;
+              const response = await fetch(singleZipUrl);
+              if (response.ok) {
+                const singleZipData = await response.json();
+                if (singleZipData.length > 0) {
+                  console.log(`✅ Successfully fetched ${singleZipData.length} records for ZIP ${zipCode} individually`);
+                  allHospitalData = allHospitalData.concat(singleZipData);
+                }
+              } else {
+                console.warn(`⚠️ Still failed for ZIP ${zipCode} individually: ${response.status}`);
+              }
+            } catch (err) {
+              console.warn(`⚠️ Exception fetching ZIP ${zipCode} individually:`, err.message);
+            }
+          }
+        }
       }
       
       hospitalData = allHospitalData;
       console.log(`📊 Total hospital records received: ${hospitalData.length}`);
+      if (failedBatches.length > 0) {
+        console.log(`⚠️ ${failedBatches.length} batches failed initially, attempted individual fallback`);
+      }
     }
 
     // Filter out suppressed data

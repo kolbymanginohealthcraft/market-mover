@@ -61,9 +61,23 @@
 .tooltipProviders {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 200px;
+  gap: 12px;
+  max-height: 300px;
   overflow-y: auto;
+}
+
+.tooltipTagSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tooltipTagHeader {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
 }
 
 .tooltipProvider {
